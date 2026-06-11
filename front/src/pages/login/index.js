@@ -17,22 +17,22 @@ export const Login = () => {
       <C.Hero>
         <C.HeroTop>
           <C.Brand>V12</C.Brand>
-          <C.HeroTitle>Base limpa para automacao comercial multi-filial.</C.HeroTitle>
+          <C.HeroTitle>Um sistema multi-filial. Desenvolvido para agilizar seu negócio.</C.HeroTitle>
           <C.HeroText>
-            Estrutura inspirada no Boagenda, mas preparada para operar com usuarios
-            vinculados a uma ou mais filiais, sem dependencia de dominio para resolver tenant.
+            Organize sua empresa, com o sistema V12, cadastre seus produtos, realize vendas, emita notas fiscais de venda e devolução.
+            Com o V12 você emite seus realórios e tem as informações que precisa para tomada de decisão.
           </C.HeroText>
         </C.HeroTop>
 
         <C.HeroCard>
-          <C.HeroCardLabel>Fluxo atual</C.HeroCardLabel>
-          <C.HeroCardValue>Login, escolha da filial e dashboard inicial.</C.HeroCardValue>
+          <C.HeroCardLabel>Contato</C.HeroCardLabel>
+          <C.HeroCardValue>(81) 9 8416-3086</C.HeroCardValue>
         </C.HeroCard>
       </C.Hero>
 
       <C.FormArea>
         <C.FormCard>
-          <C.Step>Entrada direta</C.Step>
+          <C.Step>V12 Sistema</C.Step>
           <C.Title>Entrar no sistema</C.Title>
           <C.Subtitle>
             Informe login e senha. A filial padrao do usuario sera carregada e podera ser alterada depois no menu superior.
@@ -43,7 +43,7 @@ export const Login = () => {
             value={username}
             onChange={(event) => setUsername(event.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="admin ou admin@v12.local"
+            placeholder="admin ou admin@mail.com"
             autoComplete="username"
           />
 

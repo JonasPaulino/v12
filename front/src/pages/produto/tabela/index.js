@@ -98,7 +98,7 @@ const Tabela = ({ search, refreshKey, onEditar, onDeleted }) => {
                   {sort.ativo === "ASC" ? "▲" : sort.ativo === "DESC" ? "▼" : "•"}
                 </C.SortFlag>
               </C.HeaderCell>
-              <C.HeaderCell>Acoes</C.HeaderCell>
+              <C.HeaderCell>Ações</C.HeaderCell>
             </C.Row>
           </C.Head>
 
@@ -127,8 +127,8 @@ const Tabela = ({ search, refreshKey, onEditar, onDeleted }) => {
                     <C.MenuButton
                       type="button"
                       onClick={(event) => openMenu(produto.produto_id, event.currentTarget)}
-                      title="Acoes"
-                      aria-label="Acoes"
+                      title="Ações"
+                      aria-label="Ações"
                     >
                       <C.MenuIcon />
                     </C.MenuButton>
