@@ -54,6 +54,9 @@ export const TriggerIndicator = styled.span`
   ${Trigger}:hover & {
     color: #ffffff;
   }
+  
+    display: ${({ $open }) => ($open ? "block" : "none")};
+
 `;
 
 export const UserName = styled.strong`

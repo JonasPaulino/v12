@@ -34,7 +34,7 @@ export const Body = styled.section`
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding: 0 32px 32px;
+  padding: 0 18px 18px;
 
   @media (max-width: 640px) {
     padding: 0 14px 22px;

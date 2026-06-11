@@ -31,6 +31,9 @@ export const MenuButton = styled.button`
   box-shadow: ${({ theme }) => theme.colors.shadowSoft};
   color: ${({ theme }) => theme.colors.primaryStrong};
   font-size: 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 `;
 
 export const PageTitle = styled.h1`

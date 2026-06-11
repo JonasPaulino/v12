@@ -2,7 +2,7 @@ import styled, { css } from "styled-components";
 import { SlOptions } from "react-icons/sl";
 
 export const Container = styled.div`
-  min-height: 520px;
+  height: 100%;
   display: flex;
   flex-direction: column;
 `;
