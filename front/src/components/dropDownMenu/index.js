@@ -1,0 +1,123 @@
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import * as S from "./style";
+
+export default function DropdownMenu({
+  open,
+  anchorEl,
+  onClose,
+  items = [],
+  align = "end",
+  minWidth = 140,
+  offset = 6,
+  zIndex = 999999,
+  closeOnScroll = true,
+  strategy = "fixed",
+}) {
+  const menuRef = useRef(null);
+  const [coords, setCoords] = useState({ top: -10000, left: -10000 });
+  const [measuring, setMeasuring] = useState(true);
+  const shouldRender = open && !!anchorEl;
+  const body = typeof document !== "undefined" ? document.body : null;
+
+  useLayoutEffect(() => {
+    if (!shouldRender) return;
+    setMeasuring(true);
+    setCoords({ top: -10000, left: -10000 });
+  }, [shouldRender]);
+
+  useLayoutEffect(() => {
+    if (!shouldRender || !menuRef.current || !anchorEl) return;
+
+    const menuRect = menuRef.current.getBoundingClientRect();
+    const rect = anchorEl.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    let left = align === "start" ? rect.left : rect.right - menuRect.width;
+    left = Math.max(8, Math.min(left, vw - 8 - menuRect.width));
+
+    const spaceBelow = vh - rect.bottom;
+    const spaceAbove = rect.top;
+    let top =
+      spaceBelow < menuRect.height + 8 && spaceAbove > spaceBelow
+        ? rect.top - offset - menuRect.height
+        : rect.bottom + offset;
+
+    if (strategy === "absolute") {
+      left += window.pageXOffset || document.documentElement.scrollLeft || 0;
+      top += window.pageYOffset || document.documentElement.scrollTop || 0;
+    }
+
+    if (top + menuRect.height > vh - 4) {
+      top = vh - menuRect.height - 4;
+    }
+
+    if (top < 4) top = 4;
+
+    setCoords({ top, left });
+    setMeasuring(false);
+  }, [shouldRender, anchorEl, align, offset, strategy]);
+
+  useEffect(() => {
+    if (!shouldRender) return;
+
+    const onKey = (event) => event.key === "Escape" && onClose?.();
+    const onResize = () => onClose?.();
+    const onScroll = () => closeOnScroll && onClose?.();
+
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("resize", onResize);
+    if (closeOnScroll) {
+      document.addEventListener("scroll", onScroll, true);
+    }
+
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("resize", onResize);
+      if (closeOnScroll) {
+        document.removeEventListener("scroll", onScroll, true);
+      }
+    };
+  }, [shouldRender, onClose, closeOnScroll]);
+
+  if (!body || !shouldRender) return null;
+
+  return createPortal(
+    <>
+      <S.ClickAway $zIndex={zIndex} onClick={onClose} />
+      <S.Menu
+        ref={menuRef}
+        className={measuring ? "measuring" : "open"}
+        style={{ top: coords.top, left: coords.left }}
+        $minWidth={minWidth}
+        $zIndex={zIndex}
+        $strategy={strategy}
+        role="menu"
+      >
+        {items.map((item, index) =>
+          item.isDivider ? (
+            <S.Divider key={item.key ?? `div-${index}`} />
+          ) : (
+            <S.Item
+              key={item.key ?? index}
+              type="button"
+              onClick={() => {
+                if (item.disabled) return;
+                item.onClick?.();
+                onClose?.();
+              }}
+              $danger={!!item.danger}
+              disabled={!!item.disabled}
+              role="menuitem"
+            >
+              {item.icon || null}
+              {item.label}
+            </S.Item>
+          )
+        )}
+      </S.Menu>
+    </>,
+    body
+  );
+}

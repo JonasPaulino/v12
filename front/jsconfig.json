@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "baseUrl": "src",
+    "paths": {
+      "api": ["api/axiosConfig.js"],
+      "api/*": ["api/*"],
+      "components": ["components"],
+      "components/*": ["components/*"],
+      "context": ["context/index.js"],
+      "context/*": ["context/*"],
+      "middleware": ["middleware/index.js"],
+      "middleware/*": ["middleware/*"],
+      "pages": ["pages"],
+      "pages/*": ["pages/*"],
+      "router": ["router/index.js"],
+      "router/*": ["router/*"],
+      "utils": ["utils/index.js"],
+      "utils/*": ["utils/*"]
+    }
+  },
+  "include": ["src"]
+}
