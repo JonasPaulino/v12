@@ -1,4 +1,5 @@
 import styled from "styled-components";
+import { BsThreeDotsVertical } from "react-icons/bs";
 
 export const Container = styled.div`
   height: 100%;
@@ -120,6 +121,28 @@ export const OriginTag = styled.span`
   color: ${({ theme }) => theme.colors.textSoft};
   font-size: 0.82rem;
   font-weight: 700;
+`;
+
+export const MenuButton = styled.button`
+  width: 40px;
+  height: 40px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: 12px;
+  background: ${({ theme }) => theme.colors.surface};
+  color: ${({ theme }) => theme.colors.textSoft};
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+
+  &:hover {
+    color: ${({ theme }) => theme.colors.primaryStrong};
+    border-color: ${({ theme }) => theme.colors.primary};
+  }
+`;
+
+export const MenuIcon = styled(BsThreeDotsVertical)`
+  font-size: 1rem;
 `;
 
 export const Empty = styled.div`

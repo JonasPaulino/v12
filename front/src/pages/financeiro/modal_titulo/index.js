@@ -19,7 +19,7 @@ const mapStatusParcelaTone = (status) => {
   return "warning";
 };
 
-export const ModalTitulo = ({ isOpen, initialTipo, onClose }) => {
+export const ModalTitulo = ({ isOpen, tituloId, initialTipo, onClose }) => {
   const {
     loadingForm,
     submitting,
@@ -32,9 +32,11 @@ export const ModalTitulo = ({ isOpen, initialTipo, onClose }) => {
     handleSelectPessoa,
     loadPessoasOptions,
     handleSubmit,
+    tituloId: currentTituloId,
     selectedPessoa,
   } = useModalTitulo({
     isOpen,
+    tituloId,
     initialTipo,
     onClose,
   });
@@ -55,7 +57,7 @@ export const ModalTitulo = ({ isOpen, initialTipo, onClose }) => {
       <C.Modal>
         <C.Header>
           <C.TitleBlock>
-            <C.Title>Novo titulo manual</C.Title>
+            <C.Title>{currentTituloId ? "Editar titulo manual" : "Novo titulo manual"}</C.Title>
             <C.Subtitle>
               Lance contas a pagar ou a receber sem pedido de venda, mantendo parcelas e
               vencimentos no financeiro.
@@ -254,7 +256,11 @@ export const ModalTitulo = ({ isOpen, initialTipo, onClose }) => {
               Cancelar
             </C.SecondaryButton>
             <C.PrimaryButton type="submit" disabled={submitting}>
-              {submitting ? "Salvando..." : "Cadastrar titulo"}
+              {submitting
+                ? "Salvando..."
+                : currentTituloId
+                ? "Salvar alteracoes"
+                : "Cadastrar titulo"}
             </C.PrimaryButton>
           </C.Footer>
         </C.Form>

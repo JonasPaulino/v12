@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useCallback, useMemo, useState } from "react";
+import DropdownMenu from "components/dropDownMenu";
 import { useTabelaFinanceiro } from "./use";
 import * as C from "./style";
 
@@ -18,7 +19,7 @@ const formatStatus = (status) => {
   return String(status).charAt(0).toUpperCase() + String(status).slice(1);
 };
 
-const Tabela = ({ search, tipo, status, refreshKey, onResumoChange }) => {
+const Tabela = ({ search, tipo, status, refreshKey, onEditar, onResumoChange }) => {
   const {
     titulos,
     resumo,
@@ -34,6 +35,20 @@ const Tabela = ({ search, tipo, status, refreshKey, onResumoChange }) => {
     status,
     refreshKey,
   });
+  const [menuOpenId, setMenuOpenId] = useState(null);
+  const [anchorEl, setAnchorEl] = useState(null);
+
+  const openMenu = useCallback((financeiroTituloId, element) => {
+    setMenuOpenId(financeiroTituloId);
+    setAnchorEl(element);
+  }, []);
+
+  const closeMenu = useCallback(() => {
+    setMenuOpenId(null);
+    setAnchorEl(null);
+  }, []);
+
+  const rows = useMemo(() => titulos || [], [titulos]);
 
   React.useEffect(() => {
     onResumoChange?.(resumo);
@@ -104,12 +119,13 @@ const Tabela = ({ search, tipo, status, refreshKey, onResumoChange }) => {
                   {sort.status === "ASC" ? "▲" : sort.status === "DESC" ? "▼" : "•"}
                 </C.SortFlag>
               </C.HeaderCell>
+              <C.HeaderCell>Acoes</C.HeaderCell>
             </C.Row>
           </C.Head>
 
           <C.Body>
-            {titulos.length ? (
-              titulos.map((titulo) => (
+            {rows.length ? (
+              rows.map((titulo) => (
                 <C.Row key={titulo.financeiro_titulo_id}>
                   <C.Cell>{titulo.financeiro_titulo_id}</C.Cell>
                   <C.Cell>
@@ -136,11 +152,38 @@ const Tabela = ({ search, tipo, status, refreshKey, onResumoChange }) => {
                       {formatStatus(titulo.status_calculado)}
                     </C.StatusBadge>
                   </C.Cell>
+                  <C.Cell>
+                    <C.MenuButton
+                      type="button"
+                      onClick={(event) => openMenu(titulo.financeiro_titulo_id, event.currentTarget)}
+                      title="Acoes"
+                      aria-label="Acoes"
+                    >
+                      <C.MenuIcon />
+                    </C.MenuButton>
+
+                    {menuOpenId === titulo.financeiro_titulo_id && (
+                      <DropdownMenu
+                        open={!!menuOpenId}
+                        anchorEl={anchorEl}
+                        onClose={closeMenu}
+                        minWidth={200}
+                        items={[
+                          {
+                            label: "Editar",
+                            disabled:
+                              !!titulo.pedido_venda_id || Number(titulo.valor_baixado || 0) > 0,
+                            onClick: () => onEditar?.(titulo.financeiro_titulo_id),
+                          },
+                        ]}
+                      />
+                    )}
+                  </C.Cell>
                 </C.Row>
               ))
             ) : (
               <C.Row>
-                <C.Cell colSpan={8}>
+                <C.Cell colSpan={9}>
                   <C.Empty>Nenhum titulo encontrado para os filtros informados.</C.Empty>
                 </C.Cell>
               </C.Row>

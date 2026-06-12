@@ -1,5 +1,5 @@
 import React, { useContext } from "react";
-import { MdClose } from "react-icons/md";
+import { MdClose, MdOutlineSettings } from "react-icons/md";
 import {
   HiOutlineBanknotes,
   HiOutlineCube,
@@ -98,6 +98,16 @@ const Sidebar = () => {
             >
               <HiOutlineBanknotes />
               <C.NavText $open={mOpen}>Contas</C.NavText>
+            </C.NavButton>
+            <C.NavButton
+              $open={mOpen}
+              $active={location.pathname === "/configuracao-fiscal"}
+              onClick={() => handleNavigate("/configuracao-fiscal", "Configuracao fiscal")}
+              title="Configuracao fiscal"
+              aria-label="Configuracao fiscal"
+            >
+              <MdOutlineSettings />
+              <C.NavText $open={mOpen}>Configuracao fiscal</C.NavText>
             </C.NavButton>
           </C.NavList>
         </C.MenuContainer>

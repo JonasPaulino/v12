@@ -79,6 +79,30 @@ router.get("/listar", async (req, res) => {
   }
 });
 
+router.get("/:id", async (req, res) => {
+  try {
+    const data = await FinanceiroDAO.buscarPorId(req.db, Number(req.params.id));
+
+    if (!data) {
+      return res.status(404).json({
+        success: false,
+        message: "Titulo financeiro nao encontrado.",
+      });
+    }
+
+    return res.json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    console.error("[financeiro] Falha ao buscar titulo:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Nao foi possivel carregar o titulo financeiro.",
+    });
+  }
+});
+
 router.post("/", async (req, res) => {
   try {
     const data = await FinanceiroDAO.criarManual(req.db, {
@@ -95,6 +119,27 @@ router.post("/", async (req, res) => {
     return res.status(400).json({
       success: false,
       message: error.message || "Nao foi possivel cadastrar o titulo financeiro.",
+    });
+  }
+});
+
+router.put("/:id", async (req, res) => {
+  try {
+    const data = await FinanceiroDAO.atualizarManual(req.db, {
+      financeiroTituloId: Number(req.params.id),
+      payload: req.body || {},
+    });
+
+    return res.json({
+      success: true,
+      message: "Titulo financeiro atualizado com sucesso.",
+      data,
+    });
+  } catch (error) {
+    console.error("[financeiro] Falha ao atualizar titulo:", error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Nao foi possivel atualizar o titulo financeiro.",
     });
   }
 });

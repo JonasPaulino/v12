@@ -45,7 +45,7 @@ export const Toolbar = styled.div`
   display: flex;
   gap: 14px;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-end;
   margin-bottom: 18px;
 
   @media (max-width: 980px) {

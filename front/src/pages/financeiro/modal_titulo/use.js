@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSweetAlert } from "context/sweet_alert";
-import { createTituloManual, getSupportData, searchPessoasSelect } from "./api";
+import {
+  createTituloManual,
+  getSupportData,
+  getTituloById,
+  searchPessoasSelect,
+  updateTituloManual,
+} from "./api";
 
 const buildInitialForm = (initialTipo = "receber") => ({
   tipo: initialTipo,
@@ -27,6 +33,26 @@ const mergeUniqueOptions = (current = [], incoming = [], idKey) => {
 };
 
 const currency = (value) => Number(Number(value || 0).toFixed(2));
+const TODAY = new Date().toISOString().slice(0, 10);
+
+const normalizeDateOnly = (value) => {
+  if (!value) return "";
+
+  const normalized = String(value).trim();
+  if (!normalized) return "";
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+    return normalized;
+  }
+
+  const match = normalized.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (match?.[1]) {
+    return match[1];
+  }
+
+  const date = new Date(normalized);
+  return Number.isNaN(date.getTime()) ? "" : date.toISOString().slice(0, 10);
+};
 
 const parseNumeric = (value) => {
   if (value === null || value === undefined || value === "") return 0;
@@ -46,14 +72,15 @@ const parseNumeric = (value) => {
 };
 
 const addDays = (baseDate, days) => {
-  const date = new Date(`${baseDate}T12:00:00`);
+  const safeBaseDate = normalizeDateOnly(baseDate) || TODAY;
+  const date = new Date(`${safeBaseDate}T12:00:00`);
   date.setDate(date.getDate() + Number(days || 0));
   return date.toISOString().slice(0, 10);
 };
 
 const buildStatusParcela = (dataVencimento) => {
-  const today = new Date().toISOString().slice(0, 10);
-  return dataVencimento < today ? "vencida" : "aberta";
+  const safeDate = normalizeDateOnly(dataVencimento) || TODAY;
+  return safeDate < TODAY ? "vencida" : "aberta";
 };
 
 const buildParcelasPreview = ({ total, dataEmissao, condicao }) => {
@@ -75,7 +102,7 @@ const buildParcelasPreview = ({ total, dataEmissao, condicao }) => {
     parcelas.push({
       numero_parcela: numeroParcela,
       valor_parcela: valorEntrada,
-      data_vencimento: dataEmissao,
+      data_vencimento: normalizeDateOnly(dataEmissao) || TODAY,
       status: buildStatusParcela(dataEmissao),
     });
     numeroParcela += 1;
@@ -108,7 +135,7 @@ const buildParcelasPreview = ({ total, dataEmissao, condicao }) => {
   return parcelas;
 };
 
-export const useModalTitulo = ({ isOpen, initialTipo, onClose }) => {
+export const useModalTitulo = ({ isOpen, tituloId, initialTipo, onClose }) => {
   const { showAlert } = useSweetAlert();
   const [loadingForm, setLoadingForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -131,21 +158,65 @@ export const useModalTitulo = ({ isOpen, initialTipo, onClose }) => {
       setPessoasCache([]);
       setForm(buildInitialForm(initialTipo));
       fieldRefs.current = {};
-      return;
+      return undefined;
     }
-
-    setForm(buildInitialForm(initialTipo));
-  }, [initialTipo, isOpen]);
-
-  useEffect(() => {
-    if (!isOpen) return undefined;
 
     let mounted = true;
 
     const load = async () => {
       try {
         setLoadingForm(true);
-        const response = await getSupportData(form.tipo);
+
+        if (tituloId) {
+          const tituloResponse = await getTituloById(tituloId);
+          if (!mounted) return;
+
+          const titulo = tituloResponse?.data?.titulo || {};
+
+          setPessoasCache((prev) =>
+            mergeUniqueOptions(
+              prev,
+              titulo?.pessoa_id
+                ? [
+                    {
+                      pessoa_id: titulo.pessoa_id,
+                      pessoa_nome_razao: titulo.pessoa_nome_razao,
+                      pessoa_cpf_cnpj: titulo.pessoa_cpf_cnpj,
+                    },
+                  ]
+                : [],
+              "pessoa_id"
+            )
+          );
+
+          const tipoAtual = titulo?.tipo || initialTipo;
+          const supportResponse = await getSupportData(tipoAtual);
+          if (!mounted) return;
+
+          const support = supportResponse?.data || {
+            condicoesPagamento: [],
+            condicaoPagamentoPadrao: null,
+          };
+
+          setSupportData(support);
+          setForm({
+            tipo: tipoAtual,
+            pessoa_id: titulo.pessoa_id || "",
+            financeiro_condicao_pagamento_id:
+              titulo.financeiro_condicao_pagamento_id || "",
+            descricao: titulo.descricao || "",
+            numero_documento: titulo.numero_documento || "",
+            data_emissao: normalizeDateOnly(titulo.data_emissao) || TODAY,
+            valor_original: String(titulo.valor_original ?? 0),
+            desconto: String(titulo.desconto ?? 0),
+            acrescimo: String(titulo.acrescimo ?? 0),
+            observacao: titulo.observacao || "",
+          });
+          return;
+        }
+
+        setForm(buildInitialForm(initialTipo));
+        const response = await getSupportData(initialTipo);
         if (!mounted) return;
 
         const data = response?.data || {
@@ -154,20 +225,12 @@ export const useModalTitulo = ({ isOpen, initialTipo, onClose }) => {
         };
 
         setSupportData(data);
-        setForm((prev) => {
-          const currentExists = (data.condicoesPagamento || []).some(
-            (item) =>
-              Number(item.financeiro_condicao_pagamento_id) ===
-              Number(prev.financeiro_condicao_pagamento_id)
-          );
-
-          return {
-            ...prev,
-            financeiro_condicao_pagamento_id: currentExists
-              ? prev.financeiro_condicao_pagamento_id
-              : data.condicaoPagamentoPadrao?.financeiro_condicao_pagamento_id || "",
-          };
-        });
+        setForm((prev) => ({
+          ...prev,
+          tipo: initialTipo,
+          financeiro_condicao_pagamento_id:
+            data.condicaoPagamentoPadrao?.financeiro_condicao_pagamento_id || "",
+        }));
       } catch (error) {
         showAlert({
           title: "Falha ao abrir formulario",
@@ -187,7 +250,50 @@ export const useModalTitulo = ({ isOpen, initialTipo, onClose }) => {
     return () => {
       mounted = false;
     };
-  }, [form.tipo, isOpen, onClose, showAlert]);
+  }, [initialTipo, isOpen, onClose, showAlert, tituloId]);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+
+    let mounted = true;
+
+    const loadSupport = async () => {
+      try {
+        const response = await getSupportData(form.tipo);
+        if (!mounted) return;
+
+        const data = response?.data || {
+          condicoesPagamento: [],
+          condicaoPagamentoPadrao: null,
+        };
+
+        setSupportData(data);
+        setForm((prev) => {
+          const currentExists = (data.condicoesPagamento || []).some(
+            (item) =>
+              Number(item.financeiro_condicao_pagamento_id) ===
+              Number(prev.financeiro_condicao_pagamento_id)
+          );
+
+          return currentExists
+            ? prev
+            : {
+                ...prev,
+                financeiro_condicao_pagamento_id:
+                  data.condicaoPagamentoPadrao?.financeiro_condicao_pagamento_id || "",
+              };
+        });
+      } catch {
+        // evita alertas duplicados quando o usuário apenas troca o tipo
+      }
+    };
+
+    loadSupport();
+
+    return () => {
+      mounted = false;
+    };
+  }, [form.tipo, isOpen, tituloId]);
 
   const pessoasMap = useMemo(
     () => new Map((pessoasCache || []).map((pessoa) => [Number(pessoa.pessoa_id), pessoa])),
@@ -353,11 +459,17 @@ export const useModalTitulo = ({ isOpen, initialTipo, onClose }) => {
 
     try {
       setSubmitting(true);
-      const response = await createTituloManual(payload);
+      const response = tituloId
+        ? await updateTituloManual(tituloId, payload)
+        : await createTituloManual(payload);
 
       showAlert({
         title: "Sucesso",
-        text: response?.message || "Titulo financeiro cadastrado com sucesso.",
+        text:
+          response?.message ||
+          (tituloId
+            ? "Titulo financeiro atualizado com sucesso."
+            : "Titulo financeiro cadastrado com sucesso."),
         icon: "success",
         timer: 1800,
       });
@@ -388,6 +500,7 @@ export const useModalTitulo = ({ isOpen, initialTipo, onClose }) => {
     handleSelectPessoa,
     loadPessoasOptions,
     handleSubmit,
+    tituloId,
     selectedPessoa: pessoasMap.get(Number(form.pessoa_id)) || null,
   };
 };

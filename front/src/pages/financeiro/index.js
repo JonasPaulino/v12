@@ -23,8 +23,10 @@ export const Financeiro = () => {
     status,
     setStatus,
     openModal,
+    selectedTituloId,
     refreshKey,
     handleOpenNovo,
+    handleEditar,
     handleCloseModal,
   } = useFinanceiroPage();
   const [resumo, setResumo] = useState({
@@ -110,6 +112,7 @@ export const Financeiro = () => {
               tipo={tipo}
               status={status}
               refreshKey={refreshKey}
+              onEditar={handleEditar}
               onResumoChange={handleResumoChange}
             />
           </C.TableArea>
@@ -118,6 +121,7 @@ export const Financeiro = () => {
 
       <ModalTitulo
         isOpen={openModal}
+        tituloId={selectedTituloId}
         initialTipo={["receber", "pagar"].includes(tipo) ? tipo : "receber"}
         onClose={handleCloseModal}
       />

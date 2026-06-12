@@ -23,3 +23,13 @@ export const createTituloManual = async (payload) => {
   const { data } = await api.post("/financeiro", payload);
   return data;
 };
+
+export const getTituloById = async (financeiroTituloId) => {
+  const { data } = await api.get(`/financeiro/${financeiroTituloId}`);
+  return data;
+};
+
+export const updateTituloManual = async (financeiroTituloId, payload) => {
+  const { data } = await api.put(`/financeiro/${financeiroTituloId}`, payload);
+  return data;
+};

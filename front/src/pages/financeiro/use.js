@@ -6,6 +6,7 @@ export const useFinanceiroPage = () => {
   const [tipo, setTipo] = useState("");
   const [status, setStatus] = useState("");
   const [openModal, setOpenModal] = useState(false);
+  const [selectedTituloId, setSelectedTituloId] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
@@ -17,11 +18,18 @@ export const useFinanceiroPage = () => {
   }, [search]);
 
   const handleOpenNovo = useCallback(() => {
+    setSelectedTituloId(null);
+    setOpenModal(true);
+  }, []);
+
+  const handleEditar = useCallback((financeiroTituloId) => {
+    setSelectedTituloId(financeiroTituloId);
     setOpenModal(true);
   }, []);
 
   const handleCloseModal = useCallback((shouldRefresh = false) => {
     setOpenModal(false);
+    setSelectedTituloId(null);
 
     if (shouldRefresh) {
       setRefreshKey((prev) => prev + 1);
@@ -37,8 +45,10 @@ export const useFinanceiroPage = () => {
     status,
     setStatus,
     openModal,
+    selectedTituloId,
     refreshKey,
     handleOpenNovo,
+    handleEditar,
     handleCloseModal,
   };
 };

@@ -350,6 +350,105 @@ class FinanceiroDAO {
     };
   }
 
+  static async verificarTituloComBaixas(client, financeiroTituloId) {
+    const { rowCount } = await client.query(
+      `
+        SELECT 1
+        FROM financeiro_titulo_baixa
+        WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+          AND financeiro_titulo_id = $1
+          AND excluido = FALSE
+        LIMIT 1
+      `,
+      [financeiroTituloId]
+    );
+
+    return rowCount > 0;
+  }
+
+  static async buscarPorId(client, financeiroTituloId) {
+    const tituloResult = await client.query(
+      `
+        SELECT
+          ft.financeiro_titulo_id,
+          ft.pedido_venda_id,
+          ft.pessoa_id,
+          p.pessoa_nome_razao,
+          p.pessoa_cpf_cnpj,
+          ft.financeiro_condicao_pagamento_id,
+          cp.descricao AS condicao_pagamento_descricao,
+          ft.numero_documento,
+          ft.descricao,
+          ft.tipo,
+          ft.status,
+          ft.valor_original,
+          ft.desconto,
+          ft.acrescimo,
+          ft.valor_final,
+          ft.data_emissao,
+          ft.data_vencimento,
+          ft.observacao,
+          COALESCE(fb.valor_baixado, 0) AS valor_baixado
+        FROM financeiro_titulo ft
+        JOIN pessoa p ON p.pessoa_id = ft.pessoa_id
+        LEFT JOIN financeiro_condicao_pagamento cp
+          ON cp.financeiro_condicao_pagamento_id = ft.financeiro_condicao_pagamento_id
+        LEFT JOIN (
+          SELECT
+            financeiro_titulo_id,
+            COALESCE(SUM(valor_baixa), 0) AS valor_baixado
+          FROM financeiro_titulo_baixa
+          WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+            AND excluido = FALSE
+          GROUP BY financeiro_titulo_id
+        ) fb ON fb.financeiro_titulo_id = ft.financeiro_titulo_id
+        WHERE ft.tenant_id = ${TENANT_CONTEXT_SQL}
+          AND ft.excluido = FALSE
+          AND ft.financeiro_titulo_id = $1
+        LIMIT 1
+      `,
+      [financeiroTituloId]
+    );
+
+    const titulo = tituloResult.rows[0];
+    if (!titulo) return null;
+
+    const parcelasResult = await client.query(
+      `
+        SELECT
+          financeiro_titulo_parcela_id,
+          numero_parcela,
+          valor_parcela,
+          valor_recebido,
+          data_vencimento,
+          data_pagamento,
+          status,
+          observacao
+        FROM financeiro_titulo_parcela
+        WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+          AND financeiro_titulo_id = $1
+        ORDER BY numero_parcela
+      `,
+      [financeiroTituloId]
+    );
+
+    return {
+      titulo: {
+        ...titulo,
+        valor_original: Number(titulo.valor_original || 0),
+        desconto: Number(titulo.desconto || 0),
+        acrescimo: Number(titulo.acrescimo || 0),
+        valor_final: Number(titulo.valor_final || 0),
+        valor_baixado: Number(titulo.valor_baixado || 0),
+      },
+      parcelas: parcelasResult.rows.map((parcela) => ({
+        ...parcela,
+        valor_parcela: Number(parcela.valor_parcela || 0),
+        valor_recebido: Number(parcela.valor_recebido || 0),
+      })),
+    };
+  }
+
   static normalizeManualPayload(payload = {}) {
     const tipo = String(payload.tipo || "receber").trim().toLowerCase();
     const pessoaId = parseInteger(payload.pessoa_id, { label: "Pessoa" });
@@ -640,6 +739,98 @@ class FinanceiroDAO {
         financeiro_titulo_id: financeiroTituloId,
         parcelas,
       };
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    }
+  }
+
+  static async atualizarManual(client, { financeiroTituloId, payload }) {
+    const existing = await this.buscarPorId(client, financeiroTituloId);
+    if (!existing) {
+      throw new Error("Titulo financeiro nao encontrado.");
+    }
+
+    if (existing.titulo?.pedido_venda_id) {
+      throw new Error("Titulos gerados por pedido de venda devem ser alterados pela tela de vendas.");
+    }
+
+    const possuiBaixas = await this.verificarTituloComBaixas(client, financeiroTituloId);
+    if (possuiBaixas) {
+      throw new Error("Este titulo possui baixas financeiras e nao pode mais ser alterado.");
+    }
+
+    const data = this.normalizeManualPayload(payload);
+    const condicao = await this.buscarCondicaoPagamento(
+      client,
+      data.financeiro_condicao_pagamento_id,
+      { tipo: data.tipo }
+    );
+
+    if (!condicao) {
+      throw new Error("Condicao de pagamento invalida para o tipo informado.");
+    }
+
+    await this.validarPessoa(client, data.pessoa_id);
+
+    const parcelas = this.gerarParcelas({
+      total: data.valor_final,
+      dataEmissao: data.data_emissao,
+      condicao,
+    });
+
+    await client.query("BEGIN");
+
+    try {
+      await client.query(
+        `
+          UPDATE financeiro_titulo
+          SET
+            pessoa_id = $2,
+            financeiro_condicao_pagamento_id = $3,
+            numero_documento = $4,
+            descricao = $5,
+            tipo = $6,
+            status = 'aberto',
+            valor_original = $7,
+            desconto = $8,
+            acrescimo = $9,
+            data_emissao = $10,
+            data_vencimento = $11,
+            observacao = $12
+          WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+            AND financeiro_titulo_id = $1
+            AND excluido = FALSE
+        `,
+        [
+          financeiroTituloId,
+          data.pessoa_id,
+          data.financeiro_condicao_pagamento_id,
+          data.numero_documento,
+          data.descricao,
+          data.tipo,
+          data.valor_original,
+          data.desconto,
+          data.acrescimo,
+          data.data_emissao,
+          parcelas[0]?.data_vencimento || data.data_emissao,
+          data.observacao,
+        ]
+      );
+
+      await client.query(
+        `
+          DELETE FROM financeiro_titulo_parcela
+          WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+            AND financeiro_titulo_id = $1
+        `,
+        [financeiroTituloId]
+      );
+
+      await this.inserirParcelasTitulo(client, financeiroTituloId, parcelas);
+
+      await client.query("COMMIT");
+      return this.buscarPorId(client, financeiroTituloId);
     } catch (error) {
       await client.query("ROLLBACK");
       throw error;
