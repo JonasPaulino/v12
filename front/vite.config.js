@@ -12,6 +12,7 @@ export default defineConfig({
       api: path.resolve(__dirname, "./src/api"),
       components: path.resolve(__dirname, "./src/components"),
       context: path.resolve(__dirname, "./src/context"),
+      hooks: path.resolve(__dirname, "./src/hooks"),
       middleware: path.resolve(__dirname, "./src/middleware"),
       pages: path.resolve(__dirname, "./src/pages"),
       router: path.resolve(__dirname, "./src/router"),

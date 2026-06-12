@@ -15,7 +15,7 @@ export const Scroll = styled.div`
 export const Table = styled.table`
   width: 100%;
   border-collapse: collapse;
-  min-width: 880px;
+  min-width: 980px;
 `;
 
 export const Head = styled.thead`
@@ -61,11 +61,11 @@ export const Cell = styled.td`
     `}
 `;
 
-export const PessoaNome = styled.div`
+export const MainText = styled.div`
   font-weight: 700;
 `;
 
-export const PessoaMeta = styled.div`
+export const MetaText = styled.div`
   margin-top: 4px;
   color: ${({ theme }) => theme.colors.textSoft};
   font-size: 0.9rem;
@@ -75,15 +75,27 @@ export const Status = styled.span`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 92px;
+  min-width: 96px;
   padding: 8px 12px;
   border-radius: ${({ theme }) => theme.radius.pill};
   font-weight: 700;
   font-size: 0.82rem;
-  color: ${({ $active, theme }) =>
-    $active ? theme.colors.success : theme.colors.danger};
-  background: ${({ $active }) =>
-    $active ? "rgba(31, 157, 106, 0.12)" : "rgba(212, 73, 73, 0.12)"};
+  color: ${({ $tone, theme }) =>
+    $tone === "success"
+      ? theme.colors.success
+      : $tone === "warning"
+      ? "#b05a06"
+      : $tone === "danger"
+      ? theme.colors.danger
+      : theme.colors.primaryStrong};
+  background: ${({ $tone }) =>
+    $tone === "success"
+      ? "rgba(31, 157, 106, 0.12)"
+      : $tone === "warning"
+      ? "rgba(239, 124, 20, 0.12)"
+      : $tone === "danger"
+      ? "rgba(212, 73, 73, 0.12)"
+      : "rgba(11, 95, 255, 0.12)"};
 `;
 
 export const MenuButton = styled.button`

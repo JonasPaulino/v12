@@ -8,6 +8,8 @@
       "components/*": ["components/*"],
       "context": ["context/index.js"],
       "context/*": ["context/*"],
+      "hooks": ["hooks"],
+      "hooks/*": ["hooks/*"],
       "middleware": ["middleware/index.js"],
       "middleware/*": ["middleware/*"],
       "pages": ["pages"],

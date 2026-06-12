@@ -16,10 +16,6 @@ const buildInitialForm = () => ({
   pessoa_whatsapp: "",
   pessoa_data_nascimento: "",
   pessoa_observacao: "",
-  pessoa_cliente: false,
-  pessoa_fornecedor: false,
-  pessoa_funcionario: false,
-  pessoa_transportadora: false,
   pessoa_ativo: true,
   endereco: {
     cep: "",
@@ -77,10 +73,6 @@ export const useModalPessoa = ({ isOpen, pessoaId, onClose }) => {
           pessoa_whatsapp: data.pessoa_whatsapp || "",
           pessoa_data_nascimento: data.pessoa_data_nascimento || "",
           pessoa_observacao: data.pessoa_observacao || "",
-          pessoa_cliente: data.pessoa_cliente ?? false,
-          pessoa_fornecedor: data.pessoa_fornecedor ?? false,
-          pessoa_funcionario: data.pessoa_funcionario ?? false,
-          pessoa_transportadora: data.pessoa_transportadora ?? false,
           pessoa_ativo: data.pessoa_ativo ?? true,
           endereco: {
             cep: data?.endereco?.cep || "",

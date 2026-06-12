@@ -12,16 +12,17 @@ CREATE TABLE IF NOT EXISTS pessoa (
   pessoa_whatsapp VARCHAR(20),
   pessoa_data_nascimento DATE,
   pessoa_observacao TEXT,
-  pessoa_cliente BOOLEAN NOT NULL DEFAULT FALSE,
-  pessoa_fornecedor BOOLEAN NOT NULL DEFAULT FALSE,
-  pessoa_funcionario BOOLEAN NOT NULL DEFAULT FALSE,
-  pessoa_transportadora BOOLEAN NOT NULL DEFAULT FALSE,
   pessoa_ativo BOOLEAN NOT NULL DEFAULT TRUE,
   pessoa_excluido BOOLEAN NOT NULL DEFAULT FALSE,
   criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   atualizado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CONSTRAINT pessoa_tipo_check CHECK (pessoa_tipo IN ('F', 'J'))
 );
+
+ALTER TABLE pessoa DROP COLUMN IF EXISTS pessoa_cliente;
+ALTER TABLE pessoa DROP COLUMN IF EXISTS pessoa_fornecedor;
+ALTER TABLE pessoa DROP COLUMN IF EXISTS pessoa_funcionario;
+ALTER TABLE pessoa DROP COLUMN IF EXISTS pessoa_transportadora;
 
 CREATE TABLE IF NOT EXISTS pessoa_tenant (
   pessoa_tenant_id SERIAL PRIMARY KEY,

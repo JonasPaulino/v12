@@ -13,8 +13,9 @@ export const Overlay = styled.div`
 `;
 
 export const Modal = styled.div`
-  width: min(980px, 100%);
-  max-height: min(92vh, 920px);
+  width: min(1120px, 100%);
+  height: min(92vh, 960px);
+  max-height: min(92vh, 960px);
   display: flex;
   flex-direction: column;
   border-radius: ${({ theme }) => theme.radius.lg};
@@ -91,6 +92,8 @@ export const Form = styled.form`
 `;
 
 export const Body = styled.div`
+  flex: 1;
+  min-height: 0;
   padding: 22px 26px 26px;
   overflow: auto;
   display: grid;
@@ -176,35 +179,193 @@ export const Select = styled.select`
   outline: none;
 `;
 
-export const CheckboxGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-
-  @media (max-width: 640px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-export const CheckboxLine = styled.label`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: ${({ theme }) => theme.colors.text};
-  font-weight: 700;
-`;
-
 export const Hint = styled.p`
   margin: 0;
   color: ${({ theme }) => theme.colors.textSoft};
   line-height: 1.5;
 `;
 
-export const CardHint = styled.div`
-  padding: 14px 16px;
+export const ItemsToolbar = styled.div`
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+`;
+
+export const AddItemButton = styled.button`
+  height: 44px;
+  padding: 0 18px;
+  border: 1px solid ${({ theme }) => theme.colors.primary};
+  border-radius: ${({ theme }) => theme.radius.pill};
+  background: rgba(11, 95, 255, 0.08);
+  color: ${({ theme }) => theme.colors.primaryStrong};
+  font-weight: 700;
+  cursor: pointer;
+`;
+
+export const ItemsTable = styled.div`
+  min-height: 360px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
   border-radius: ${({ theme }) => theme.radius.md};
-  background: rgba(11, 95, 255, 0.06);
+  overflow: visible;
+`;
+
+export const ItemsScroll = styled.div`
+  min-height: 100%;
+  overflow: visible;
+  overflow-y: visible;
+`;
+
+export const ItemsGrid = styled.div`
+  min-width: 0;
+`;
+
+export const ItemsHeader = styled.div`
+  display: grid;
+  grid-template-columns: 2.8fr 0.9fr 1fr 0.8fr 0.8fr 1fr 0.6fr;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(238, 244, 255, 0.86);
+  font-size: 0.83rem;
+  color: ${({ theme }) => theme.colors.textSoft};
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+`;
+
+export const ItemsHeaderCell = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 2px;
+`;
+
+export const ItemsRow = styled.div`
+  display: grid;
+  grid-template-columns: 2.8fr 0.9fr 1fr 0.8fr 0.8fr 1fr 0.6fr;
+  gap: 12px;
+  padding: 16px;
+  align-items: end;
+
+  &:not(:last-child) {
+    border-top: 1px solid ${({ theme }) => theme.colors.border};
+  }
+`;
+
+export const InlineField = styled.label`
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+`;
+
+export const InlineLabel = styled.span`
+  font-size: 0.78rem;
+  color: ${({ theme }) => theme.colors.textSoft};
+  display: none;
+
+  @media (max-width: 640px) {
+    display: block;
+  }
+`;
+
+export const RemoveItemButton = styled.button`
+  height: 44px;
+  border: 1px solid rgba(212, 73, 73, 0.22);
+  border-radius: ${({ theme }) => theme.radius.pill};
+  background: rgba(212, 73, 73, 0.08);
+  color: ${({ theme }) => theme.colors.danger};
+  font-weight: 700;
+  cursor: pointer;
+`;
+
+export const SummaryGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+
+  @media (max-width: 900px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+export const SummaryCard = styled.div`
+  padding: 16px 18px;
+  border-radius: ${({ theme }) => theme.radius.md};
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  background: rgba(248, 251, 255, 0.88);
+  display: grid;
+  gap: 6px;
+`;
+
+export const SummaryLabel = styled.span`
+  color: ${({ theme }) => theme.colors.textSoft};
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+`;
+
+export const SummaryValue = styled.strong`
+  font-size: 1.3rem;
   color: ${({ theme }) => theme.colors.text};
+`;
+
+export const ParcelasCard = styled.div`
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radius.md};
+  overflow: hidden;
+`;
+
+export const ParcelasHeader = styled.div`
+  display: grid;
+  grid-template-columns: 0.8fr 1fr 1fr 1fr;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(238, 244, 255, 0.86);
+  font-size: 0.83rem;
+  color: ${({ theme }) => theme.colors.textSoft};
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+`;
+
+export const ParcelaRow = styled.div`
+  display: grid;
+  grid-template-columns: 0.8fr 1fr 1fr 1fr;
+  gap: 12px;
+  padding: 16px;
+
+  &:not(:last-child) {
+    border-top: 1px solid ${({ theme }) => theme.colors.border};
+  }
+`;
+
+export const StatusChip = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 92px;
+  padding: 8px 12px;
+  border-radius: ${({ theme }) => theme.radius.pill};
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: ${({ $tone, theme }) =>
+    $tone === "danger"
+      ? theme.colors.danger
+      : $tone === "warning"
+      ? "#b05a06"
+      : theme.colors.success};
+  background: ${({ $tone }) =>
+    $tone === "danger"
+      ? "rgba(212, 73, 73, 0.12)"
+      : $tone === "warning"
+      ? "rgba(239, 124, 20, 0.12)"
+      : "rgba(31, 157, 106, 0.12)"};
 `;
 
 export const Footer = styled.div`

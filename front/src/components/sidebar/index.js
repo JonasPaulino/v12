@@ -1,6 +1,12 @@
 import React, { useContext } from "react";
 import { MdClose } from "react-icons/md";
-import { HiOutlineCube, HiOutlineIdentification, HiOutlineUsers } from "react-icons/hi2";
+import {
+  HiOutlineBanknotes,
+  HiOutlineCube,
+  HiOutlineIdentification,
+  HiOutlineShoppingCart,
+  HiOutlineUsers,
+} from "react-icons/hi2";
 import { RxDashboard } from "react-icons/rx";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AppContext } from "context";
@@ -72,6 +78,26 @@ const Sidebar = () => {
             >
               <HiOutlineCube />
               <C.NavText $open={mOpen}>Produtos</C.NavText>
+            </C.NavButton>
+            <C.NavButton
+              $open={mOpen}
+              $active={location.pathname === "/vendas"}
+              onClick={() => handleNavigate("/vendas", "Vendas")}
+              title="Vendas"
+              aria-label="Vendas"
+            >
+              <HiOutlineShoppingCart />
+              <C.NavText $open={mOpen}>Vendas</C.NavText>
+            </C.NavButton>
+            <C.NavButton
+              $open={mOpen}
+              $active={location.pathname === "/contas"}
+              onClick={() => handleNavigate("/contas", "Contas")}
+              title="Contas"
+              aria-label="Contas"
+            >
+              <HiOutlineBanknotes />
+              <C.NavText $open={mOpen}>Contas</C.NavText>
             </C.NavButton>
           </C.NavList>
         </C.MenuContainer>

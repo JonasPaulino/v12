@@ -37,12 +37,12 @@ export const Dashboard = () => {
               <C.CardValue>{data?.tenant?.tenant_nome || "--"}</C.CardValue>
             </C.Card>
             <C.Card>
-              <C.CardLabel>Usuario</C.CardLabel>
-              <C.CardValue>{data?.usuario?.usuario_nome || "--"}</C.CardValue>
+              <C.CardLabel>Pedidos ativos</C.CardLabel>
+              <C.CardValue>{data?.indicadores?.pedidos ?? 0}</C.CardValue>
             </C.Card>
             <C.Card>
-              <C.CardLabel>Status da base</C.CardLabel>
-              <C.CardValue>Estrutura pronta</C.CardValue>
+              <C.CardLabel>Contas a receber</C.CardLabel>
+              <C.CardValue>{data?.indicadores?.contasReceber ?? 0}</C.CardValue>
             </C.Card>
           </C.Grid>
 

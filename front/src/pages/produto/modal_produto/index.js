@@ -11,6 +11,7 @@ export const ModalProduto = ({ isOpen, produtoId, onClose }) => {
     supportData,
     form,
     updateField,
+    registerFieldRef,
     handleSubmit,
     tipoProdutoOptions,
     origemOptions,
@@ -19,6 +20,15 @@ export const ModalProduto = ({ isOpen, produtoId, onClose }) => {
     produtoId,
     onClose,
   });
+
+  const renderRequiredLabel = (label) => (
+    <C.FieldSpan>
+      {label}
+      <C.RequiredMark title="Este campo e obrigatorio." aria-label="Campo obrigatorio">
+        *
+      </C.RequiredMark>
+    </C.FieldSpan>
+  );
 
   if (!isOpen) return null;
 
@@ -70,40 +80,36 @@ export const ModalProduto = ({ isOpen, produtoId, onClose }) => {
           </C.TabButton>
         </C.Tabs>
 
-        <C.Form onSubmit={handleSubmit}>
+        <C.Form onSubmit={handleSubmit} noValidate>
           <C.Body>
             {loadingForm ? (
               <C.Hint>Carregando dados do produto...</C.Hint>
             ) : activeTab === "dados" ? (
               <>
-                <C.Grid>
-                  <C.Field>
-                    <C.FieldSpan>Codigo interno</C.FieldSpan>
-                    <C.Input
-                      value={form.codigo_interno}
-                      onChange={(event) => updateField("codigo_interno", event.target.value)}
-                      required
-                    />
-                  </C.Field>
-
-                  <C.Field>
-                    <C.FieldSpan>Tipo de produto</C.FieldSpan>
-                    <C.Select
-                      value={form.tipo_produto}
-                      onChange={(event) => updateField("tipo_produto", event.target.value)}
-                    >
-                      {tipoProdutoOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </C.Select>
-                  </C.Field>
-                </C.Grid>
+                {/* <C.CardHint>
+                  O codigo interno e gerado automaticamente pelo sistema usando o ID do produto.
+                </C.CardHint> */}
 
                 <C.Field>
-                  <C.FieldSpan>Descricao interna</C.FieldSpan>
+                  {renderRequiredLabel("Tipo de produto")}
+                  <C.Select
+                    ref={registerFieldRef("tipo_produto")}
+                    value={form.tipo_produto}
+                    onChange={(event) => updateField("tipo_produto", event.target.value)}
+                    required
+                  >
+                    {tipoProdutoOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </C.Select>
+                </C.Field>
+
+                <C.Field>
+                  {renderRequiredLabel("Descricao interna")}
                   <C.Input
+                    ref={registerFieldRef("descricao")}
                     value={form.descricao}
                     onChange={(event) => updateField("descricao", event.target.value)}
                     required
@@ -111,8 +117,9 @@ export const ModalProduto = ({ isOpen, produtoId, onClose }) => {
                 </C.Field>
 
                 <C.Field>
-                  <C.FieldSpan>Descricao fiscal / NF-e</C.FieldSpan>
+                  {renderRequiredLabel("Descricao fiscal / NF-e")}
                   <C.Textarea
+                    ref={registerFieldRef("descricao_fiscal")}
                     value={form.descricao_fiscal}
                     onChange={(event) => updateField("descricao_fiscal", event.target.value)}
                     required
@@ -173,8 +180,9 @@ export const ModalProduto = ({ isOpen, produtoId, onClose }) => {
               <>
                 <C.GridThree>
                   <C.Field>
-                    <C.FieldSpan>NCM</C.FieldSpan>
+                    {renderRequiredLabel("NCM")}
                     <C.Input
+                      ref={registerFieldRef("ncm")}
                       value={form.ncm}
                       onChange={(event) => updateField("ncm", event.target.value)}
                       maxLength={8}
@@ -203,12 +211,14 @@ export const ModalProduto = ({ isOpen, produtoId, onClose }) => {
 
                 <C.Grid>
                   <C.Field>
-                    <C.FieldSpan>Origem da mercadoria</C.FieldSpan>
+                    {renderRequiredLabel("Origem da mercadoria")}
                     <C.Select
+                      ref={registerFieldRef("origem_mercadoria")}
                       value={form.origem_mercadoria}
                       onChange={(event) =>
                         updateField("origem_mercadoria", event.target.value)
                       }
+                      required
                     >
                       {origemOptions.map((option) => (
                         <option key={option.value} value={option.value}>
@@ -323,12 +333,14 @@ export const ModalProduto = ({ isOpen, produtoId, onClose }) => {
 
                 <C.Grid>
                   <C.Field>
-                    <C.FieldSpan>Unidade comercial</C.FieldSpan>
+                    {renderRequiredLabel("Unidade comercial")}
                     <C.Select
+                      ref={registerFieldRef("unidade_comercial_id")}
                       value={form.unidade_comercial_id}
                       onChange={(event) =>
                         updateField("unidade_comercial_id", event.target.value)
                       }
+                      required
                     >
                       <option value="">Selecione</option>
                       {supportData.unidades.map((unidade) => (
@@ -343,12 +355,14 @@ export const ModalProduto = ({ isOpen, produtoId, onClose }) => {
                   </C.Field>
 
                   <C.Field>
-                    <C.FieldSpan>Unidade tributavel</C.FieldSpan>
+                    {renderRequiredLabel("Unidade tributavel")}
                     <C.Select
+                      ref={registerFieldRef("unidade_tributavel_id")}
                       value={form.unidade_tributavel_id}
                       onChange={(event) =>
                         updateField("unidade_tributavel_id", event.target.value)
                       }
+                      required
                     >
                       <option value="">Selecione</option>
                       {supportData.unidades.map((unidade) => (

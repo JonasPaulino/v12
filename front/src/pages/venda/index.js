@@ -3,24 +3,24 @@ import Header from "components/header";
 import Sidebar from "components/sidebar";
 import { AppContext } from "context";
 import Tabela from "./tabela";
-import { ModalProduto } from "./modal_produto";
-import { useProdutoPage } from "./use";
+import { ModalVenda } from "./modal_venda";
+import { useVendaPage } from "./use";
 import * as C from "./style";
 
-export const Produto = () => {
+export const Venda = () => {
   const { mOpen, abreFechaMenu } = useContext(AppContext);
   const {
     search,
     setSearch,
     debouncedSearch,
     openModal,
-    selectedProdutoId,
+    selectedVendaId,
     refreshKey,
     handleOpenNovo,
     handleEditar,
     handleCloseModal,
     handleRefreshList,
-  } = useProdutoPage();
+  } = useVendaPage();
 
   return (
     <C.Shell>
@@ -34,7 +34,7 @@ export const Produto = () => {
           <C.Toolbar>
             <C.ToolbarGroup>
               <C.CreateButton type="button" onClick={handleOpenNovo}>
-                Cadastrar produto
+                Novo pedido de venda
               </C.CreateButton>
             </C.ToolbarGroup>
 
@@ -42,7 +42,7 @@ export const Produto = () => {
               <C.SearchInput
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Pesquisar por codigo gerado, descricao ou NCM"
+                placeholder="Pesquisar por numero, cliente ou documento"
               />
             </C.ToolbarGroup>
           </C.Toolbar>
@@ -58,9 +58,9 @@ export const Produto = () => {
         </C.Body>
       </C.Content>
 
-      <ModalProduto
+      <ModalVenda
         isOpen={openModal}
-        produtoId={selectedProdutoId}
+        vendaId={selectedVendaId}
         onClose={handleCloseModal}
       />
     </C.Shell>

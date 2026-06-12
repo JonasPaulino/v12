@@ -84,10 +84,6 @@ const mapPessoa = (row = {}) => ({
   pessoa_whatsapp: row.pessoa_whatsapp,
   pessoa_data_nascimento: row.pessoa_data_nascimento,
   pessoa_observacao: row.pessoa_observacao,
-  pessoa_cliente: row.pessoa_cliente,
-  pessoa_fornecedor: row.pessoa_fornecedor,
-  pessoa_funcionario: row.pessoa_funcionario,
-  pessoa_transportadora: row.pessoa_transportadora,
   pessoa_ativo: row.pessoa_ativo,
   criado_em: row.criado_em,
   atualizado_em: row.atualizado_em,
@@ -153,10 +149,6 @@ class PessoaDAO {
         p.pessoa_email,
         p.pessoa_telefone,
         p.pessoa_whatsapp,
-        p.pessoa_cliente,
-        p.pessoa_fornecedor,
-        p.pessoa_funcionario,
-        p.pessoa_transportadora,
         p.pessoa_ativo,
         p.criado_em,
         p.atualizado_em,
@@ -270,10 +262,6 @@ class PessoaDAO {
       pessoa_whatsapp: normalizeText(payload.pessoa_whatsapp, 20),
       pessoa_data_nascimento: normalizeDate(payload.pessoa_data_nascimento),
       pessoa_observacao: normalizeText(payload.pessoa_observacao, null),
-      pessoa_cliente: normalizeBoolean(payload.pessoa_cliente, false),
-      pessoa_fornecedor: normalizeBoolean(payload.pessoa_fornecedor, false),
-      pessoa_funcionario: normalizeBoolean(payload.pessoa_funcionario, false),
-      pessoa_transportadora: normalizeBoolean(payload.pessoa_transportadora, false),
       pessoa_ativo: normalizeBoolean(payload.pessoa_ativo, true),
       endereco: {
         cep: normalizeText(payload?.endereco?.cep, 9),
@@ -314,14 +302,10 @@ class PessoaDAO {
             pessoa_whatsapp,
             pessoa_data_nascimento,
             pessoa_observacao,
-            pessoa_cliente,
-            pessoa_fornecedor,
-            pessoa_funcionario,
-            pessoa_transportadora,
             pessoa_ativo,
             pessoa_excluido
           )
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, FALSE)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, FALSE)
           RETURNING pessoa_id
         `,
         [
@@ -337,10 +321,6 @@ class PessoaDAO {
           data.pessoa_whatsapp,
           data.pessoa_data_nascimento,
           data.pessoa_observacao,
-          data.pessoa_cliente,
-          data.pessoa_fornecedor,
-          data.pessoa_funcionario,
-          data.pessoa_transportadora,
           data.pessoa_ativo,
         ]
       );
@@ -441,11 +421,7 @@ class PessoaDAO {
             pessoa_whatsapp = $11,
             pessoa_data_nascimento = $12,
             pessoa_observacao = $13,
-            pessoa_cliente = $14,
-            pessoa_fornecedor = $15,
-            pessoa_funcionario = $16,
-            pessoa_transportadora = $17,
-            pessoa_ativo = $18
+            pessoa_ativo = $14
           WHERE pessoa_id = $1
         `,
         [
@@ -462,10 +438,6 @@ class PessoaDAO {
           data.pessoa_whatsapp,
           data.pessoa_data_nascimento,
           data.pessoa_observacao,
-          data.pessoa_cliente,
-          data.pessoa_fornecedor,
-          data.pessoa_funcionario,
-          data.pessoa_transportadora,
           data.pessoa_ativo,
         ]
       );

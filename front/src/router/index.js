@@ -7,6 +7,8 @@ import { Dashboard } from "pages/dashboard";
 import { Usuario } from "pages/usuario";
 import { Produto } from "pages/produto";
 import { Pessoa } from "pages/pessoa";
+import { Venda } from "pages/venda";
+import { Financeiro } from "pages/financeiro";
 import { NotFound } from "pages/404";
 
 export const RouteApp = () => (
@@ -40,6 +42,26 @@ export const RouteApp = () => (
           <AuthMiddleware>
             <PageWrapper title="Pessoas">
               <Pessoa />
+            </PageWrapper>
+          </AuthMiddleware>
+        }
+      />
+      <Route
+        path="/vendas"
+        element={
+          <AuthMiddleware>
+            <PageWrapper title="Vendas">
+              <Venda />
+            </PageWrapper>
+          </AuthMiddleware>
+        }
+      />
+      <Route
+        path="/contas"
+        element={
+          <AuthMiddleware>
+            <PageWrapper title="Contas">
+              <Financeiro />
             </PageWrapper>
           </AuthMiddleware>
         }

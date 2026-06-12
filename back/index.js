@@ -14,6 +14,8 @@ import dashboardRoutes from "./routes/dashboardRoutes.js";
 import usuarioRoutes from "./routes/usuarioRoutes.js";
 import produtoRoutes from "./routes/produtoRoutes.js";
 import pessoaRoutes from "./routes/pessoaRoutes.js";
+import vendaRoutes from "./routes/vendaRoutes.js";
+import financeiroRoutes from "./routes/financeiroRoutes.js";
 
 dotenv.config();
 
@@ -62,6 +64,8 @@ privateRouter.use("/dashboard", dashboardRoutes);
 privateRouter.use("/usuario", usuarioRoutes);
 privateRouter.use("/produto", produtoRoutes);
 privateRouter.use("/pessoa", pessoaRoutes);
+privateRouter.use("/venda", vendaRoutes);
+privateRouter.use("/financeiro", financeiroRoutes);
 
 app.use(privateRouter);
 

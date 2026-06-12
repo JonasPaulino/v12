@@ -3,17 +3,6 @@ import DropdownMenu from "components/dropDownMenu";
 import { useTabelaPessoas } from "./use";
 import * as C from "./style";
 
-const buildClassification = (pessoa) => {
-  const items = [];
-
-  if (pessoa.pessoa_cliente) items.push({ label: "Cliente", tone: "green" });
-  if (pessoa.pessoa_fornecedor) items.push({ label: "Fornecedor", tone: "orange" });
-  if (pessoa.pessoa_funcionario) items.push({ label: "Funcionario", tone: "purple" });
-  if (pessoa.pessoa_transportadora) items.push({ label: "Transportadora", tone: "blue" });
-
-  return items.length ? items : [{ label: "Sem classificacao", tone: "blue" }];
-};
-
 const Tabela = ({ search, refreshKey, onEditar, onDeleted }) => {
   const {
     pessoas,
@@ -77,7 +66,6 @@ const Tabela = ({ search, refreshKey, onEditar, onDeleted }) => {
                 </C.SortFlag>
               </C.HeaderCell>
               <C.HeaderCell>Contato</C.HeaderCell>
-              <C.HeaderCell>Classificacao</C.HeaderCell>
               <C.HeaderCell $sortable onClick={() => toggleSort("pessoa_ativo")}>
                 Status
                 <C.SortFlag $active={!!sort.pessoa_ativo}>
@@ -95,8 +83,6 @@ const Tabela = ({ search, refreshKey, onEditar, onDeleted }) => {
           <C.Body>
             {rows.length ? (
               rows.map((pessoa) => {
-                const classifications = buildClassification(pessoa);
-
                 return (
                   <C.Row key={pessoa.pessoa_id}>
                     <C.Cell>#{pessoa.pessoa_id}</C.Cell>
@@ -111,16 +97,9 @@ const Tabela = ({ search, refreshKey, onEditar, onDeleted }) => {
                     <C.Cell>{pessoa.pessoa_cpf_cnpj || "--"}</C.Cell>
                     <C.Cell $wrap>
                       <C.PessoaNome>{pessoa.pessoa_email || "--"}</C.PessoaNome>
-                      <C.PessoaMeta>{pessoa.pessoa_telefone || pessoa.pessoa_whatsapp || "--"}</C.PessoaMeta>
-                    </C.Cell>
-                    <C.Cell $wrap>
-                      <C.BadgeWrap>
-                        {classifications.map((item) => (
-                          <C.Badge key={item.label} $tone={item.tone}>
-                            {item.label}
-                          </C.Badge>
-                        ))}
-                      </C.BadgeWrap>
+                      <C.PessoaMeta>
+                        {pessoa.pessoa_telefone || pessoa.pessoa_whatsapp || "--"}
+                      </C.PessoaMeta>
                     </C.Cell>
                     <C.Cell>
                       <C.Status $active={pessoa.pessoa_ativo}>
@@ -162,7 +141,7 @@ const Tabela = ({ search, refreshKey, onEditar, onDeleted }) => {
               })
             ) : (
               <C.Row>
-                <C.Cell colSpan={7}>
+                <C.Cell colSpan={6}>
                   <C.Empty>Nenhuma pessoa encontrada para a filial ativa.</C.Empty>
                 </C.Cell>
               </C.Row>

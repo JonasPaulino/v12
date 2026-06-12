@@ -181,48 +181,6 @@ export const ModalPessoa = ({ isOpen, pessoaId, onClose }) => {
                   <C.CheckboxLine>
                     <input
                       type="checkbox"
-                      checked={!!form.pessoa_cliente}
-                      onChange={(event) => updateField("pessoa_cliente", event.target.checked)}
-                    />
-                    Cliente
-                  </C.CheckboxLine>
-
-                  <C.CheckboxLine>
-                    <input
-                      type="checkbox"
-                      checked={!!form.pessoa_fornecedor}
-                      onChange={(event) =>
-                        updateField("pessoa_fornecedor", event.target.checked)
-                      }
-                    />
-                    Fornecedor
-                  </C.CheckboxLine>
-
-                  <C.CheckboxLine>
-                    <input
-                      type="checkbox"
-                      checked={!!form.pessoa_funcionario}
-                      onChange={(event) =>
-                        updateField("pessoa_funcionario", event.target.checked)
-                      }
-                    />
-                    Funcionario
-                  </C.CheckboxLine>
-
-                  <C.CheckboxLine>
-                    <input
-                      type="checkbox"
-                      checked={!!form.pessoa_transportadora}
-                      onChange={(event) =>
-                        updateField("pessoa_transportadora", event.target.checked)
-                      }
-                    />
-                    Transportadora
-                  </C.CheckboxLine>
-
-                  <C.CheckboxLine>
-                    <input
-                      type="checkbox"
                       checked={!!form.pessoa_ativo}
                       onChange={(event) => updateField("pessoa_ativo", event.target.checked)}
                     />
@@ -329,7 +287,7 @@ export const ModalPessoa = ({ isOpen, pessoaId, onClose }) => {
 
                 <C.Hint>
                   O endereco principal fica associado a filial ativa, mantendo a base pronta
-                  para futuras especializacoes do cadastro.
+                  para os futuros modulos que reutilizarem esta pessoa.
                 </C.Hint>
               </>
             )}

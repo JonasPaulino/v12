@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSweetAlert } from "context/sweet_alert";
 import {
   createProduto,
@@ -8,7 +8,6 @@ import {
 } from "./api";
 
 const buildInitialForm = () => ({
-  codigo_interno: "",
   descricao: "",
   descricao_fiscal: "",
   gtin: "",
@@ -67,6 +66,22 @@ const ORIGEM_OPTIONS = [
   { value: "8", label: "8 - Nacional com conteúdo > 70%" },
 ];
 
+const REQUIRED_FIELDS = [
+  { field: "tipo_produto", label: "Tipo de produto", tab: "dados" },
+  { field: "descricao", label: "Descricao interna", tab: "dados" },
+  { field: "descricao_fiscal", label: "Descricao fiscal / NF-e", tab: "dados" },
+  { field: "ncm", label: "NCM", tab: "fiscal" },
+  { field: "origem_mercadoria", label: "Origem da mercadoria", tab: "fiscal" },
+  { field: "unidade_comercial_id", label: "Unidade comercial", tab: "comercial" },
+  { field: "unidade_tributavel_id", label: "Unidade tributavel", tab: "comercial" },
+];
+
+const isMissingRequiredValue = (value) => {
+  if (value === null || value === undefined) return true;
+  if (typeof value === "string") return !value.trim();
+  return false;
+};
+
 export const useModalProduto = ({ isOpen, produtoId, onClose }) => {
   const { showAlert } = useSweetAlert();
   const [activeTab, setActiveTab] = useState("dados");
@@ -78,6 +93,8 @@ export const useModalProduto = ({ isOpen, produtoId, onClose }) => {
     depositoPadrao: null,
   });
   const [form, setForm] = useState(buildInitialForm());
+  const fieldRefs = useRef({});
+  const pendingFocusField = useRef(null);
 
   useEffect(() => {
     if (!isOpen) {
@@ -114,7 +131,6 @@ export const useModalProduto = ({ isOpen, produtoId, onClose }) => {
           const data = response?.data || {};
 
           setForm({
-            codigo_interno: data.codigo_interno || "",
             descricao: data.descricao || "",
             descricao_fiscal: data.descricao_fiscal || "",
             gtin: data.gtin || "",
@@ -180,6 +196,55 @@ export const useModalProduto = ({ isOpen, produtoId, onClose }) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
+  const registerFieldRef = (field) => (element) => {
+    if (element) {
+      fieldRefs.current[field] = element;
+      return;
+    }
+
+    delete fieldRefs.current[field];
+  };
+
+  const focusField = (field) => {
+    const element = fieldRefs.current[field];
+    if (!element) return;
+
+    element.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+
+    if (typeof element.focus === "function") {
+      element.focus();
+    }
+
+    if (
+      (element.tagName === "INPUT" || element.tagName === "TEXTAREA") &&
+      typeof element.select === "function"
+    ) {
+      element.select();
+    }
+  };
+
+  useEffect(() => {
+    if (!isOpen) {
+      pendingFocusField.current = null;
+      return;
+    }
+
+    if (!pendingFocusField.current) return;
+
+    const timeout = window.setTimeout(() => {
+      focusField(pendingFocusField.current);
+      pendingFocusField.current = null;
+    }, 60);
+
+    return () => window.clearTimeout(timeout);
+  }, [activeTab, isOpen]);
+
+  const validateRequiredFields = () =>
+    REQUIRED_FIELDS.find(({ field }) => isMissingRequiredValue(form[field])) || null;
+
   const payload = useMemo(
     () => ({
       ...form,
@@ -192,6 +257,25 @@ export const useModalProduto = ({ isOpen, produtoId, onClose }) => {
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (submitting) return;
+
+    const missingField = validateRequiredFields();
+    if (missingField) {
+      if (activeTab !== missingField.tab) {
+        pendingFocusField.current = missingField.field;
+        setActiveTab(missingField.tab);
+      }
+
+      await showAlert({
+        title: `Campo obrigatorio: ${missingField.label}`,
+        text: `Preencha o campo ${missingField.label}.`,
+        icon: "warning",
+      });
+
+      window.setTimeout(() => {
+        focusField(missingField.field);
+      }, 60);
+      return;
+    }
 
     try {
       setSubmitting(true);
@@ -230,6 +314,7 @@ export const useModalProduto = ({ isOpen, produtoId, onClose }) => {
     supportData,
     form,
     updateField,
+    registerFieldRef,
     handleSubmit,
     tipoProdutoOptions: TIPO_PRODUTO_OPTIONS,
     origemOptions: ORIGEM_OPTIONS,

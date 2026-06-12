@@ -43,32 +43,35 @@ const parseBoolean = (value, defaultValue = false) => {
   return defaultValue;
 };
 
-const parseInteger = (value, { allowNull = false, min = 1 } = {}) => {
+const parseInteger = (value, { allowNull = false, min = 1, label = "Campo" } = {}) => {
   if (value === null || value === undefined || value === "") {
     if (allowNull) return null;
-    throw new Error("Valor inteiro obrigatorio.");
+    throw new Error(`${label} obrigatorio.`);
   }
 
   const parsed = Number(value);
   if (!Number.isInteger(parsed) || parsed < min) {
-    throw new Error("Valor inteiro invalido.");
+    throw new Error(`${label} invalido.`);
   }
 
   return parsed;
 };
 
-const parseNumeric = (value, { allowNull = false, defaultValue = null } = {}) => {
+const parseNumeric = (
+  value,
+  { allowNull = false, defaultValue = null, label = "Campo" } = {}
+) => {
   if (value === null || value === undefined || value === "") {
     if (allowNull) return null;
     if (defaultValue !== null) return defaultValue;
-    throw new Error("Valor numerico obrigatorio.");
+    throw new Error(`${label} obrigatorio.`);
   }
 
   let normalized = String(value).trim();
   if (!normalized) {
     if (allowNull) return null;
     if (defaultValue !== null) return defaultValue;
-    throw new Error("Valor numerico obrigatorio.");
+    throw new Error(`${label} obrigatorio.`);
   }
 
   const hasDot = normalized.includes(".");
@@ -82,17 +85,17 @@ const parseNumeric = (value, { allowNull = false, defaultValue = null } = {}) =>
 
   const parsed = Number(normalized);
   if (!Number.isFinite(parsed)) {
-    throw new Error("Valor numerico invalido.");
+    throw new Error(`${label} invalido.`);
   }
 
   return parsed;
 };
 
-const normalizeText = (value, maxLength, { required = false } = {}) => {
-  const normalized = String(value || "").trim();
+const normalizeText = (value, maxLength, { required = false, label = "Campo" } = {}) => {
+  const normalized = String(value ?? "").trim();
   if (!normalized) {
     if (required) {
-      throw new Error("Campo obrigatorio nao informado.");
+      throw new Error(`${label} obrigatorio nao informado.`);
     }
     return null;
   }
@@ -106,6 +109,8 @@ const calcMargem = (precoVenda, precoCusto) => {
   }
   return Number((((precoVenda - precoCusto) / precoCusto) * 100).toFixed(4));
 };
+
+const CODIGO_INTERNO_SQL = "COALESCE(NULLIF(p.codigo_interno, ''), p.produto_id::varchar(60))";
 
 class ProdutoDAO {
   static async listar(client, { page = 1, limit = 20, search = "", sort = {} }) {
@@ -123,7 +128,7 @@ class ProdutoDAO {
       const index = values.length;
       where += `
         AND (
-          LOWER(p.codigo_interno) LIKE LOWER($${index})
+          LOWER(${CODIGO_INTERNO_SQL}) LIKE LOWER($${index})
           OR LOWER(p.descricao) LIKE LOWER($${index})
           OR LOWER(p.descricao_fiscal) LIKE LOWER($${index})
           OR LOWER(COALESCE(pf.ncm, '')) LIKE LOWER($${index})
@@ -133,7 +138,7 @@ class ProdutoDAO {
 
     const sortableColumns = {
       produto_id: "p.produto_id",
-      codigo_interno: "p.codigo_interno",
+      codigo_interno: CODIGO_INTERNO_SQL,
       descricao: "p.descricao",
       ncm: "pf.ncm",
       preco_venda: "pp.preco_venda",
@@ -153,7 +158,7 @@ class ProdutoDAO {
     const selectSql = `
       SELECT
         p.produto_id,
-        p.codigo_interno,
+        ${CODIGO_INTERNO_SQL} AS codigo_interno,
         p.descricao,
         p.descricao_fiscal,
         p.gtin,
@@ -283,7 +288,7 @@ class ProdutoDAO {
       `
         SELECT
           p.produto_id,
-          p.codigo_interno,
+          ${CODIGO_INTERNO_SQL} AS codigo_interno,
           p.descricao,
           p.descricao_fiscal,
           p.gtin,
@@ -400,20 +405,31 @@ class ProdutoDAO {
 
   static normalizePayload(payload = {}) {
     const produto = {
-      codigo_interno: normalizeText(payload.codigo_interno, 60, { required: true }),
-      descricao: normalizeText(payload.descricao, 180, { required: true }),
-      descricao_fiscal: normalizeText(payload.descricao_fiscal, 240, { required: true }),
+      descricao: normalizeText(payload.descricao, 180, {
+        required: true,
+        label: "Descricao interna",
+      }),
+      descricao_fiscal: normalizeText(payload.descricao_fiscal, 240, {
+        required: true,
+        label: "Descricao fiscal / NF-e",
+      }),
       gtin: normalizeText(payload.gtin, 20),
       marca: normalizeText(payload.marca, 120),
-      tipo_produto: normalizeText(payload.tipo_produto, 20, { required: true }),
+      tipo_produto: normalizeText(payload.tipo_produto, 20, {
+        required: true,
+        label: "Tipo de produto",
+      }),
       controla_estoque: parseBoolean(payload.controla_estoque, true),
       permite_fracionar: parseBoolean(payload.permite_fracionar, false),
       ativo: parseBoolean(payload.ativo, true),
       fiscal: {
-        ncm: normalizeText(payload.ncm, 8, { required: true }),
+        ncm: normalizeText(payload.ncm, 8, { required: true, label: "NCM" }),
         cest: normalizeText(payload.cest, 7),
         extipi: normalizeText(payload.extipi, 3),
-        origem_mercadoria: normalizeText(payload.origem_mercadoria, 1, { required: true }),
+        origem_mercadoria: normalizeText(payload.origem_mercadoria, 1, {
+          required: true,
+          label: "Origem da mercadoria",
+        }),
         cbenef: normalizeText(payload.cbenef, 10),
         fci: normalizeText(payload.fci, 36),
         cfop_venda_interna: normalizeText(payload.cfop_venda_interna, 4),
@@ -425,30 +441,52 @@ class ProdutoDAO {
         exige_validade: parseBoolean(payload.exige_validade, false),
       },
       unidade: {
-        unidade_comercial_id: parseInteger(payload.unidade_comercial_id),
-        unidade_tributavel_id: parseInteger(payload.unidade_tributavel_id),
+        unidade_comercial_id: parseInteger(payload.unidade_comercial_id, {
+          label: "Unidade comercial",
+        }),
+        unidade_tributavel_id: parseInteger(payload.unidade_tributavel_id, {
+          label: "Unidade tributavel",
+        }),
         fator_conversao: parseNumeric(payload.fator_conversao, {
           defaultValue: 1,
+          label: "Fator de conversao",
         }),
         casas_decimais_comercial: parseInteger(payload.casas_decimais_comercial || 4, {
           min: 0,
+          label: "Casas decimais comercial",
         }),
         casas_decimais_tributavel: parseInteger(payload.casas_decimais_tributavel || 4, {
           min: 0,
+          label: "Casas decimais tributavel",
         }),
       },
       preco: {
-        preco_venda: parseNumeric(payload.preco_venda, { defaultValue: 0 }),
-        preco_custo: parseNumeric(payload.preco_custo, { defaultValue: 0 }),
+        preco_venda: parseNumeric(payload.preco_venda, {
+          defaultValue: 0,
+          label: "Preco de venda",
+        }),
+        preco_custo: parseNumeric(payload.preco_custo, {
+          defaultValue: 0,
+          label: "Preco de custo",
+        }),
         margem:
           payload.margem === null || payload.margem === undefined || payload.margem === ""
             ? null
-            : parseNumeric(payload.margem, { allowNull: true }),
+            : parseNumeric(payload.margem, { allowNull: true, label: "Margem" }),
       },
       estoque: {
-        estoque_atual: parseNumeric(payload.estoque_atual, { defaultValue: 0 }),
-        estoque_minimo: parseNumeric(payload.estoque_minimo, { defaultValue: 0 }),
-        estoque_reservado: parseNumeric(payload.estoque_reservado, { defaultValue: 0 }),
+        estoque_atual: parseNumeric(payload.estoque_atual, {
+          defaultValue: 0,
+          label: "Estoque atual",
+        }),
+        estoque_minimo: parseNumeric(payload.estoque_minimo, {
+          defaultValue: 0,
+          label: "Estoque minimo",
+        }),
+        estoque_reservado: parseNumeric(payload.estoque_reservado, {
+          defaultValue: 0,
+          label: "Estoque reservado",
+        }),
       },
     };
 
@@ -484,32 +522,6 @@ class ProdutoDAO {
     }
   }
 
-  static async validarCodigoDuplicado(client, codigoInterno, produtoId = null) {
-    const values = [codigoInterno];
-    let excludeSql = "";
-    if (produtoId) {
-      values.push(produtoId);
-      excludeSql = `AND produto_id <> $2`;
-    }
-
-    const { rowCount } = await client.query(
-      `
-        SELECT 1
-        FROM produto
-        WHERE tenant_id = ${TENANT_CONTEXT_SQL}
-          AND excluido = FALSE
-          AND codigo_interno = $1
-          ${excludeSql}
-        LIMIT 1
-      `,
-      values
-    );
-
-    if (rowCount > 0) {
-      throw new Error("Ja existe produto com este codigo interno.");
-    }
-  }
-
   static async criar(client, payload) {
     const data = this.normalizePayload(payload);
     const supportData = await this.obterSupportData(client);
@@ -518,7 +530,6 @@ class ProdutoDAO {
       throw new Error("Tabela de preco ou deposito padrao nao configurados para a filial.");
     }
 
-    await this.validarCodigoDuplicado(client, data.codigo_interno);
     await this.validarUnidades(
       client,
       data.unidade.unidade_comercial_id,
@@ -532,7 +543,6 @@ class ProdutoDAO {
         `
           INSERT INTO produto (
             tenant_id,
-            codigo_interno,
             descricao,
             descricao_fiscal,
             gtin,
@@ -553,13 +563,11 @@ class ProdutoDAO {
             $6,
             $7,
             $8,
-            $9,
             FALSE
           )
           RETURNING produto_id
         `,
         [
-          data.codigo_interno,
           data.descricao,
           data.descricao_fiscal,
           data.gtin,
@@ -572,6 +580,16 @@ class ProdutoDAO {
       );
 
       const produtoId = Number(produtoResult.rows[0].produto_id);
+
+      await client.query(
+        `
+          UPDATE produto
+          SET codigo_interno = produto_id::varchar(60)
+          WHERE produto_id = $1
+            AND tenant_id = ${TENANT_CONTEXT_SQL}
+        `,
+        [produtoId]
+      );
 
       await client.query(
         `
@@ -740,7 +758,6 @@ class ProdutoDAO {
       throw new Error("Tabela de preco ou deposito padrao nao configurados para a filial.");
     }
 
-    await this.validarCodigoDuplicado(client, data.codigo_interno, produtoId);
     await this.validarUnidades(
       client,
       data.unidade.unidade_comercial_id,
@@ -754,22 +771,20 @@ class ProdutoDAO {
         `
           UPDATE produto
           SET
-            codigo_interno = $1,
-            descricao = $2,
-            descricao_fiscal = $3,
-            gtin = $4,
-            marca = $5,
-            tipo_produto = $6,
-            controla_estoque = $7,
-            permite_fracionar = $8,
-            ativo = $9,
+            descricao = $1,
+            descricao_fiscal = $2,
+            gtin = $3,
+            marca = $4,
+            tipo_produto = $5,
+            controla_estoque = $6,
+            permite_fracionar = $7,
+            ativo = $8,
             atualizado_em = NOW()
-          WHERE produto_id = $10
+          WHERE produto_id = $9
             AND tenant_id = ${TENANT_CONTEXT_SQL}
             AND excluido = FALSE
         `,
         [
-          data.codigo_interno,
           data.descricao,
           data.descricao_fiscal,
           data.gtin,

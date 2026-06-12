@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS deposito (
 CREATE TABLE IF NOT EXISTS produto (
   produto_id SERIAL PRIMARY KEY,
   tenant_id INTEGER NOT NULL REFERENCES tenant(tenant_id) ON DELETE CASCADE,
-  codigo_interno VARCHAR(60) NOT NULL,
+  codigo_interno VARCHAR(60),
   descricao VARCHAR(180) NOT NULL,
   descricao_fiscal VARCHAR(240) NOT NULL,
   gtin VARCHAR(20),
