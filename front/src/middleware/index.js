@@ -20,8 +20,8 @@ export const AuthMiddleware = ({ children }) => {
       if (!alertLockRef.current) {
         alertLockRef.current = true;
         showAlert({
-          title: "Sessao encerrada",
-          text: "Sua autenticacao expirou. Faca login novamente.",
+          title: "Sessão encerrada",
+          text: "Sua autenticação expirou. Faça login novamente.",
           icon: "error",
           timer: 3000,
         });
@@ -71,7 +71,7 @@ export const AuthMiddleware = ({ children }) => {
               title: "Falha ao atualizar senha",
               text:
                 error?.response?.data?.error ||
-                "Nao foi possivel concluir a troca da senha inicial.",
+                "Não foi possível concluir a troca da senha inicial.",
               icon: "error",
             });
             clearSession();

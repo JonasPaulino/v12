@@ -1,5 +1,5 @@
 import React, { useContext } from "react";
-import { MdClose, MdOutlineSettings } from "react-icons/md";
+import { MdClose, MdOutlineReceiptLong, MdOutlineSettings } from "react-icons/md";
 import {
   HiOutlineBanknotes,
   HiOutlineCube,
@@ -52,12 +52,12 @@ const Sidebar = () => {
             <C.NavButton
               $open={mOpen}
               $active={location.pathname === "/usuarios"}
-              onClick={() => handleNavigate("/usuarios", "Usuarios")}
-              title="Usuarios"
-              aria-label="Usuarios"
+              onClick={() => handleNavigate("/usuarios", "Usuários")}
+              title="Usuários"
+              aria-label="Usuários"
             >
               <HiOutlineUsers />
-              <C.NavText $open={mOpen}>Usuarios</C.NavText>
+              <C.NavText $open={mOpen}>Usuários</C.NavText>
             </C.NavButton>
             <C.NavButton
               $open={mOpen}
@@ -102,12 +102,22 @@ const Sidebar = () => {
             <C.NavButton
               $open={mOpen}
               $active={location.pathname === "/configuracao-fiscal"}
-              onClick={() => handleNavigate("/configuracao-fiscal", "Configuracao fiscal")}
-              title="Configuracao fiscal"
-              aria-label="Configuracao fiscal"
+              onClick={() => handleNavigate("/configuracao-fiscal", "Configurações")}
+              title="Configurações"
+              aria-label="Configurações"
             >
               <MdOutlineSettings />
-              <C.NavText $open={mOpen}>Configuracao fiscal</C.NavText>
+              <C.NavText $open={mOpen}>Configurações</C.NavText>
+            </C.NavButton>
+            <C.NavButton
+              $open={mOpen}
+              $active={location.pathname === "/nfe"}
+              onClick={() => handleNavigate("/nfe", "NF-e")}
+              title="NF-e"
+              aria-label="NF-e"
+            >
+              <MdOutlineReceiptLong />
+              <C.NavText $open={mOpen}>NF-e</C.NavText>
             </C.NavButton>
           </C.NavList>
         </C.MenuContainer>

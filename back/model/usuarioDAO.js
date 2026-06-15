@@ -179,7 +179,7 @@ class UsuarioDAO {
     const manageableIds = manageableTenants.map((item) => Number(item.tenant_id));
 
     if (!manageableIds.includes(Number(currentTenantId))) {
-      throw new Error("Usuario atual sem acesso para cadastrar nesta filial.");
+      throw new Error("Usuário atual sem acesso para cadastrar nesta filial.");
     }
 
     if (!usuarioNome || !usuarioEmail || !usuarioUsername || !usuarioSenha) {
@@ -217,7 +217,7 @@ class UsuarioDAO {
       );
 
       if (duplicateUser.rowCount > 0) {
-        throw new Error("Ja existe um usuario com este e-mail ou login.");
+        throw new Error("Já existe um usuário com este e-mail ou login.");
       }
 
       const passwordHash = hashPassword(usuarioSenha);
@@ -284,7 +284,7 @@ class UsuarioDAO {
     });
 
     if (!existing) {
-      throw new Error("Usuario nao encontrado para esta filial.");
+      throw new Error("Usuário não encontrado para esta filial.");
     }
 
     const usuarioNome = String(payload.usuario_nome || "").trim();
@@ -299,7 +299,7 @@ class UsuarioDAO {
     }
 
     if (actorUserId === Number(usuarioId) && !usuarioAtivo) {
-      throw new Error("Nao e permitido desativar o proprio usuario.");
+      throw new Error("Não é permitido desativar o próprio usuário.");
     }
 
     const requestedTenantIds = normalizeIds(payload.tenant_ids);
@@ -349,7 +349,7 @@ class UsuarioDAO {
       );
 
       if (duplicateUser.rowCount > 0) {
-        throw new Error("Ja existe um usuario com este e-mail ou login.");
+        throw new Error("Já existe um usuário com este e-mail ou login.");
       }
 
       const passwordHash = usuarioSenha ? hashPassword(usuarioSenha) : null;
@@ -388,7 +388,7 @@ class UsuarioDAO {
 
       const usuario = updateResult.rows[0];
       if (!usuario) {
-        throw new Error("Usuario nao encontrado.");
+        throw new Error("Usuário não encontrado.");
       }
 
       await client.query(
@@ -427,7 +427,7 @@ class UsuarioDAO {
 
   static async excluir(client, { actorUserId, currentTenantId, usuarioId }) {
     if (Number(actorUserId) === Number(usuarioId)) {
-      throw new Error("Nao e permitido excluir o proprio usuario.");
+      throw new Error("Não é permitido excluir o próprio usuário.");
     }
 
     const existing = await this.buscarPorId(client, {
@@ -437,7 +437,7 @@ class UsuarioDAO {
     });
 
     if (!existing) {
-      throw new Error("Usuario nao encontrado para esta filial.");
+      throw new Error("Usuário não encontrado para esta filial.");
     }
 
     await client.query("BEGIN");

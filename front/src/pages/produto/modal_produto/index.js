@@ -24,7 +24,7 @@ export const ModalProduto = ({ isOpen, produtoId, onClose }) => {
   const renderRequiredLabel = (label) => (
     <C.FieldSpan>
       {label}
-      <C.RequiredMark title="Este campo e obrigatorio." aria-label="Campo obrigatorio">
+      <C.RequiredMark title="Este campo é obrigatório." aria-label="Campo obrigatório">
         *
       </C.RequiredMark>
     </C.FieldSpan>
@@ -107,7 +107,7 @@ export const ModalProduto = ({ isOpen, produtoId, onClose }) => {
                 </C.Field>
 
                 <C.Field>
-                  {renderRequiredLabel("Descricao interna")}
+                  {renderRequiredLabel("Descrição interna")}
                   <C.Input
                     ref={registerFieldRef("descricao")}
                     value={form.descricao}
@@ -117,7 +117,7 @@ export const ModalProduto = ({ isOpen, produtoId, onClose }) => {
                 </C.Field>
 
                 <C.Field>
-                  {renderRequiredLabel("Descricao fiscal / NF-e")}
+                  {renderRequiredLabel("Descrição fiscal / NF-e")}
                   <C.Textarea
                     ref={registerFieldRef("descricao_fiscal")}
                     value={form.descricao_fiscal}
@@ -128,7 +128,7 @@ export const ModalProduto = ({ isOpen, produtoId, onClose }) => {
 
                 <C.Grid>
                   <C.Field>
-                    <C.FieldSpan>GTIN / Codigo de barras</C.FieldSpan>
+                    <C.FieldSpan>GTIN / Código de barras</C.FieldSpan>
                     <C.Input
                       value={form.gtin}
                       onChange={(event) => updateField("gtin", event.target.value)}
@@ -229,7 +229,7 @@ export const ModalProduto = ({ isOpen, produtoId, onClose }) => {
                   </C.Field>
 
                   <C.Field>
-                    <C.FieldSpan>Codigo de beneficio fiscal</C.FieldSpan>
+                    <C.FieldSpan>Código de benefício fiscal</C.FieldSpan>
                     <C.Input
                       value={form.cbenef}
                       onChange={(event) => updateField("cbenef", event.target.value)}
@@ -252,7 +252,7 @@ export const ModalProduto = ({ isOpen, produtoId, onClose }) => {
                       value={form.ind_escala}
                       onChange={(event) => updateField("ind_escala", event.target.value)}
                     >
-                      <option value="">Nao informado</option>
+                      <option value="">Não informado</option>
                       <option value="S">S - Produção relevante</option>
                       <option value="N">N - Produção não relevante</option>
                     </C.Select>
@@ -355,7 +355,7 @@ export const ModalProduto = ({ isOpen, produtoId, onClose }) => {
                   </C.Field>
 
                   <C.Field>
-                    {renderRequiredLabel("Unidade tributavel")}
+                    {renderRequiredLabel("Unidade tributável")}
                     <C.Select
                       ref={registerFieldRef("unidade_tributavel_id")}
                       value={form.unidade_tributavel_id}
@@ -379,7 +379,7 @@ export const ModalProduto = ({ isOpen, produtoId, onClose }) => {
 
                 <C.GridThree>
                   <C.Field>
-                    <C.FieldSpan>Fator de conversao</C.FieldSpan>
+                    <C.FieldSpan>Fator de conversão</C.FieldSpan>
                     <C.Input
                       value={form.fator_conversao}
                       onChange={(event) => updateField("fator_conversao", event.target.value)}
@@ -398,7 +398,7 @@ export const ModalProduto = ({ isOpen, produtoId, onClose }) => {
                     />
                   </C.Field>
                   <C.Field>
-                    <C.FieldSpan>Casas decimais tributavel</C.FieldSpan>
+                    <C.FieldSpan>Casas decimais tributável</C.FieldSpan>
                     <C.Input
                       type="number"
                       min="0"
@@ -413,14 +413,14 @@ export const ModalProduto = ({ isOpen, produtoId, onClose }) => {
 
                 <C.GridThree>
                   <C.Field>
-                    <C.FieldSpan>Preco de venda</C.FieldSpan>
+                    <C.FieldSpan>Preço de venda</C.FieldSpan>
                     <C.Input
                       value={form.preco_venda}
                       onChange={(event) => updateField("preco_venda", event.target.value)}
                     />
                   </C.Field>
                   <C.Field>
-                    <C.FieldSpan>Preco de custo</C.FieldSpan>
+                    <C.FieldSpan>Preço de custo</C.FieldSpan>
                     <C.Input
                       value={form.preco_custo}
                       onChange={(event) => updateField("preco_custo", event.target.value)}
@@ -451,7 +451,7 @@ export const ModalProduto = ({ isOpen, produtoId, onClose }) => {
                     />
                   </C.Field>
                   <C.Field>
-                    <C.FieldSpan>Estoque minimo</C.FieldSpan>
+                    <C.FieldSpan>Estoque mínimo</C.FieldSpan>
                     <C.Input
                       value={form.estoque_minimo}
                       onChange={(event) => updateField("estoque_minimo", event.target.value)}
@@ -477,7 +477,7 @@ export const ModalProduto = ({ isOpen, produtoId, onClose }) => {
               {submitting
                 ? "Salvando..."
                 : produtoId
-                ? "Salvar alteracoes"
+                ? "Salvar alterações"
                 : "Cadastrar produto"}
             </C.PrimaryButton>
           </C.Footer>

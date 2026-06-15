@@ -21,7 +21,7 @@ import configuracaoFiscalRoutes from "./routes/configuracaoFiscalRoutes.js";
 dotenv.config();
 
 if (!process.env.CHAVE_TOKEN) {
-  throw new Error("CHAVE_TOKEN nao definida.");
+  throw new Error("CHAVE_TOKEN não definida.");
 }
 
 const app = express();
@@ -72,7 +72,7 @@ privateRouter.use("/configuracao-fiscal", configuracaoFiscalRoutes);
 app.use(privateRouter);
 
 app.use((req, res) => {
-  return res.status(404).json({ error: "Rota nao encontrada." });
+  return res.status(404).json({ error: "Rota não encontrada." });
 });
 
 app.listen(port, () => {

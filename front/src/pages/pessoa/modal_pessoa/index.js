@@ -47,7 +47,7 @@ export const ModalPessoa = ({ isOpen, pessoaId, onClose }) => {
             $active={activeTab === "endereco"}
             onClick={() => setActiveTab("endereco")}
           >
-            Endereco
+            Endereço
           </C.TabButton>
         </C.Tabs>
 
@@ -64,14 +64,14 @@ export const ModalPessoa = ({ isOpen, pessoaId, onClose }) => {
                       value={form.pessoa_tipo}
                       onChange={(event) => updateField("pessoa_tipo", event.target.value)}
                     >
-                      <option value="F">Pessoa fisica</option>
-                      <option value="J">Pessoa juridica</option>
+                      <option value="F">Pessoa física</option>
+                      <option value="J">Pessoa jurídica</option>
                     </C.Select>
                   </C.Field>
 
                   <C.Field>
                     <C.FieldSpan>
-                      {form.pessoa_tipo === "J" ? "Razao social" : "Nome completo"}
+                      {form.pessoa_tipo === "J" ? "Razão social" : "Nome completo"}
                     </C.FieldSpan>
                     <C.Input
                       value={form.pessoa_nome_razao}
@@ -110,7 +110,7 @@ export const ModalPessoa = ({ isOpen, pessoaId, onClose }) => {
                 <C.GridThree>
                   <C.Field>
                     <C.FieldSpan>
-                      {form.pessoa_tipo === "J" ? "Inscricao estadual" : "RG"}
+                      {form.pessoa_tipo === "J" ? "Inscrição estadual" : "RG"}
                     </C.FieldSpan>
                     <C.Input
                       value={
@@ -123,11 +123,16 @@ export const ModalPessoa = ({ isOpen, pessoaId, onClose }) => {
                           ? updateField("pessoa_inscricao_estadual", event.target.value)
                           : updateField("pessoa_rg", event.target.value)
                       }
+                      placeholder={
+                        form.pessoa_tipo === "J"
+                          ? "Número da IE ou ISENTO"
+                          : ""
+                      }
                     />
                   </C.Field>
 
                   <C.Field>
-                    <C.FieldSpan>Inscricao municipal</C.FieldSpan>
+                    <C.FieldSpan>Inscrição municipal</C.FieldSpan>
                     <C.Input
                       value={form.pessoa_inscricao_municipal}
                       onChange={(event) =>
@@ -189,7 +194,7 @@ export const ModalPessoa = ({ isOpen, pessoaId, onClose }) => {
                 </C.CheckboxGrid>
 
                 <C.Field>
-                  <C.FieldSpan>Observacao</C.FieldSpan>
+                  <C.FieldSpan>Observação</C.FieldSpan>
                   <C.Textarea
                     value={form.pessoa_observacao}
                     onChange={(event) => updateField("pessoa_observacao", event.target.value)}
@@ -217,7 +222,7 @@ export const ModalPessoa = ({ isOpen, pessoaId, onClose }) => {
                   </C.Field>
 
                   <C.Field>
-                    <C.FieldSpan>Codigo IBGE</C.FieldSpan>
+                    <C.FieldSpan>Código IBGE</C.FieldSpan>
                     <C.Input
                       value={form.endereco.codigo_ibge}
                       onChange={(event) =>
@@ -239,7 +244,7 @@ export const ModalPessoa = ({ isOpen, pessoaId, onClose }) => {
                   </C.Field>
 
                   <C.Field>
-                    <C.FieldSpan>Numero</C.FieldSpan>
+                    <C.FieldSpan>Número</C.FieldSpan>
                     <C.Input
                       value={form.endereco.numero}
                       onChange={(event) => updateEnderecoField("numero", event.target.value)}
@@ -277,7 +282,7 @@ export const ModalPessoa = ({ isOpen, pessoaId, onClose }) => {
                   </C.Field>
 
                   <C.Field>
-                    <C.FieldSpan>Pais</C.FieldSpan>
+                    <C.FieldSpan>País</C.FieldSpan>
                     <C.Input
                       value={form.endereco.pais}
                       onChange={(event) => updateEnderecoField("pais", event.target.value)}
@@ -286,8 +291,8 @@ export const ModalPessoa = ({ isOpen, pessoaId, onClose }) => {
                 </C.Grid>
 
                 <C.Hint>
-                  O endereco principal fica associado a filial ativa, mantendo a base pronta
-                  para os futuros modulos que reutilizarem esta pessoa.
+                  O endereço principal fica associado à filial ativa, mantendo a base pronta
+                  para os futuros módulos que reutilizarem esta pessoa.
                 </C.Hint>
               </>
             )}
@@ -301,7 +306,7 @@ export const ModalPessoa = ({ isOpen, pessoaId, onClose }) => {
               {submitting
                 ? "Salvando..."
                 : pessoaId
-                ? "Salvar alteracoes"
+                ? "Salvar alterações"
                 : "Cadastrar pessoa"}
             </C.PrimaryButton>
           </C.Footer>

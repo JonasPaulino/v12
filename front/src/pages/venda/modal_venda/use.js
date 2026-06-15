@@ -227,10 +227,10 @@ export const useModalVenda = ({ isOpen, vendaId, onClose }) => {
         }
       } catch (error) {
         showAlert({
-          title: "Falha ao abrir formulario",
+          title: "Falha ao abrir formulário",
           text:
             error?.response?.data?.message ||
-            "Nao foi possivel carregar os dados da venda.",
+            "Não foi possível carregar os dados da venda.",
           icon: "error",
         });
         onClose(false);
@@ -448,13 +448,13 @@ export const useModalVenda = ({ isOpen, vendaId, onClose }) => {
     if (!String(form.financeiro_condicao_pagamento_id || "").trim()) {
       return {
         field: "financeiro_condicao_pagamento_id",
-        label: "Condicao de pagamento",
+        label: "Condição de pagamento",
         tab: "dados",
       };
     }
 
     if (!String(form.data_emissao || "").trim()) {
-      return { field: "data_emissao", label: "Data de emissao", tab: "dados" };
+      return { field: "data_emissao", label: "Data de emissão", tab: "dados" };
     }
 
     if (!form.items.length) {
@@ -505,7 +505,7 @@ export const useModalVenda = ({ isOpen, vendaId, onClose }) => {
       }
 
       await showAlert({
-        title: `Campo obrigatorio: ${missingField.label}`,
+        title: `Campo obrigatório: ${missingField.label}`,
         text: missingField.customMessage || `Preencha o campo ${missingField.label}.`,
         icon: "warning",
       });
@@ -539,7 +539,7 @@ export const useModalVenda = ({ isOpen, vendaId, onClose }) => {
         title: "Falha ao salvar",
         text:
           error?.response?.data?.message ||
-          "Nao foi possivel salvar os dados da venda.",
+          "Não foi possível salvar os dados da venda.",
         icon: "error",
       });
     } finally {

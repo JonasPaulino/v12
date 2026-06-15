@@ -1,11 +1,11 @@
+import {
+  getTituloFinanceiroById,
+  getSupportData as getFinanceiroSupportData,
+} from "../api";
 import { api } from "api/axiosConfig";
 
 export const getSupportData = async (tipo = "receber") => {
-  const { data } = await api.get("/financeiro/support-data", {
-    params: { tipo },
-  });
-
-  return data;
+  return getFinanceiroSupportData(tipo);
 };
 
 export const searchPessoasSelect = async (search = "", limit = 20) => {
@@ -25,8 +25,7 @@ export const createTituloManual = async (payload) => {
 };
 
 export const getTituloById = async (financeiroTituloId) => {
-  const { data } = await api.get(`/financeiro/${financeiroTituloId}`);
-  return data;
+  return getTituloFinanceiroById(financeiroTituloId);
 };
 
 export const updateTituloManual = async (financeiroTituloId, payload) => {

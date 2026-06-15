@@ -38,7 +38,7 @@ export const useBusinessSwitcher = () => {
     } catch (error) {
       showAlert({
         title: "Falha ao trocar filial",
-        text: error?.response?.data?.error || "Nao foi possivel trocar a filial ativa.",
+        text: error?.response?.data?.error || "Não foi possível trocar a filial ativa.",
         icon: "error",
       });
     } finally {

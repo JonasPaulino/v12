@@ -33,7 +33,7 @@ router.get("/listar", async (req, res) => {
     console.error("[usuario] Falha ao listar usuarios:", error);
     return res.status(500).json({
       success: false,
-      message: "Nao foi possivel listar os usuarios.",
+      message: "Não foi possível listar os usuários.",
     });
   }
 });
@@ -51,7 +51,7 @@ router.get("/support-data", async (req, res) => {
     console.error("[usuario] Falha ao carregar apoio do formulario:", error);
     return res.status(500).json({
       success: false,
-      message: "Nao foi possivel carregar as filiais disponiveis.",
+      message: "Não foi possível carregar as filiais disponíveis.",
     });
   }
 });
@@ -67,7 +67,7 @@ router.get("/:id", async (req, res) => {
     if (!data) {
       return res.status(404).json({
         success: false,
-        message: "Usuario nao encontrado.",
+        message: "Usuário não encontrado.",
       });
     }
 
@@ -79,7 +79,7 @@ router.get("/:id", async (req, res) => {
     console.error("[usuario] Falha ao buscar usuario:", error);
     return res.status(500).json({
       success: false,
-      message: "Nao foi possivel carregar o usuario.",
+      message: "Não foi possível carregar o usuário.",
     });
   }
 });
@@ -97,14 +97,14 @@ router.post("/", async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: "Usuario cadastrado com sucesso.",
+      message: "Usuário cadastrado com sucesso.",
       data,
     });
   } catch (error) {
     console.error("[usuario] Falha ao criar usuario:", error);
     return res.status(400).json({
       success: false,
-      message: error.message || "Nao foi possivel criar o usuario.",
+      message: error.message || "Não foi possível criar o usuário.",
     });
   } finally {
     client?.release();
@@ -125,14 +125,14 @@ router.put("/:id", async (req, res) => {
 
     return res.json({
       success: true,
-      message: "Usuario atualizado com sucesso.",
+      message: "Usuário atualizado com sucesso.",
       data,
     });
   } catch (error) {
     console.error("[usuario] Falha ao atualizar usuario:", error);
     return res.status(400).json({
       success: false,
-      message: error.message || "Nao foi possivel atualizar o usuario.",
+      message: error.message || "Não foi possível atualizar o usuário.",
     });
   } finally {
     client?.release();
@@ -152,13 +152,13 @@ router.delete("/:id", async (req, res) => {
 
     return res.json({
       success: true,
-      message: "Usuario removido com sucesso.",
+      message: "Usuário removido com sucesso.",
     });
   } catch (error) {
     console.error("[usuario] Falha ao excluir usuario:", error);
     return res.status(400).json({
       success: false,
-      message: error.message || "Nao foi possivel excluir o usuario.",
+      message: error.message || "Não foi possível excluir o usuário.",
     });
   } finally {
     client?.release();

@@ -48,7 +48,7 @@ export const useTabelaVendas = ({ search, refreshKey, onDeleted }) => {
           title: "Falha ao carregar",
           text:
             error?.response?.data?.message ||
-            "Nao foi possivel carregar a lista de pedidos.",
+            "Não foi possível carregar a lista de pedidos.",
           icon: "error",
         });
       } finally {
@@ -65,7 +65,7 @@ export const useTabelaVendas = ({ search, refreshKey, onDeleted }) => {
   const handleDelete = async (venda) => {
     const confirmed = await askYesNoQuestion(
       "Remover pedido?",
-      "Deseja remover esse pedido de venda? Os titulos financeiros vinculados tambem serao cancelados se nao houver baixas."
+      "Deseja remover esse pedido de venda? Os títulos financeiros vinculados também serão cancelados se não houver baixas."
     );
 
     if (!confirmed) return;
@@ -88,7 +88,7 @@ export const useTabelaVendas = ({ search, refreshKey, onDeleted }) => {
         title: "Falha ao remover",
         text:
           error?.response?.data?.message ||
-          "Nao foi possivel remover o pedido selecionado.",
+          "Não foi possível remover o pedido selecionado.",
         icon: "error",
       });
     } finally {

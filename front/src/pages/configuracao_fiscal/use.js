@@ -66,7 +66,7 @@ const buildPendenciasEmitente = (emitente) => {
   const pendencias = [];
 
   if (emitente.pessoa_tipo !== "J") {
-    pendencias.push("A emitente precisa ser pessoa juridica.");
+    pendencias.push("A emitente precisa ser pessoa jurídica.");
   }
 
   if (!String(emitente.pessoa_cpf_cnpj || "").trim()) {
@@ -74,21 +74,21 @@ const buildPendenciasEmitente = (emitente) => {
   }
 
   if (!String(emitente.pessoa_inscricao_estadual || "").trim()) {
-    pendencias.push("Preencha a inscricao estadual da emitente.");
+    pendencias.push("Preencha a inscrição estadual da emitente ou informe ISENTO.");
   }
 
   const missingAddress = [
     ["cep", "CEP"],
     ["logradouro", "logradouro"],
-    ["numero", "numero"],
+    ["numero", "número"],
     ["bairro", "bairro"],
     ["cidade", "cidade"],
     ["uf", "UF"],
-    ["codigo_ibge", "codigo IBGE"],
+    ["codigo_ibge", "código IBGE"],
   ].find(([key]) => !String(emitente[key] || "").trim());
 
   if (missingAddress) {
-    pendencias.push(`Endereco principal sem ${missingAddress[1]}.`);
+    pendencias.push(`Endereço principal sem ${missingAddress[1]}.`);
   }
 
   return pendencias;
@@ -120,7 +120,7 @@ const readFileAsBase64 = (file) =>
       resolve(base64);
     };
 
-    reader.onerror = () => reject(new Error("Nao foi possivel ler o arquivo do certificado."));
+    reader.onerror = () => reject(new Error("Não foi possível ler o arquivo do certificado."));
     reader.readAsDataURL(file);
   });
 
@@ -184,10 +184,10 @@ export const useConfiguracaoFiscalPage = () => {
         if (!mounted) return;
 
         showAlert({
-          title: "Falha ao carregar configuracao",
+          title: "Falha ao carregar configuração",
           text:
             error?.response?.data?.message ||
-            "Nao foi possivel carregar a configuracao fiscal da filial.",
+            "Não foi possível carregar a configuração fiscal da filial.",
           icon: "error",
         });
       } finally {
@@ -313,8 +313,8 @@ export const useConfiguracaoFiscalPage = () => {
         applyData(response.data || null);
 
         showAlert({
-          title: "Configuracao salva",
-          text: response.message || "Configuracao fiscal da filial salva com sucesso.",
+          title: "Configuração salva",
+          text: response.message || "Configuração fiscal da filial salva com sucesso.",
           icon: "success",
         });
       } catch (error) {
@@ -322,7 +322,7 @@ export const useConfiguracaoFiscalPage = () => {
           title: "Falha ao salvar",
           text:
             error?.response?.data?.message ||
-            "Nao foi possivel salvar a configuracao fiscal da filial.",
+            "Não foi possível salvar a configuração fiscal da filial.",
           icon: "error",
         });
       } finally {

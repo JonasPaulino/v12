@@ -31,7 +31,7 @@ router.get("/listar", async (req, res) => {
     console.error("[pessoa] Falha ao listar pessoas:", error);
     return res.status(500).json({
       success: false,
-      message: "Nao foi possivel listar as pessoas.",
+      message: "Não foi possível listar as pessoas.",
     });
   }
 });
@@ -43,7 +43,7 @@ router.get("/:id", async (req, res) => {
     if (!data) {
       return res.status(404).json({
         success: false,
-        message: "Pessoa nao encontrada.",
+        message: "Pessoa não encontrada.",
       });
     }
 
@@ -55,7 +55,7 @@ router.get("/:id", async (req, res) => {
     console.error("[pessoa] Falha ao buscar pessoa:", error);
     return res.status(500).json({
       success: false,
-      message: "Nao foi possivel carregar a pessoa.",
+      message: "Não foi possível carregar a pessoa.",
     });
   }
 });
@@ -73,7 +73,7 @@ router.post("/", async (req, res) => {
     console.error("[pessoa] Falha ao criar pessoa:", error);
     return res.status(400).json({
       success: false,
-      message: error.message || "Nao foi possivel cadastrar a pessoa.",
+      message: error.message || "Não foi possível cadastrar a pessoa.",
     });
   }
 });
@@ -91,7 +91,7 @@ router.put("/:id", async (req, res) => {
     console.error("[pessoa] Falha ao atualizar pessoa:", error);
     return res.status(400).json({
       success: false,
-      message: error.message || "Nao foi possivel atualizar a pessoa.",
+      message: error.message || "Não foi possível atualizar a pessoa.",
     });
   }
 });
@@ -108,7 +108,7 @@ router.delete("/:id", async (req, res) => {
     console.error("[pessoa] Falha ao remover pessoa:", error);
     return res.status(400).json({
       success: false,
-      message: error.message || "Nao foi possivel remover a pessoa.",
+      message: error.message || "Não foi possível remover a pessoa.",
     });
   }
 });

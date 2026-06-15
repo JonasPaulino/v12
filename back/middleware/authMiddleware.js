@@ -6,7 +6,7 @@ const verificarToken = async (req, res, next) => {
   const token = req.cookies?.token;
 
   if (!token) {
-    return res.status(401).json({ message: "Token nao fornecido" });
+    return res.status(401).json({ message: "Token não fornecido" });
   }
 
   try {
@@ -14,7 +14,7 @@ const verificarToken = async (req, res, next) => {
     const latestSession = await loginDAO.obterUltimaSessao(pool, decoded.userId);
 
     if (!latestSession || latestSession.token !== token) {
-      return res.status(401).json({ message: "Sessao expirada ou invalida" });
+      return res.status(401).json({ message: "Sessão expirada ou inválida" });
     }
 
     const tenantAllowed = await loginDAO.usuarioPossuiTenant(
@@ -24,7 +24,7 @@ const verificarToken = async (req, res, next) => {
     );
 
     if (!tenantAllowed) {
-      return res.status(401).json({ message: "Acesso a filial invalido" });
+      return res.status(401).json({ message: "Acesso à filial inválido" });
     }
 
     req.user = decoded;
@@ -35,7 +35,7 @@ const verificarToken = async (req, res, next) => {
       return res.status(401).json({ message: "Token expirado" });
     }
 
-    return res.status(401).json({ message: "Token invalido" });
+    return res.status(401).json({ message: "Token inválido" });
   }
 };
 

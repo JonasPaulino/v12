@@ -1,3 +1,3 @@
 export const useNotFound = () => ({
-  title: "Pagina nao encontrada",
+  title: "Página não encontrada",
 });

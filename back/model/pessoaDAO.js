@@ -25,7 +25,7 @@ const normalizeText = (value, maxLength, { required = false } = {}) => {
 
   if (!normalized) {
     if (required) {
-      throw new Error("Preencha os campos obrigatorios da pessoa.");
+      throw new Error("Preencha os campos obrigatórios da pessoa.");
     }
 
     return null;
@@ -281,7 +281,7 @@ class PessoaDAO {
     const data = this.normalizarPayload(payload);
 
     if (await this.verificarCpfCnpjDuplicado(client, { cpfCnpj: data.pessoa_cpf_cnpj })) {
-      throw new Error("Ja existe uma pessoa com este CPF ou CNPJ.");
+      throw new Error("Já existe uma pessoa com este CPF ou CNPJ.");
     }
 
     await client.query("BEGIN");
@@ -395,11 +395,11 @@ class PessoaDAO {
     const current = await this.buscarPorId(client, pessoaId);
 
     if (!current) {
-      throw new Error("Pessoa nao encontrada.");
+      throw new Error("Pessoa não encontrada.");
     }
 
     if (await this.verificarCpfCnpjDuplicado(client, { pessoaId, cpfCnpj: data.pessoa_cpf_cnpj })) {
-      throw new Error("Ja existe uma pessoa com este CPF ou CNPJ.");
+      throw new Error("Já existe uma pessoa com este CPF ou CNPJ.");
     }
 
     await client.query("BEGIN");
@@ -519,7 +519,7 @@ class PessoaDAO {
     const current = await this.buscarPorId(client, pessoaId);
 
     if (!current) {
-      throw new Error("Pessoa nao encontrada.");
+      throw new Error("Pessoa não encontrada.");
     }
 
     await client.query("BEGIN");

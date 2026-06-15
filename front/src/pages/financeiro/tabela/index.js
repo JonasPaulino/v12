@@ -19,7 +19,16 @@ const formatStatus = (status) => {
   return String(status).charAt(0).toUpperCase() + String(status).slice(1);
 };
 
-const Tabela = ({ search, tipo, status, refreshKey, onEditar, onResumoChange }) => {
+const Tabela = ({
+  search,
+  tipo,
+  status,
+  refreshKey,
+  onEditar,
+  onBaixa,
+  onCancelar,
+  onResumoChange,
+}) => {
   const {
     titulos,
     resumo,
@@ -50,6 +59,59 @@ const Tabela = ({ search, tipo, status, refreshKey, onEditar, onResumoChange }) 
 
   const rows = useMemo(() => titulos || [], [titulos]);
 
+  const buildMenuItems = useCallback(
+    (titulo) => {
+      const possuiBaixas = Number(titulo.valor_baixado || 0) > 0;
+      const isCancelado = titulo.status_calculado === "cancelado";
+      const isQuitado = titulo.status_calculado === "quitado";
+      const veioDePedido = !!titulo.pedido_venda_id;
+      const editDisabled = veioDePedido || possuiBaixas || isCancelado || isQuitado;
+      const cancelDisabled = possuiBaixas || isCancelado || isQuitado;
+
+      let editTitle = "";
+      if (veioDePedido) {
+        editTitle = "Títulos gerados por pedido de venda devem ser alterados pela tela de vendas.";
+      } else if (possuiBaixas) {
+        editTitle = "Este título não pode ser editado porque já possui baixa registrada.";
+      } else if (isQuitado) {
+        editTitle = "Este título não pode ser editado porque já está quitado.";
+      } else if (isCancelado) {
+        editTitle = "Este título não pode ser editado porque está cancelado.";
+      }
+
+      let cancelTitle = "";
+      if (possuiBaixas) {
+        cancelTitle = "Este título não pode ser cancelado porque já possui baixa registrada.";
+      } else if (isQuitado) {
+        cancelTitle = "Este título não pode ser cancelado porque já está quitado.";
+      } else if (isCancelado) {
+        cancelTitle = "Este título já está cancelado.";
+      }
+
+      return [
+        {
+          label: titulo.tipo === "pagar" ? "Pagar / baixas" : "Receber / baixas",
+          disabled: isCancelado,
+          onClick: () => onBaixa?.(titulo.financeiro_titulo_id),
+        },
+        {
+          label: "Editar",
+          disabled: editDisabled,
+          title: editTitle,
+          onClick: () => onEditar?.(titulo.financeiro_titulo_id),
+        },
+        {
+          label: "Cancelar",
+          disabled: cancelDisabled,
+          title: cancelTitle,
+          danger: true,
+          onClick: () => onCancelar?.(titulo.financeiro_titulo_id),
+        },
+      ];
+    },
+    [onBaixa, onCancelar, onEditar]
+  );
+
   React.useEffect(() => {
     onResumoChange?.(resumo);
   }, [onResumoChange, resumo]);
@@ -61,7 +123,7 @@ const Tabela = ({ search, tipo, status, refreshKey, onEditar, onResumoChange }) 
           <C.Head>
             <C.Row>
               <C.HeaderCell $sortable onClick={() => toggleSort("financeiro_titulo_id")}>
-                Codigo
+                Código
                 <C.SortFlag $active={!!sort.financeiro_titulo_id}>
                   {sort.financeiro_titulo_id === "ASC"
                     ? "▲"
@@ -119,7 +181,7 @@ const Tabela = ({ search, tipo, status, refreshKey, onEditar, onResumoChange }) 
                   {sort.status === "ASC" ? "▲" : sort.status === "DESC" ? "▼" : "•"}
                 </C.SortFlag>
               </C.HeaderCell>
-              <C.HeaderCell>Acoes</C.HeaderCell>
+              <C.HeaderCell>Ações</C.HeaderCell>
             </C.Row>
           </C.Head>
 
@@ -156,8 +218,8 @@ const Tabela = ({ search, tipo, status, refreshKey, onEditar, onResumoChange }) 
                     <C.MenuButton
                       type="button"
                       onClick={(event) => openMenu(titulo.financeiro_titulo_id, event.currentTarget)}
-                      title="Acoes"
-                      aria-label="Acoes"
+                      title="Ações"
+                      aria-label="Ações"
                     >
                       <C.MenuIcon />
                     </C.MenuButton>
@@ -168,14 +230,7 @@ const Tabela = ({ search, tipo, status, refreshKey, onEditar, onResumoChange }) 
                         anchorEl={anchorEl}
                         onClose={closeMenu}
                         minWidth={200}
-                        items={[
-                          {
-                            label: "Editar",
-                            disabled:
-                              !!titulo.pedido_venda_id || Number(titulo.valor_baixado || 0) > 0,
-                            onClick: () => onEditar?.(titulo.financeiro_titulo_id),
-                          },
-                        ]}
+                        items={buildMenuItems(titulo)}
                       />
                     )}
                   </C.Cell>
@@ -184,7 +239,7 @@ const Tabela = ({ search, tipo, status, refreshKey, onEditar, onResumoChange }) 
             ) : (
               <C.Row>
                 <C.Cell colSpan={9}>
-                  <C.Empty>Nenhum titulo encontrado para os filtros informados.</C.Empty>
+                  <C.Empty>Nenhum título encontrado para os filtros informados.</C.Empty>
                 </C.Cell>
               </C.Row>
             )}
@@ -194,7 +249,7 @@ const Tabela = ({ search, tipo, status, refreshKey, onEditar, onResumoChange }) 
 
       <C.Footer>
         <C.FooterInfo>
-          Pagina {page} de {totalPages}
+          Página {page} de {totalPages}
         </C.FooterInfo>
 
         <C.Pagination>
@@ -228,7 +283,7 @@ const Tabela = ({ search, tipo, status, refreshKey, onEditar, onResumoChange }) 
             onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
             disabled={page === totalPages}
           >
-            Proxima
+            Próxima
           </C.PaginationButton>
         </C.Pagination>
       </C.Footer>

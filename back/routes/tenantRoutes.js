@@ -42,7 +42,7 @@ router.post("/switch", async (req, res) => {
     const { tenantId } = req.body || {};
 
     if (!tenantId) {
-      return res.status(400).json({ error: "Filial nao informada." });
+      return res.status(400).json({ error: "Filial não informada." });
     }
 
     const hasAccess = await loginDAO.usuarioPossuiTenant(pool, req.user.userId, Number(tenantId));

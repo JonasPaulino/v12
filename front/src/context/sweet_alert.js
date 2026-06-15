@@ -24,7 +24,7 @@ export const SweetAlertProvider = ({ children }) => {
           icon: "question",
           showCancelButton: true,
           confirmButtonText: "Sim",
-          cancelButtonText: "Nao",
+          cancelButtonText: "Não",
           confirmButtonColor: "#0b5fff",
         });
 
@@ -58,7 +58,7 @@ export const SweetAlertProvider = ({ children }) => {
             }
 
             if (password !== confirmPassword) {
-              Swal.showValidationMessage("As senhas informadas nao conferem.");
+              Swal.showValidationMessage("As senhas informadas não conferem.");
               return false;
             }
 

@@ -29,14 +29,14 @@ router.post("/login", async (req, res) => {
     const { username, password } = req.body || {};
 
     if (!username || !password) {
-      return res.status(400).json({ error: "Credenciais nao informadas." });
+      return res.status(400).json({ error: "Credenciais não informadas." });
     }
 
     const usuario = await loginDAO.buscarUsuarioPorLogin(pool, username);
     const passwordOk = !!usuario && verifyPassword(password, usuario.usuario_senha);
 
     if (!usuario || !passwordOk) {
-      return res.status(401).json({ error: "Usuario ou senha incorretos." });
+      return res.status(401).json({ error: "Usuário ou senha incorretos." });
     }
 
     if (!usuario.usuario_ativo) {
@@ -46,7 +46,7 @@ router.post("/login", async (req, res) => {
     const tenants = await loginDAO.listarTenantsDoUsuario(pool, usuario.usuario_id);
 
     if (!tenants.length) {
-      return res.status(403).json({ error: "Usuario sem filiais ativas vinculadas." });
+      return res.status(403).json({ error: "Usuário sem filiais ativas vinculadas." });
     }
     const activeTenant =
       tenants.find((item) => item.tenant_id === usuario.tenant_id_default) || tenants[0];
@@ -158,7 +158,7 @@ router.post("/change-password", verificarToken, async (req, res) => {
     if (!usuario) {
       return res.status(404).json({
         success: false,
-        error: "Usuario nao encontrado.",
+        error: "Usuário não encontrado.",
       });
     }
 

@@ -18,11 +18,11 @@ const ProfileOptions = ({ open = true }) => {
         </C.Options>
       )}
 
-      <C.Trigger type="button" $open={open} onClick={toggleOptions} title={user.name || "Usuario"}>
+      <C.Trigger type="button" $open={open} onClick={toggleOptions} title={user.name || "Usuário"}>
         <C.Avatar>{user.shortName?.slice(0, 2).toUpperCase() || "U"}</C.Avatar>
         <C.UserInfo $open={open}>
-          <C.UserName>{user.name || "Usuario"}</C.UserName>
-          <C.UserMail>{user.email || "sem email"}</C.UserMail>
+          <C.UserName>{user.name || "Usuário"}</C.UserName>
+          <C.UserMail>{user.email || "sem e-mail"}</C.UserMail>
         </C.UserInfo>
         <C.TriggerIndicator $open={open} $active={isOpen}>
           <MdKeyboardArrowDown />

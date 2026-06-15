@@ -40,7 +40,7 @@ const Tabela = ({ search, refreshKey, onEditar, onDeleted }) => {
           <C.Head>
             <C.Row>
               <C.HeaderCell $sortable onClick={() => toggleSort("pessoa_id")}>
-                Codigo
+                Código
                 <C.SortFlag $active={!!sort.pessoa_id}>
                   {sort.pessoa_id === "ASC" ? "▲" : sort.pessoa_id === "DESC" ? "▼" : "•"}
                 </C.SortFlag>
@@ -91,7 +91,7 @@ const Tabela = ({ search, refreshKey, onEditar, onDeleted }) => {
                       <C.PessoaMeta>
                         {pessoa.pessoa_nome_fantasia ||
                           [pessoa.cidade, pessoa.uf].filter(Boolean).join(" / ") ||
-                          (pessoa.pessoa_tipo === "J" ? "Pessoa juridica" : "Pessoa fisica")}
+                          (pessoa.pessoa_tipo === "J" ? "Pessoa jurídica" : "Pessoa física")}
                       </C.PessoaMeta>
                     </C.Cell>
                     <C.Cell>{pessoa.pessoa_cpf_cnpj || "--"}</C.Cell>
@@ -152,7 +152,7 @@ const Tabela = ({ search, refreshKey, onEditar, onDeleted }) => {
 
       <C.Footer>
         <C.FooterInfo>
-          Pagina {page} de {totalPages}
+          Página {page} de {totalPages}
         </C.FooterInfo>
 
         <C.Pagination>
@@ -186,7 +186,7 @@ const Tabela = ({ search, refreshKey, onEditar, onDeleted }) => {
             onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
             disabled={page === totalPages}
           >
-            Proxima
+            Próxima
           </C.PaginationButton>
         </C.Pagination>
       </C.Footer>

@@ -46,12 +46,12 @@ const parseBoolean = (value, defaultValue = false) => {
 const parseInteger = (value, { allowNull = false, min = 1, label = "Campo" } = {}) => {
   if (value === null || value === undefined || value === "") {
     if (allowNull) return null;
-    throw new Error(`${label} obrigatorio.`);
+    throw new Error(`${label} obrigatório.`);
   }
 
   const parsed = Number(value);
   if (!Number.isInteger(parsed) || parsed < min) {
-    throw new Error(`${label} invalido.`);
+    throw new Error(`${label} inválido.`);
   }
 
   return parsed;
@@ -64,14 +64,14 @@ const parseNumeric = (
   if (value === null || value === undefined || value === "") {
     if (allowNull) return null;
     if (defaultValue !== null) return defaultValue;
-    throw new Error(`${label} obrigatorio.`);
+    throw new Error(`${label} obrigatório.`);
   }
 
   let normalized = String(value).trim();
   if (!normalized) {
     if (allowNull) return null;
     if (defaultValue !== null) return defaultValue;
-    throw new Error(`${label} obrigatorio.`);
+    throw new Error(`${label} obrigatório.`);
   }
 
   const hasDot = normalized.includes(".");
@@ -85,7 +85,7 @@ const parseNumeric = (
 
   const parsed = Number(normalized);
   if (!Number.isFinite(parsed)) {
-    throw new Error(`${label} invalido.`);
+    throw new Error(`${label} inválido.`);
   }
 
   return parsed;
@@ -95,7 +95,7 @@ const normalizeText = (value, maxLength, { required = false, label = "Campo" } =
   const normalized = String(value ?? "").trim();
   if (!normalized) {
     if (required) {
-      throw new Error(`${label} obrigatorio nao informado.`);
+      throw new Error(`${label} obrigatório não informado.`);
     }
     return null;
   }
@@ -407,11 +407,11 @@ class ProdutoDAO {
     const produto = {
       descricao: normalizeText(payload.descricao, 180, {
         required: true,
-        label: "Descricao interna",
+        label: "Descrição interna",
       }),
       descricao_fiscal: normalizeText(payload.descricao_fiscal, 240, {
         required: true,
-        label: "Descricao fiscal / NF-e",
+        label: "Descrição fiscal / NF-e",
       }),
       gtin: normalizeText(payload.gtin, 20),
       marca: normalizeText(payload.marca, 120),
@@ -445,11 +445,11 @@ class ProdutoDAO {
           label: "Unidade comercial",
         }),
         unidade_tributavel_id: parseInteger(payload.unidade_tributavel_id, {
-          label: "Unidade tributavel",
+        label: "Unidade tributável",
         }),
         fator_conversao: parseNumeric(payload.fator_conversao, {
           defaultValue: 1,
-          label: "Fator de conversao",
+          label: "Fator de conversão",
         }),
         casas_decimais_comercial: parseInteger(payload.casas_decimais_comercial || 4, {
           min: 0,
@@ -463,11 +463,11 @@ class ProdutoDAO {
       preco: {
         preco_venda: parseNumeric(payload.preco_venda, {
           defaultValue: 0,
-          label: "Preco de venda",
+          label: "Preço de venda",
         }),
         preco_custo: parseNumeric(payload.preco_custo, {
           defaultValue: 0,
-          label: "Preco de custo",
+          label: "Preço de custo",
         }),
         margem:
           payload.margem === null || payload.margem === undefined || payload.margem === ""
@@ -481,7 +481,7 @@ class ProdutoDAO {
         }),
         estoque_minimo: parseNumeric(payload.estoque_minimo, {
           defaultValue: 0,
-          label: "Estoque minimo",
+          label: "Estoque mínimo",
         }),
         estoque_reservado: parseNumeric(payload.estoque_reservado, {
           defaultValue: 0,
@@ -491,11 +491,11 @@ class ProdutoDAO {
     };
 
     if (produto.unidade.casas_decimais_comercial < 0 || produto.unidade.casas_decimais_comercial > 6) {
-      throw new Error("Casas decimais comercial invalida.");
+      throw new Error("Casas decimais comercial inválida.");
     }
 
     if (produto.unidade.casas_decimais_tributavel < 0 || produto.unidade.casas_decimais_tributavel > 6) {
-      throw new Error("Casas decimais tributavel invalida.");
+      throw new Error("Casas decimais tributável inválida.");
     }
 
     if (produto.preco.margem === null) {
@@ -518,7 +518,7 @@ class ProdutoDAO {
 
     const ids = rows.map((row) => Number(row.unidade_medida_id));
     if (!ids.includes(unidadeComercialId) || !ids.includes(unidadeTributavelId)) {
-      throw new Error("Unidade comercial ou tributavel invalida.");
+      throw new Error("Unidade comercial ou tributável inválida.");
     }
   }
 
@@ -527,7 +527,7 @@ class ProdutoDAO {
     const supportData = await this.obterSupportData(client);
 
     if (!supportData.tabelaPrecoPadrao || !supportData.depositoPadrao) {
-      throw new Error("Tabela de preco ou deposito padrao nao configurados para a filial.");
+      throw new Error("Tabela de preço ou depósito padrão não configurados para a filial.");
     }
 
     await this.validarUnidades(
@@ -748,14 +748,14 @@ class ProdutoDAO {
   static async atualizar(client, produtoId, payload) {
     const existing = await this.buscarPorId(client, produtoId);
     if (!existing) {
-      throw new Error("Produto nao encontrado.");
+      throw new Error("Produto não encontrado.");
     }
 
     const data = this.normalizePayload(payload);
     const supportData = await this.obterSupportData(client);
 
     if (!supportData.tabelaPrecoPadrao || !supportData.depositoPadrao) {
-      throw new Error("Tabela de preco ou deposito padrao nao configurados para a filial.");
+      throw new Error("Tabela de preço ou depósito padrão não configurados para a filial.");
     }
 
     await this.validarUnidades(
@@ -1007,7 +1007,7 @@ class ProdutoDAO {
   static async excluir(client, produtoId) {
     const existing = await this.buscarPorId(client, produtoId);
     if (!existing) {
-      throw new Error("Produto nao encontrado.");
+      throw new Error("Produto não encontrado.");
     }
 
     await client.query("BEGIN");

@@ -51,7 +51,7 @@ export const useProfileActions = () => {
   const { clearSession } = useContext(AppContext);
 
   const handleLogout = async () => {
-    const confirmed = await askYesNoQuestion("Sair do sistema?", "Deseja encerrar a sessao atual?");
+    const confirmed = await askYesNoQuestion("Sair do sistema?", "Deseja encerrar a sessão atual?");
     if (!confirmed) return;
 
     await logout();

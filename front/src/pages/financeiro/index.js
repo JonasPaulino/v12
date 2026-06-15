@@ -3,6 +3,7 @@ import Header from "components/header";
 import Sidebar from "components/sidebar";
 import { AppContext } from "context";
 import Tabela from "./tabela";
+import { ModalBaixa } from "./modal_baixa";
 import { ModalTitulo } from "./modal_titulo";
 import { useFinanceiroPage } from "./use";
 import * as C from "./style";
@@ -23,11 +24,16 @@ export const Financeiro = () => {
     status,
     setStatus,
     openModal,
+    openBaixaModal,
     selectedTituloId,
+    selectedBaixaTituloId,
     refreshKey,
     handleOpenNovo,
     handleEditar,
+    handleOpenBaixa,
+    handleCancelar,
     handleCloseModal,
+    handleCloseBaixaModal,
   } = useFinanceiroPage();
   const [resumo, setResumo] = useState({
     quantidadeTitulos: 0,
@@ -59,13 +65,13 @@ export const Financeiro = () => {
           <C.Toolbar>
             <C.ToolbarGroup>
               <C.CreateButton type="button" onClick={handleOpenNovo}>
-                Novo titulo manual
+                Novo título manual
               </C.CreateButton>
 
               <C.SearchInput
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Pesquisar por codigo, pessoa, documento ou descricao"
+                placeholder="Pesquisar por código, pessoa, documento ou descrição"
               />
             </C.ToolbarGroup>
 
@@ -89,7 +95,7 @@ export const Financeiro = () => {
 
           <C.SummaryGrid>
             <C.SummaryCard>
-              <C.SummaryLabel>Titulos</C.SummaryLabel>
+              <C.SummaryLabel>Títulos</C.SummaryLabel>
               <C.SummaryValue>{resumo.quantidadeTitulos}</C.SummaryValue>
             </C.SummaryCard>
             <C.SummaryCard>
@@ -113,6 +119,8 @@ export const Financeiro = () => {
               status={status}
               refreshKey={refreshKey}
               onEditar={handleEditar}
+              onBaixa={handleOpenBaixa}
+              onCancelar={handleCancelar}
               onResumoChange={handleResumoChange}
             />
           </C.TableArea>
@@ -124,6 +132,12 @@ export const Financeiro = () => {
         tituloId={selectedTituloId}
         initialTipo={["receber", "pagar"].includes(tipo) ? tipo : "receber"}
         onClose={handleCloseModal}
+      />
+
+      <ModalBaixa
+        isOpen={openBaixaModal}
+        tituloId={selectedBaixaTituloId}
+        onClose={handleCloseBaixaModal}
       />
     </C.Shell>
   );

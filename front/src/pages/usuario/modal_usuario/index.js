@@ -29,10 +29,10 @@ export const ModalUsuario = ({ isOpen, usuarioId, onClose }) => {
       <C.Modal>
         <C.Header>
           <C.TitleBlock>
-            <C.Title>{usuarioId ? "Editar usuario" : "Novo usuario"}</C.Title>
+            <C.Title>{usuarioId ? "Editar usuário" : "Novo usuário"}</C.Title>
             <C.Subtitle>
-              O usuario e global e pode receber acesso somente as filiais permitidas ao
-              usuario logado.
+              O usuário é global e pode receber acesso somente às filiais permitidas ao
+              usuário logado.
             </C.Subtitle>
           </C.TitleBlock>
 
@@ -61,7 +61,7 @@ export const ModalUsuario = ({ isOpen, usuarioId, onClose }) => {
         <C.Form onSubmit={handleSubmit}>
           <C.Body>
             {loadingForm ? (
-              <C.Hint>Carregando dados do usuario...</C.Hint>
+              <C.Hint>Carregando dados do usuário...</C.Hint>
             ) : activeTab === "dados" ? (
               <>
                 <C.Grid>
@@ -118,11 +118,11 @@ export const ModalUsuario = ({ isOpen, usuarioId, onClose }) => {
                       updateField("usuario_ativo", event.target.checked)
                     }
                   />
-                  Usuario ativo
+                  Usuário ativo
                 </C.CheckboxLine>
 
                 <C.Hint>
-                  O usuario novo entra com a senha inicial cadastrada e sera obrigado a
+                  O usuário novo entra com a senha inicial cadastrada e será obrigado a
                   definir uma nova senha no primeiro acesso.
                 </C.Hint>
               </>
@@ -130,14 +130,14 @@ export const ModalUsuario = ({ isOpen, usuarioId, onClose }) => {
               <>
                 {hiddenAssignmentsCount > 0 && (
                   <C.AlertBox>
-                    Este usuario possui {hiddenAssignmentsCount} filiais adicionais fora do seu
-                    escopo atual. Elas serao preservadas, mas nao podem ser gerenciadas nesta
-                    sessao.
+                    Este usuário possui {hiddenAssignmentsCount} filiais adicionais fora do seu
+                    escopo atual. Elas serão preservadas, mas não podem ser gerenciadas nesta
+                    sessão.
                   </C.AlertBox>
                 )}
 
                 <C.Hint>
-                  A filial ativa permanece obrigatoria para garantir que o usuario apareca nesta
+                  A filial ativa permanece obrigatória para garantir que o usuário apareça nesta
                   tela e possa operar na loja corrente.
                 </C.Hint>
 
@@ -170,7 +170,7 @@ export const ModalUsuario = ({ isOpen, usuarioId, onClose }) => {
                 </C.TenantList>
 
                 <C.Field>
-                  <C.FieldSpan>Filial padrao para o login</C.FieldSpan>
+                  <C.FieldSpan>Filial padrão para o login</C.FieldSpan>
                   <C.Select
                     value={form.tenant_id_default || ""}
                     onChange={(event) =>
@@ -198,8 +198,8 @@ export const ModalUsuario = ({ isOpen, usuarioId, onClose }) => {
               {submitting
                 ? "Salvando..."
                 : usuarioId
-                ? "Salvar alteracoes"
-                : "Cadastrar usuario"}
+                ? "Salvar alterações"
+                : "Cadastrar usuário"}
             </C.PrimaryButton>
           </C.Footer>
         </C.Form>

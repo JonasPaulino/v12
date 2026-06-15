@@ -44,7 +44,7 @@ export const ModalTitulo = ({ isOpen, tituloId, initialTipo, onClose }) => {
   const renderRequiredLabel = (label) => (
     <C.FieldSpan>
       {label}
-      <C.RequiredMark title="Este campo e obrigatorio." aria-label="Campo obrigatorio">
+      <C.RequiredMark title="Este campo é obrigatório." aria-label="Campo obrigatório">
         *
       </C.RequiredMark>
     </C.FieldSpan>
@@ -57,7 +57,7 @@ export const ModalTitulo = ({ isOpen, tituloId, initialTipo, onClose }) => {
       <C.Modal>
         <C.Header>
           <C.TitleBlock>
-            <C.Title>{currentTituloId ? "Editar titulo manual" : "Novo titulo manual"}</C.Title>
+            <C.Title>{currentTituloId ? "Editar título manual" : "Novo título manual"}</C.Title>
             <C.Subtitle>
               Lance contas a pagar ou a receber sem pedido de venda, mantendo parcelas e
               vencimentos no financeiro.
@@ -72,7 +72,7 @@ export const ModalTitulo = ({ isOpen, tituloId, initialTipo, onClose }) => {
         <C.Form onSubmit={handleSubmit} noValidate>
           <C.Body>
             {loadingForm ? (
-              <C.Hint>Carregando dados do titulo...</C.Hint>
+              <C.Hint>Carregando dados do título...</C.Hint>
             ) : (
               <>
                 <C.GridThree>
@@ -88,7 +88,7 @@ export const ModalTitulo = ({ isOpen, tituloId, initialTipo, onClose }) => {
                   </C.Field>
 
                   <C.Field>
-                    {renderRequiredLabel("Data de emissao")}
+                    {renderRequiredLabel("Data de emissão")}
                     <C.Input
                       ref={registerFieldRef("data_emissao")}
                       type="date"
@@ -98,7 +98,7 @@ export const ModalTitulo = ({ isOpen, tituloId, initialTipo, onClose }) => {
                   </C.Field>
 
                   <C.Field>
-                    <C.FieldSpan>Numero do documento</C.FieldSpan>
+                    <C.FieldSpan>Número do documento</C.FieldSpan>
                     <C.Input
                       value={form.numero_documento}
                       onChange={(event) => updateField("numero_documento", event.target.value)}
@@ -126,7 +126,7 @@ export const ModalTitulo = ({ isOpen, tituloId, initialTipo, onClose }) => {
                   </C.Field>
 
                   <C.Field>
-                    {renderRequiredLabel("Condicao de pagamento")}
+                    {renderRequiredLabel("Condição de pagamento")}
                     <C.Select
                       ref={registerFieldRef("financeiro_condicao_pagamento_id")}
                       value={form.financeiro_condicao_pagamento_id}
@@ -148,7 +148,7 @@ export const ModalTitulo = ({ isOpen, tituloId, initialTipo, onClose }) => {
                 </C.Grid>
 
                 <C.Field>
-                  {renderRequiredLabel("Descricao")}
+                  {renderRequiredLabel("Descrição")}
                   <C.Input
                     ref={registerFieldRef("descricao")}
                     value={form.descricao}
@@ -175,7 +175,7 @@ export const ModalTitulo = ({ isOpen, tituloId, initialTipo, onClose }) => {
                   </C.Field>
 
                   <C.Field>
-                    <C.FieldSpan>Acrescimo</C.FieldSpan>
+                    <C.FieldSpan>Acréscimo</C.FieldSpan>
                     <C.Input
                       value={form.acrescimo}
                       onChange={(event) => updateField("acrescimo", event.target.value)}
@@ -184,7 +184,7 @@ export const ModalTitulo = ({ isOpen, tituloId, initialTipo, onClose }) => {
                 </C.GridThree>
 
                 <C.Field>
-                  <C.FieldSpan>Observacao</C.FieldSpan>
+                  <C.FieldSpan>Observação</C.FieldSpan>
                   <C.Textarea
                     value={form.observacao}
                     onChange={(event) => updateField("observacao", event.target.value)}
@@ -203,7 +203,7 @@ export const ModalTitulo = ({ isOpen, tituloId, initialTipo, onClose }) => {
                     <C.SummaryValue>{currencyFormatter.format(resumo.desconto || 0)}</C.SummaryValue>
                   </C.SummaryCard>
                   <C.SummaryCard>
-                    <C.SummaryLabel>Acrescimo</C.SummaryLabel>
+                    <C.SummaryLabel>Acréscimo</C.SummaryLabel>
                     <C.SummaryValue>{currencyFormatter.format(resumo.acrescimo || 0)}</C.SummaryValue>
                   </C.SummaryCard>
                   <C.SummaryCard>
@@ -213,7 +213,7 @@ export const ModalTitulo = ({ isOpen, tituloId, initialTipo, onClose }) => {
                 </C.SummaryGrid>
 
                 <C.Hint>
-                  As parcelas abaixo sao geradas automaticamente conforme a condicao de
+                  As parcelas abaixo são geradas automaticamente conforme a condição de
                   pagamento selecionada.
                 </C.Hint>
 
@@ -241,7 +241,7 @@ export const ModalTitulo = ({ isOpen, tituloId, initialTipo, onClose }) => {
                   ) : (
                     <C.ParcelaRow>
                       <div>--</div>
-                      <div>Selecione uma condicao de pagamento</div>
+                      <div>Selecione uma condição de pagamento</div>
                       <div>--</div>
                       <div>--</div>
                     </C.ParcelaRow>
@@ -259,8 +259,8 @@ export const ModalTitulo = ({ isOpen, tituloId, initialTipo, onClose }) => {
               {submitting
                 ? "Salvando..."
                 : currentTituloId
-                ? "Salvar alteracoes"
-                : "Cadastrar titulo"}
+                ? "Salvar alterações"
+                : "Cadastrar título"}
             </C.PrimaryButton>
           </C.Footer>
         </C.Form>

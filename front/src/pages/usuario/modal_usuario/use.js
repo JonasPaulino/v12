@@ -83,10 +83,10 @@ export const useModalUsuario = ({ isOpen, usuarioId, onClose }) => {
         }
       } catch (error) {
         showAlert({
-          title: "Falha ao abrir formulario",
+          title: "Falha ao abrir formulário",
           text:
             error?.response?.data?.message ||
-            "Nao foi possivel carregar os dados do usuario.",
+            "Não foi possível carregar os dados do usuário.",
           icon: "error",
         });
         onClose(false);
@@ -144,7 +144,7 @@ export const useModalUsuario = ({ isOpen, usuarioId, onClose }) => {
 
     try {
       setSubmitting(true);
-      showLoading(usuarioId ? "Atualizando usuario..." : "Cadastrando usuario...");
+      showLoading(usuarioId ? "Atualizando usuário..." : "Cadastrando usuário...");
 
       const payload = {
         ...form,
@@ -160,7 +160,7 @@ export const useModalUsuario = ({ isOpen, usuarioId, onClose }) => {
         title: "Sucesso",
         text:
           response?.message ||
-          (usuarioId ? "Usuario atualizado com sucesso." : "Usuario cadastrado com sucesso."),
+          (usuarioId ? "Usuário atualizado com sucesso." : "Usuário cadastrado com sucesso."),
         icon: "success",
         timer: 1800,
       });
@@ -171,7 +171,7 @@ export const useModalUsuario = ({ isOpen, usuarioId, onClose }) => {
         title: "Falha ao salvar",
         text:
           error?.response?.data?.message ||
-          "Nao foi possivel salvar os dados do usuario.",
+          "Não foi possível salvar os dados do usuário.",
         icon: "error",
       });
     } finally {

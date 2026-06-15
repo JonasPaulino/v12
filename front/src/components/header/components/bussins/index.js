@@ -16,12 +16,6 @@ const BussinsOptions = () => {
               shortName={business?.tenant_slug || "Filial"}
             />
           </C.BussinsName>
-          <C.BussinsName>
-            <C.BussinsModuleNameText
-              fullName="Clique para trocar de filial"
-              shortName="Trocar filial"
-            />
-          </C.BussinsName>
         </C.ContainerBussinsText>
         {isOpen ? <C.ArrowUp /> : <C.ArrowDown />}
       </C.ContainerBussins>
@@ -44,7 +38,7 @@ const BussinsOptions = () => {
             ))}
           </C.InputSelect>
           <C.Hint>
-            A autenticacao entra direto com a filial padrao. Se precisar, altere a filial ativa aqui.
+            A autenticação entra direto com a filial padrão. Se precisar, altere a filial ativa aqui.
           </C.Hint>
         </C.OptionsContainer>
       )}

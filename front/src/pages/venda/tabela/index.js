@@ -79,7 +79,7 @@ const Tabela = ({ search, refreshKey, onEditar, onDeleted }) => {
                 </C.SortFlag>
               </C.HeaderCell>
               <C.HeaderCell $sortable onClick={() => toggleSort("data_emissao")}>
-                Emissao
+                Emissão
                 <C.SortFlag $active={!!sort.data_emissao}>
                   {sort.data_emissao === "ASC"
                     ? "▲"
@@ -94,7 +94,7 @@ const Tabela = ({ search, refreshKey, onEditar, onDeleted }) => {
                   {sort.total === "ASC" ? "▲" : sort.total === "DESC" ? "▼" : "•"}
                 </C.SortFlag>
               </C.HeaderCell>
-              <C.HeaderCell>Condicao</C.HeaderCell>
+              <C.HeaderCell>Condição</C.HeaderCell>
               <C.HeaderCell $sortable onClick={() => toggleSort("financeiro_status")}>
                 Financeiro
                 <C.SortFlag $active={!!sort.financeiro_status}>
@@ -111,7 +111,7 @@ const Tabela = ({ search, refreshKey, onEditar, onDeleted }) => {
                   {sort.status === "ASC" ? "▲" : sort.status === "DESC" ? "▼" : "•"}
                 </C.SortFlag>
               </C.HeaderCell>
-              <C.HeaderCell>Acoes</C.HeaderCell>
+              <C.HeaderCell>Ações</C.HeaderCell>
             </C.Row>
           </C.Head>
 
@@ -140,8 +140,8 @@ const Tabela = ({ search, refreshKey, onEditar, onDeleted }) => {
                     <C.MenuButton
                       type="button"
                       onClick={(event) => openMenu(venda.pedido_venda_id, event.currentTarget)}
-                      title="Acoes"
-                      aria-label="Acoes"
+                      title="Ações"
+                      aria-label="Ações"
                     >
                       <C.MenuIcon />
                     </C.MenuButton>
@@ -181,7 +181,7 @@ const Tabela = ({ search, refreshKey, onEditar, onDeleted }) => {
 
       <C.Footer>
         <C.FooterInfo>
-          Pagina {page} de {totalPages}
+          Página {page} de {totalPages}
         </C.FooterInfo>
 
         <C.Pagination>
@@ -215,7 +215,7 @@ const Tabela = ({ search, refreshKey, onEditar, onDeleted }) => {
             onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
             disabled={page === totalPages}
           >
-            Proxima
+            Próxima
           </C.PaginationButton>
         </C.Pagination>
       </C.Footer>

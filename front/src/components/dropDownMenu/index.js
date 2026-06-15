@@ -109,6 +109,8 @@ export default function DropdownMenu({
               }}
               $danger={!!item.danger}
               disabled={!!item.disabled}
+              title={item.title || ""}
+              aria-label={item.ariaLabel || item.label}
               role="menuitem"
             >
               {item.icon || null}

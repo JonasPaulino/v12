@@ -50,7 +50,7 @@ const Tabela = ({ search, refreshKey, onEditar, onDeleted }) => {
           <C.Head>
             <C.Row>
               <C.HeaderCell $sortable onClick={() => toggleSort("codigo_interno")}>
-                Codigo
+                Código
                 <C.SortFlag $active={!!sort.codigo_interno}>
                   {sort.codigo_interno === "ASC"
                     ? "▲"
@@ -73,7 +73,7 @@ const Tabela = ({ search, refreshKey, onEditar, onDeleted }) => {
               </C.HeaderCell>
               <C.HeaderCell>Unidades</C.HeaderCell>
               <C.HeaderCell $sortable onClick={() => toggleSort("preco_venda")}>
-                Preco venda
+                Preço venda
                 <C.SortFlag $active={!!sort.preco_venda}>
                   {sort.preco_venda === "ASC"
                     ? "▲"
@@ -168,7 +168,7 @@ const Tabela = ({ search, refreshKey, onEditar, onDeleted }) => {
 
       <C.Footer>
         <C.FooterInfo>
-          Pagina {page} de {totalPages}
+          Página {page} de {totalPages}
         </C.FooterInfo>
 
         <C.Pagination>
@@ -202,7 +202,7 @@ const Tabela = ({ search, refreshKey, onEditar, onDeleted }) => {
             onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
             disabled={page === totalPages}
           >
-            Proxima
+            Próxima
           </C.PaginationButton>
         </C.Pagination>
       </C.Footer>

@@ -6,7 +6,7 @@ const normalizeText = (value, maxLength, { required = false, label = "Campo" } =
 
   if (!normalized) {
     if (required) {
-      throw new Error(`${label} obrigatorio nao informado.`);
+      throw new Error(`${label} obrigatório não informado.`);
     }
 
     return null;
@@ -18,13 +18,13 @@ const normalizeText = (value, maxLength, { required = false, label = "Campo" } =
 const parseInteger = (value, { allowNull = false, min = 1, label = "Campo" } = {}) => {
   if (value === undefined || value === null || value === "") {
     if (allowNull) return null;
-    throw new Error(`${label} obrigatorio.`);
+    throw new Error(`${label} obrigatório.`);
   }
 
   const parsed = Number(value);
 
   if (!Number.isInteger(parsed) || parsed < min) {
-    throw new Error(`${label} invalido.`);
+    throw new Error(`${label} inválido.`);
   }
 
   return parsed;
@@ -174,7 +174,7 @@ class ConfiguracaoFiscalDAO {
     }
 
     if (pessoa.pessoa_tipo !== "J") {
-      throw new Error("A pessoa emitente da filial deve ser pessoa juridica.");
+      throw new Error("A pessoa emitente da filial deve ser pessoa jurídica.");
     }
 
     if (!normalizeDigits(pessoa.pessoa_cpf_cnpj)) {
@@ -182,7 +182,9 @@ class ConfiguracaoFiscalDAO {
     }
 
     if (!String(pessoa.pessoa_inscricao_estadual || "").trim()) {
-      throw new Error("A pessoa emitente precisa ter inscricao estadual preenchida.");
+      throw new Error(
+        "A pessoa emitente precisa ter inscrição estadual preenchida ou o literal ISENTO."
+      );
     }
 
     const missingAddress = [
@@ -196,7 +198,7 @@ class ConfiguracaoFiscalDAO {
     ].find(([key]) => !String(pessoa[key] || "").trim());
 
     if (missingAddress) {
-      throw new Error(`A pessoa emitente precisa ter ${missingAddress[1]} no endereco principal.`);
+      throw new Error(`A pessoa emitente precisa ter ${missingAddress[1]} no endereço principal.`);
     }
   }
 
@@ -277,19 +279,19 @@ class ConfiguracaoFiscalDAO {
     });
 
     if (!["1", "2", "3"].includes(crt)) {
-      throw new Error("CRT invalido.");
+      throw new Error("CRT inválido.");
     }
 
     if (!["1", "2"].includes(ambienteNfe)) {
-      throw new Error("Ambiente da NF-e invalido.");
+      throw new Error("Ambiente da NF-e inválido.");
     }
 
     const serieNfePadrao = parseInteger(payload.serie_nfe_padrao, {
-      label: "Serie padrao",
+      label: "Série padrão",
     });
 
     const proximoNumeroNfe = parseInteger(payload.proximo_numero_nfe, {
-      label: "Proximo numero da NF-e",
+      label: "Próximo número da NF-e",
     });
 
     const certificado = payload.certificado || {};
@@ -300,7 +302,7 @@ class ConfiguracaoFiscalDAO {
       label: "Senha do certificado",
     });
     const certificadoConteudoBase64 = normalizeText(certificado.conteudo_base64, null, {
-      label: "Conteudo do certificado",
+      label: "Conteúdo do certificado",
     });
 
     return {
@@ -312,7 +314,7 @@ class ConfiguracaoFiscalDAO {
       cnae: normalizeText(payload.cnae, 7, { label: "CNAE" }),
       natureza_operacao_padrao: normalizeText(payload.natureza_operacao_padrao, 120, {
         required: true,
-        label: "Natureza de operacao padrao",
+        label: "Natureza de operação padrão",
       }),
       nfe_habilitada: normalizeBoolean(payload.nfe_habilitada, false),
       observacao: normalizeText(payload.observacao, null),
@@ -400,13 +402,13 @@ class ConfiguracaoFiscalDAO {
           !data.certificado.conteudo_base64
         ) {
           throw new Error(
-            "Para importar o certificado A1 informe arquivo, conteudo e senha."
+            "Para importar o certificado A1 informe arquivo, conteúdo e senha."
           );
         }
 
         const buffer = Buffer.from(data.certificado.conteudo_base64, "base64");
         if (!buffer.length) {
-          throw new Error("Conteudo do certificado A1 invalido.");
+          throw new Error("Conteúdo do certificado A1 inválido.");
         }
 
         await client.query(

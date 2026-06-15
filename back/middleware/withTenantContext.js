@@ -18,7 +18,7 @@ export const withTenantContext = async (req, res, next) => {
 
   try {
     if (!req.user?.tenantId) {
-      return res.status(400).json({ error: "Tenant nao informado na sessao." });
+      return res.status(400).json({ error: "Tenant não informado na sessão." });
     }
 
     client = await pool.connect();

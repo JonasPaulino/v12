@@ -9,7 +9,7 @@ export const NotFound = () => {
     <C.Container>
       <C.Card>
         <C.Title>{title}</C.Title>
-        <C.Text>A rota informada nao existe nesta base do V12.</C.Text>
+        <C.Text>A rota informada não existe nesta base do V12.</C.Text>
         <C.LinkButton href="/dashboard">Ir para o dashboard</C.LinkButton>
       </C.Card>
     </C.Container>

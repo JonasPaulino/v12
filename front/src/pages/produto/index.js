@@ -42,7 +42,7 @@ export const Produto = () => {
               <C.SearchInput
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Pesquisar por codigo gerado, descricao ou NCM"
+                placeholder="Pesquisar por código gerado, descrição ou NCM"
               />
             </C.ToolbarGroup>
           </C.Toolbar>

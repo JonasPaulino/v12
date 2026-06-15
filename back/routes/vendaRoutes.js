@@ -31,7 +31,7 @@ router.get("/listar", async (req, res) => {
     console.error("[venda] Falha ao listar pedidos:", error);
     return res.status(500).json({
       success: false,
-      message: "Nao foi possivel listar os pedidos de venda.",
+      message: "Não foi possível listar os pedidos de venda.",
     });
   }
 });
@@ -48,7 +48,7 @@ router.get("/support-data", async (req, res) => {
     console.error("[venda] Falha ao carregar dados de apoio:", error);
     return res.status(500).json({
       success: false,
-      message: "Nao foi possivel carregar os dados auxiliares da venda.",
+      message: "Não foi possível carregar os dados auxiliares da venda.",
     });
   }
 });
@@ -68,7 +68,7 @@ router.get("/pessoas-select", async (req, res) => {
     console.error("[venda] Falha ao pesquisar clientes:", error);
     return res.status(500).json({
       success: false,
-      message: "Nao foi possivel pesquisar os clientes.",
+      message: "Não foi possível pesquisar os clientes.",
     });
   }
 });
@@ -88,7 +88,7 @@ router.get("/produtos-select", async (req, res) => {
     console.error("[venda] Falha ao pesquisar produtos:", error);
     return res.status(500).json({
       success: false,
-      message: "Nao foi possivel pesquisar os produtos.",
+      message: "Não foi possível pesquisar os produtos.",
     });
   }
 });
@@ -100,7 +100,7 @@ router.get("/:id", async (req, res) => {
     if (!data) {
       return res.status(404).json({
         success: false,
-        message: "Pedido de venda nao encontrado.",
+        message: "Pedido de venda não encontrado.",
       });
     }
 
@@ -112,7 +112,7 @@ router.get("/:id", async (req, res) => {
     console.error("[venda] Falha ao buscar pedido:", error);
     return res.status(500).json({
       success: false,
-      message: "Nao foi possivel carregar o pedido de venda.",
+      message: "Não foi possível carregar o pedido de venda.",
     });
   }
 });
@@ -133,7 +133,7 @@ router.post("/", async (req, res) => {
     console.error("[venda] Falha ao criar pedido:", error);
     return res.status(400).json({
       success: false,
-      message: error.message || "Nao foi possivel cadastrar o pedido de venda.",
+      message: error.message || "Não foi possível cadastrar o pedido de venda.",
     });
   }
 });
@@ -155,7 +155,7 @@ router.put("/:id", async (req, res) => {
     console.error("[venda] Falha ao atualizar pedido:", error);
     return res.status(400).json({
       success: false,
-      message: error.message || "Nao foi possivel atualizar o pedido de venda.",
+      message: error.message || "Não foi possível atualizar o pedido de venda.",
     });
   }
 });
@@ -172,7 +172,7 @@ router.delete("/:id", async (req, res) => {
     console.error("[venda] Falha ao remover pedido:", error);
     return res.status(400).json({
       success: false,
-      message: error.message || "Nao foi possivel remover o pedido de venda.",
+      message: error.message || "Não foi possível remover o pedido de venda.",
     });
   }
 });

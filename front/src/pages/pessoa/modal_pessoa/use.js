@@ -88,10 +88,10 @@ export const useModalPessoa = ({ isOpen, pessoaId, onClose }) => {
         });
       } catch (error) {
         showAlert({
-          title: "Falha ao abrir formulario",
+          title: "Falha ao abrir formulário",
           text:
             error?.response?.data?.message ||
-            "Nao foi possivel carregar os dados da pessoa.",
+            "Não foi possível carregar os dados da pessoa.",
           icon: "error",
         });
         onClose(false);
@@ -148,7 +148,7 @@ export const useModalPessoa = ({ isOpen, pessoaId, onClose }) => {
         title: "Falha ao salvar",
         text:
           error?.response?.data?.message ||
-          "Nao foi possivel salvar os dados da pessoa.",
+          "Não foi possível salvar os dados da pessoa.",
         icon: "error",
       });
     } finally {

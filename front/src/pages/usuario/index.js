@@ -41,7 +41,7 @@ export const Usuario = () => {
           <C.Toolbar>
             <C.ToolbarGroup>
               <C.CreateButton type="button" onClick={handleOpenNovo}>
-                Cadastrar usuario
+                Cadastrar usuário
               </C.CreateButton>
             </C.ToolbarGroup>
 

@@ -24,6 +24,7 @@ export const ContainerBussins = styled.button`
   background: rgba(255, 255, 255, 0.82);
   box-shadow: ${({ theme }) => theme.colors.shadowSoft};
   color: ${({ theme }) => theme.colors.text};
+  text-align: left;
 
   @media (max-width: 900px) {
     height: auto;
@@ -32,6 +33,7 @@ export const ContainerBussins = styled.button`
 `;
 
 export const ContainerBussinsText = styled.div`
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: flex-start;

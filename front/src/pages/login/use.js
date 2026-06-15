@@ -22,7 +22,7 @@ export const useLogin = () => {
   const handleLogin = async () => {
     if (!username || !password) {
       showAlert({
-        title: "Campos obrigatorios",
+        title: "Campos obrigatórios",
         text: "Informe login e senha para continuar.",
         icon: "info",
       });
@@ -42,7 +42,7 @@ export const useLogin = () => {
       if (!canEnter) {
         showAlert({
           title: "Falha no login",
-          text: "Nao foi possivel concluir a autenticacao.",
+          text: "Não foi possível concluir a autenticação.",
           icon: "error",
         });
         return;
@@ -55,7 +55,7 @@ export const useLogin = () => {
     } catch (error) {
       showAlert({
         title: "Falha no login",
-        text: error?.response?.data?.error || "Nao foi possivel validar o acesso.",
+        text: error?.response?.data?.error || "Não foi possível validar o acesso.",
         icon: "error",
       });
     } finally {

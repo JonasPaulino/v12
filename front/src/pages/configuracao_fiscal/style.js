@@ -80,6 +80,26 @@ export const Form = styled.form`
   gap: 18px;
 `;
 
+export const Tabs = styled.div`
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+`;
+
+export const TabButton = styled.button`
+  height: 42px;
+  padding: 0 18px;
+  border-radius: ${({ theme }) => theme.radius.pill};
+  border: 1px solid
+    ${({ theme, $active }) => ($active ? theme.colors.primary : theme.colors.border)};
+  background: ${({ theme, $active }) =>
+    $active ? "rgba(11, 95, 255, 0.1)" : theme.colors.surface};
+  color: ${({ theme, $active }) =>
+    $active ? theme.colors.primaryStrong : theme.colors.textSoft};
+  font-weight: 700;
+  cursor: pointer;
+`;
+
 export const Card = styled.section`
   display: grid;
   gap: 18px;
@@ -110,6 +130,11 @@ export const CardText = styled.p`
   margin: 0;
   color: ${({ theme }) => theme.colors.textSoft};
   line-height: 1.6;
+`;
+
+export const SectionBody = styled.div`
+  display: grid;
+  gap: 18px;
 `;
 
 export const FieldsGrid = styled.div`

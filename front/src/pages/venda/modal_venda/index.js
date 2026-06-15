@@ -46,7 +46,7 @@ export const ModalVenda = ({ isOpen, vendaId, onClose }) => {
   const renderRequiredLabel = (label) => (
     <C.FieldSpan>
       {label}
-      <C.RequiredMark title="Este campo e obrigatorio." aria-label="Campo obrigatorio">
+      <C.RequiredMark title="Este campo é obrigatório." aria-label="Campo obrigatório">
         *
       </C.RequiredMark>
     </C.FieldSpan>
@@ -61,7 +61,7 @@ export const ModalVenda = ({ isOpen, vendaId, onClose }) => {
           <C.TitleBlock>
             <C.Title>{vendaId ? "Editar venda" : "Nova venda"}</C.Title>
             <C.Subtitle>
-              O pedido gera automaticamente o contas a receber e sua previsao de parcelas.
+              O pedido gera automaticamente o contas a receber e sua previsão de parcelas.
             </C.Subtitle>
           </C.TitleBlock>
 
@@ -120,7 +120,7 @@ export const ModalVenda = ({ isOpen, vendaId, onClose }) => {
                   </C.Field>
 
                   <C.Field>
-                    {renderRequiredLabel("Condicao de pagamento")}
+                    {renderRequiredLabel("Condição de pagamento")}
                     <C.Select
                       ref={registerFieldRef("financeiro_condicao_pagamento_id")}
                       value={form.financeiro_condicao_pagamento_id}
@@ -154,7 +154,7 @@ export const ModalVenda = ({ isOpen, vendaId, onClose }) => {
                   </C.Field>
 
                   <C.Field>
-                    {renderRequiredLabel("Data de emissao")}
+                    {renderRequiredLabel("Data de emissão")}
                     <C.Input
                       ref={registerFieldRef("data_emissao")}
                       type="date"
@@ -183,7 +183,7 @@ export const ModalVenda = ({ isOpen, vendaId, onClose }) => {
                   </C.Field>
 
                   <C.Field>
-                    <C.FieldSpan>Acrescimo do pedido</C.FieldSpan>
+                    <C.FieldSpan>Acréscimo do pedido</C.FieldSpan>
                     <C.Input
                       value={form.acrescimo}
                       onChange={(event) => updateField("acrescimo", event.target.value)}
@@ -192,7 +192,7 @@ export const ModalVenda = ({ isOpen, vendaId, onClose }) => {
                 </C.Grid>
 
                 <C.Field>
-                  <C.FieldSpan>Observacao</C.FieldSpan>
+                  <C.FieldSpan>Observação</C.FieldSpan>
                   <C.Textarea
                     value={form.observacao}
                     onChange={(event) => updateField("observacao", event.target.value)}
@@ -203,7 +203,7 @@ export const ModalVenda = ({ isOpen, vendaId, onClose }) => {
               <>
                 <C.ItemsToolbar>
                   <C.Hint>
-                    Os itens geram o subtotal do pedido e servem de base para o titulo
+                    Os itens geram o subtotal do pedido e servem de base para o título
                     financeiro.
                   </C.Hint>
 
@@ -219,8 +219,8 @@ export const ModalVenda = ({ isOpen, vendaId, onClose }) => {
                         <C.ItemsHeaderCell>
                           Produto
                           <C.RequiredMark
-                            title="Este campo e obrigatorio."
-                            aria-label="Campo obrigatorio"
+                            title="Este campo é obrigatório."
+                            aria-label="Campo obrigatório"
                           >
                             *
                           </C.RequiredMark>
@@ -228,17 +228,17 @@ export const ModalVenda = ({ isOpen, vendaId, onClose }) => {
                         <C.ItemsHeaderCell>
                           Qtde
                           <C.RequiredMark
-                            title="Este campo e obrigatorio."
-                            aria-label="Campo obrigatorio"
+                            title="Este campo é obrigatório."
+                            aria-label="Campo obrigatório"
                           >
                             *
                           </C.RequiredMark>
                         </C.ItemsHeaderCell>
                         <div>Valor unit.</div>
                         <div>Desconto</div>
-                        <div>Acrescimo</div>
+                        <div>Acréscimo</div>
                         <div>Total</div>
-                        <div>Acoes</div>
+                        <div>Ações</div>
                       </C.ItemsHeader>
 
                       {itemsCalculated.map((item, index) => (
@@ -247,8 +247,8 @@ export const ModalVenda = ({ isOpen, vendaId, onClose }) => {
                             <C.InlineLabel>
                               Produto
                               <C.RequiredMark
-                                title="Este campo e obrigatorio."
-                                aria-label="Campo obrigatorio"
+                                title="Este campo é obrigatório."
+                                aria-label="Campo obrigatório"
                               >
                                 *
                               </C.RequiredMark>
@@ -260,7 +260,7 @@ export const ModalVenda = ({ isOpen, vendaId, onClose }) => {
                               onSelect={(produtoId) => handleSelectProduto(index, produtoId)}
                               loadOptions={loadProdutosOptions}
                               placeholder="Selecione um produto"
-                              searchPlaceholder="Digite codigo ou descricao"
+                              searchPlaceholder="Digite código ou descrição"
                               emptyMessage="Nenhum produto encontrado."
                               minChars={0}
                               getOptionValue={(option) => option.produto_id}
@@ -279,8 +279,8 @@ export const ModalVenda = ({ isOpen, vendaId, onClose }) => {
                             <C.InlineLabel>
                               Qtde
                               <C.RequiredMark
-                                title="Este campo e obrigatorio."
-                                aria-label="Campo obrigatorio"
+                                title="Este campo é obrigatório."
+                                aria-label="Campo obrigatório"
                               >
                                 *
                               </C.RequiredMark>
@@ -316,7 +316,7 @@ export const ModalVenda = ({ isOpen, vendaId, onClose }) => {
                           </C.InlineField>
 
                           <C.InlineField>
-                            <C.InlineLabel>Acrescimo</C.InlineLabel>
+                            <C.InlineLabel>Acréscimo</C.InlineLabel>
                             <C.Input
                               value={item.acrescimo}
                               onChange={(event) =>
@@ -351,7 +351,7 @@ export const ModalVenda = ({ isOpen, vendaId, onClose }) => {
                     <C.SummaryValue>{currencyFormatter.format(resumo.desconto)}</C.SummaryValue>
                   </C.SummaryCard>
                   <C.SummaryCard>
-                    <C.SummaryLabel>Acrescimo</C.SummaryLabel>
+                    <C.SummaryLabel>Acréscimo</C.SummaryLabel>
                     <C.SummaryValue>{currencyFormatter.format(resumo.acrescimo)}</C.SummaryValue>
                   </C.SummaryCard>
                   <C.SummaryCard>
@@ -361,7 +361,7 @@ export const ModalVenda = ({ isOpen, vendaId, onClose }) => {
                 </C.SummaryGrid>
 
                 <C.Hint>
-                  O pedido nao grava pagamento dentro dele. Ele apenas gera o titulo financeiro
+                  O pedido não grava pagamento dentro dele. Ele apenas gera o título financeiro
                   e suas parcelas, evitando duplicidade com o contas a receber.
                 </C.Hint>
 
@@ -393,7 +393,7 @@ export const ModalVenda = ({ isOpen, vendaId, onClose }) => {
                   ) : (
                     <C.ParcelaRow>
                       <div>--</div>
-                      <div>Selecione uma condicao de pagamento</div>
+                      <div>Selecione uma condição de pagamento</div>
                       <div>--</div>
                       <div>--</div>
                     </C.ParcelaRow>
@@ -411,7 +411,7 @@ export const ModalVenda = ({ isOpen, vendaId, onClose }) => {
               {submitting
                 ? "Salvando..."
                 : vendaId
-                ? "Salvar alteracoes"
+                ? "Salvar alterações"
                 : "Cadastrar venda"}
             </C.PrimaryButton>
           </C.Footer>

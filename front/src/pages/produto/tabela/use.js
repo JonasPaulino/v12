@@ -48,7 +48,7 @@ export const useTabelaProdutos = ({ search, refreshKey, onDeleted }) => {
           title: "Falha ao carregar",
           text:
             error?.response?.data?.message ||
-            "Nao foi possivel carregar a lista de produtos.",
+            "Não foi possível carregar a lista de produtos.",
           icon: "error",
         });
       } finally {
@@ -65,7 +65,7 @@ export const useTabelaProdutos = ({ search, refreshKey, onDeleted }) => {
   const handleDelete = async (produto) => {
     const confirmed = await askYesNoQuestion(
       "Remover produto?",
-      "Deseja remover esse produto? Ele nao sera mais considerado nas operacoes do sistema."
+      "Deseja remover esse produto? Ele não será mais considerado nas operações do sistema."
     );
 
     if (!confirmed) return;
@@ -88,7 +88,7 @@ export const useTabelaProdutos = ({ search, refreshKey, onDeleted }) => {
         title: "Falha ao remover",
         text:
           error?.response?.data?.message ||
-          "Nao foi possivel remover o produto selecionado.",
+          "Não foi possível remover o produto selecionado.",
         icon: "error",
       });
     } finally {

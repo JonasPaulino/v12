@@ -68,12 +68,12 @@ const ORIGEM_OPTIONS = [
 
 const REQUIRED_FIELDS = [
   { field: "tipo_produto", label: "Tipo de produto", tab: "dados" },
-  { field: "descricao", label: "Descricao interna", tab: "dados" },
-  { field: "descricao_fiscal", label: "Descricao fiscal / NF-e", tab: "dados" },
+  { field: "descricao", label: "Descrição interna", tab: "dados" },
+  { field: "descricao_fiscal", label: "Descrição fiscal / NF-e", tab: "dados" },
   { field: "ncm", label: "NCM", tab: "fiscal" },
   { field: "origem_mercadoria", label: "Origem da mercadoria", tab: "fiscal" },
   { field: "unidade_comercial_id", label: "Unidade comercial", tab: "comercial" },
-  { field: "unidade_tributavel_id", label: "Unidade tributavel", tab: "comercial" },
+  { field: "unidade_tributavel_id", label: "Unidade tributável", tab: "comercial" },
 ];
 
 const isMissingRequiredValue = (value) => {
@@ -173,10 +173,10 @@ export const useModalProduto = ({ isOpen, produtoId, onClose }) => {
         }
       } catch (error) {
         showAlert({
-          title: "Falha ao abrir formulario",
+          title: "Falha ao abrir formulário",
           text:
             error?.response?.data?.message ||
-            "Nao foi possivel carregar os dados do produto.",
+            "Não foi possível carregar os dados do produto.",
           icon: "error",
         });
         onClose(false);
@@ -266,7 +266,7 @@ export const useModalProduto = ({ isOpen, produtoId, onClose }) => {
       }
 
       await showAlert({
-        title: `Campo obrigatorio: ${missingField.label}`,
+        title: `Campo obrigatório: ${missingField.label}`,
         text: `Preencha o campo ${missingField.label}.`,
         icon: "warning",
       });
@@ -298,7 +298,7 @@ export const useModalProduto = ({ isOpen, produtoId, onClose }) => {
         title: "Falha ao salvar",
         text:
           error?.response?.data?.message ||
-          "Nao foi possivel salvar os dados do produto.",
+          "Não foi possível salvar os dados do produto.",
         icon: "error",
       });
     } finally {

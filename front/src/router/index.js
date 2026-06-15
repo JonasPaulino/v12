@@ -10,6 +10,7 @@ import { Pessoa } from "pages/pessoa";
 import { Venda } from "pages/venda";
 import { Financeiro } from "pages/financeiro";
 import { ConfiguracaoFiscal } from "pages/configuracao_fiscal";
+import { Nfe } from "pages/nfe";
 import { NotFound } from "pages/404";
 
 export const RouteApp = () => (
@@ -31,7 +32,7 @@ export const RouteApp = () => (
         path="/usuarios"
         element={
           <AuthMiddleware>
-            <PageWrapper title="Usuarios">
+            <PageWrapper title="Usuários">
               <Usuario />
             </PageWrapper>
           </AuthMiddleware>
@@ -71,8 +72,18 @@ export const RouteApp = () => (
         path="/configuracao-fiscal"
         element={
           <AuthMiddleware>
-            <PageWrapper title="Configuracao fiscal">
+            <PageWrapper title="Configurações">
               <ConfiguracaoFiscal />
+            </PageWrapper>
+          </AuthMiddleware>
+        }
+      />
+      <Route
+        path="/nfe"
+        element={
+          <AuthMiddleware>
+            <PageWrapper title="NF-e">
+              <Nfe />
             </PageWrapper>
           </AuthMiddleware>
         }

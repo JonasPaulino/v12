@@ -42,7 +42,7 @@ export const Venda = () => {
               <C.SearchInput
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Pesquisar por numero, cliente ou documento"
+                placeholder="Pesquisar por número, cliente ou documento"
               />
             </C.ToolbarGroup>
           </C.Toolbar>

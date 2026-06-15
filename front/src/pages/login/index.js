@@ -19,8 +19,8 @@ export const Login = () => {
           <C.Brand>V12</C.Brand>
           <C.HeroTitle>Um sistema multi-filial. Desenvolvido para agilizar seu negócio.</C.HeroTitle>
           <C.HeroText>
-            Organize sua empresa, com o sistema V12, cadastre seus produtos, realize vendas, emita notas fiscais de venda e devolução.
-            Com o V12 você emite seus realórios e tem as informações que precisa para tomada de decisão.
+            Organize sua empresa com o sistema V12, cadastre seus produtos, realize vendas, emita notas fiscais de venda e devolução.
+            Com o V12 você emite seus relatórios e tem as informações que precisa para a tomada de decisão.
           </C.HeroText>
         </C.HeroTop>
 
@@ -35,7 +35,7 @@ export const Login = () => {
           <C.Step>V12 Sistema</C.Step>
           <C.Title>Entrar no sistema</C.Title>
           <C.Subtitle>
-            Informe login e senha. A filial padrao do usuario sera carregada e podera ser alterada depois no menu superior.
+            Informe login e senha. A filial padrão do usuário será carregada e poderá ser alterada depois no menu superior.
           </C.Subtitle>
 
           <C.Label>Login ou e-mail</C.Label>

@@ -48,7 +48,7 @@ export const useTabelaPessoas = ({ search, refreshKey, onDeleted }) => {
           title: "Falha ao carregar",
           text:
             error?.response?.data?.message ||
-            "Nao foi possivel carregar a lista de pessoas.",
+            "Não foi possível carregar a lista de pessoas.",
           icon: "error",
         });
       } finally {
@@ -65,7 +65,7 @@ export const useTabelaPessoas = ({ search, refreshKey, onDeleted }) => {
   const handleDelete = async (pessoa) => {
     const confirmed = await askYesNoQuestion(
       "Remover pessoa?",
-      "Deseja remover essa pessoa? Ela deixara de aparecer nas operacoes desta filial."
+      "Deseja remover essa pessoa? Ela deixará de aparecer nas operações desta filial."
     );
 
     if (!confirmed) return;
@@ -91,7 +91,7 @@ export const useTabelaPessoas = ({ search, refreshKey, onDeleted }) => {
         title: "Falha ao remover",
         text:
           error?.response?.data?.message ||
-          "Nao foi possivel remover a pessoa selecionada.",
+          "Não foi possível remover a pessoa selecionada.",
         icon: "error",
       });
     } finally {

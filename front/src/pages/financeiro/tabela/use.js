@@ -70,7 +70,7 @@ export const useTabelaFinanceiro = ({ search, tipo, status, refreshKey }) => {
           title: "Falha ao carregar",
           text:
             error?.response?.data?.message ||
-            "Nao foi possivel carregar os titulos financeiros.",
+            "Não foi possível carregar os títulos financeiros.",
           icon: "error",
         });
       } finally {

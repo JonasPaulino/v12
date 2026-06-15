@@ -39,13 +39,13 @@ const Tabela = ({ search, refreshKey, onEditar, onDeleted }) => {
           <C.Head>
             <C.Row>
               <C.HeaderCell $sortable onClick={() => toggleSort("usuario_id")}>
-                Codigo
+                Código
                 <C.SortFlag $active={!!sort.usuario_id}>
                   {sort.usuario_id === "ASC" ? "▲" : sort.usuario_id === "DESC" ? "▼" : "•"}
                 </C.SortFlag>
               </C.HeaderCell>
               <C.HeaderCell $sortable onClick={() => toggleSort("usuario_nome")}>
-                Usuario
+                Usuário
                 <C.SortFlag $active={!!sort.usuario_nome}>
                   {sort.usuario_nome === "ASC" ? "▲" : sort.usuario_nome === "DESC" ? "▼" : "•"}
                 </C.SortFlag>
@@ -57,7 +57,7 @@ const Tabela = ({ search, refreshKey, onEditar, onDeleted }) => {
                 </C.SortFlag>
               </C.HeaderCell>
               <C.HeaderCell $sortable onClick={() => toggleSort("tenant_nome_default")}>
-                Filial padrao
+                Filial padrão
                 <C.SortFlag $active={!!sort.tenant_nome_default}>
                   {sort.tenant_nome_default === "ASC"
                     ? "▲"
@@ -131,7 +131,7 @@ const Tabela = ({ search, refreshKey, onEditar, onDeleted }) => {
             ) : (
               <C.Row>
                 <C.Cell colSpan={6}>
-                  <C.Empty>Nenhum usuario encontrado para a filial ativa.</C.Empty>
+                  <C.Empty>Nenhum usuário encontrado para a filial ativa.</C.Empty>
                 </C.Cell>
               </C.Row>
             )}
@@ -141,7 +141,7 @@ const Tabela = ({ search, refreshKey, onEditar, onDeleted }) => {
 
       <C.Footer>
         <C.FooterInfo>
-          Pagina {page} de {totalPages}
+          Página {page} de {totalPages}
         </C.FooterInfo>
 
         <C.Pagination>
@@ -175,7 +175,7 @@ const Tabela = ({ search, refreshKey, onEditar, onDeleted }) => {
             onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
             disabled={page === totalPages}
           >
-            Proxima
+            Próxima
           </C.PaginationButton>
         </C.Pagination>
       </C.Footer>

@@ -233,10 +233,10 @@ export const useModalTitulo = ({ isOpen, tituloId, initialTipo, onClose }) => {
         }));
       } catch (error) {
         showAlert({
-          title: "Falha ao abrir formulario",
+          title: "Falha ao abrir formulário",
           text:
             error?.response?.data?.message ||
-            "Nao foi possivel carregar os dados auxiliares do titulo.",
+            "Não foi possível carregar os dados auxiliares do título.",
           icon: "error",
         });
         onClose(false);
@@ -406,18 +406,18 @@ export const useModalTitulo = ({ isOpen, tituloId, initialTipo, onClose }) => {
     }
 
     if (!String(form.descricao || "").trim()) {
-      return { field: "descricao", label: "Descricao" };
+        return { field: "descricao", label: "Descrição" };
     }
 
     if (!String(form.financeiro_condicao_pagamento_id || "").trim()) {
       return {
         field: "financeiro_condicao_pagamento_id",
-        label: "Condicao de pagamento",
+        label: "Condição de pagamento",
       };
     }
 
     if (!String(form.data_emissao || "").trim()) {
-      return { field: "data_emissao", label: "Data de emissao" };
+      return { field: "data_emissao", label: "Data de emissão" };
     }
 
     if (parseNumeric(form.valor_original) <= 0) {
@@ -432,7 +432,7 @@ export const useModalTitulo = ({ isOpen, tituloId, initialTipo, onClose }) => {
       return {
         field: "valor_original",
         label: "Valor final",
-        customMessage: "O valor final do titulo precisa ser maior que zero.",
+        customMessage: "O valor final do título precisa ser maior que zero.",
       };
     }
 
@@ -446,7 +446,7 @@ export const useModalTitulo = ({ isOpen, tituloId, initialTipo, onClose }) => {
     const missingField = validateBeforeSubmit();
     if (missingField) {
       await showAlert({
-        title: `Campo obrigatorio: ${missingField.label}`,
+        title: `Campo obrigatório: ${missingField.label}`,
         text: missingField.customMessage || `Preencha o campo ${missingField.label}.`,
         icon: "warning",
       });
@@ -468,8 +468,8 @@ export const useModalTitulo = ({ isOpen, tituloId, initialTipo, onClose }) => {
         text:
           response?.message ||
           (tituloId
-            ? "Titulo financeiro atualizado com sucesso."
-            : "Titulo financeiro cadastrado com sucesso."),
+            ? "Título financeiro atualizado com sucesso."
+            : "Título financeiro cadastrado com sucesso."),
         icon: "success",
         timer: 1800,
       });
@@ -480,7 +480,7 @@ export const useModalTitulo = ({ isOpen, tituloId, initialTipo, onClose }) => {
         title: "Falha ao salvar",
         text:
           error?.response?.data?.message ||
-          "Nao foi possivel salvar o titulo financeiro.",
+          "Não foi possível salvar o título financeiro.",
         icon: "error",
       });
     } finally {

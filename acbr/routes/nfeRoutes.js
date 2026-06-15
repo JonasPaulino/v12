@@ -1,0 +1,264 @@
+import express from "express";
+import NfeDAO from "../model/nfeDAO.js";
+import {
+  AcbrLibProvider,
+  AcbrLibNotConfiguredError,
+  AcbrLibNotImplementedError,
+} from "../providers/acbrlib/client.js";
+
+const router = express.Router();
+
+const isProviderStubError = (error) =>
+  error instanceof AcbrLibNotConfiguredError || error instanceof AcbrLibNotImplementedError;
+
+router.get("/listar", async (req, res) => {
+  try {
+    const page = Number(req.query.page || 1);
+    const limit = Number(req.query.limit || 20);
+    const search = String(req.query.search || "");
+    const status = String(req.query.status || "");
+    let sort = {};
+
+    try {
+      sort = req.query.sort ? JSON.parse(String(req.query.sort)) : {};
+    } catch {
+      sort = {};
+    }
+
+    const result = await NfeDAO.listar(req.db, {
+      page,
+      limit,
+      search,
+      status,
+      sort,
+    });
+
+    return res.json({
+      success: true,
+      ...result,
+    });
+  } catch (error) {
+    console.error("[acbr:nfe] Falha ao listar NF-e:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Não foi possível listar as NF-e.",
+    });
+  }
+});
+
+router.get("/support-data", async (req, res) => {
+  try {
+    const data = await NfeDAO.obterSupportData(req.db);
+
+    return res.json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    console.error("[acbr:nfe] Falha ao carregar dados de apoio:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Não foi possível carregar os dados auxiliares da NF-e.",
+    });
+  }
+});
+
+router.get("/pedidos-select", async (req, res) => {
+  try {
+    const data = await NfeDAO.listarPedidosSelect(req.db, {
+      search: String(req.query.search || ""),
+      limit: Number(req.query.limit || 20),
+    });
+
+    return res.json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    console.error("[acbr:nfe] Falha ao pesquisar pedidos:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Não foi possível pesquisar os pedidos de venda.",
+    });
+  }
+});
+
+router.get("/:id", async (req, res) => {
+  try {
+    const data = await NfeDAO.buscarPorId(req.db, Number(req.params.id));
+
+    if (!data) {
+      return res.status(404).json({
+        success: false,
+        message: "NF-e não encontrada.",
+      });
+    }
+
+    return res.json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    console.error("[acbr:nfe] Falha ao buscar NF-e:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Não foi possível carregar a NF-e.",
+    });
+  }
+});
+
+router.post("/emitir", async (req, res) => {
+  try {
+    const data = await NfeDAO.criarPorPedido(req.db, {
+      pedidoVendaId: Number(req.body?.pedido_venda_id),
+      usuarioId: Number(req.user?.userId) || null,
+      payload: req.body || {},
+    });
+
+    return res.status(201).json({
+      success: true,
+      message:
+        "NF-e registrada no schema fiscal como rascunho. Falta integrar a chamada real ao ACBr.",
+      data,
+    });
+  } catch (error) {
+    console.error("[acbr:nfe] Falha ao registrar emissao:", error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Não foi possível registrar a NF-e.",
+    });
+  }
+});
+
+router.post("/importar-xml", async (req, res) => {
+  try {
+    const data = await NfeDAO.registrarImportacaoXml(req.db, {
+      payload: req.body || {},
+      usuarioId: Number(req.user?.userId) || null,
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "XML importado com sucesso para o schema fiscal.",
+      data,
+    });
+  } catch (error) {
+    console.error("[acbr:nfe] Falha ao importar XML:", error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Não foi possível importar o XML da NF-e.",
+    });
+  }
+});
+
+router.post("/:id/processar", async (req, res) => {
+  try {
+    await AcbrLibProvider.emitirNfe({
+      nfeId: Number(req.params.id),
+      tenantId: Number(req.user?.tenantId),
+    });
+
+    return res.json({
+      success: true,
+      message: "Integração ACBrLib executada com sucesso.",
+    });
+  } catch (error) {
+    if (isProviderStubError(error)) {
+      return res.status(501).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    console.error("[acbr:nfe] Falha ao processar emissao:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Não foi possível processar a emissão da NF-e.",
+    });
+  }
+});
+
+router.post("/:id/consultar-status", async (req, res) => {
+  try {
+    const data = await NfeDAO.registrarEvento(req.db, {
+      nfeId: Number(req.params.id),
+      usuarioId: Number(req.user?.userId) || null,
+      tipoEvento: "consulta_status_manual",
+      mensagem: "Solicitada consulta manual de status da NF-e.",
+      payload: req.body || {},
+    });
+
+    try {
+      await AcbrLibProvider.consultarStatus({
+        nfeId: Number(req.params.id),
+        tenantId: Number(req.user?.tenantId),
+      });
+    } catch (error) {
+      if (isProviderStubError(error)) {
+        return res.status(501).json({
+          success: false,
+          message: error.message,
+          data,
+        });
+      }
+
+      throw error;
+    }
+
+    return res.json({
+      success: true,
+      message: "Consulta de status enviada para a integração fiscal.",
+      data,
+    });
+  } catch (error) {
+    console.error("[acbr:nfe] Falha ao consultar status:", error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Não foi possível consultar o status da NF-e.",
+    });
+  }
+});
+
+router.post("/:id/cancelar", async (req, res) => {
+  try {
+    const data = await NfeDAO.registrarEvento(req.db, {
+      nfeId: Number(req.params.id),
+      usuarioId: Number(req.user?.userId) || null,
+      tipoEvento: "cancelamento_solicitado",
+      mensagem: "Solicitado cancelamento manual da NF-e.",
+      payload: req.body || {},
+    });
+
+    try {
+      await AcbrLibProvider.cancelarNfe({
+        nfeId: Number(req.params.id),
+        tenantId: Number(req.user?.tenantId),
+        justificativa: req.body?.justificativa || null,
+      });
+    } catch (error) {
+      if (isProviderStubError(error)) {
+        return res.status(501).json({
+          success: false,
+          message: error.message,
+          data,
+        });
+      }
+
+      throw error;
+    }
+
+    return res.json({
+      success: true,
+      message: "Solicitação de cancelamento enviada para a integração fiscal.",
+      data,
+    });
+  } catch (error) {
+    console.error("[acbr:nfe] Falha ao cancelar NF-e:", error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Não foi possível cancelar a NF-e.",
+    });
+  }
+});
+
+export default router;

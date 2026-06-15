@@ -21,7 +21,7 @@ const BusinessSwitcher = () => {
             >
               <C.OptionText>
                 <C.OptionTitle>{tenant.tenant_nome}</C.OptionTitle>
-                <C.OptionMeta>{tenant.perfil || "usuario"}</C.OptionMeta>
+              <C.OptionMeta>{tenant.perfil || "usuário"}</C.OptionMeta>
               </C.OptionText>
               <HiOutlineBuildingStorefront />
             </C.Option>

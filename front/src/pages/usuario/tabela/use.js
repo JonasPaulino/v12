@@ -51,7 +51,7 @@ export const useTabelaUsuarios = ({ search, refreshKey, onDeleted }) => {
           title: "Falha ao carregar",
           text:
             error?.response?.data?.message ||
-            "Nao foi possivel carregar a lista de usuarios.",
+            "Não foi possível carregar a lista de usuários.",
           icon: "error",
         });
       } finally {
@@ -68,19 +68,19 @@ export const useTabelaUsuarios = ({ search, refreshKey, onDeleted }) => {
 
   const handleDelete = async (usuario) => {
     const confirmed = await askYesNoQuestion(
-      "Remover usuario?",
-      "Deseja remover esse usuario? Ele nao conseguira logar mais no sistema."
+      "Remover usuário?",
+      "Deseja remover esse usuário? Ele não conseguirá logar mais no sistema."
     );
 
     if (!confirmed) return;
 
     try {
-      showLoading("Removendo usuario...");
+      showLoading("Removendo usuário...");
       const response = await deleteUsuario(usuario.usuario_id);
 
       showAlert({
-        title: "Usuario removido",
-        text: response?.message || "O usuario foi removido com sucesso.",
+        title: "Usuário removido",
+        text: response?.message || "O usuário foi removido com sucesso.",
         icon: "success",
         timer: 1800,
       });
@@ -97,7 +97,7 @@ export const useTabelaUsuarios = ({ search, refreshKey, onDeleted }) => {
         title: "Falha ao remover",
         text:
           error?.response?.data?.message ||
-          "Nao foi possivel remover o usuario selecionado.",
+          "Não foi possível remover o usuário selecionado.",
         icon: "error",
       });
     } finally {

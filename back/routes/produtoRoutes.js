@@ -31,7 +31,7 @@ router.get("/listar", async (req, res) => {
     console.error("[produto] Falha ao listar produtos:", error);
     return res.status(500).json({
       success: false,
-      message: "Nao foi possivel listar os produtos.",
+      message: "Não foi possível listar os produtos.",
     });
   }
 });
@@ -47,7 +47,7 @@ router.get("/support-data", async (req, res) => {
     console.error("[produto] Falha ao carregar dados de apoio:", error);
     return res.status(500).json({
       success: false,
-      message: "Nao foi possivel carregar os dados auxiliares do produto.",
+      message: "Não foi possível carregar os dados auxiliares do produto.",
     });
   }
 });
@@ -60,7 +60,7 @@ router.get("/:id", async (req, res) => {
     if (!data) {
       return res.status(404).json({
         success: false,
-        message: "Produto nao encontrado.",
+        message: "Produto não encontrado.",
       });
     }
 
@@ -72,7 +72,7 @@ router.get("/:id", async (req, res) => {
     console.error("[produto] Falha ao buscar produto:", error);
     return res.status(500).json({
       success: false,
-      message: "Nao foi possivel carregar o produto.",
+      message: "Não foi possível carregar o produto.",
     });
   }
 });
@@ -89,7 +89,7 @@ router.post("/", async (req, res) => {
     console.error("[produto] Falha ao criar produto:", error);
     return res.status(400).json({
       success: false,
-      message: error.message || "Nao foi possivel cadastrar o produto.",
+      message: error.message || "Não foi possível cadastrar o produto.",
     });
   }
 });
@@ -108,7 +108,7 @@ router.put("/:id", async (req, res) => {
     console.error("[produto] Falha ao atualizar produto:", error);
     return res.status(400).json({
       success: false,
-      message: error.message || "Nao foi possivel atualizar o produto.",
+      message: error.message || "Não foi possível atualizar o produto.",
     });
   }
 });
@@ -126,7 +126,7 @@ router.delete("/:id", async (req, res) => {
     console.error("[produto] Falha ao excluir produto:", error);
     return res.status(400).json({
       success: false,
-      message: error.message || "Nao foi possivel remover o produto.",
+      message: error.message || "Não foi possível remover o produto.",
     });
   }
 });

@@ -14,7 +14,7 @@ const normalizeText = (value, maxLength, { required = false, label = "Campo" } =
 
   if (!normalized) {
     if (required) {
-      throw new Error(`${label} obrigatorio nao informado.`);
+      throw new Error(`${label} obrigatório não informado.`);
     }
 
     return null;
@@ -26,13 +26,13 @@ const normalizeText = (value, maxLength, { required = false, label = "Campo" } =
 const parseInteger = (value, { allowNull = false, min = 1, label = "Campo" } = {}) => {
   if (value === undefined || value === null || value === "") {
     if (allowNull) return null;
-    throw new Error(`${label} obrigatorio.`);
+    throw new Error(`${label} obrigatório.`);
   }
 
   const parsed = Number(value);
 
   if (!Number.isInteger(parsed) || parsed < min) {
-    throw new Error(`${label} invalido.`);
+    throw new Error(`${label} inválido.`);
   }
 
   return parsed;
@@ -45,14 +45,14 @@ const parseNumeric = (
   if (value === undefined || value === null || value === "") {
     if (allowNull) return null;
     if (defaultValue !== null) return defaultValue;
-    throw new Error(`${label} obrigatorio.`);
+    throw new Error(`${label} obrigatório.`);
   }
 
   let normalized = String(value).trim();
   if (!normalized) {
     if (allowNull) return null;
     if (defaultValue !== null) return defaultValue;
-    throw new Error(`${label} obrigatorio.`);
+    throw new Error(`${label} obrigatório.`);
   }
 
   const hasDot = normalized.includes(".");
@@ -66,7 +66,7 @@ const parseNumeric = (
 
   const parsed = Number(normalized);
   if (!Number.isFinite(parsed)) {
-    throw new Error(`${label} invalido.`);
+    throw new Error(`${label} inválido.`);
   }
 
   return parsed;
@@ -344,11 +344,11 @@ class VendaDAO {
     });
 
     if (quantidade <= 0) {
-      throw new Error(`Quantidade invalida no item ${index + 1}.`);
+      throw new Error(`Quantidade inválida no item ${index + 1}.`);
     }
 
     if (valorUnitario < 0) {
-      throw new Error(`Valor unitario invalido no item ${index + 1}.`);
+      throw new Error(`Valor unitário inválido no item ${index + 1}.`);
     }
 
     return {
@@ -366,12 +366,12 @@ class VendaDAO {
       label: "Cliente",
     });
     const condicaoPagamentoId = parseInteger(payload.financeiro_condicao_pagamento_id, {
-      label: "Condicao de pagamento",
+      label: "Condição de pagamento",
     });
     const status = normalizeText(payload.status, 20, { label: "Status do pedido" }) || "aberto";
     const dataEmissao = normalizeText(payload.data_emissao, 10, {
       required: true,
-      label: "Data de emissao",
+      label: "Data de emissão",
     });
     const dataEntrega = normalizeText(payload.data_entrega, 10);
     const observacao = normalizeText(payload.observacao, null);
@@ -431,7 +431,7 @@ class VendaDAO {
     );
 
     if (!rowCount) {
-      throw new Error("Pessoa selecionada invalida para esta filial.");
+      throw new Error("Pessoa selecionada inválida para esta filial.");
     }
   }
 
@@ -549,7 +549,7 @@ class VendaDAO {
     for (const item of items) {
       const produto = produtosMap.get(Number(item.produto_id));
       if (!produto) {
-        throw new Error("Produto informado nao pertence a filial ativa.");
+        throw new Error("Produto informado não pertence à filial ativa.");
       }
 
       await client.query(
@@ -909,13 +909,13 @@ class VendaDAO {
     const condicao = await this.buscarCondicaoPagamento(client, data.financeiro_condicao_pagamento_id);
 
     if (!condicao) {
-      throw new Error("Condicao de pagamento invalida para a filial ativa.");
+      throw new Error("Condição de pagamento inválida para a filial ativa.");
     }
 
     await this.validarPessoa(client, data.pessoa_id);
 
     if (produtosMap.size !== produtoIds.length) {
-      throw new Error("Um ou mais produtos nao pertencem a filial ativa.");
+      throw new Error("Um ou mais produtos não pertencem à filial ativa.");
     }
 
     await client.query("BEGIN");
@@ -995,12 +995,12 @@ class VendaDAO {
   static async atualizar(client, { pedidoVendaId, payload, usuarioId }) {
     const existing = await this.buscarPorId(client, pedidoVendaId);
     if (!existing) {
-      throw new Error("Pedido de venda nao encontrado.");
+      throw new Error("Pedido de venda não encontrado.");
     }
 
     const possuiBaixas = await this.verificarTituloComBaixas(client, pedidoVendaId);
     if (possuiBaixas) {
-      throw new Error("Este pedido possui baixas financeiras e nao pode mais ser alterado.");
+      throw new Error("Este pedido possui baixas financeiras e não pode mais ser alterado.");
     }
 
     const data = this.normalizePayload(payload);
@@ -1009,13 +1009,13 @@ class VendaDAO {
     const condicao = await this.buscarCondicaoPagamento(client, data.financeiro_condicao_pagamento_id);
 
     if (!condicao) {
-      throw new Error("Condicao de pagamento invalida para a filial ativa.");
+      throw new Error("Condição de pagamento inválida para a filial ativa.");
     }
 
     await this.validarPessoa(client, data.pessoa_id);
 
     if (produtosMap.size !== produtoIds.length) {
-      throw new Error("Um ou mais produtos nao pertencem a filial ativa.");
+      throw new Error("Um ou mais produtos não pertencem à filial ativa.");
     }
 
     await client.query("BEGIN");
@@ -1079,12 +1079,12 @@ class VendaDAO {
   static async excluir(client, pedidoVendaId) {
     const existing = await this.buscarPorId(client, pedidoVendaId);
     if (!existing) {
-      throw new Error("Pedido de venda nao encontrado.");
+      throw new Error("Pedido de venda não encontrado.");
     }
 
     const possuiBaixas = await this.verificarTituloComBaixas(client, pedidoVendaId);
     if (possuiBaixas) {
-      throw new Error("Este pedido possui baixas financeiras e nao pode ser removido.");
+      throw new Error("Este pedido possui baixas financeiras e não pode ser removido.");
     }
 
     await client.query("BEGIN");
