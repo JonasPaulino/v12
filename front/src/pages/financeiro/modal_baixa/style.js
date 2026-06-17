@@ -140,6 +140,13 @@ export const EmphasisValue = styled.strong`
   color: ${({ theme }) => theme.colors.primaryStrong};
 `;
 
+export const SummaryText = styled.p`
+  margin: 0;
+  color: ${({ theme }) => theme.colors.textSoft};
+  line-height: 1.55;
+  white-space: pre-wrap;
+`;
+
 export const Form = styled.form`
   display: grid;
   gap: 18px;

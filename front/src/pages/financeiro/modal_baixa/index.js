@@ -53,12 +53,21 @@ export const ModalBaixa = ({ isOpen, tituloId, onClose }) => {
   const tituloStatus = String(detail?.titulo?.status || "").toLowerCase();
   const saldoTitulo = Number(detail?.titulo?.saldo || 0);
   const tituloEncerrado = tituloStatus === "quitado" || tituloStatus === "cancelado";
+  const possuiSaldoDisponivel = saldoTitulo > 0;
   const canRegister =
     !loadingForm &&
     !submitting &&
     !tituloEncerrado &&
-    saldoTitulo > 0 &&
-    parcelasDisponiveis.length > 0;
+    possuiSaldoDisponivel;
+
+  const handlePrimaryAction = () => {
+    if (activeTab === "dados") {
+      setActiveTab("recebimentos");
+      return;
+    }
+
+    handleSubmit();
+  };
 
   if (!isOpen) return null;
 
@@ -91,10 +100,10 @@ export const ModalBaixa = ({ isOpen, tituloId, onClose }) => {
           </C.TabButton>
           <C.TabButton
             type="button"
-            $active={activeTab === "observacao"}
-            onClick={() => setActiveTab("observacao")}
+            $active={activeTab === "recebimentos"}
+            onClick={() => setActiveTab("recebimentos")}
           >
-            Observação
+            Recebimentos
           </C.TabButton>
         </C.Tabs>
 
@@ -130,6 +139,53 @@ export const ModalBaixa = ({ isOpen, tituloId, onClose }) => {
 
               <C.Form onSubmit={handleSubmit} noValidate>
                 {activeTab === "dados" ? (
+                  <>
+                    <C.HighlightGrid>
+                      <C.SummaryCard>
+                        <C.SummaryLabel>Número do título</C.SummaryLabel>
+                        <C.SummaryValue>
+                          #{detail?.titulo?.financeiro_titulo_id || "--"}
+                        </C.SummaryValue>
+                      </C.SummaryCard>
+                      <C.SummaryCard>
+                        <C.SummaryLabel>Documento</C.SummaryLabel>
+                        <C.SummaryValue>
+                          {detail?.titulo?.numero_documento || "--"}
+                        </C.SummaryValue>
+                      </C.SummaryCard>
+                      <C.SummaryCard>
+                        <C.SummaryLabel>Status do título</C.SummaryLabel>
+                        <C.StatusChip
+                          $status={tituloStatus === "aberto" ? "aberta" : tituloStatus}
+                        >
+                          {formatTituloStatus(tituloStatus)}
+                        </C.StatusChip>
+                      </C.SummaryCard>
+                      <C.SummaryCard>
+                        <C.SummaryLabel>Vencimento</C.SummaryLabel>
+                        <C.SummaryValue>
+                          {formatDate(detail?.titulo?.data_vencimento)}
+                        </C.SummaryValue>
+                      </C.SummaryCard>
+                    </C.HighlightGrid>
+
+                    <C.SummaryCard>
+                      <C.SummaryLabel>Condição de pagamento</C.SummaryLabel>
+                      <C.SummaryValue>
+                        {detail?.titulo?.condicao_pagamento_descricao || "--"}
+                      </C.SummaryValue>
+                    </C.SummaryCard>
+
+                    <C.SummaryCard>
+                      <C.SummaryLabel>Observação</C.SummaryLabel>
+                      <C.SummaryText>
+                        {form.observacao ||
+                          detail?.titulo?.observacao ||
+                          "Sem observações para este título."}
+                      </C.SummaryText>
+                    </C.SummaryCard>
+                  </>
+                ) : (
                   <>
                     <C.GridFour>
                       <C.Field>
@@ -216,11 +272,11 @@ export const ModalBaixa = ({ isOpen, tituloId, onClose }) => {
                         <C.SummaryLabel>Parcela selecionada</C.SummaryLabel>
                         <C.SummaryValue>
                           {parcelaSelecionada?.numero_parcela ||
-                            (parcelasDisponiveis.length ? "Única" : "--")}
+                            (possuiSaldoDisponivel ? "Única" : "--")}
                         </C.SummaryValue>
                       </C.SummaryCard>
                       <C.SummaryCard>
-                        <C.SummaryLabel>Vencimento</C.SummaryLabel>
+                        <C.SummaryLabel>Vencimento da parcela</C.SummaryLabel>
                         <C.SummaryValue>
                           {formatDate(
                             parcelaSelecionada?.data_vencimento || detail?.titulo?.data_vencimento
@@ -228,39 +284,36 @@ export const ModalBaixa = ({ isOpen, tituloId, onClose }) => {
                         </C.SummaryValue>
                       </C.SummaryCard>
                       <C.SummaryCard>
-                        <C.SummaryLabel>Status do título</C.SummaryLabel>
-                        <C.StatusChip
-                          $status={tituloStatus === "aberto" ? "aberta" : tituloStatus}
-                        >
-                          {formatTituloStatus(tituloStatus)}
-                        </C.StatusChip>
-                      </C.SummaryCard>
-                      <C.SummaryCard>
                         <C.SummaryLabel>Status da parcela</C.SummaryLabel>
                         <C.StatusChip
                           $status={
                             parcelaSelecionada?.status ||
-                            (tituloStatus === "quitado" ? "quitada" : "aberta")
+                            (tituloStatus === "quitado"
+                              ? "quitada"
+                              : possuiSaldoDisponivel
+                              ? "aberta"
+                              : "cancelada")
                           }
                         >
                           {formatStatus(
                             parcelaSelecionada?.status ||
-                              (tituloStatus === "quitado" ? "quitada" : "aberta")
+                              (tituloStatus === "quitado"
+                                ? "quitada"
+                                : possuiSaldoDisponivel
+                                ? "aberta"
+                                : "cancelada")
                           )}
                         </C.StatusChip>
                       </C.SummaryCard>
+                      <C.SummaryCard>
+                        <C.SummaryLabel>Saldo da parcela</C.SummaryLabel>
+                        <C.EmphasisValue>
+                          {currencyFormatter.format(
+                            saldoSelecionado || (possuiSaldoDisponivel ? saldoTitulo : 0)
+                          )}
+                        </C.EmphasisValue>
+                      </C.SummaryCard>
                     </C.HighlightGrid>
-
-                    <C.SummaryCard>
-                      <C.SummaryLabel>Saldo da parcela selecionada</C.SummaryLabel>
-                      <C.EmphasisValue>
-                        {currencyFormatter.format(saldoSelecionado || 0)}
-                      </C.EmphasisValue>
-                      <C.Hint>
-                        A baixa pode ser parcial ou total. O sistema atualiza automaticamente o
-                        status da parcela e do título.
-                      </C.Hint>
-                    </C.SummaryCard>
 
                     <C.SectionCard>
                       <C.SectionHeader>
@@ -327,16 +380,6 @@ export const ModalBaixa = ({ isOpen, tituloId, onClose }) => {
                       )}
                     </C.SectionCard>
                   </>
-                ) : (
-                  <C.Field>
-                    <C.FieldSpan>Observação</C.FieldSpan>
-                    <C.Textarea
-                      value={form.observacao}
-                      onChange={(event) => updateField("observacao", event.target.value)}
-                      placeholder="Detalhes internos sobre o recebimento ou pagamento"
-                      disabled={tituloEncerrado}
-                    />
-                  </C.Field>
                 )}
               </C.Form>
             </>
@@ -353,11 +396,13 @@ export const ModalBaixa = ({ isOpen, tituloId, onClose }) => {
           </C.SecondaryButton>
           <C.PrimaryButton
             type="button"
-            onClick={handleSubmit}
-            disabled={!canRegister}
+            onClick={handlePrimaryAction}
+            disabled={activeTab === "recebimentos" ? !canRegister : false}
             title={tituloStatus === "quitado" ? "Título quitado." : tituloStatus === "cancelado" ? "Título cancelado." : ""}
           >
-            {submitting
+            {activeTab === "dados"
+              ? "Ir para recebimentos"
+              : submitting
               ? "Salvando..."
               : detail?.titulo?.tipo === "pagar"
               ? "Registrar pagamento"
