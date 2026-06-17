@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo, useState } from "react";
+import Documento from "components/documento";
 import DropdownMenu from "components/dropDownMenu";
 import { useTabelaVendas } from "./use";
 import * as C from "./style";
@@ -122,7 +123,9 @@ const Tabela = ({ search, refreshKey, onEditar, onDeleted }) => {
                   <C.Cell>#{venda.pedido_venda_id}</C.Cell>
                   <C.Cell $wrap>
                     <C.MainText>{venda.pessoa_nome_razao}</C.MainText>
-                    <C.MetaText>{venda.pessoa_cpf_cnpj || "--"}</C.MetaText>
+                    <C.MetaText>
+                      <Documento value={venda.pessoa_cpf_cnpj} />
+                    </C.MetaText>
                   </C.Cell>
                   <C.Cell>{formatDate(venda.data_emissao)}</C.Cell>
                   <C.Cell>{currencyFormatter.format(Number(venda.total || 0))}</C.Cell>

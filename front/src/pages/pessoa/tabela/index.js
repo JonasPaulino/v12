@@ -1,5 +1,7 @@
 import React, { useCallback, useMemo, useState } from "react";
+import Documento from "components/documento";
 import DropdownMenu from "components/dropDownMenu";
+import { formatTelefone } from "utils";
 import { useTabelaPessoas } from "./use";
 import * as C from "./style";
 
@@ -94,11 +96,13 @@ const Tabela = ({ search, refreshKey, onEditar, onDeleted }) => {
                           (pessoa.pessoa_tipo === "J" ? "Pessoa jurídica" : "Pessoa física")}
                       </C.PessoaMeta>
                     </C.Cell>
-                    <C.Cell>{pessoa.pessoa_cpf_cnpj || "--"}</C.Cell>
+                    <C.Cell>
+                      <Documento value={pessoa.pessoa_cpf_cnpj} />
+                    </C.Cell>
                     <C.Cell $wrap>
                       <C.PessoaNome>{pessoa.pessoa_email || "--"}</C.PessoaNome>
                       <C.PessoaMeta>
-                        {pessoa.pessoa_telefone || pessoa.pessoa_whatsapp || "--"}
+                        {formatTelefone(pessoa.pessoa_telefone || pessoa.pessoa_whatsapp)}
                       </C.PessoaMeta>
                     </C.Cell>
                     <C.Cell>

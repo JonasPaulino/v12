@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo, useState } from "react";
+import Documento from "components/documento";
 import DropdownMenu from "components/dropDownMenu";
 import { useTabelaFinanceiro } from "./use";
 import * as C from "./style";
@@ -198,7 +199,9 @@ const Tabela = ({
                   <C.Cell $wrap>
                     <C.PersonName>{titulo.pessoa_nome_razao}</C.PersonName>
                     <C.PersonMeta>
-                      {titulo.pessoa_cpf_cnpj || titulo.numero_documento || "Sem documento"}
+                      {titulo.pessoa_cpf_cnpj
+                        ? <Documento value={titulo.pessoa_cpf_cnpj} />
+                        : titulo.numero_documento || "Sem documento"}
                     </C.PersonMeta>
                   </C.Cell>
                   <C.Cell>

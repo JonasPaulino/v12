@@ -7,3 +7,17 @@ export const getInitials = (name = "") =>
     .join("");
 
 export const getFirstName = (name = "") => name.split(" ").filter(Boolean)[0] || "";
+
+export const formatTelefone = (value, fallback = "--") => {
+  const digits = String(value || "").replace(/\D/g, "");
+
+  if (digits.length === 11) {
+    return digits.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3");
+  }
+
+  if (digits.length === 10) {
+    return digits.replace(/(\d{2})(\d{4})(\d{4})/, "($1) $2-$3");
+  }
+
+  return value || fallback;
+};
