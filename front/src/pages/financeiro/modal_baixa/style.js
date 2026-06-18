@@ -234,6 +234,66 @@ export const SectionCard = styled.div`
   overflow: hidden;
 `;
 
+export const PixCard = styled.div`
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radius.md};
+  background: rgba(248, 251, 255, 0.9);
+`;
+
+export const PixHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+`;
+
+export const PixGrid = styled.div`
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 18px;
+
+  @media (max-width: 760px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+export const QrPreview = styled.div`
+  display: grid;
+  place-items: center;
+  min-height: 220px;
+  padding: 16px;
+  border: 1px dashed ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radius.md};
+  background: #ffffff;
+`;
+
+export const QrImage = styled.img`
+  width: 100%;
+  max-width: 180px;
+  height: auto;
+  display: block;
+`;
+
+export const PixInfo = styled.div`
+  display: grid;
+  gap: 14px;
+`;
+
+export const CodeBox = styled.textarea`
+  width: 100%;
+  min-height: 110px;
+  padding: 12px 14px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radius.md};
+  background: ${({ theme }) => theme.colors.surfaceAlt};
+  color: ${({ theme }) => theme.colors.text};
+  resize: none;
+  outline: none;
+`;
+
 export const SectionHeader = styled.div`
   display: grid;
   grid-template-columns: minmax(180px, 0.9fr) minmax(220px, 1.3fr) minmax(120px, 0.7fr) minmax(160px, 0.8fr);

@@ -44,3 +44,8 @@ export const estornarBaixaFinanceira = async (financeiroTituloBaixaId) => {
   const { data } = await api.post(`/financeiro/baixas/${financeiroTituloBaixaId}/estornar`);
   return data;
 };
+
+export const gerarCobrancaPixFinanceira = async (financeiroTituloId, payload) => {
+  const { data } = await api.post(`/financeiro/${financeiroTituloId}/cobrancas/pix`, payload);
+  return data;
+};

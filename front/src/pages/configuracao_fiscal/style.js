@@ -164,6 +164,12 @@ export const RequiredMark = styled.span`
   cursor: help;
 `;
 
+export const FieldHint = styled.span`
+  color: ${({ theme }) => theme.colors.textSoft};
+  font-size: 0.82rem;
+  line-height: 1.5;
+`;
+
 export const Input = styled.input`
   width: 100%;
   height: 48px;
@@ -229,6 +235,11 @@ export const Checkbox = styled.input`
   width: 18px;
   height: 18px;
   accent-color: ${({ theme }) => theme.colors.primary};
+`;
+
+export const ToggleList = styled.div`
+  display: grid;
+  gap: 12px;
 `;
 
 export const InfoGrid = styled.div`

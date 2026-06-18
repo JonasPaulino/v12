@@ -1,4 +1,5 @@
 import {
+  gerarCobrancaPixFinanceira,
   estornarBaixaFinanceira,
   getSupportData as getFinanceiroSupportData,
   getTituloFinanceiroById,
@@ -19,4 +20,8 @@ export const createBaixa = async (financeiroTituloId, payload) => {
 
 export const estornarBaixa = async (financeiroTituloBaixaId) => {
   return estornarBaixaFinanceira(financeiroTituloBaixaId);
+};
+
+export const createPixCharge = async (financeiroTituloId, payload) => {
+  return gerarCobrancaPixFinanceira(financeiroTituloId, payload);
 };

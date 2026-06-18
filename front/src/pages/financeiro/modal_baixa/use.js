@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSweetAlert } from "context/sweet_alert";
-import { createBaixa, estornarBaixa, getSupportData, getTituloById } from "./api";
+import { createBaixa, createPixCharge, estornarBaixa, getSupportData, getTituloById } from "./api";
 
 const TODAY = new Date().toISOString().slice(0, 10);
 
@@ -47,6 +47,7 @@ export const useModalBaixa = ({ isOpen, tituloId, onClose }) => {
     baixas: [],
   });
   const [form, setForm] = useState(buildInitialForm());
+  const [pixCharge, setPixCharge] = useState(null);
 
   const loadData = useCallback(async () => {
     if (!tituloId) return;
@@ -93,6 +94,7 @@ export const useModalBaixa = ({ isOpen, tituloId, onClose }) => {
         baixas: [],
       });
       setForm(buildInitialForm());
+      setPixCharge(null);
       return;
     }
 
@@ -148,7 +150,33 @@ export const useModalBaixa = ({ isOpen, tituloId, onClose }) => {
     [detail.parcelas]
   );
 
+  const selectedFormaPagamento = useMemo(
+    () =>
+      (supportData.formasPagamento || []).find(
+        (item) =>
+          Number(item.financeiro_forma_pagamento_id) ===
+          Number(form.financeiro_forma_pagamento_id)
+      ) || null,
+    [form.financeiro_forma_pagamento_id, supportData.formasPagamento]
+  );
+
+  const isPixSelected = useMemo(() => {
+    const descricao = String(selectedFormaPagamento?.descricao || "");
+    return detail?.titulo?.tipo === "receber" && /pix/i.test(descricao);
+  }, [detail?.titulo?.tipo, selectedFormaPagamento]);
+
   const updateField = useCallback((field, value) => {
+    if (
+      [
+        "financeiro_forma_pagamento_id",
+        "valor_baixa",
+        "observacao",
+        "data_baixa",
+      ].includes(field)
+    ) {
+      setPixCharge(null);
+    }
+
     setForm((prev) => ({ ...prev, [field]: value }));
   }, []);
 
@@ -163,7 +191,96 @@ export const useModalBaixa = ({ isOpen, tituloId, onClose }) => {
       financeiro_titulo_parcela_id: value,
       valor_baixa: parcela ? String(parcela.saldo || 0) : prev.valor_baixa,
     }));
+    setPixCharge(null);
   }, [detail.parcelas]);
+
+  const handleGeneratePix = useCallback(async () => {
+    if (submitting || !tituloId) return;
+
+    if (!String(form.financeiro_forma_pagamento_id || "").trim()) {
+      showAlert({
+        title: "Campo obrigatório",
+        text: "Selecione a forma de pagamento PIX.",
+        icon: "warning",
+      });
+      return;
+    }
+
+    if (!isPixSelected) {
+      showAlert({
+        title: "Forma inválida",
+        text: "Selecione uma forma de pagamento PIX para gerar o QR Code.",
+        icon: "warning",
+      });
+      return;
+    }
+
+    if (parcelasDisponiveis.length > 1 && !String(form.financeiro_titulo_parcela_id || "").trim()) {
+      showAlert({
+        title: "Campo obrigatório",
+        text: "Selecione a parcela que receberá a cobrança PIX.",
+        icon: "warning",
+      });
+      return;
+    }
+
+    const valorBaixa = parseNumeric(form.valor_baixa);
+    if (valorBaixa <= 0) {
+      showAlert({
+        title: "Valor inválido",
+        text: "Informe um valor válido para a cobrança PIX.",
+        icon: "warning",
+      });
+      return;
+    }
+
+    if (saldoSelecionado > 0 && valorBaixa > saldoSelecionado) {
+      showAlert({
+        title: "Valor acima do saldo",
+        text: "O valor informado é maior que o saldo selecionado.",
+        icon: "warning",
+      });
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const response = await createPixCharge(tituloId, {
+        financeiro_titulo_parcela_id: form.financeiro_titulo_parcela_id
+          ? Number(form.financeiro_titulo_parcela_id)
+          : null,
+        financeiro_forma_pagamento_id: Number(form.financeiro_forma_pagamento_id),
+        valor_cobranca: valorBaixa,
+        observacao: form.observacao,
+      });
+
+      setPixCharge(response?.data || null);
+      showAlert({
+        title: "Cobrança PIX gerada",
+        text: response?.message || "QR Code PIX gerado com sucesso.",
+        icon: "success",
+        timer: 1800,
+      });
+    } catch (error) {
+      showAlert({
+        title: "Falha ao gerar PIX",
+        text:
+          error?.response?.data?.message ||
+          "Não foi possível gerar a cobrança PIX.",
+        icon: "error",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  }, [
+    form,
+    isPixSelected,
+    parcelasDisponiveis.length,
+    saldoSelecionado,
+    showAlert,
+    submitting,
+    tituloId,
+  ]);
 
   const handleSubmit = async (event) => {
     event?.preventDefault?.();
@@ -289,9 +406,13 @@ export const useModalBaixa = ({ isOpen, tituloId, onClose }) => {
     saldoSelecionado,
     parcelaSelecionada,
     parcelasDisponiveis,
+    selectedFormaPagamento,
+    isPixSelected,
+    pixCharge,
     updateField,
     handleChangeParcela,
     handleSubmit,
+    handleGeneratePix,
     handleEstornar,
     hasChanges,
   };

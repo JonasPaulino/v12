@@ -6,3 +6,6 @@
 \i /docker-entrypoint-initdb.d/006_produto_codigo_automatico.sql
 \i /docker-entrypoint-initdb.d/007_unaccent_support.sql
 \i /docker-entrypoint-initdb.d/008_configuracao_fiscal.sql
+\i /docker-entrypoint-initdb.d/009_financeiro_baixa_historico.sql
+\i /docker-entrypoint-initdb.d/010_configuracao_gateway.sql
+\i /docker-entrypoint-initdb.d/011_gateway_config_payments_schema.sql

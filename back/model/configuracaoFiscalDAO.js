@@ -43,6 +43,17 @@ const normalizeBoolean = (value, defaultValue = false) => {
 
 const normalizeDigits = (value) => String(value ?? "").replace(/\D/g, "");
 
+const maskSecret = (value, { visibleStart = 4, visibleEnd = 4 } = {}) => {
+  const normalized = String(value || "").trim();
+  if (!normalized) return "";
+
+  if (normalized.length <= visibleStart + visibleEnd) {
+    return `${normalized.slice(0, 2)}••••`;
+  }
+
+  return `${normalized.slice(0, visibleStart)}••••${normalized.slice(-visibleEnd)}`;
+};
+
 const encryptSecret = (text) => {
   if (!text) return null;
 
@@ -59,7 +70,102 @@ const encryptSecret = (text) => {
   });
 };
 
+const buildGatewayView = (row) => ({
+  provider: row?.gateway_provider || "asaas",
+  ambiente: row?.gateway_ambiente || "sandbox",
+  wallet_id: row?.gateway_wallet_id || "",
+  gateway_ativo: !!row?.gateway_ativo,
+  auto_criar_cliente: row?.auto_criar_cliente !== false,
+  baixa_automatica_pix: row?.baixa_automatica_pix !== false,
+  baixa_automatica_boleto: row?.baixa_automatica_boleto !== false,
+  observacao: row?.gateway_observacao || "",
+  api_key_configurada: !!row?.gateway_api_key_masked,
+  api_key_masked: row?.gateway_api_key_masked || "",
+  webhook_auth_token_configurado: !!row?.gateway_webhook_auth_token_masked,
+  webhook_auth_token_masked: row?.gateway_webhook_auth_token_masked || "",
+});
+
+const mapGatewayRowToViewRow = (row) => ({
+  gateway_provider: row?.provider || "asaas",
+  gateway_ambiente: row?.ambiente || "sandbox",
+  gateway_wallet_id: row?.wallet_id || "",
+  gateway_api_key_masked: row?.api_key_masked || "",
+  gateway_webhook_auth_token_masked: row?.webhook_auth_token_masked || "",
+  gateway_ativo: !!row?.gateway_ativo,
+  auto_criar_cliente: row?.auto_criar_cliente !== false,
+  baixa_automatica_pix: row?.baixa_automatica_pix !== false,
+  baixa_automatica_boleto: row?.baixa_automatica_boleto !== false,
+  gateway_observacao: row?.observacao || "",
+});
+
 class ConfiguracaoFiscalDAO {
+  static async buscarGatewayAtualCompat(client) {
+    const paymentsRows = await client.query(
+      `
+        SELECT
+          provider,
+          ambiente,
+          wallet_id,
+          api_key_criptografada,
+          api_key_masked,
+          webhook_auth_token_criptografada,
+          webhook_auth_token_masked,
+          gateway_ativo,
+          auto_criar_cliente,
+          baixa_automatica_pix,
+          baixa_automatica_boleto,
+          observacao
+        FROM payments.tenant_configuracao_gateway
+        WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+        LIMIT 1
+      `
+    );
+
+    const paymentsRow = paymentsRows.rows[0] || null;
+    if (
+      paymentsRow &&
+      (
+        paymentsRow.gateway_ativo ||
+        paymentsRow.api_key_masked ||
+        paymentsRow.webhook_auth_token_masked ||
+        paymentsRow.wallet_id ||
+        paymentsRow.observacao
+      )
+    ) {
+      return paymentsRow;
+    }
+
+    try {
+      const legacyRows = await client.query(
+        `
+          SELECT
+            provider,
+            ambiente,
+            wallet_id,
+            api_key_criptografada,
+            api_key_masked,
+            webhook_auth_token_criptografada,
+            webhook_auth_token_masked,
+            gateway_ativo,
+            auto_criar_cliente,
+            baixa_automatica_pix,
+            baixa_automatica_boleto,
+            observacao
+          FROM public.tenant_configuracao_gateway
+          WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+          LIMIT 1
+        `
+      );
+
+      const legacyRow = legacyRows.rows[0] || null;
+      if (legacyRow) {
+        return legacyRow;
+      }
+    } catch {}
+
+    return paymentsRow;
+  }
+
   static async listarPessoasSelect(client, { search = "", limit = 20 } = {}) {
     const values = [];
     const safeLimit = Number(limit) > 0 ? Math.min(Number(limit), 50) : 20;
@@ -220,12 +326,24 @@ class ConfiguracaoFiscalDAO {
           cert.nome_arquivo AS certificado_nome_arquivo,
           cert.tamanho_arquivo AS certificado_tamanho_arquivo,
           cert.importado_em AS certificado_importado_em,
-          cert.atualizado_em AS certificado_atualizado_em
+          cert.atualizado_em AS certificado_atualizado_em,
+          gw.provider AS gateway_provider,
+          gw.ambiente AS gateway_ambiente,
+          gw.wallet_id AS gateway_wallet_id,
+          gw.api_key_masked AS gateway_api_key_masked,
+          gw.webhook_auth_token_masked AS gateway_webhook_auth_token_masked,
+          gw.gateway_ativo,
+          gw.auto_criar_cliente,
+          gw.baixa_automatica_pix,
+          gw.baixa_automatica_boleto,
+          gw.observacao AS gateway_observacao
         FROM tenant t
         LEFT JOIN tenant_configuracao_fiscal cfg
           ON cfg.tenant_id = t.tenant_id
         LEFT JOIN tenant_certificado_a1 cert
           ON cert.tenant_id = t.tenant_id
+        LEFT JOIN payments.tenant_configuracao_gateway gw
+          ON gw.tenant_id = t.tenant_id
         WHERE t.tenant_id = ${TENANT_CONTEXT_SQL}
         LIMIT 1
       `
@@ -235,6 +353,8 @@ class ConfiguracaoFiscalDAO {
     if (!row) return null;
 
     const emitente = await this.obterPessoaEmitente(client, row.pessoa_id);
+    const gatewayAtual = await this.buscarGatewayAtualCompat(client);
+    const gatewayViewRow = gatewayAtual ? mapGatewayRowToViewRow(gatewayAtual) : null;
 
     return {
       tenant: {
@@ -260,6 +380,7 @@ class ConfiguracaoFiscalDAO {
         atualizado_em: row.certificado_atualizado_em || null,
         configurado: !!row.certificado_nome_arquivo,
       },
+      contas: buildGatewayView(gatewayViewRow),
     };
   }
 
@@ -326,8 +447,69 @@ class ConfiguracaoFiscalDAO {
     };
   }
 
+  static normalizarPayloadContas(payload = {}) {
+    const provider = normalizeText(payload.provider, 30, {
+      required: true,
+      label: "Provider do gateway",
+    });
+
+    const ambiente = normalizeText(payload.ambiente, 20, {
+      required: true,
+      label: "Ambiente do gateway",
+    });
+
+    if (!["asaas"].includes(provider)) {
+      throw new Error("Provider do gateway inválido.");
+    }
+
+    if (!["sandbox", "production"].includes(ambiente)) {
+      throw new Error("Ambiente do gateway inválido.");
+    }
+
+    return {
+      provider,
+      ambiente,
+      wallet_id: normalizeText(payload.wallet_id, 120, {
+        label: "Wallet ID",
+      }),
+      gateway_ativo: normalizeBoolean(payload.gateway_ativo, false),
+      auto_criar_cliente: normalizeBoolean(payload.auto_criar_cliente, true),
+      baixa_automatica_pix: normalizeBoolean(payload.baixa_automatica_pix, true),
+      baixa_automatica_boleto: normalizeBoolean(payload.baixa_automatica_boleto, true),
+      observacao: normalizeText(payload.observacao, null, {
+        label: "Observação do gateway",
+      }),
+      api_key: normalizeText(payload.api_key, null, {
+        label: "API key do gateway",
+      }),
+      webhook_auth_token: normalizeText(payload.webhook_auth_token, null, {
+        label: "Token do webhook",
+      }),
+    };
+  }
+
+  static async buscarGatewayAtual(client) {
+    return this.buscarGatewayAtualCompat(client);
+  }
+
+  static validarConfiguracaoContas(data, currentRow) {
+    const hasApiKey = !!(data.api_key || currentRow?.api_key_criptografada);
+    const hasWebhookToken = !!(
+      data.webhook_auth_token || currentRow?.webhook_auth_token_criptografada
+    );
+
+    if (data.gateway_ativo && !hasApiKey) {
+      throw new Error("Informe a API key para ativar a integração de contas.");
+    }
+
+    if (data.gateway_ativo && !hasWebhookToken) {
+      throw new Error("Informe o token do webhook para ativar a integração de contas.");
+    }
+  }
+
   static async salvar(client, payload = {}) {
     const data = this.normalizarPayload(payload);
+    const contas = this.normalizarPayloadContas(payload.contas || {});
     const emitente = await this.obterPessoaEmitente(client, data.emitente_pessoa_id);
     this.validarPessoaEmitente(emitente);
 
@@ -339,6 +521,9 @@ class ConfiguracaoFiscalDAO {
     await client.query("BEGIN");
 
     try {
+      const gatewayAtual = await this.buscarGatewayAtual(client);
+      this.validarConfiguracaoContas(contas, gatewayAtual);
+
       await client.query(
         `
           UPDATE tenant
@@ -445,6 +630,69 @@ class ConfiguracaoFiscalDAO {
           ]
         );
       }
+
+      await client.query(
+        `
+          INSERT INTO payments.tenant_configuracao_gateway AS gateway (
+            tenant_id,
+            provider,
+            ambiente,
+            wallet_id,
+            api_key_criptografada,
+            api_key_masked,
+            webhook_auth_token_criptografada,
+            webhook_auth_token_masked,
+            gateway_ativo,
+            auto_criar_cliente,
+            baixa_automatica_pix,
+            baixa_automatica_boleto,
+            observacao
+          )
+          VALUES (
+            ${TENANT_CONTEXT_SQL},
+            $1,
+            $2,
+            $3,
+            $4,
+            $5,
+            $6,
+            $7,
+            $8,
+            $9,
+            $10,
+            $11,
+            $12
+          )
+          ON CONFLICT (tenant_id) DO UPDATE
+          SET
+            provider = EXCLUDED.provider,
+            ambiente = EXCLUDED.ambiente,
+            wallet_id = EXCLUDED.wallet_id,
+            api_key_criptografada = COALESCE(EXCLUDED.api_key_criptografada, gateway.api_key_criptografada),
+            api_key_masked = COALESCE(EXCLUDED.api_key_masked, gateway.api_key_masked),
+            webhook_auth_token_criptografada = COALESCE(EXCLUDED.webhook_auth_token_criptografada, gateway.webhook_auth_token_criptografada),
+            webhook_auth_token_masked = COALESCE(EXCLUDED.webhook_auth_token_masked, gateway.webhook_auth_token_masked),
+            gateway_ativo = EXCLUDED.gateway_ativo,
+            auto_criar_cliente = EXCLUDED.auto_criar_cliente,
+            baixa_automatica_pix = EXCLUDED.baixa_automatica_pix,
+            baixa_automatica_boleto = EXCLUDED.baixa_automatica_boleto,
+            observacao = EXCLUDED.observacao
+        `,
+        [
+          contas.provider,
+          contas.ambiente,
+          contas.wallet_id,
+          contas.api_key ? encryptSecret(contas.api_key) : null,
+          contas.api_key ? maskSecret(contas.api_key) : null,
+          contas.webhook_auth_token ? encryptSecret(contas.webhook_auth_token) : null,
+          contas.webhook_auth_token ? maskSecret(contas.webhook_auth_token) : null,
+          contas.gateway_ativo,
+          contas.auto_criar_cliente,
+          contas.baixa_automatica_pix,
+          contas.baixa_automatica_boleto,
+          contas.observacao,
+        ]
+      );
 
       await client.query("COMMIT");
       return this.buscar(client);

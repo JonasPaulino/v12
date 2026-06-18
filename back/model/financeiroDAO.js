@@ -210,10 +210,8 @@ class FinanceiroDAO {
   }
 
   static async obterSupportData(client, { tipo = "receber" } = {}) {
-    const [condicoesPagamento, formasPagamento] = await Promise.all([
-      this.listarCondicoesPagamento(client, { tipo }),
-      this.listarFormasPagamento(client, { tipo }),
-    ]);
+    const condicoesPagamento = await this.listarCondicoesPagamento(client, { tipo });
+    const formasPagamento = await this.listarFormasPagamento(client, { tipo });
 
     return {
       condicoesPagamento,
@@ -355,11 +353,9 @@ class FinanceiroDAO {
       ${baseFrom}
     `;
 
-    const [listResult, countResult, resumoResult] = await Promise.all([
-      client.query(listSql, [...values, safeLimit, offset]),
-      client.query(countSql, values),
-      client.query(resumoSql, values),
-    ]);
+    const listResult = await client.query(listSql, [...values, safeLimit, offset]);
+    const countResult = await client.query(countSql, values);
+    const resumoResult = await client.query(resumoSql, values);
 
     const total = countResult.rows[0]?.total || 0;
     const resumo = resumoResult.rows[0] || {};
@@ -561,6 +557,146 @@ class FinanceiroDAO {
     );
 
     return rows[0] || null;
+  }
+
+  static async prepararCobrancaPix(client, { financeiroTituloId, payload = {} } = {}) {
+    const detail = await this.buscarPorId(client, financeiroTituloId);
+
+    if (!detail?.titulo) {
+      throw new Error("Título financeiro não encontrado.");
+    }
+
+    if (detail.titulo.tipo !== "receber") {
+      throw new Error("A cobrança PIX só pode ser gerada para contas a receber.");
+    }
+
+    const tituloStatus = String(detail.titulo.status || "").toLowerCase();
+    if (["quitado", "cancelado"].includes(tituloStatus)) {
+      throw new Error("Este título não pode gerar cobrança PIX no status atual.");
+    }
+
+    const formaPagamentoId = parseInteger(payload.financeiro_forma_pagamento_id, {
+      label: "Forma de pagamento",
+    });
+    const formaPagamento = await this.buscarFormaPagamento(client, formaPagamentoId, {
+      tipo: "receber",
+    });
+
+    if (!formaPagamento) {
+      throw new Error("Forma de pagamento inválida para cobrança PIX.");
+    }
+
+    if (!/pix/i.test(String(formaPagamento.descricao || ""))) {
+      throw new Error("Selecione uma forma de pagamento PIX para gerar o QR Code.");
+    }
+
+    const parcelasDisponiveis = (detail.parcelas || []).filter(
+      (item) => item.status !== "cancelada" && Number(item.saldo || 0) > 0
+    );
+
+    let parcelaSelecionada = null;
+
+    if (payload.financeiro_titulo_parcela_id) {
+      parcelaSelecionada =
+        parcelasDisponiveis.find(
+          (item) =>
+            Number(item.financeiro_titulo_parcela_id) ===
+            Number(payload.financeiro_titulo_parcela_id)
+        ) || null;
+
+      if (!parcelaSelecionada) {
+        throw new Error("Parcela inválida para gerar a cobrança PIX.");
+      }
+    } else if (parcelasDisponiveis.length === 1) {
+      parcelaSelecionada = parcelasDisponiveis[0];
+    } else if (parcelasDisponiveis.length > 1) {
+      throw new Error("Selecione a parcela que receberá a cobrança PIX.");
+    }
+
+    const saldoBase = roundCurrency(
+      parcelaSelecionada ? parcelaSelecionada.saldo : detail.titulo.saldo
+    );
+
+    if (saldoBase <= 0) {
+      throw new Error("O título não possui saldo disponível para gerar cobrança PIX.");
+    }
+
+    const valorCobranca = payload.valor_cobranca
+      ? roundCurrency(parseNumeric(payload.valor_cobranca, { label: "Valor da cobrança PIX" }))
+      : saldoBase;
+
+    if (valorCobranca <= 0) {
+      throw new Error("O valor da cobrança PIX precisa ser maior que zero.");
+    }
+
+    if (valorCobranca > saldoBase) {
+      throw new Error("O valor da cobrança PIX não pode ser maior que o saldo selecionado.");
+    }
+
+    const pessoaResult = await client.query(
+      `
+        SELECT
+          pessoa_id,
+          pessoa_nome_razao,
+          pessoa_cpf_cnpj,
+          pessoa_email,
+          pessoa_telefone,
+          pessoa_whatsapp
+        FROM pessoa
+        WHERE pessoa_id = $1
+        LIMIT 1
+      `,
+      [detail.titulo.pessoa_id]
+    );
+
+    const pessoa = pessoaResult.rows[0];
+    if (!pessoa) {
+      throw new Error("Pessoa vinculada ao título não encontrada.");
+    }
+
+    return {
+      titulo: {
+        financeiro_titulo_id: Number(detail.titulo.financeiro_titulo_id),
+        descricao:
+          detail.titulo.descricao ||
+          `Título financeiro #${detail.titulo.financeiro_titulo_id}`,
+        data_vencimento:
+          parcelaSelecionada?.data_vencimento || detail.titulo.data_vencimento,
+      },
+      parcela: parcelaSelecionada
+        ? {
+            financeiro_titulo_parcela_id: Number(
+              parcelaSelecionada.financeiro_titulo_parcela_id
+            ),
+            numero_parcela: Number(parcelaSelecionada.numero_parcela),
+            data_vencimento: parcelaSelecionada.data_vencimento,
+            saldo: Number(parcelaSelecionada.saldo || 0),
+          }
+        : null,
+      pessoa: {
+        pessoa_id: Number(pessoa.pessoa_id),
+        pessoa_nome_razao: pessoa.pessoa_nome_razao,
+        pessoa_cpf_cnpj: pessoa.pessoa_cpf_cnpj,
+        pessoa_email: pessoa.pessoa_email || "",
+        pessoa_telefone: pessoa.pessoa_telefone || "",
+        pessoa_whatsapp: pessoa.pessoa_whatsapp || "",
+      },
+      forma_pagamento: {
+        financeiro_forma_pagamento_id: Number(
+          formaPagamento.financeiro_forma_pagamento_id
+        ),
+        descricao: formaPagamento.descricao,
+      },
+      cobranca: {
+        valor: valorCobranca,
+        data_vencimento:
+          parcelaSelecionada?.data_vencimento || detail.titulo.data_vencimento,
+        descricao:
+          normalizeText(payload.observacao, 500) ||
+          detail.titulo.descricao ||
+          `Cobrança do título financeiro #${detail.titulo.financeiro_titulo_id}`,
+      },
+    };
   }
 
   static async buscarParcelaDoTitulo(client, { financeiroTituloId, financeiroTituloParcelaId }) {

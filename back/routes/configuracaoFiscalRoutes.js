@@ -46,14 +46,14 @@ router.put("/", async (req, res) => {
 
     return res.json({
       success: true,
-      message: "Configuração fiscal da filial salva com sucesso.",
+      message: "Configurações da filial salvas com sucesso.",
       data,
     });
   } catch (error) {
     console.error("[configuracao-fiscal] Falha ao salvar configuracao:", error);
     return res.status(400).json({
       success: false,
-      message: error.message || "Não foi possível salvar a configuração fiscal.",
+      message: error.message || "Não foi possível salvar as configurações da filial.",
     });
   }
 });

@@ -39,9 +39,12 @@ export const ModalBaixa = ({ isOpen, tituloId, onClose }) => {
     saldoSelecionado,
     parcelaSelecionada,
     parcelasDisponiveis,
+    isPixSelected,
+    pixCharge,
     updateField,
     handleChangeParcela,
     handleSubmit,
+    handleGeneratePix,
     handleEstornar,
     hasChanges,
   } = useModalBaixa({
@@ -63,6 +66,11 @@ export const ModalBaixa = ({ isOpen, tituloId, onClose }) => {
   const handlePrimaryAction = () => {
     if (activeTab === "dados") {
       setActiveTab("recebimentos");
+      return;
+    }
+
+    if (isPixSelected) {
+      handleGeneratePix();
       return;
     }
 
@@ -176,14 +184,22 @@ export const ModalBaixa = ({ isOpen, tituloId, onClose }) => {
                       </C.SummaryValue>
                     </C.SummaryCard>
 
-                    <C.SummaryCard>
-                      <C.SummaryLabel>Observação</C.SummaryLabel>
-                      <C.SummaryText>
-                        {form.observacao ||
-                          detail?.titulo?.observacao ||
-                          "Sem observações para este título."}
-                      </C.SummaryText>
-                    </C.SummaryCard>
+                    {detail?.titulo?.observacao ? (
+                      <C.SummaryCard>
+                        <C.SummaryLabel>Observação do título</C.SummaryLabel>
+                        <C.SummaryText>{detail.titulo.observacao}</C.SummaryText>
+                      </C.SummaryCard>
+                    ) : null}
+
+                    <C.Field>
+                      <C.FieldSpan>Observação da movimentação</C.FieldSpan>
+                      <C.Textarea
+                        value={form.observacao}
+                        onChange={(event) => updateField("observacao", event.target.value)}
+                        placeholder="Opcional: detalhe desta baixa ou cobrança PIX."
+                        disabled={tituloEncerrado}
+                      />
+                    </C.Field>
                   </>
                 ) : (
                   <>
@@ -315,6 +331,60 @@ export const ModalBaixa = ({ isOpen, tituloId, onClose }) => {
                       </C.SummaryCard>
                     </C.HighlightGrid>
 
+                    {isPixSelected ? (
+                      <C.PixCard>
+                        <C.PixHeader>
+                          <div>
+                            <C.SummaryLabel>QR Code PIX</C.SummaryLabel>
+                            <C.SummaryText>
+                              Gere a cobrança, apresente o QR Code ao cliente e aguarde o
+                              webhook do Asaas para a baixa automática.
+                            </C.SummaryText>
+                          </div>
+                          {pixCharge?.status ? (
+                            <C.StatusChip $status="aberta">{pixCharge.status}</C.StatusChip>
+                          ) : null}
+                        </C.PixHeader>
+
+                        {pixCharge?.pix?.encodedImage ? (
+                          <C.PixGrid>
+                            <C.QrPreview>
+                              <C.QrImage
+                                src={`data:image/png;base64,${pixCharge.pix.encodedImage}`}
+                                alt="QR Code PIX"
+                              />
+                            </C.QrPreview>
+
+                            <C.PixInfo>
+                              <C.SummaryCard>
+                                <C.SummaryLabel>Copia e cola</C.SummaryLabel>
+                                <C.CodeBox readOnly value={pixCharge.pix.payload || "--"} />
+                              </C.SummaryCard>
+                              <C.SummaryGrid>
+                                <C.SummaryCard>
+                                  <C.SummaryLabel>Expiração</C.SummaryLabel>
+                                  <C.SummaryValue>
+                                    {formatDate(pixCharge.pix.expirationDate)}
+                                  </C.SummaryValue>
+                                </C.SummaryCard>
+                                <C.SummaryCard>
+                                  <C.SummaryLabel>Cobrança</C.SummaryLabel>
+                                  <C.SummaryValue>
+                                    #{pixCharge.externalChargeId || "--"}
+                                  </C.SummaryValue>
+                                </C.SummaryCard>
+                              </C.SummaryGrid>
+                            </C.PixInfo>
+                          </C.PixGrid>
+                        ) : (
+                          <C.Hint>
+                            Selecione a forma PIX e clique em gerar QR Code para iniciar a
+                            cobrança no Asaas.
+                          </C.Hint>
+                        )}
+                      </C.PixCard>
+                    ) : null}
+
                     <C.SectionCard>
                       <C.SectionHeader>
                         <div>Movimento</div>
@@ -403,7 +473,11 @@ export const ModalBaixa = ({ isOpen, tituloId, onClose }) => {
             {activeTab === "dados"
               ? "Ir para recebimentos"
               : submitting
-              ? "Salvando..."
+              ? isPixSelected
+                ? "Gerando PIX..."
+                : "Salvando..."
+              : isPixSelected
+              ? "Gerar QR Code PIX"
               : detail?.titulo?.tipo === "pagar"
               ? "Registrar pagamento"
               : "Registrar recebimento"}

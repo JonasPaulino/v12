@@ -1,5 +1,6 @@
 import express from "express";
 import FinanceiroDAO from "../model/financeiroDAO.js";
+import { criarCobrancaPix } from "../services/paymentsGatewayService.js";
 
 const router = express.Router();
 
@@ -141,6 +142,48 @@ router.post("/:id/baixas", async (req, res) => {
     return res.status(400).json({
       success: false,
       message: error.message || "Não foi possível registrar a baixa financeira.",
+    });
+  }
+});
+
+router.post("/:id/cobrancas/pix", async (req, res) => {
+  try {
+    const contexto = await FinanceiroDAO.prepararCobrancaPix(req.db, {
+      financeiroTituloId: Number(req.params.id),
+      payload: req.body || {},
+    });
+
+    const response = await criarCobrancaPix({
+      tenantId: Number(req.user?.tenantId),
+      financeiroTituloId: Number(contexto.titulo.financeiro_titulo_id),
+      financeiroTituloParcelaId: contexto.parcela?.financeiro_titulo_parcela_id || null,
+      financeiroFormaPagamentoId:
+        contexto.forma_pagamento.financeiro_forma_pagamento_id,
+      customer: {
+        pessoaId: contexto.pessoa.pessoa_id,
+        nome: contexto.pessoa.pessoa_nome_razao,
+        documento: contexto.pessoa.pessoa_cpf_cnpj,
+        email: contexto.pessoa.pessoa_email,
+        telefone: contexto.pessoa.pessoa_telefone,
+        whatsapp: contexto.pessoa.pessoa_whatsapp,
+      },
+      charge: {
+        valor: contexto.cobranca.valor,
+        dueDate: contexto.cobranca.data_vencimento,
+        description: contexto.cobranca.descricao,
+      },
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: response?.message || "Cobrança PIX gerada com sucesso.",
+      data: response?.data || null,
+    });
+  } catch (error) {
+    console.error("[financeiro] Falha ao gerar cobrança PIX:", error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Não foi possível gerar a cobrança PIX.",
     });
   }
 });

@@ -17,6 +17,16 @@ const buildInitialForm = () => ({
   nfe_habilitada: false,
   observacao: "",
   certificado_senha: "",
+  gateway_provider: "asaas",
+  gateway_ambiente: "sandbox",
+  gateway_wallet_id: "",
+  gateway_ativo: false,
+  gateway_auto_criar_cliente: true,
+  gateway_baixa_automatica_pix: true,
+  gateway_baixa_automatica_boleto: true,
+  gateway_observacao: "",
+  gateway_api_key: "",
+  gateway_webhook_auth_token: "",
 });
 
 const formatFileSize = (size) => {
@@ -138,6 +148,12 @@ export const useConfiguracaoFiscalPage = () => {
     importado_em: null,
     atualizado_em: null,
   });
+  const [gatewayAtual, setGatewayAtual] = useState({
+    api_key_configurada: false,
+    api_key_masked: "",
+    webhook_auth_token_configurado: false,
+    webhook_auth_token_masked: "",
+  });
   const [certificadoFile, setCertificadoFile] = useState(null);
 
   const applyData = useCallback((payload) => {
@@ -145,6 +161,7 @@ export const useConfiguracaoFiscalPage = () => {
     const fiscal = data.fiscal || {};
     const emitente = data.emitente || null;
     const certificado = data.certificado || {};
+    const contas = data.contas || {};
 
     setTenant(data.tenant || null);
     setForm({
@@ -158,6 +175,16 @@ export const useConfiguracaoFiscalPage = () => {
       nfe_habilitada: !!fiscal.nfe_habilitada,
       observacao: fiscal.observacao || "",
       certificado_senha: "",
+      gateway_provider: contas.provider || "asaas",
+      gateway_ambiente: contas.ambiente || "sandbox",
+      gateway_wallet_id: contas.wallet_id || "",
+      gateway_ativo: !!contas.gateway_ativo,
+      gateway_auto_criar_cliente: contas.auto_criar_cliente !== false,
+      gateway_baixa_automatica_pix: contas.baixa_automatica_pix !== false,
+      gateway_baixa_automatica_boleto: contas.baixa_automatica_boleto !== false,
+      gateway_observacao: contas.observacao || "",
+      gateway_api_key: "",
+      gateway_webhook_auth_token: "",
     });
     setSelectedEmitente(buildEmitenteOption(emitente));
     setCertificadoAtual({
@@ -166,6 +193,12 @@ export const useConfiguracaoFiscalPage = () => {
       tamanho_arquivo: Number(certificado.tamanho_arquivo || 0),
       importado_em: certificado.importado_em || null,
       atualizado_em: certificado.atualizado_em || null,
+    });
+    setGatewayAtual({
+      api_key_configurada: !!contas.api_key_configurada,
+      api_key_masked: contas.api_key_masked || "",
+      webhook_auth_token_configurado: !!contas.webhook_auth_token_configurado,
+      webhook_auth_token_masked: contas.webhook_auth_token_masked || "",
     });
     setCertificadoFile(null);
   }, []);
@@ -187,7 +220,7 @@ export const useConfiguracaoFiscalPage = () => {
           title: "Falha ao carregar configuração",
           text:
             error?.response?.data?.message ||
-            "Não foi possível carregar a configuração fiscal da filial.",
+            "Não foi possível carregar as configurações da filial.",
           icon: "error",
         });
       } finally {
@@ -272,6 +305,19 @@ export const useConfiguracaoFiscalPage = () => {
     };
   }, [certificadoAtual, certificadoFile]);
 
+  const contasResumo = useMemo(
+    () => ({
+      provider: form.gateway_provider || "asaas",
+      ambiente: form.gateway_ambiente || "sandbox",
+      gateway_ativo: !!form.gateway_ativo,
+      apiKeyConfigurada: !!gatewayAtual.api_key_configurada,
+      apiKeyMasked: gatewayAtual.api_key_masked || "",
+      webhookConfigurado: !!gatewayAtual.webhook_auth_token_configurado,
+      webhookMasked: gatewayAtual.webhook_auth_token_masked || "",
+    }),
+    [form, gatewayAtual]
+  );
+
   const handleSubmit = useCallback(
     async (event) => {
       event.preventDefault();
@@ -299,6 +345,18 @@ export const useConfiguracaoFiscalPage = () => {
           natureza_operacao_padrao: form.natureza_operacao_padrao,
           nfe_habilitada: form.nfe_habilitada,
           observacao: form.observacao,
+          contas: {
+            provider: form.gateway_provider,
+            ambiente: form.gateway_ambiente,
+            wallet_id: form.gateway_wallet_id,
+            gateway_ativo: form.gateway_ativo,
+            auto_criar_cliente: form.gateway_auto_criar_cliente,
+            baixa_automatica_pix: form.gateway_baixa_automatica_pix,
+            baixa_automatica_boleto: form.gateway_baixa_automatica_boleto,
+            observacao: form.gateway_observacao,
+            api_key: form.gateway_api_key,
+            webhook_auth_token: form.gateway_webhook_auth_token,
+          },
         };
 
         if (certificadoFile) {
@@ -314,7 +372,7 @@ export const useConfiguracaoFiscalPage = () => {
 
         showAlert({
           title: "Configuração salva",
-          text: response.message || "Configuração fiscal da filial salva com sucesso.",
+          text: response.message || "Configurações da filial salvas com sucesso.",
           icon: "success",
         });
       } catch (error) {
@@ -322,7 +380,7 @@ export const useConfiguracaoFiscalPage = () => {
           title: "Falha ao salvar",
           text:
             error?.response?.data?.message ||
-            "Não foi possível salvar a configuração fiscal da filial.",
+            "Não foi possível salvar as configurações da filial.",
           icon: "error",
         });
       } finally {
@@ -341,6 +399,7 @@ export const useConfiguracaoFiscalPage = () => {
     pendenciasEmitente,
     emitenteEndereco,
     certificadoResumo,
+    contasResumo,
     updateField,
     loadEmitenteOptions,
     handleSelectEmitente,

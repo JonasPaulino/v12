@@ -20,6 +20,7 @@ export const ConfiguracaoFiscal = () => {
     pendenciasEmitente,
     emitenteEndereco,
     certificadoResumo,
+    contasResumo,
     updateField,
     loadEmitenteOptions,
     handleSelectEmitente,
@@ -48,16 +49,17 @@ export const ConfiguracaoFiscal = () => {
           </C.Intro> */}
 
           {loading ? (
-            <C.LoadingCard>Carregando configuração fiscal...</C.LoadingCard>
+            <C.LoadingCard>Carregando configurações da filial...</C.LoadingCard>
           ) : (
             <C.Layout>
               <C.Form onSubmit={handleSubmit}>
                 <C.Card>
                   <C.CardHeader>
-                    <C.CardTitle>Configuração fiscal da filial</C.CardTitle>
+                    <C.CardTitle>Configurações da filial</C.CardTitle>
                     <C.CardText>
                       A filial <strong>{tenant?.tenant_nome || "--"}</strong> usa uma pessoa
-                      emitente e parâmetros próprios para emissão da NF-e modelo 55.
+                      emitente, parâmetros fiscais e uma conta de cobrança própria para
+                      emissão e recebimento.
                     </C.CardText>
                   </C.CardHeader>
 
@@ -82,6 +84,13 @@ export const ConfiguracaoFiscal = () => {
                       onClick={() => setActiveTab("certificado")}
                     >
                       Certificado
+                    </C.TabButton>
+                    <C.TabButton
+                      type="button"
+                      $active={activeTab === "contas"}
+                      onClick={() => setActiveTab("contas")}
+                    >
+                      Contas
                     </C.TabButton>
                   </C.Tabs>
 
@@ -305,11 +314,163 @@ export const ConfiguracaoFiscal = () => {
                       </C.FieldsGrid>
                     </C.SectionBody>
                   ) : null}
+
+                  {activeTab === "contas" ? (
+                    <C.SectionBody>
+                      <C.CardHeader>
+                        <C.CardTitle>Gateway de cobrança</C.CardTitle>
+                        <C.CardText>
+                          Esta aba concentra as credenciais e o comportamento da integração
+                          financeira da filial. As chaves já gravadas nunca voltam abertas para
+                          o navegador.
+                        </C.CardText>
+                      </C.CardHeader>
+
+                      <C.FieldsGrid>
+                        <C.Field>
+                          <C.FieldSpan>Provider</C.FieldSpan>
+                          <C.Select
+                            value={form.gateway_provider}
+                            onChange={(event) =>
+                              updateField("gateway_provider", event.target.value)
+                            }
+                          >
+                            <option value="asaas">Asaas</option>
+                          </C.Select>
+                        </C.Field>
+
+                        <C.Field>
+                          <C.FieldSpan>Ambiente</C.FieldSpan>
+                          <C.Select
+                            value={form.gateway_ambiente}
+                            onChange={(event) =>
+                              updateField("gateway_ambiente", event.target.value)
+                            }
+                          >
+                            <option value="sandbox">Sandbox</option>
+                            <option value="production">Produção</option>
+                          </C.Select>
+                        </C.Field>
+
+                        <C.Field>
+                          <C.FieldSpan>Wallet ID / carteira</C.FieldSpan>
+                          <C.Input
+                            value={form.gateway_wallet_id}
+                            onChange={(event) =>
+                              updateField("gateway_wallet_id", event.target.value)
+                            }
+                            placeholder="Opcional para a integração"
+                          />
+                        </C.Field>
+
+                        <C.Field>
+                          <C.FieldSpan>API key</C.FieldSpan>
+                          <C.Input
+                            type="password"
+                            value={form.gateway_api_key}
+                            onChange={(event) =>
+                              updateField("gateway_api_key", event.target.value)
+                            }
+                            placeholder={
+                              contasResumo.apiKeyMasked
+                                ? `Atual: ${contasResumo.apiKeyMasked}`
+                                : "Cole uma nova API key"
+                            }
+                          />
+                          <C.FieldHint>
+                            Deixe em branco para manter a chave já cadastrada.
+                          </C.FieldHint>
+                        </C.Field>
+
+                        <C.Field>
+                          <C.FieldSpan>Token do webhook</C.FieldSpan>
+                          <C.Input
+                            type="password"
+                            value={form.gateway_webhook_auth_token}
+                            onChange={(event) =>
+                              updateField("gateway_webhook_auth_token", event.target.value)
+                            }
+                            placeholder={
+                              contasResumo.webhookMasked
+                                ? `Atual: ${contasResumo.webhookMasked}`
+                                : "Cole um novo token forte"
+                            }
+                          />
+                          <C.FieldHint>
+                            Use um token exclusivo do webhook. O valor salvo também fica
+                            mascarado.
+                          </C.FieldHint>
+                        </C.Field>
+                      </C.FieldsGrid>
+
+                      <C.ToggleList>
+                        <C.ToggleRow>
+                          <C.Checkbox
+                            type="checkbox"
+                            checked={form.gateway_ativo}
+                            onChange={(event) =>
+                              updateField("gateway_ativo", event.target.checked)
+                            }
+                          />
+                          <span>Ativar integração de contas nesta filial</span>
+                        </C.ToggleRow>
+
+                        <C.ToggleRow>
+                          <C.Checkbox
+                            type="checkbox"
+                            checked={form.gateway_auto_criar_cliente}
+                            onChange={(event) =>
+                              updateField("gateway_auto_criar_cliente", event.target.checked)
+                            }
+                          />
+                          <span>Criar ou sincronizar o cliente automaticamente no gateway</span>
+                        </C.ToggleRow>
+
+                        <C.ToggleRow>
+                          <C.Checkbox
+                            type="checkbox"
+                            checked={form.gateway_baixa_automatica_pix}
+                            onChange={(event) =>
+                              updateField("gateway_baixa_automatica_pix", event.target.checked)
+                            }
+                          />
+                          <span>Baixar títulos automaticamente quando o PIX for recebido</span>
+                        </C.ToggleRow>
+
+                        <C.ToggleRow>
+                          <C.Checkbox
+                            type="checkbox"
+                            checked={form.gateway_baixa_automatica_boleto}
+                            onChange={(event) =>
+                              updateField(
+                                "gateway_baixa_automatica_boleto",
+                                event.target.checked
+                              )
+                            }
+                          />
+                          <span>
+                            Baixar títulos automaticamente quando o boleto for liquidado
+                          </span>
+                        </C.ToggleRow>
+                      </C.ToggleList>
+
+                      <C.Field>
+                        <C.FieldSpan>Observação da integração</C.FieldSpan>
+                        <C.Textarea
+                          value={form.gateway_observacao}
+                          onChange={(event) =>
+                            updateField("gateway_observacao", event.target.value)
+                          }
+                          placeholder="Observações internas sobre a conta, carteira ou uso da integração"
+                        />
+                      </C.Field>
+                    </C.SectionBody>
+                  ) : null}
                 </C.Card>
 
                 <C.ActionRow>
                   <C.PrimaryButton type="submit" disabled={saving}>
-                    {saving ? "Salvando configuração..." : "Salvar configuração fiscal"}
+                    {saving ? "Salvando configuração..." : "Salvar configurações"}
                   </C.PrimaryButton>
                 </C.ActionRow>
               </C.Form>
@@ -346,6 +507,51 @@ export const ConfiguracaoFiscal = () => {
                     </C.CardText>
                   </C.CardHeader>
                 </C.Card> */}
+
+                <C.Card>
+                  <C.CardHeader>
+                    <C.CardTitle>Integração de contas</C.CardTitle>
+                    <C.CardText>
+                      O gateway fica separado da emissão fiscal, mas usa a mesma filial ativa
+                      e o mesmo padrão de segurança.
+                    </C.CardText>
+                  </C.CardHeader>
+
+                  <C.InfoGrid>
+                    <C.InfoCard>
+                      <C.InfoLabel>Status</C.InfoLabel>
+                      <C.InfoValue>
+                        {contasResumo.gateway_ativo ? "Integração ativa" : "Integração inativa"}
+                      </C.InfoValue>
+                    </C.InfoCard>
+                    <C.InfoCard>
+                      <C.InfoLabel>Provider</C.InfoLabel>
+                      <C.InfoValue>{contasResumo.provider}</C.InfoValue>
+                    </C.InfoCard>
+                    <C.InfoCard>
+                      <C.InfoLabel>Ambiente</C.InfoLabel>
+                      <C.InfoValue>
+                        {contasResumo.ambiente === "production" ? "Produção" : "Sandbox"}
+                      </C.InfoValue>
+                    </C.InfoCard>
+                    <C.InfoCard>
+                      <C.InfoLabel>API key</C.InfoLabel>
+                      <C.InfoValue>
+                        {contasResumo.apiKeyConfigurada
+                          ? contasResumo.apiKeyMasked
+                          : "Não configurada"}
+                      </C.InfoValue>
+                    </C.InfoCard>
+                    <C.InfoCard>
+                      <C.InfoLabel>Webhook</C.InfoLabel>
+                      <C.InfoValue>
+                        {contasResumo.webhookConfigurado
+                          ? contasResumo.webhookMasked
+                          : "Não configurado"}
+                      </C.InfoValue>
+                    </C.InfoCard>
+                  </C.InfoGrid>
+                </C.Card>
               </C.Aside>
             </C.Layout>
           )}

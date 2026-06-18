@@ -17,6 +17,7 @@ import pessoaRoutes from "./routes/pessoaRoutes.js";
 import vendaRoutes from "./routes/vendaRoutes.js";
 import financeiroRoutes from "./routes/financeiroRoutes.js";
 import configuracaoFiscalRoutes from "./routes/configuracaoFiscalRoutes.js";
+import paymentIntegrationRoutes from "./routes/paymentIntegrationRoutes.js";
 
 dotenv.config();
 
@@ -57,6 +58,7 @@ const loginLimiter = rateLimit({
 app.use("/auth/login", loginLimiter);
 app.use("/auth", authRoutes);
 app.use("/tenant", verificarToken, tenantRoutes);
+app.use("/integracoes/pagamentos", paymentIntegrationRoutes);
 
 const privateRouter = express.Router();
 privateRouter.use(verificarToken);
