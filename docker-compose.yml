@@ -124,7 +124,11 @@ services:
       - "${FRONT_EXPOSE_PORT:-3000}:80"
     networks:
       - v12-net
+      - proxy-net
 
 networks:
   v12-net:
     driver: bridge
+  proxy-net:
+    external: true
+    name: ${NPM_EXTERNAL_NETWORK:-nginx-proxy-manager_default}
