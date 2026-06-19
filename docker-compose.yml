@@ -40,6 +40,7 @@ services:
       DB_PASSWORD: ${POSTGRES_PASSWORD:-v12_password}
       DB_DATABASE: ${POSTGRES_DB:-db_v12}
       CHAVE_TOKEN: ${CHAVE_TOKEN:-troque-esta-chave-longa}
+      AUTH_DEBUG: ${AUTH_DEBUG:-false}
       COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
       COOKIE_SAME_SITE: ${COOKIE_SAME_SITE:-lax}

@@ -7,6 +7,18 @@ import { hashPassword, verifyPassword } from "../utils/password.js";
 import verificarToken from "../middleware/authMiddleware.js";
 
 const router = express.Router();
+const authDebugEnabled = process.env.AUTH_DEBUG === "true";
+
+const authDebugLog = (event, payload = null) => {
+  if (!authDebugEnabled) return;
+
+  if (payload !== null) {
+    console.log(`[auth:debug] ${event}`, payload);
+    return;
+  }
+
+  console.log(`[auth:debug] ${event}`);
+};
 
 const buildPublicUser = (usuario) => ({
   usuario_id: usuario.usuario_id,
@@ -28,24 +40,78 @@ router.post("/login", async (req, res) => {
   try {
     const { username, password } = req.body || {};
 
+    if (authDebugEnabled) {
+      const { rows } = await pool.query(`
+        SELECT
+          current_database() AS current_database,
+          current_user AS current_user,
+          inet_server_addr()::text AS server_addr,
+          inet_server_port() AS server_port
+      `);
+
+      authDebugLog("login:start", {
+        username: username || null,
+        passwordLength: password ? String(password).length : 0,
+        dbHost: process.env.DB_HOST || null,
+        dbPort: process.env.DB_PORT || null,
+        dbName: process.env.DB_DATABASE || null,
+        dbRuntime: rows[0] || null,
+      });
+    }
+
     if (!username || !password) {
+      authDebugLog("login:denied", { reason: "missing-credentials" });
       return res.status(400).json({ error: "Credenciais não informadas." });
     }
 
     const usuario = await loginDAO.buscarUsuarioPorLogin(pool, username);
+    authDebugLog("login:user-loaded", {
+      found: !!usuario,
+      usuarioId: usuario?.usuario_id || null,
+      usuarioUsername: usuario?.usuario_username || null,
+      usuarioAtivo: usuario?.usuario_ativo ?? null,
+      passwordInfo: usuario?.usuario_senha
+        ? {
+            validFormat: String(usuario.usuario_senha).includes(":"),
+            saltLength: String(usuario.usuario_senha).split(":")[0]?.length || 0,
+            hashLength: String(usuario.usuario_senha).split(":")[1]?.length || 0,
+            preview: `${String(usuario.usuario_senha).slice(0, 12)}...`,
+          }
+        : null,
+    });
     const passwordOk = !!usuario && verifyPassword(password, usuario.usuario_senha);
+    authDebugLog("login:password-check", {
+      foundUser: !!usuario,
+      passwordOk,
+    });
 
     if (!usuario || !passwordOk) {
+      authDebugLog("login:denied", {
+        reason: !usuario ? "user-not-found" : "password-mismatch",
+      });
       return res.status(401).json({ error: "Usuário ou senha incorretos." });
     }
 
     if (!usuario.usuario_ativo) {
+      authDebugLog("login:denied", {
+        reason: "inactive-user",
+        usuarioId: usuario.usuario_id,
+      });
       return res.status(403).json({ error: "Conta inativa." });
     }
 
     const tenants = await loginDAO.listarTenantsDoUsuario(pool, usuario.usuario_id);
+    authDebugLog("login:tenants-loaded", {
+      usuarioId: usuario.usuario_id,
+      tenantCount: tenants.length,
+      tenantIds: tenants.map((item) => item.tenant_id),
+    });
 
     if (!tenants.length) {
+      authDebugLog("login:denied", {
+        reason: "no-active-tenants",
+        usuarioId: usuario.usuario_id,
+      });
       return res.status(403).json({ error: "Usuário sem filiais ativas vinculadas." });
     }
     const activeTenant =
@@ -77,6 +143,10 @@ router.post("/login", async (req, res) => {
 
     res.cookie("token", token, getCookieOptions());
     res.set("Cache-Control", "no-store");
+    authDebugLog("login:success", {
+      usuarioId: usuario.usuario_id,
+      tenantId: Number(activeTenant.tenant_id),
+    });
 
     return res.json({
       success: true,

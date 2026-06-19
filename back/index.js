@@ -27,6 +27,7 @@ if (!process.env.CHAVE_TOKEN) {
 
 const app = express();
 const port = Number(process.env.PORT || 4000);
+const authDebugEnabled = process.env.AUTH_DEBUG === "true";
 
 app.disable("x-powered-by");
 app.set("trust proxy", 1);
@@ -78,5 +79,16 @@ app.use((req, res) => {
 });
 
 app.listen(port, () => {
+  if (authDebugEnabled) {
+    console.log("[auth:debug] runtime", {
+      nodeEnv: process.env.NODE_ENV || null,
+      dbHost: process.env.DB_HOST || null,
+      dbPort: process.env.DB_PORT || null,
+      dbDatabase: process.env.DB_DATABASE || null,
+      cookieDomain: process.env.COOKIE_DOMAIN || null,
+      cookieSecure: process.env.COOKIE_SECURE || null,
+      corsOrigins: process.env.CORS_ORIGINS || null,
+    });
+  }
   console.log(`[api] Servidor v12 rodando na porta ${port}`);
 });
