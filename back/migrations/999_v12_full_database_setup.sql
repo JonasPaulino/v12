@@ -121,7 +121,7 @@ VALUES (
   'Administrador V12',
   'admin@v12.local',
   'admin',
-  'bb2b300980ff06682bdb5bda17ef587e:6c28bec61302bff32f0926e2136d580530e711c6c1772aadd8f9d53c5fc0b1c85c05216350fc998ba9149c6c0a0de656167f10cd2cdde834b3a583f05b678cb3',
+  '5c5b84bfe8ae37b05c78de6ded7f2f83:9d2cc182b6c2ea85f335fffb3542cb3316f7fcf35eebe3a668b49edf191bc5254603c1818db124b78ac34db2c557f0385340774c3b342a663ebf13902b89615a',
   TRUE,
   FALSE,
   FALSE
@@ -1350,4 +1350,3 @@ CREATE TRIGGER trg_gateway_charge_updated_at
 BEFORE UPDATE ON payments.gateway_charge
 FOR EACH ROW
 EXECUTE FUNCTION set_updated_at();
-
