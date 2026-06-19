@@ -99,6 +99,16 @@ const mapGatewayRowToViewRow = (row) => ({
 });
 
 class ConfiguracaoFiscalDAO {
+  static async legacyGatewayTableExists(client) {
+    const { rows } = await client.query(
+      `
+        SELECT to_regclass('public.tenant_configuracao_gateway') AS table_name
+      `
+    );
+
+    return !!rows[0]?.table_name;
+  }
+
   static async buscarGatewayAtualCompat(client) {
     const paymentsRows = await client.query(
       `
@@ -135,7 +145,9 @@ class ConfiguracaoFiscalDAO {
       return paymentsRow;
     }
 
-    try {
+    const hasLegacyTable = await this.legacyGatewayTableExists(client);
+
+    if (hasLegacyTable) {
       const legacyRows = await client.query(
         `
           SELECT
@@ -161,7 +173,7 @@ class ConfiguracaoFiscalDAO {
       if (legacyRow) {
         return legacyRow;
       }
-    } catch {}
+    }
 
     return paymentsRow;
   }
