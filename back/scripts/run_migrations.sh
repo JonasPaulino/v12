@@ -13,6 +13,14 @@ for file in /app/migrations/*.sql; do
     continue
   fi
 
+  base_name="$(basename "$file")"
+  case "$base_name" in
+    998_*|999_*)
+      echo "Ignorando script auxiliar: $file"
+      continue
+      ;;
+  esac
+
   echo "Aplicando migration: $file"
   psql \
     --host="$DB_HOST" \
