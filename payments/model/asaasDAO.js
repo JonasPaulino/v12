@@ -537,7 +537,8 @@ class AsaasDAO {
             $13,
             $14,
             $15,
-            $16
+            $16,
+            $17
           )
           RETURNING gateway_charge_id
         `,
