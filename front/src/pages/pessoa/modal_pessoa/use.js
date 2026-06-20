@@ -1,7 +1,7 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { AppContext } from "context";
 import { useSweetAlert } from "context/sweet_alert";
-import { createPessoa, getPessoaById, updatePessoa } from "./api";
+import { buscarCepViaCep, createPessoa, getPessoaById, updatePessoa } from "./api";
 
 const buildInitialForm = () => ({
   pessoa_tipo: "F",
@@ -37,12 +37,20 @@ export const useModalPessoa = ({ isOpen, pessoaId, onClose }) => {
   const [loadingForm, setLoadingForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState(buildInitialForm());
+  const [cepLookup, setCepLookup] = useState({
+    loading: false,
+    message: "",
+    tone: "neutral",
+  });
+  const lastCepLookupRef = useRef("");
 
   useEffect(() => {
     if (!isOpen) {
       setActiveTab("dados");
       setLoadingForm(false);
       setForm(buildInitialForm());
+      setCepLookup({ loading: false, message: "", tone: "neutral" });
+      lastCepLookupRef.current = "";
       return;
     }
 
@@ -112,6 +120,12 @@ export const useModalPessoa = ({ isOpen, pessoaId, onClose }) => {
   };
 
   const updateEnderecoField = (field, value) => {
+    if (field === "cep") {
+      setCepLookup((prev) =>
+        prev.message ? { loading: false, message: "", tone: "neutral" } : prev
+      );
+    }
+
     setForm((prev) => ({
       ...prev,
       endereco: {
@@ -119,6 +133,71 @@ export const useModalPessoa = ({ isOpen, pessoaId, onClose }) => {
         [field]: value,
       },
     }));
+  };
+
+  const applyEnderecoFields = (payload) => {
+    setForm((prev) => ({
+      ...prev,
+      endereco: {
+        ...prev.endereco,
+        ...payload,
+      },
+    }));
+  };
+
+  const handleCepBlur = async () => {
+    const cepDigits = String(form.endereco.cep || "").replace(/\D/g, "");
+
+    if (!cepDigits) {
+      setCepLookup({ loading: false, message: "", tone: "neutral" });
+      lastCepLookupRef.current = "";
+      return;
+    }
+
+    if (cepDigits.length !== 8) {
+      setCepLookup({
+        loading: false,
+        message: "Informe um CEP com 8 dígitos para buscar o endereço.",
+        tone: "warning",
+      });
+      return;
+    }
+
+    if (lastCepLookupRef.current === cepDigits) {
+      return;
+    }
+
+    try {
+      setCepLookup({
+        loading: true,
+        message: "Buscando endereço pelo CEP...",
+        tone: "neutral",
+      });
+
+      const data = await buscarCepViaCep(cepDigits);
+
+      applyEnderecoFields({
+        cep: data.cep || form.endereco.cep,
+        logradouro: data.logradouro || "",
+        bairro: data.bairro || "",
+        cidade: data.localidade || "",
+        uf: data.uf || "",
+        codigo_ibge: data.ibge || "",
+      });
+
+      lastCepLookupRef.current = cepDigits;
+      setCepLookup({
+        loading: false,
+        message: "Endereço preenchido a partir do ViaCEP.",
+        tone: "success",
+      });
+    } catch (error) {
+      setCepLookup({
+        loading: false,
+        message: error.message || "Não foi possível consultar o CEP.",
+        tone: "warning",
+      });
+    }
   };
 
   const handleSubmit = async (event) => {
@@ -165,6 +244,8 @@ export const useModalPessoa = ({ isOpen, pessoaId, onClose }) => {
     form,
     updateField,
     updateEnderecoField,
+    handleCepBlur,
+    cepLookup,
     handleSubmit,
   };
 };

@@ -11,6 +11,8 @@ export const ModalPessoa = ({ isOpen, pessoaId, onClose }) => {
     form,
     updateField,
     updateEnderecoField,
+    handleCepBlur,
+    cepLookup,
     handleSubmit,
   } = useModalPessoa({
     isOpen,
@@ -209,7 +211,12 @@ export const ModalPessoa = ({ isOpen, pessoaId, onClose }) => {
                     <C.Input
                       value={form.endereco.cep}
                       onChange={(event) => updateEnderecoField("cep", event.target.value)}
+                      onBlur={handleCepBlur}
+                      placeholder="00000-000"
                     />
+                    {cepLookup.message ? (
+                      <C.FieldHint $tone={cepLookup.tone}>{cepLookup.message}</C.FieldHint>
+                    ) : null}
                   </C.Field>
 
                   <C.Field>

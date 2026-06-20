@@ -131,6 +131,15 @@ export const FieldSpan = styled.span`
   color: ${({ theme }) => theme.colors.text};
 `;
 
+export const FieldHint = styled.span`
+  font-size: 0.86rem;
+  color: ${({ theme, $tone }) => {
+    if ($tone === "success") return "#0f8a4b";
+    if ($tone === "warning") return "#c26a12";
+    return theme.colors.textSoft;
+  }};
+`;
+
 export const Input = styled.input`
   height: 48px;
   padding: 0 14px;
