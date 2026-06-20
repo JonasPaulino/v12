@@ -72,8 +72,7 @@ const REQUIRED_FIELDS = [
   { field: "descricao_fiscal", label: "Descrição fiscal / NF-e", tab: "dados" },
   { field: "ncm", label: "NCM", tab: "fiscal" },
   { field: "origem_mercadoria", label: "Origem da mercadoria", tab: "fiscal" },
-  { field: "unidade_comercial_id", label: "Unidade comercial", tab: "comercial" },
-  { field: "unidade_tributavel_id", label: "Unidade tributável", tab: "comercial" },
+  { field: "unidade_comercial_id", label: "Unidade de medida", tab: "comercial" },
 ];
 
 const isMissingRequiredValue = (value) => {
@@ -153,7 +152,7 @@ export const useModalProduto = ({ isOpen, produtoId, onClose }) => {
             exige_lote: data.exige_lote ?? false,
             exige_validade: data.exige_validade ?? false,
             unidade_comercial_id: data.unidade_comercial_id || "",
-            unidade_tributavel_id: data.unidade_tributavel_id || "",
+            unidade_tributavel_id: data.unidade_comercial_id || data.unidade_tributavel_id || "",
             fator_conversao: "1",
             casas_decimais_comercial: "2",
             casas_decimais_tributavel: "2",
@@ -193,7 +192,17 @@ export const useModalProduto = ({ isOpen, produtoId, onClose }) => {
   }, [isOpen, onClose, produtoId, showAlert]);
 
   const updateField = (field, value) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+    setForm((prev) => {
+      if (field === "unidade_comercial_id") {
+        return {
+          ...prev,
+          unidade_comercial_id: value,
+          unidade_tributavel_id: value,
+        };
+      }
+
+      return { ...prev, [field]: value };
+    });
   };
 
   const registerFieldRef = (field) => (element) => {
@@ -249,7 +258,7 @@ export const useModalProduto = ({ isOpen, produtoId, onClose }) => {
     () => ({
       ...form,
       unidade_comercial_id: Number(form.unidade_comercial_id) || "",
-      unidade_tributavel_id: Number(form.unidade_tributavel_id) || "",
+      unidade_tributavel_id: Number(form.unidade_comercial_id) || "",
     }),
     [form]
   );

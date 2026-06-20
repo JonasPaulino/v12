@@ -444,9 +444,6 @@ class ProdutoDAO {
         unidade_comercial_id: parseInteger(payload.unidade_comercial_id, {
           label: "Unidade comercial",
         }),
-        unidade_tributavel_id: parseInteger(payload.unidade_tributavel_id, {
-          label: "Unidade tributável",
-        }),
         fator_conversao: 1,
         casas_decimais_comercial: 2,
         casas_decimais_tributavel: 2,
@@ -492,6 +489,8 @@ class ProdutoDAO {
     if (produto.preco.margem === null) {
       produto.preco.margem = calcMargem(produto.preco.preco_venda, produto.preco.preco_custo);
     }
+
+    produto.unidade.unidade_tributavel_id = produto.unidade.unidade_comercial_id;
 
     return produto;
   }

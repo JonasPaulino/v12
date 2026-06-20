@@ -333,34 +333,12 @@ export const ModalProduto = ({ isOpen, produtoId, onClose }) => {
 
                 <C.Grid>
                   <C.Field>
-                    {renderRequiredLabel("Unidade comercial")}
+                    {renderRequiredLabel("Unidade de medida")}
                     <C.Select
                       ref={registerFieldRef("unidade_comercial_id")}
                       value={form.unidade_comercial_id}
                       onChange={(event) =>
                         updateField("unidade_comercial_id", event.target.value)
-                      }
-                      required
-                    >
-                      <option value="">Selecione</option>
-                      {supportData.unidades.map((unidade) => (
-                        <option
-                          key={unidade.unidade_medida_id}
-                          value={unidade.unidade_medida_id}
-                        >
-                          {unidade.sigla} - {unidade.descricao}
-                        </option>
-                      ))}
-                    </C.Select>
-                  </C.Field>
-
-                  <C.Field>
-                    {renderRequiredLabel("Unidade tributável")}
-                    <C.Select
-                      ref={registerFieldRef("unidade_tributavel_id")}
-                      value={form.unidade_tributavel_id}
-                      onChange={(event) =>
-                        updateField("unidade_tributavel_id", event.target.value)
                       }
                       required
                     >
