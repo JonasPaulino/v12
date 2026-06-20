@@ -38,10 +38,7 @@ export const ModalProduto = ({ isOpen, produtoId, onClose }) => {
         <C.Header>
           <C.TitleBlock>
             <C.Title>{produtoId ? "Editar produto" : "Novo produto"}</C.Title>
-            <C.Subtitle>
-              Cadastro preparado para evoluir para NF-e 55, separando dados mestre, fiscal,
-              comercial e estoque.
-            </C.Subtitle>
+            <C.Subtitle>Preencha os dados principais do produto e organize as informações por aba.</C.Subtitle>
           </C.TitleBlock>
 
           <C.CloseButton type="button" onClick={() => onClose(false)} disabled={submitting}>
@@ -326,12 +323,7 @@ export const ModalProduto = ({ isOpen, produtoId, onClose }) => {
               </>
             ) : activeTab === "comercial" ? (
               <>
-                <C.CardHint>
-                  Preços serão gravados na tabela padrão{" "}
-                  <strong>{supportData.tabelaPrecoPadrao?.nome || "não configurada"}</strong>.
-                </C.CardHint>
-
-                <C.Grid>
+                <C.GridCommercial>
                   <C.Field>
                     {renderRequiredLabel("Unidade de medida")}
                     <C.Select
@@ -353,9 +345,6 @@ export const ModalProduto = ({ isOpen, produtoId, onClose }) => {
                       ))}
                     </C.Select>
                   </C.Field>
-                </C.Grid>
-
-                <C.GridThree>
                   <C.Field>
                     <C.FieldSpan>Preço de venda</C.FieldSpan>
                     <C.Input
@@ -377,7 +366,7 @@ export const ModalProduto = ({ isOpen, produtoId, onClose }) => {
                       onChange={(event) => updateField("margem", event.target.value)}
                     />
                   </C.Field>
-                </C.GridThree>
+                </C.GridCommercial>
               </>
             ) : (
               <>
