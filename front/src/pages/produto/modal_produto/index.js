@@ -370,11 +370,6 @@ export const ModalProduto = ({ isOpen, produtoId, onClose }) => {
               </>
             ) : (
               <>
-                <C.CardHint>
-                  O saldo será gravado no depósito padrão{" "}
-                  <strong>{supportData.depositoPadrao?.nome || "não configurado"}</strong>.
-                </C.CardHint>
-
                 <C.GridThree>
                   <C.Field>
                     <C.FieldSpan>Estoque atual</C.FieldSpan>
