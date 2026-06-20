@@ -188,7 +188,7 @@ export const useModalPessoa = ({ isOpen, pessoaId, onClose }) => {
       lastCepLookupRef.current = cepDigits;
       setCepLookup({
         loading: false,
-        message: "Endereço preenchido a partir do ViaCEP.",
+        message: "Endereço preenchido.",
         tone: "success",
       });
     } catch (error) {

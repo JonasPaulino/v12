@@ -379,40 +379,6 @@ export const ModalProduto = ({ isOpen, produtoId, onClose }) => {
 
                 <C.GridThree>
                   <C.Field>
-                    <C.FieldSpan>Fator de conversão</C.FieldSpan>
-                    <C.Input
-                      value={form.fator_conversao}
-                      onChange={(event) => updateField("fator_conversao", event.target.value)}
-                    />
-                  </C.Field>
-                  <C.Field>
-                    <C.FieldSpan>Casas decimais comercial</C.FieldSpan>
-                    <C.Input
-                      type="number"
-                      min="0"
-                      max="6"
-                      value={form.casas_decimais_comercial}
-                      onChange={(event) =>
-                        updateField("casas_decimais_comercial", event.target.value)
-                      }
-                    />
-                  </C.Field>
-                  <C.Field>
-                    <C.FieldSpan>Casas decimais tributável</C.FieldSpan>
-                    <C.Input
-                      type="number"
-                      min="0"
-                      max="6"
-                      value={form.casas_decimais_tributavel}
-                      onChange={(event) =>
-                        updateField("casas_decimais_tributavel", event.target.value)
-                      }
-                    />
-                  </C.Field>
-                </C.GridThree>
-
-                <C.GridThree>
-                  <C.Field>
                     <C.FieldSpan>Preço de venda</C.FieldSpan>
                     <C.Input
                       value={form.preco_venda}

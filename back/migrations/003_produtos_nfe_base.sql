@@ -76,8 +76,8 @@ CREATE TABLE IF NOT EXISTS produto_unidade (
   unidade_comercial_id INTEGER NOT NULL REFERENCES unidade_medida(unidade_medida_id),
   unidade_tributavel_id INTEGER NOT NULL REFERENCES unidade_medida(unidade_medida_id),
   fator_conversao NUMERIC(18,6) NOT NULL DEFAULT 1,
-  casas_decimais_comercial SMALLINT NOT NULL DEFAULT 4,
-  casas_decimais_tributavel SMALLINT NOT NULL DEFAULT 4,
+  casas_decimais_comercial SMALLINT NOT NULL DEFAULT 2,
+  casas_decimais_tributavel SMALLINT NOT NULL DEFAULT 2,
   criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   atualizado_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

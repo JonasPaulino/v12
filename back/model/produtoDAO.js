@@ -381,8 +381,8 @@ class ProdutoDAO {
         row.fator_conversao !== null && row.fator_conversao !== undefined
           ? Number(row.fator_conversao)
           : 1,
-      casas_decimais_comercial: row.casas_decimais_comercial ?? 4,
-      casas_decimais_tributavel: row.casas_decimais_tributavel ?? 4,
+      casas_decimais_comercial: row.casas_decimais_comercial ?? 2,
+      casas_decimais_tributavel: row.casas_decimais_tributavel ?? 2,
       preco_venda:
         row.preco_venda !== null && row.preco_venda !== undefined ? Number(row.preco_venda) : 0,
       preco_custo:
@@ -445,20 +445,11 @@ class ProdutoDAO {
           label: "Unidade comercial",
         }),
         unidade_tributavel_id: parseInteger(payload.unidade_tributavel_id, {
-        label: "Unidade tributável",
+          label: "Unidade tributável",
         }),
-        fator_conversao: parseNumeric(payload.fator_conversao, {
-          defaultValue: 1,
-          label: "Fator de conversão",
-        }),
-        casas_decimais_comercial: parseInteger(payload.casas_decimais_comercial || 4, {
-          min: 0,
-          label: "Casas decimais comercial",
-        }),
-        casas_decimais_tributavel: parseInteger(payload.casas_decimais_tributavel || 4, {
-          min: 0,
-          label: "Casas decimais tributavel",
-        }),
+        fator_conversao: 1,
+        casas_decimais_comercial: 2,
+        casas_decimais_tributavel: 2,
       },
       preco: {
         preco_venda: parseNumeric(payload.preco_venda, {
