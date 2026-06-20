@@ -1,4 +1,5 @@
 import { TENANT_CONTEXT_SQL } from "../utils/sql.js";
+import { criarCobrancaBoleto } from "../services/paymentsGatewayService.js";
 
 const SORT_COLUMNS = {
   pedido_venda_id: "pv.pedido_venda_id",
@@ -136,6 +137,7 @@ class VendaDAO {
         p.pessoa_nome_razao,
         p.pessoa_cpf_cnpj,
         cp.descricao AS condicao_pagamento_descricao,
+        cp.gera_boleto AS condicao_gera_boleto,
         ft.financeiro_titulo_id,
         ft.status AS financeiro_status,
         ft.data_vencimento AS financeiro_data_vencimento
@@ -296,6 +298,7 @@ class VendaDAO {
           dias_primeiro_vencimento,
           intervalo_dias,
           percentual_entrada,
+          gera_boleto,
           padrao
         FROM financeiro_condicao_pagamento
         ${where}
@@ -306,6 +309,7 @@ class VendaDAO {
 
     return rows.map((row) => ({
       ...row,
+      gera_boleto: !!row.gera_boleto,
       percentual_entrada: Number(row.percentual_entrada || 0),
     }));
   }
@@ -466,7 +470,8 @@ class VendaDAO {
           quantidade_parcelas,
           dias_primeiro_vencimento,
           intervalo_dias,
-          percentual_entrada
+          percentual_entrada,
+          gera_boleto
         FROM financeiro_condicao_pagamento
         WHERE tenant_id = ${TENANT_CONTEXT_SQL}
           AND ativo = TRUE
@@ -479,6 +484,7 @@ class VendaDAO {
     return rows[0]
       ? {
           ...rows[0],
+          gera_boleto: !!rows[0].gera_boleto,
           percentual_entrada: Number(rows[0].percentual_entrada || 0),
         }
       : null;
@@ -789,7 +795,8 @@ class VendaDAO {
           pv.*,
           p.pessoa_nome_razao,
           p.pessoa_cpf_cnpj,
-          cp.descricao AS condicao_pagamento_descricao
+          cp.descricao AS condicao_pagamento_descricao,
+          cp.gera_boleto AS condicao_gera_boleto
         FROM pedido_venda pv
         JOIN pessoa p ON p.pessoa_id = pv.pessoa_id
         LEFT JOIN financeiro_condicao_pagamento cp
@@ -872,6 +879,7 @@ class VendaDAO {
     return {
       pedido: {
         ...pedido,
+        condicao_gera_boleto: !!pedido.condicao_gera_boleto,
         subtotal: Number(pedido.subtotal || 0),
         desconto: Number(pedido.desconto || 0),
         acrescimo: Number(pedido.acrescimo || 0),
@@ -990,6 +998,69 @@ class VendaDAO {
       await client.query("ROLLBACK");
       throw error;
     }
+  }
+
+  static async gerarBoletos(client, { pedidoVendaId, tenantId }) {
+    const detail = await this.buscarPorId(client, pedidoVendaId);
+
+    if (!detail?.pedido || !detail?.titulo) {
+      throw new Error("Pedido de venda não encontrado.");
+    }
+
+    if (!detail.pedido.condicao_gera_boleto) {
+      throw new Error("Este pedido não utiliza condição de pagamento por boleto.");
+    }
+
+    const parcelasAbertas = (detail.parcelas || [])
+      .map((parcela) => ({
+        ...parcela,
+        saldo: roundCurrency(Number(parcela.valor_parcela || 0) - Number(parcela.valor_recebido || 0)),
+      }))
+      .filter((parcela) => parcela.status !== "cancelada" && Number(parcela.saldo || 0) > 0);
+
+    if (!parcelasAbertas.length) {
+      throw new Error("Não há parcelas em aberto para gerar boletos.");
+    }
+
+    const boletos = [];
+
+    for (const parcela of parcelasAbertas) {
+      const response = await criarCobrancaBoleto({
+        tenantId,
+        financeiroTituloId: Number(detail.titulo.financeiro_titulo_id),
+        financeiroTituloParcelaId: Number(parcela.financeiro_titulo_parcela_id),
+        financeiroFormaPagamentoId: null,
+        customer: {
+          pessoaId: Number(detail.pedido.pessoa_id),
+          nome: detail.pedido.pessoa_nome_razao,
+          documento: detail.pedido.pessoa_cpf_cnpj,
+          email: "",
+          telefone: "",
+          whatsapp: "",
+        },
+        charge: {
+          valor: Number(parcela.saldo || 0),
+          dueDate: String(parcela.data_vencimento || "").slice(0, 10),
+          description: `Boleto do pedido de venda #${pedidoVendaId} - parcela ${parcela.numero_parcela}`,
+        },
+      });
+
+      boletos.push({
+        numero_parcela: Number(parcela.numero_parcela),
+        data_vencimento: parcela.data_vencimento,
+        valor: Number(parcela.saldo || 0),
+        gateway_charge_id: response?.data?.gatewayChargeId || null,
+        external_charge_id: response?.data?.externalChargeId || null,
+        bank_slip_url: response?.data?.boleto?.bankSlipUrl || response?.data?.invoiceUrl || "",
+        identification_field: response?.data?.boleto?.identificationField || "",
+      });
+    }
+
+    return {
+      pedido_venda_id: Number(detail.pedido.pedido_venda_id),
+      financeiro_titulo_id: Number(detail.titulo.financeiro_titulo_id),
+      boletos,
+    };
   }
 
   static async atualizar(client, { pedidoVendaId, payload, usuarioId }) {

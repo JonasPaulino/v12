@@ -17,3 +17,8 @@ export const deleteVenda = async (vendaId) => {
   const { data } = await api.delete(`/venda/${vendaId}`);
   return data;
 };
+
+export const generateBoletoVenda = async (vendaId) => {
+  const { data } = await api.post(`/venda/${vendaId}/boletos`);
+  return data;
+};

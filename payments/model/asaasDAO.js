@@ -331,6 +331,10 @@ class AsaasDAO {
       return null;
     }
 
+    if (String(charge.due_date || "").slice(0, 10) !== String(payload.charge.dueDate || "").slice(0, 10)) {
+      return null;
+    }
+
     return charge;
   }
 
@@ -680,7 +684,9 @@ class AsaasDAO {
               financeiro_titulo_parcela_id: charge.financeiro_titulo_parcela_id
                 ? Number(charge.financeiro_titulo_parcela_id)
                 : null,
-              financeiro_forma_pagamento_id: Number(charge.financeiro_forma_pagamento_id),
+              financeiro_forma_pagamento_id: charge.financeiro_forma_pagamento_id
+                ? Number(charge.financeiro_forma_pagamento_id)
+                : null,
               valor_baixa: Number(charge.valor || 0),
               data_baixa: getWebhookPaymentDate(payment),
               observacao: `Baixa automática Asaas ${billingType || "COBRANÇA"}. Cobrança ${externalChargeId}. Evento ${externalEventId}.${Number(payment?.interestValue || 0) > 0 ? ` Juros/encargos informados pelo Asaas: ${Number(payment.interestValue).toFixed(2)}.` : ""}`,
@@ -744,7 +750,12 @@ class AsaasDAO {
   static validarPayloadInterno(payload = {}, billingType = "PIX") {
     const tenantId = Number(payload?.tenantId);
     const financeiroTituloId = Number(payload?.financeiroTituloId);
-    const financeiroFormaPagamentoId = Number(payload?.financeiroFormaPagamentoId);
+    const financeiroFormaPagamentoId =
+      payload?.financeiroFormaPagamentoId === null ||
+      payload?.financeiroFormaPagamentoId === undefined ||
+      payload?.financeiroFormaPagamentoId === ""
+        ? null
+        : Number(payload?.financeiroFormaPagamentoId);
     const pessoaId = Number(payload?.customer?.pessoaId);
 
     if (!Number.isInteger(tenantId) || tenantId <= 0) {
@@ -759,7 +770,10 @@ class AsaasDAO {
       );
     }
 
-    if (!Number.isInteger(financeiroFormaPagamentoId) || financeiroFormaPagamentoId <= 0) {
+    if (
+      billingType !== "BOLETO" &&
+      (!Number.isInteger(financeiroFormaPagamentoId) || financeiroFormaPagamentoId <= 0)
+    ) {
       throw new Error("Forma de pagamento inválida para a cobrança.");
     }
 
@@ -783,7 +797,10 @@ class AsaasDAO {
       financeiroTituloParcelaId: payload?.financeiroTituloParcelaId
         ? Number(payload.financeiroTituloParcelaId)
         : null,
-      financeiroFormaPagamentoId,
+      financeiroFormaPagamentoId:
+        Number.isInteger(financeiroFormaPagamentoId) && financeiroFormaPagamentoId > 0
+          ? financeiroFormaPagamentoId
+          : null,
       customer: {
         tenantId,
         pessoaId,

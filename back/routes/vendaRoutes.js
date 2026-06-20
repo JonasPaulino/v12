@@ -160,6 +160,27 @@ router.put("/:id", async (req, res) => {
   }
 });
 
+router.post("/:id/boletos", async (req, res) => {
+  try {
+    const data = await VendaDAO.gerarBoletos(req.db, {
+      pedidoVendaId: Number(req.params.id),
+      tenantId: Number(req.user?.tenantId),
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "Boletos gerados com sucesso.",
+      data,
+    });
+  } catch (error) {
+    console.error("[venda] Falha ao gerar boletos:", error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Não foi possível gerar os boletos do pedido.",
+    });
+  }
+});
+
 router.delete("/:id", async (req, res) => {
   try {
     await VendaDAO.excluir(req.db, Number(req.params.id));

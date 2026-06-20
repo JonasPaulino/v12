@@ -1,7 +1,7 @@
 import { useContext, useEffect, useMemo, useState } from "react";
 import { AppContext } from "context";
 import { useSweetAlert } from "context/sweet_alert";
-import { deleteVenda, getVendas } from "./api";
+import { deleteVenda, generateBoletoVenda, getVendas } from "./api";
 
 export const useTabelaVendas = ({ search, refreshKey, onDeleted }) => {
   const { showLoading, hideLoading } = useContext(AppContext);
@@ -96,6 +96,49 @@ export const useTabelaVendas = ({ search, refreshKey, onDeleted }) => {
     }
   };
 
+  const handleDownloadBoletos = async (venda) => {
+    try {
+      showLoading("Gerando boletos...");
+      const response = await generateBoletoVenda(venda.pedido_venda_id);
+      const boletos = response?.data?.boletos || [];
+
+      if (!boletos.length) {
+        showAlert({
+          title: "Nenhum boleto disponível",
+          text: "Não há boletos em aberto para este pedido.",
+          icon: "warning",
+        });
+        return;
+      }
+
+      boletos.forEach((boleto) => {
+        if (boleto?.bank_slip_url) {
+          window.open(boleto.bank_slip_url, "_blank", "noopener,noreferrer");
+        }
+      });
+
+      showAlert({
+        title: "Boletos prontos",
+        text:
+          boletos.length === 1
+            ? "O boleto foi aberto em uma nova aba."
+            : `${boletos.length} boletos foram abertos em novas abas.`,
+        icon: "success",
+        timer: 1800,
+      });
+    } catch (error) {
+      showAlert({
+        title: "Falha ao gerar boletos",
+        text:
+          error?.response?.data?.message ||
+          "Não foi possível gerar os boletos do pedido.",
+        icon: "error",
+      });
+    } finally {
+      hideLoading();
+    }
+  };
+
   const paginationItems = useMemo(() => {
     const items = [];
     for (let current = 1; current <= totalPages; current += 1) {
@@ -117,5 +160,6 @@ export const useTabelaVendas = ({ search, refreshKey, onDeleted }) => {
     toggleSort,
     paginationItems,
     handleDelete,
+    handleDownloadBoletos,
   };
 };

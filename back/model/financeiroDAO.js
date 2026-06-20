@@ -105,6 +105,7 @@ class FinanceiroDAO {
     let where = `
       WHERE tenant_id = ${TENANT_CONTEXT_SQL}
         AND ativo = TRUE
+        AND LOWER(unaccent(descricao)) NOT LIKE '%boleto%'
     `;
 
     if (tipo) {
@@ -195,6 +196,7 @@ class FinanceiroDAO {
           dias_primeiro_vencimento,
           intervalo_dias,
           percentual_entrada,
+          gera_boleto,
           padrao
         FROM financeiro_condicao_pagamento
         ${where}
@@ -205,6 +207,7 @@ class FinanceiroDAO {
 
     return rows.map((row) => ({
       ...row,
+      gera_boleto: !!row.gera_boleto,
       percentual_entrada: Number(row.percentual_entrada || 0),
     }));
   }
@@ -595,6 +598,7 @@ class FinanceiroDAO {
     }
 
     const formaPagamentoId = parseInteger(payload.financeiro_forma_pagamento_id, {
+      allowNull: true,
       label: "Forma de pagamento",
     });
     const formaPagamento = await this.buscarFormaPagamento(client, formaPagamentoId, {
@@ -1339,6 +1343,7 @@ class FinanceiroDAO {
       label: "Parcela",
     });
     const formaPagamentoId = parseInteger(payload.financeiro_forma_pagamento_id, {
+      allowNull: true,
       label: "Forma de pagamento",
     });
     const dataBaixa = normalizeText(payload.data_baixa, 10, {
@@ -1396,12 +1401,18 @@ class FinanceiroDAO {
       throw new Error("O valor informado é maior que o saldo da parcela.");
     }
 
-    const formaPagamento = await this.buscarFormaPagamento(client, formaPagamentoId, {
-      tipo: existing.titulo.tipo,
-    });
+    let formaPagamento = null;
 
-    if (!formaPagamento) {
-      throw new Error("Forma de pagamento inválida para o tipo do título.");
+    if (formaPagamentoId) {
+      formaPagamento = await this.buscarFormaPagamento(client, formaPagamentoId, {
+        tipo: existing.titulo.tipo,
+      });
+
+      if (!formaPagamento) {
+        throw new Error("Forma de pagamento inválida para o tipo do título.");
+      }
+    } else if (actorUserId !== null) {
+      throw new Error("Forma de pagamento obrigatória.");
     }
 
     await client.query("BEGIN");

@@ -674,6 +674,7 @@ CREATE TABLE IF NOT EXISTS financeiro_condicao_pagamento (
   dias_primeiro_vencimento INTEGER NOT NULL DEFAULT 0,
   intervalo_dias INTEGER NOT NULL DEFAULT 30,
   percentual_entrada NUMERIC(7,4) NOT NULL DEFAULT 0,
+  gera_boleto BOOLEAN NOT NULL DEFAULT FALSE,
   ativo BOOLEAN NOT NULL DEFAULT TRUE,
   padrao BOOLEAN NOT NULL DEFAULT FALSE,
   criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -890,6 +891,7 @@ INSERT INTO financeiro_condicao_pagamento (
   dias_primeiro_vencimento,
   intervalo_dias,
   percentual_entrada,
+  gera_boleto,
   ativo,
   padrao
 )
@@ -901,17 +903,22 @@ SELECT
   seed.dias_primeiro_vencimento,
   seed.intervalo_dias,
   seed.percentual_entrada,
+  seed.gera_boleto,
   TRUE,
   seed.padrao
 FROM tenant t
 CROSS JOIN (
   VALUES
-    ('A vista', 'receber', 1, 0, 30, 0::numeric, TRUE),
-    ('30 dias', 'receber', 1, 30, 30, 0::numeric, FALSE),
-    ('2x 30/60', 'receber', 2, 30, 30, 0::numeric, FALSE),
-    ('3x 30/60/90', 'receber', 3, 30, 30, 0::numeric, FALSE),
-    ('A vista fornecedor', 'pagar', 1, 0, 30, 0::numeric, FALSE)
-) AS seed(descricao, tipo, quantidade_parcelas, dias_primeiro_vencimento, intervalo_dias, percentual_entrada, padrao)
+    ('A vista', 'receber', 1, 0, 30, 0::numeric, FALSE, TRUE),
+    ('30 dias', 'receber', 1, 30, 30, 0::numeric, FALSE, FALSE),
+    ('2x 30/60', 'receber', 2, 30, 30, 0::numeric, FALSE, FALSE),
+    ('3x 30/60/90', 'receber', 3, 30, 30, 0::numeric, FALSE, FALSE),
+    ('Boleto à vista', 'receber', 1, 0, 30, 0::numeric, TRUE, FALSE),
+    ('Boleto 30 dias', 'receber', 1, 30, 30, 0::numeric, TRUE, FALSE),
+    ('Boleto 2x 30/60', 'receber', 2, 30, 30, 0::numeric, TRUE, FALSE),
+    ('Boleto 3x 30/60/90', 'receber', 3, 30, 30, 0::numeric, TRUE, FALSE),
+    ('A vista fornecedor', 'pagar', 1, 0, 30, 0::numeric, FALSE, FALSE)
+) AS seed(descricao, tipo, quantidade_parcelas, dias_primeiro_vencimento, intervalo_dias, percentual_entrada, gera_boleto, padrao)
 WHERE NOT EXISTS (
   SELECT 1
   FROM financeiro_condicao_pagamento cp
@@ -940,8 +947,7 @@ CROSS JOIN (
     ('Pix', 'ambos', FALSE, 2),
     ('Cartao de debito', 'receber', FALSE, 3),
     ('Cartao de credito', 'receber', FALSE, 4),
-    ('Transferencia', 'ambos', FALSE, 5),
-    ('Boleto', 'receber', FALSE, 6)
+    ('Transferencia', 'ambos', FALSE, 5)
 ) AS seed(descricao, tipo, padrao, ordem)
 WHERE NOT EXISTS (
   SELECT 1

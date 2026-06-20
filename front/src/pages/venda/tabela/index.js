@@ -33,6 +33,7 @@ const Tabela = ({ search, refreshKey, onEditar, onDeleted }) => {
     toggleSort,
     paginationItems,
     handleDelete,
+    handleDownloadBoletos,
   } = useTabelaVendas({
     search,
     refreshKey,
@@ -160,6 +161,14 @@ const Tabela = ({ search, refreshKey, onEditar, onDeleted }) => {
                             label: "Editar",
                             onClick: () => onEditar(venda.pedido_venda_id),
                           },
+                          ...(venda.condicao_gera_boleto
+                            ? [
+                                {
+                                  label: "Baixar boletos",
+                                  onClick: () => handleDownloadBoletos(venda),
+                                },
+                              ]
+                            : []),
                           {
                             label: "Remover",
                             danger: true,
