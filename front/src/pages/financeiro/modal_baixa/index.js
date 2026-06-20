@@ -39,11 +39,14 @@ export const ModalBaixa = ({ isOpen, tituloId, onClose }) => {
     saldoSelecionado,
     parcelaSelecionada,
     parcelasDisponiveis,
+    isBoletoSelected,
     isPixSelected,
+    boletoCharge,
     pixCharge,
     updateField,
     handleChangeParcela,
     handleSubmit,
+    handleGenerateBoleto,
     handleGeneratePix,
     handleEstornar,
     hasChanges,
@@ -71,6 +74,11 @@ export const ModalBaixa = ({ isOpen, tituloId, onClose }) => {
 
     if (isPixSelected) {
       handleGeneratePix();
+      return;
+    }
+
+    if (isBoletoSelected) {
+      handleGenerateBoleto();
       return;
     }
 
@@ -196,7 +204,7 @@ export const ModalBaixa = ({ isOpen, tituloId, onClose }) => {
                       <C.Textarea
                         value={form.observacao}
                         onChange={(event) => updateField("observacao", event.target.value)}
-                        placeholder="Opcional: detalhe desta baixa ou cobrança PIX."
+                        placeholder="Opcional: detalhe desta baixa ou cobrança gerada."
                         disabled={tituloEncerrado}
                       />
                     </C.Field>
@@ -385,6 +393,70 @@ export const ModalBaixa = ({ isOpen, tituloId, onClose }) => {
                       </C.PixCard>
                     ) : null}
 
+                    {isBoletoSelected ? (
+                      <C.PixCard>
+                        <C.PixHeader>
+                          <div>
+                            <C.SummaryLabel>Boleto Asaas</C.SummaryLabel>
+                            <C.SummaryText>
+                              Gere o boleto, entregue o PDF ao cliente e aguarde o webhook do
+                              Asaas para a baixa automática após o pagamento.
+                            </C.SummaryText>
+                          </div>
+                          {boletoCharge?.status ? (
+                            <C.StatusChip $status="aberta">{boletoCharge.status}</C.StatusChip>
+                          ) : null}
+                        </C.PixHeader>
+
+                        {boletoCharge?.boleto?.bankSlipUrl ? (
+                          <C.PixInfo>
+                            <C.SummaryGrid>
+                              <C.SummaryCard>
+                                <C.SummaryLabel>Boleto</C.SummaryLabel>
+                                <C.SummaryValue>
+                                  #{boletoCharge.externalChargeId || "--"}
+                                </C.SummaryValue>
+                              </C.SummaryCard>
+                              <C.SummaryCard>
+                                <C.SummaryLabel>Vencimento</C.SummaryLabel>
+                                <C.SummaryValue>
+                                  {formatDate(
+                                    parcelaSelecionada?.data_vencimento ||
+                                      detail?.titulo?.data_vencimento
+                                  )}
+                                </C.SummaryValue>
+                              </C.SummaryCard>
+                            </C.SummaryGrid>
+
+                            {boletoCharge?.boleto?.identificationField ? (
+                              <C.SummaryCard>
+                                <C.SummaryLabel>Linha digitável</C.SummaryLabel>
+                                <C.CodeBox
+                                  readOnly
+                                  value={boletoCharge.boleto.identificationField}
+                                />
+                              </C.SummaryCard>
+                            ) : null}
+
+                            <div>
+                              <C.ActionLink
+                                href={boletoCharge.boleto.bankSlipUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                Baixar boleto
+                              </C.ActionLink>
+                            </div>
+                          </C.PixInfo>
+                        ) : (
+                          <C.Hint>
+                            Selecione a forma boleto e clique em gerar boleto para criar a
+                            cobrança no Asaas.
+                          </C.Hint>
+                        )}
+                      </C.PixCard>
+                    ) : null}
+
                     <C.SectionCard>
                       <C.SectionHeader>
                         <div>Movimento</div>
@@ -475,9 +547,13 @@ export const ModalBaixa = ({ isOpen, tituloId, onClose }) => {
               : submitting
               ? isPixSelected
                 ? "Gerando PIX..."
+                : isBoletoSelected
+                ? "Gerando boleto..."
                 : "Salvando..."
               : isPixSelected
               ? "Gerar QR Code PIX"
+              : isBoletoSelected
+              ? "Gerar boleto"
               : detail?.titulo?.tipo === "pagar"
               ? "Registrar pagamento"
               : "Registrar recebimento"}

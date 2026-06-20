@@ -396,6 +396,20 @@ export const ActionButton = styled.button`
   }
 `;
 
+export const ActionLink = styled.a`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 38px;
+  padding: 0 14px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radius.pill};
+  background: #ffffff;
+  color: ${({ theme }) => theme.colors.text};
+  font-weight: 700;
+  text-decoration: none;
+`;
+
 export const Footer = styled.div`
   display: flex;
   justify-content: flex-end;

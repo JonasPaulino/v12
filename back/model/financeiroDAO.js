@@ -560,6 +560,25 @@ class FinanceiroDAO {
   }
 
   static async prepararCobrancaPix(client, { financeiroTituloId, payload = {} } = {}) {
+    return this.prepararCobrancaGateway(client, {
+      financeiroTituloId,
+      payload,
+      billingType: "PIX",
+    });
+  }
+
+  static async prepararCobrancaBoleto(client, { financeiroTituloId, payload = {} } = {}) {
+    return this.prepararCobrancaGateway(client, {
+      financeiroTituloId,
+      payload,
+      billingType: "BOLETO",
+    });
+  }
+
+  static async prepararCobrancaGateway(
+    client,
+    { financeiroTituloId, payload = {}, billingType = "PIX" } = {}
+  ) {
     const detail = await this.buscarPorId(client, financeiroTituloId);
 
     if (!detail?.titulo) {
@@ -567,12 +586,12 @@ class FinanceiroDAO {
     }
 
     if (detail.titulo.tipo !== "receber") {
-      throw new Error("A cobrança PIX só pode ser gerada para contas a receber.");
+      throw new Error("A cobrança só pode ser gerada para contas a receber.");
     }
 
     const tituloStatus = String(detail.titulo.status || "").toLowerCase();
     if (["quitado", "cancelado"].includes(tituloStatus)) {
-      throw new Error("Este título não pode gerar cobrança PIX no status atual.");
+      throw new Error("Este título não pode gerar cobrança no status atual.");
     }
 
     const formaPagamentoId = parseInteger(payload.financeiro_forma_pagamento_id, {
@@ -583,11 +602,15 @@ class FinanceiroDAO {
     });
 
     if (!formaPagamento) {
-      throw new Error("Forma de pagamento inválida para cobrança PIX.");
+      throw new Error("Forma de pagamento inválida para cobrança.");
     }
 
-    if (!/pix/i.test(String(formaPagamento.descricao || ""))) {
+    if (billingType === "PIX" && !/pix/i.test(String(formaPagamento.descricao || ""))) {
       throw new Error("Selecione uma forma de pagamento PIX para gerar o QR Code.");
+    }
+
+    if (billingType === "BOLETO" && !/boleto/i.test(String(formaPagamento.descricao || ""))) {
+      throw new Error("Selecione uma forma de pagamento boleto para gerar a cobrança.");
     }
 
     const parcelasDisponiveis = (detail.parcelas || []).filter(
@@ -605,12 +628,12 @@ class FinanceiroDAO {
         ) || null;
 
       if (!parcelaSelecionada) {
-        throw new Error("Parcela inválida para gerar a cobrança PIX.");
+        throw new Error("Parcela inválida para gerar a cobrança.");
       }
     } else if (parcelasDisponiveis.length === 1) {
       parcelaSelecionada = parcelasDisponiveis[0];
     } else if (parcelasDisponiveis.length > 1) {
-      throw new Error("Selecione a parcela que receberá a cobrança PIX.");
+      throw new Error("Selecione a parcela que receberá a cobrança.");
     }
 
     const saldoBase = roundCurrency(
@@ -618,19 +641,23 @@ class FinanceiroDAO {
     );
 
     if (saldoBase <= 0) {
-      throw new Error("O título não possui saldo disponível para gerar cobrança PIX.");
+      throw new Error("O título não possui saldo disponível para gerar cobrança.");
     }
 
     const valorCobranca = payload.valor_cobranca
-      ? roundCurrency(parseNumeric(payload.valor_cobranca, { label: "Valor da cobrança PIX" }))
+      ? roundCurrency(
+          parseNumeric(payload.valor_cobranca, {
+            label: billingType === "PIX" ? "Valor da cobrança PIX" : "Valor do boleto",
+          })
+        )
       : saldoBase;
 
     if (valorCobranca <= 0) {
-      throw new Error("O valor da cobrança PIX precisa ser maior que zero.");
+      throw new Error("O valor da cobrança precisa ser maior que zero.");
     }
 
     if (valorCobranca > saldoBase) {
-      throw new Error("O valor da cobrança PIX não pode ser maior que o saldo selecionado.");
+      throw new Error("O valor da cobrança não pode ser maior que o saldo selecionado.");
     }
 
     const pessoaResult = await client.query(

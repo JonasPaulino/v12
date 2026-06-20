@@ -114,9 +114,14 @@ const buildCustomerPayload = (customer) => {
   return Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== null));
 };
 
-const buildPaymentPayload = ({ externalCustomerId, charge, externalReference }) => ({
+const buildPaymentPayload = ({
+  externalCustomerId,
+  charge,
+  externalReference,
+  billingType = "PIX",
+}) => ({
   customer: externalCustomerId,
-  billingType: "PIX",
+  billingType,
   value: charge.valor,
   dueDate: charge.dueDate,
   description: charge.description,
@@ -154,6 +159,7 @@ class AsaasDAO {
           ambiente,
           wallet_id,
           baixa_automatica_pix,
+          baixa_automatica_boleto,
           api_key_criptografada,
           api_key_masked,
           webhook_auth_token_criptografada,
@@ -176,6 +182,7 @@ class AsaasDAO {
               ambiente,
               wallet_id,
               baixa_automatica_pix,
+              baixa_automatica_boleto,
               api_key_criptografada,
               api_key_masked,
               webhook_auth_token_criptografada,
@@ -215,6 +222,7 @@ class AsaasDAO {
       ambiente: row.ambiente || "sandbox",
       walletId: row.wallet_id || "",
       baixaAutomaticaPix: row.baixa_automatica_pix !== false,
+      baixaAutomaticaBoleto: row.baixa_automatica_boleto !== false,
       apiKey,
       webhookToken: decryptSecret(row.webhook_auth_token_criptografada),
     };
@@ -280,7 +288,7 @@ class AsaasDAO {
     return customerResponse.id;
   }
 
-  static async buscarCobrancaPixAberta(client, payload) {
+  static async buscarCobrancaAberta(client, payload, billingType = "PIX") {
     const { rows } = await client.query(
       `
         SELECT
@@ -292,13 +300,14 @@ class AsaasDAO {
           invoice_url,
           pix_payload,
           pix_encoded_image,
-          pix_expiration_date
+          pix_expiration_date,
+          payload
         FROM payments.gateway_charge
         WHERE tenant_id = $1
           AND provider = 'asaas'
           AND financeiro_titulo_id = $2
           AND COALESCE(financeiro_titulo_parcela_id, 0) = COALESCE($3, 0)
-          AND billing_type = 'PIX'
+          AND billing_type = $4
           AND settled = FALSE
         ORDER BY gateway_charge_id DESC
         LIMIT 1
@@ -307,6 +316,7 @@ class AsaasDAO {
         payload.tenantId,
         payload.financeiroTituloId,
         payload.financeiroTituloParcelaId || null,
+        billingType,
       ]
     );
 
@@ -325,16 +335,37 @@ class AsaasDAO {
   }
 
   static async criarPixCharge(payload) {
+    return this.criarCharge(payload, "PIX");
+  }
+
+  static async criarBoletoCharge(payload) {
+    return this.criarCharge(payload, "BOLETO");
+  }
+
+  static async buscarLinhaDigitavel(apiKey, ambiente, externalChargeId) {
+    try {
+      return await asaasRequest(apiKey, ambiente, {
+        path: `/v3/payments/${externalChargeId}/identificationField`,
+      });
+    } catch {
+      return null;
+    }
+  }
+
+  static async criarCharge(payload, billingType = "PIX") {
     const client = await pool.connect();
 
     try {
       await client.query("BEGIN");
 
       const gatewayConfig = await this.buscarGatewayConfig(client, payload.tenantId);
-      const currentOpenCharge = await this.buscarCobrancaPixAberta(client, payload);
+      const currentOpenCharge = await this.buscarCobrancaAberta(client, payload, billingType);
 
       if (currentOpenCharge?.external_charge_id) {
-        if (!currentOpenCharge.pix_payload || !currentOpenCharge.pix_encoded_image) {
+        if (
+          billingType === "PIX" &&
+          (!currentOpenCharge.pix_payload || !currentOpenCharge.pix_encoded_image)
+        ) {
           const qrResponse = await asaasRequest(gatewayConfig.apiKey, gatewayConfig.ambiente, {
             path: `/v3/payments/${currentOpenCharge.external_charge_id}/pixQrCode`,
           });
@@ -364,19 +395,32 @@ class AsaasDAO {
         }
 
         await client.query("COMMIT");
+        const payloadData = currentOpenCharge.payload || {};
+
         return {
           reused: true,
           provider: "asaas",
-          billingType: "PIX",
+          billingType,
           gatewayChargeId: currentOpenCharge.gateway_charge_id,
           externalChargeId: currentOpenCharge.external_charge_id,
           status: currentOpenCharge.status,
           invoiceUrl: currentOpenCharge.invoice_url || "",
-          pix: {
-            payload: currentOpenCharge.pix_payload || "",
-            encodedImage: currentOpenCharge.pix_encoded_image || "",
-            expirationDate: currentOpenCharge.pix_expiration_date || null,
-          },
+          pix:
+            billingType === "PIX"
+              ? {
+                  payload: currentOpenCharge.pix_payload || "",
+                  encodedImage: currentOpenCharge.pix_encoded_image || "",
+                  expirationDate: currentOpenCharge.pix_expiration_date || null,
+                }
+              : null,
+          boleto:
+            billingType === "BOLETO"
+              ? {
+                  bankSlipUrl: currentOpenCharge.invoice_url || "",
+                  identificationField:
+                    payloadData?.identificationField?.identificationField || "",
+                }
+              : null,
         };
       }
 
@@ -390,12 +434,26 @@ class AsaasDAO {
           externalCustomerId,
           charge: payload.charge,
           externalReference,
+          billingType,
         }),
       });
 
-      const qrResponse = await asaasRequest(gatewayConfig.apiKey, gatewayConfig.ambiente, {
-        path: `/v3/payments/${paymentResponse.id}/pixQrCode`,
-      });
+      let qrResponse = null;
+      let identificationFieldResponse = null;
+
+      if (billingType === "PIX") {
+        qrResponse = await asaasRequest(gatewayConfig.apiKey, gatewayConfig.ambiente, {
+          path: `/v3/payments/${paymentResponse.id}/pixQrCode`,
+        });
+      }
+
+      if (billingType === "BOLETO") {
+        identificationFieldResponse = await this.buscarLinhaDigitavel(
+          gatewayConfig.apiKey,
+          gatewayConfig.ambiente,
+          paymentResponse.id
+        );
+      }
 
       const { rows } = await client.query(
         `
@@ -429,7 +487,6 @@ class AsaasDAO {
             $6,
             $7,
             $8,
-            'PIX',
             $9,
             $10,
             $11,
@@ -450,16 +507,18 @@ class AsaasDAO {
           paymentResponse.id,
           externalCustomerId,
           externalReference,
+          billingType,
           paymentResponse.status || "PENDING",
           payload.charge.valor,
           payload.charge.dueDate,
-          paymentResponse.invoiceUrl || "",
-          qrResponse.payload || "",
-          qrResponse.encodedImage || "",
-          qrResponse.expirationDate || null,
+          paymentResponse.bankSlipUrl || paymentResponse.invoiceUrl || "",
+          qrResponse?.payload || "",
+          qrResponse?.encodedImage || "",
+          qrResponse?.expirationDate || null,
           JSON.stringify({
             payment: paymentResponse,
             qrCode: qrResponse,
+            identificationField: identificationFieldResponse,
           }),
         ]
       );
@@ -469,16 +528,27 @@ class AsaasDAO {
       return {
         reused: false,
         provider: "asaas",
-        billingType: "PIX",
+        billingType,
         gatewayChargeId: rows[0].gateway_charge_id,
         externalChargeId: paymentResponse.id,
         status: paymentResponse.status || "PENDING",
-        invoiceUrl: paymentResponse.invoiceUrl || "",
-        pix: {
-          payload: qrResponse.payload || "",
-          encodedImage: qrResponse.encodedImage || "",
-          expirationDate: qrResponse.expirationDate || null,
-        },
+        invoiceUrl: paymentResponse.bankSlipUrl || paymentResponse.invoiceUrl || "",
+        pix:
+          billingType === "PIX"
+            ? {
+                payload: qrResponse?.payload || "",
+                encodedImage: qrResponse?.encodedImage || "",
+                expirationDate: qrResponse?.expirationDate || null,
+              }
+            : null,
+        boleto:
+          billingType === "BOLETO"
+            ? {
+                bankSlipUrl: paymentResponse.bankSlipUrl || paymentResponse.invoiceUrl || "",
+                identificationField:
+                  identificationFieldResponse?.identificationField || "",
+              }
+            : null,
       };
     } catch (error) {
       await client.query("ROLLBACK");
@@ -587,7 +657,15 @@ class AsaasDAO {
         ]
       );
 
-      if (eventName === "PAYMENT_RECEIVED" && !charge.settled && gatewayConfig.baixaAutomaticaPix) {
+      const billingType = String(payment?.billingType || "").toUpperCase();
+      const deveBaixarAutomaticamente =
+        billingType === "PIX"
+          ? gatewayConfig.baixaAutomaticaPix
+          : billingType === "BOLETO"
+          ? gatewayConfig.baixaAutomaticaBoleto
+          : false;
+
+      if (eventName === "PAYMENT_RECEIVED" && !charge.settled && deveBaixarAutomaticamente) {
         const callbackResponse = await fetch(
           `${String(process.env.BACKEND_URL || "").replace(/\/$/, "")}/integracoes/pagamentos/asaas/baixa-automatica`,
           {
@@ -605,7 +683,7 @@ class AsaasDAO {
               financeiro_forma_pagamento_id: Number(charge.financeiro_forma_pagamento_id),
               valor_baixa: Number(charge.valor || 0),
               data_baixa: getWebhookPaymentDate(payment),
-              observacao: `Baixa automática Asaas PIX. Cobrança ${externalChargeId}. Evento ${externalEventId}.`,
+              observacao: `Baixa automática Asaas ${billingType || "COBRANÇA"}. Cobrança ${externalChargeId}. Evento ${externalEventId}.${Number(payment?.interestValue || 0) > 0 ? ` Juros/encargos informados pelo Asaas: ${Number(payment.interestValue).toFixed(2)}.` : ""}`,
             }),
           }
         );
@@ -663,26 +741,30 @@ class AsaasDAO {
     }
   }
 
-  static validarPayloadInterno(payload = {}) {
+  static validarPayloadInterno(payload = {}, billingType = "PIX") {
     const tenantId = Number(payload?.tenantId);
     const financeiroTituloId = Number(payload?.financeiroTituloId);
     const financeiroFormaPagamentoId = Number(payload?.financeiroFormaPagamentoId);
     const pessoaId = Number(payload?.customer?.pessoaId);
 
     if (!Number.isInteger(tenantId) || tenantId <= 0) {
-      throw new Error("Tenant inválido para a cobrança PIX.");
+      throw new Error(
+        `Tenant inválido para a cobrança ${billingType === "BOLETO" ? "boleto" : "PIX"}.`
+      );
     }
 
     if (!Number.isInteger(financeiroTituloId) || financeiroTituloId <= 0) {
-      throw new Error("Título financeiro inválido para a cobrança PIX.");
+      throw new Error(
+        `Título financeiro inválido para a cobrança ${billingType === "BOLETO" ? "boleto" : "PIX"}.`
+      );
     }
 
     if (!Number.isInteger(financeiroFormaPagamentoId) || financeiroFormaPagamentoId <= 0) {
-      throw new Error("Forma de pagamento inválida para a cobrança PIX.");
+      throw new Error("Forma de pagamento inválida para a cobrança.");
     }
 
     if (!Number.isInteger(pessoaId) || pessoaId <= 0) {
-      throw new Error("Pessoa inválida para a cobrança PIX.");
+      throw new Error("Pessoa inválida para a cobrança.");
     }
 
     const nome = normalizeText(payload?.customer?.nome, 180, {
@@ -692,7 +774,7 @@ class AsaasDAO {
     const documento = normalizeDigits(payload?.customer?.documento);
 
     if (!documento) {
-      throw new Error("Documento do cliente obrigatório para gerar cobrança PIX.");
+      throw new Error("Documento do cliente obrigatório para gerar a cobrança.");
     }
 
     return {
@@ -712,14 +794,16 @@ class AsaasDAO {
         whatsapp: normalizeText(payload?.customer?.whatsapp, 20),
       },
       charge: {
-        valor: parseNumeric(payload?.charge?.valor, { label: "Valor da cobrança PIX" }),
+        valor: parseNumeric(payload?.charge?.valor, {
+          label: billingType === "BOLETO" ? "Valor do boleto" : "Valor da cobrança PIX",
+        }),
         dueDate: normalizeText(payload?.charge?.dueDate, 10, {
           required: true,
-          label: "Vencimento da cobrança PIX",
+          label: billingType === "BOLETO" ? "Vencimento do boleto" : "Vencimento da cobrança PIX",
         }),
         description: normalizeText(payload?.charge?.description, 500, {
           required: true,
-          label: "Descrição da cobrança PIX",
+          label: billingType === "BOLETO" ? "Descrição do boleto" : "Descrição da cobrança PIX",
         }),
       },
     };

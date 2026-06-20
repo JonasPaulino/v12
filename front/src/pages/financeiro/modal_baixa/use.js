@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSweetAlert } from "context/sweet_alert";
-import { createBaixa, createPixCharge, estornarBaixa, getSupportData, getTituloById } from "./api";
+import {
+  createBaixa,
+  createBoletoCharge,
+  createPixCharge,
+  estornarBaixa,
+  getSupportData,
+  getTituloById,
+} from "./api";
 
 const TODAY = new Date().toISOString().slice(0, 10);
 
@@ -48,6 +55,7 @@ export const useModalBaixa = ({ isOpen, tituloId, onClose }) => {
   });
   const [form, setForm] = useState(buildInitialForm());
   const [pixCharge, setPixCharge] = useState(null);
+  const [boletoCharge, setBoletoCharge] = useState(null);
 
   const loadData = useCallback(async () => {
     if (!tituloId) return;
@@ -95,6 +103,7 @@ export const useModalBaixa = ({ isOpen, tituloId, onClose }) => {
       });
       setForm(buildInitialForm());
       setPixCharge(null);
+      setBoletoCharge(null);
       return;
     }
 
@@ -165,6 +174,11 @@ export const useModalBaixa = ({ isOpen, tituloId, onClose }) => {
     return detail?.titulo?.tipo === "receber" && /pix/i.test(descricao);
   }, [detail?.titulo?.tipo, selectedFormaPagamento]);
 
+  const isBoletoSelected = useMemo(() => {
+    const descricao = String(selectedFormaPagamento?.descricao || "");
+    return detail?.titulo?.tipo === "receber" && /boleto/i.test(descricao);
+  }, [detail?.titulo?.tipo, selectedFormaPagamento]);
+
   const updateField = useCallback((field, value) => {
     if (
       [
@@ -175,6 +189,7 @@ export const useModalBaixa = ({ isOpen, tituloId, onClose }) => {
       ].includes(field)
     ) {
       setPixCharge(null);
+      setBoletoCharge(null);
     }
 
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -192,6 +207,7 @@ export const useModalBaixa = ({ isOpen, tituloId, onClose }) => {
       valor_baixa: parcela ? String(parcela.saldo || 0) : prev.valor_baixa,
     }));
     setPixCharge(null);
+    setBoletoCharge(null);
   }, [detail.parcelas]);
 
   const handleGeneratePix = useCallback(async () => {
@@ -275,6 +291,94 @@ export const useModalBaixa = ({ isOpen, tituloId, onClose }) => {
   }, [
     form,
     isPixSelected,
+    parcelasDisponiveis.length,
+    saldoSelecionado,
+    showAlert,
+    submitting,
+    tituloId,
+  ]);
+
+  const handleGenerateBoleto = useCallback(async () => {
+    if (submitting || !tituloId) return;
+
+    if (!String(form.financeiro_forma_pagamento_id || "").trim()) {
+      showAlert({
+        title: "Campo obrigatório",
+        text: "Selecione a forma de pagamento boleto.",
+        icon: "warning",
+      });
+      return;
+    }
+
+    if (!isBoletoSelected) {
+      showAlert({
+        title: "Forma inválida",
+        text: "Selecione uma forma de pagamento boleto para gerar a cobrança.",
+        icon: "warning",
+      });
+      return;
+    }
+
+    if (parcelasDisponiveis.length > 1 && !String(form.financeiro_titulo_parcela_id || "").trim()) {
+      showAlert({
+        title: "Campo obrigatório",
+        text: "Selecione a parcela que receberá o boleto.",
+        icon: "warning",
+      });
+      return;
+    }
+
+    const valorBaixa = parseNumeric(form.valor_baixa);
+    if (valorBaixa <= 0) {
+      showAlert({
+        title: "Valor inválido",
+        text: "Informe um valor válido para o boleto.",
+        icon: "warning",
+      });
+      return;
+    }
+
+    if (saldoSelecionado > 0 && valorBaixa > saldoSelecionado) {
+      showAlert({
+        title: "Valor acima do saldo",
+        text: "O valor informado é maior que o saldo selecionado.",
+        icon: "warning",
+      });
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const response = await createBoletoCharge(tituloId, {
+        financeiro_titulo_parcela_id: form.financeiro_titulo_parcela_id
+          ? Number(form.financeiro_titulo_parcela_id)
+          : null,
+        financeiro_forma_pagamento_id: Number(form.financeiro_forma_pagamento_id),
+        valor_cobranca: valorBaixa,
+        observacao: form.observacao,
+      });
+
+      setBoletoCharge(response?.data || null);
+      showAlert({
+        title: "Boleto gerado",
+        text: response?.message || "Boleto gerado com sucesso.",
+        icon: "success",
+        timer: 1800,
+      });
+    } catch (error) {
+      showAlert({
+        title: "Falha ao gerar boleto",
+        text:
+          error?.response?.data?.message ||
+          "Não foi possível gerar o boleto.",
+        icon: "error",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  }, [
+    form,
+    isBoletoSelected,
     parcelasDisponiveis.length,
     saldoSelecionado,
     showAlert,
@@ -408,11 +512,14 @@ export const useModalBaixa = ({ isOpen, tituloId, onClose }) => {
     parcelasDisponiveis,
     selectedFormaPagamento,
     isPixSelected,
+    isBoletoSelected,
     pixCharge,
+    boletoCharge,
     updateField,
     handleChangeParcela,
     handleSubmit,
     handleGeneratePix,
+    handleGenerateBoleto,
     handleEstornar,
     hasChanges,
   };

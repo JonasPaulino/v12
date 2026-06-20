@@ -49,3 +49,8 @@ export const gerarCobrancaPixFinanceira = async (financeiroTituloId, payload) =>
   const { data } = await api.post(`/financeiro/${financeiroTituloId}/cobrancas/pix`, payload);
   return data;
 };
+
+export const gerarCobrancaBoletoFinanceira = async (financeiroTituloId, payload) => {
+  const { data } = await api.post(`/financeiro/${financeiroTituloId}/cobrancas/boleto`, payload);
+  return data;
+};
