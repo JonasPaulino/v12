@@ -75,6 +75,33 @@ const parseNumeric = (
 
 const roundCurrency = (value) => Number((Number(value || 0)).toFixed(2));
 
+const normalizeDateValue = (value) => {
+  if (!value) return null;
+
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value.toISOString().slice(0, 10);
+  }
+
+  const normalized = String(value).trim();
+  if (!normalized) return null;
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+    return normalized;
+  }
+
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(normalized)) {
+    const [day, month, year] = normalized.split("/");
+    return `${year}-${month}-${day}`;
+  }
+
+  const parsed = new Date(normalized);
+  if (!Number.isNaN(parsed.getTime())) {
+    return parsed.toISOString().slice(0, 10);
+  }
+
+  return normalized.slice(0, 10);
+};
+
 const addDays = (baseDate, days) => {
   const date = new Date(`${baseDate}T12:00:00`);
   date.setDate(date.getDate() + Number(days || 0));
@@ -900,12 +927,16 @@ class VendaDAO {
             desconto: Number(tituloResult.rows[0].desconto || 0),
             acrescimo: Number(tituloResult.rows[0].acrescimo || 0),
             valor_final: Number(tituloResult.rows[0].valor_final || 0),
+            data_emissao: normalizeDateValue(tituloResult.rows[0].data_emissao),
+            data_vencimento: normalizeDateValue(tituloResult.rows[0].data_vencimento),
           }
         : null,
       parcelas: parcelasResult.rows.map((parcela) => ({
         ...parcela,
         valor_parcela: Number(parcela.valor_parcela || 0),
         valor_recebido: Number(parcela.valor_recebido || 0),
+        data_vencimento: normalizeDateValue(parcela.data_vencimento),
+        data_pagamento: normalizeDateValue(parcela.data_pagamento),
       })),
     };
   }
@@ -1040,14 +1071,14 @@ class VendaDAO {
         },
         charge: {
           valor: Number(parcela.saldo || 0),
-          dueDate: String(parcela.data_vencimento || "").slice(0, 10),
+          dueDate: normalizeDateValue(parcela.data_vencimento),
           description: `Boleto do pedido de venda #${pedidoVendaId} - parcela ${parcela.numero_parcela}`,
         },
       });
 
       boletos.push({
         numero_parcela: Number(parcela.numero_parcela),
-        data_vencimento: parcela.data_vencimento,
+        data_vencimento: normalizeDateValue(parcela.data_vencimento),
         valor: Number(parcela.saldo || 0),
         gateway_charge_id: response?.data?.gatewayChargeId || null,
         external_charge_id: response?.data?.externalChargeId || null,

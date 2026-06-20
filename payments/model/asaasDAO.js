@@ -32,6 +32,45 @@ const normalizeText = (value, maxLength, { required = false, label = "Campo" } =
   return maxLength ? normalized.slice(0, maxLength) : normalized;
 };
 
+const normalizeDate = (value, { required = false, label = "Data" } = {}) => {
+  if (value === undefined || value === null || value === "") {
+    if (required) {
+      throw new Error(`${label} obrigatório.`);
+    }
+
+    return null;
+  }
+
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value.toISOString().slice(0, 10);
+  }
+
+  const normalized = String(value).trim();
+  if (!normalized) {
+    if (required) {
+      throw new Error(`${label} obrigatório.`);
+    }
+
+    return null;
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+    return normalized;
+  }
+
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(normalized)) {
+    const [day, month, year] = normalized.split("/");
+    return `${year}-${month}-${day}`;
+  }
+
+  const parsed = new Date(normalized);
+  if (!Number.isNaN(parsed.getTime())) {
+    return parsed.toISOString().slice(0, 10);
+  }
+
+  return normalized;
+};
+
 const decryptSecret = (payload) => {
   if (!payload) return null;
 
@@ -814,7 +853,7 @@ class AsaasDAO {
         valor: parseNumeric(payload?.charge?.valor, {
           label: billingType === "BOLETO" ? "Valor do boleto" : "Valor da cobrança PIX",
         }),
-        dueDate: normalizeText(payload?.charge?.dueDate, 10, {
+        dueDate: normalizeDate(payload?.charge?.dueDate, {
           required: true,
           label: billingType === "BOLETO" ? "Vencimento do boleto" : "Vencimento da cobrança PIX",
         }),
