@@ -488,12 +488,6 @@ export const useConfiguracaoFiscalPage = () => {
 
     try {
       setWhatsAppState((prev) => ({ ...prev, loading: true }));
-
-      await createWhatsAppInstance({
-        instance_name: instanceName,
-        remetente_numero: form.whatsapp_remetente_numero,
-      });
-
       const statusData = await getWhatsAppStatus(instanceName);
       const currentState = applyWhatsAppConnection({
         state: statusData?.data?.state,
@@ -506,6 +500,13 @@ export const useConfiguracaoFiscalPage = () => {
           icon: "success",
         });
         return;
+      }
+
+      if (currentState === "not_found") {
+        await createWhatsAppInstance({
+          instance_name: instanceName,
+          remetente_numero: form.whatsapp_remetente_numero,
+        });
       }
 
       const qrResponse = await getWhatsAppQrCode(instanceName);
