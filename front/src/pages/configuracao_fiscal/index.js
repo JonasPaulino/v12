@@ -504,78 +504,21 @@ export const ConfiguracaoFiscal = () => {
 
                       {activeMensagemTab === "conectar" ? (
                         <>
-                          <C.FieldsGrid>
-                            <C.Field>
-                              <C.FieldSpan>Nome da instância</C.FieldSpan>
-                              <C.Input
-                                value={form.whatsapp_instance_name}
-                                onChange={(event) =>
-                                  updateField("whatsapp_instance_name", event.target.value)
-                                }
-                                placeholder="Ex.: v12-filial-centro"
-                              />
-                            </C.Field>
-
-                            <C.Field>
-                              <C.FieldSpan>Número remetente</C.FieldSpan>
-                              <C.Input
-                                value={form.whatsapp_remetente_numero}
-                                onChange={(event) =>
-                                  updateField("whatsapp_remetente_numero", event.target.value)
-                                }
-                                placeholder="5511999999999"
-                              />
-                            </C.Field>
-                          </C.FieldsGrid>
-
                           <C.ConnectionCard>
-                            <C.ConnectionHeader>
-                              <div>
-                                <C.FieldSpan>Conexão do WhatsApp</C.FieldSpan>
-                                <C.CardText>
-                                  O botão conecta a instância, gera o QR Code quando necessário e,
-                                  após a leitura, passa a funcionar como desconectar.
-                                </C.CardText>
-                              </div>
-
-                              <C.ConnectionActions>
-                                {canRestartWhatsApp ? (
-                                  <C.IconButton
-                                    type="button"
-                                    title="Reiniciar conexão"
-                                    aria-label="Reiniciar conexão"
-                                    onClick={handleRestartWhatsApp}
-                                    disabled={whatsAppState.loading}
-                                  >
-                                    ↻
-                                  </C.IconButton>
-                                ) : null}
-
-                                <C.PrimaryInlineButton
-                                  type="button"
-                                  onClick={
-                                    isWhatsAppConnected
-                                      ? handleDisconnectWhatsApp
-                                      : handleConnectWhatsApp
+                            <C.FieldsGrid>
+                              <C.Field>
+                                <C.FieldSpan>Nome da instância do WhatsApp</C.FieldSpan>
+                                <C.Input
+                                  value={form.whatsapp_instance_name}
+                                  onChange={(event) =>
+                                    updateField("whatsapp_instance_name", event.target.value)
                                   }
-                                  disabled={whatsAppState.loading}
-                                >
-                                  {whatsAppState.loading
-                                    ? "Processando..."
-                                    : isWhatsAppConnected
-                                    ? "Desconectar"
-                                    : "Conectar"}
-                                </C.PrimaryInlineButton>
-                              </C.ConnectionActions>
-                            </C.ConnectionHeader>
+                                  placeholder="Ex.: v12-filial-centro"
+                                />
+                              </C.Field>
 
-                            <C.InfoGrid>
-                              <C.InfoCard>
-                                <C.InfoLabel>Instância</C.InfoLabel>
-                                <C.InfoValue>{whatsappResumo.instanceName}</C.InfoValue>
-                              </C.InfoCard>
-                              <C.InfoCard>
-                                <C.InfoLabel>Status</C.InfoLabel>
+                              <C.Field>
+                                <C.FieldSpan>Status</C.FieldSpan>
                                 <C.StatusPill $status={whatsappResumo.status}>
                                   <C.StatusDot $status={whatsappResumo.status} />
                                   <span>
@@ -590,25 +533,54 @@ export const ConfiguracaoFiscal = () => {
                                       : "Sem status"}
                                   </span>
                                 </C.StatusPill>
-                              </C.InfoCard>
-                            </C.InfoGrid>
+                              </C.Field>
+                            </C.FieldsGrid>
 
-                            {whatsAppState.image || whatsAppState.pairingCode ? (
-                              <C.QrCard>
-                                <C.InfoLabel>Escaneie para conectar</C.InfoLabel>
-                                {whatsAppState.image ? (
-                                  <C.QrImage
-                                    src={whatsAppState.image}
-                                    alt="QR Code do WhatsApp"
-                                  />
-                                ) : null}
-                                {whatsAppState.pairingCode ? (
-                                  <C.CardText>
-                                    Código de pareamento: {whatsAppState.pairingCode}
-                                  </C.CardText>
-                                ) : null}
-                              </C.QrCard>
-                            ) : null}
+                            <C.FieldsGrid>
+                              <C.Field>
+                                <C.FieldSpan>Número do WhatsApp</C.FieldSpan>
+                                <C.Input
+                                  value={form.whatsapp_remetente_numero}
+                                  onChange={(event) =>
+                                    updateField("whatsapp_remetente_numero", event.target.value)
+                                  }
+                                  placeholder="5511999999999"
+                                />
+                              </C.Field>
+
+                              <C.Field>
+                                <C.FieldSpan>Ação</C.FieldSpan>
+                                <C.ConnectionActions>
+                                  <C.PrimaryInlineButton
+                                    type="button"
+                                    onClick={
+                                      isWhatsAppConnected
+                                        ? handleDisconnectWhatsApp
+                                        : handleConnectWhatsApp
+                                    }
+                                    disabled={whatsAppState.loading}
+                                  >
+                                    {whatsAppState.loading
+                                      ? "Processando..."
+                                      : isWhatsAppConnected
+                                      ? "Desconectar"
+                                      : "Conectar"}
+                                  </C.PrimaryInlineButton>
+
+                                  {canRestartWhatsApp ? (
+                                    <C.IconButton
+                                      type="button"
+                                      title="Reiniciar conexão"
+                                      aria-label="Reiniciar conexão"
+                                      onClick={handleRestartWhatsApp}
+                                      disabled={whatsAppState.loading}
+                                    >
+                                      ↻
+                                    </C.IconButton>
+                                  ) : null}
+                                </C.ConnectionActions>
+                              </C.Field>
+                            </C.FieldsGrid>
                           </C.ConnectionCard>
                         </>
                       ) : null}

@@ -101,13 +101,16 @@ const Sidebar = () => {
             </C.NavButton>
             <C.NavButton
               $open={mOpen}
-              $active={location.pathname === "/configuracao-fiscal"}
-              onClick={() => handleNavigate("/configuracao-fiscal", "Configurações")}
-              title="Configurações"
-              aria-label="Configurações"
+              $active={
+                location.pathname === "/configuracao" ||
+                location.pathname === "/configuracao-fiscal"
+              }
+              onClick={() => handleNavigate("/configuracao", "Configuração")}
+              title="Configuração"
+              aria-label="Configuração"
             >
               <MdOutlineSettings />
-              <C.NavText $open={mOpen}>Configurações</C.NavText>
+              <C.NavText $open={mOpen}>Configuração</C.NavText>
             </C.NavButton>
             <C.NavButton
               $open={mOpen}

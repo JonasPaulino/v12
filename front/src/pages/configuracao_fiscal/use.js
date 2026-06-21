@@ -76,6 +76,35 @@ const normalizeWhatsAppStatus = (value) => {
   return "unknown";
 };
 
+const escapeHtml = (value) =>
+  String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
+const buildWhatsAppQrHtml = ({ image = "", pairingCode = "" } = {}) => `
+  <div style="display:grid;gap:14px;justify-items:center;text-align:center;">
+    ${
+      image
+        ? `<img src="${image}" alt="QR Code do WhatsApp" style="width:240px;height:240px;object-fit:contain;border:1px solid #d8e1f0;border-radius:20px;padding:12px;background:#fff;" />`
+        : ""
+    }
+    ${
+      pairingCode
+        ? `<div style="display:grid;gap:6px;justify-items:center;">
+             <span style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;">Código de pareamento</span>
+             <strong style="font-size:18px;color:#13233f;">${escapeHtml(pairingCode)}</strong>
+           </div>`
+        : ""
+    }
+    <p style="margin:0;color:#5f6f8f;line-height:1.55;">
+      Escaneie o QR Code no WhatsApp da filial para concluir a conexão.
+    </p>
+  </div>
+`;
+
 const buildEmitenteOption = (pessoa) => {
   if (!pessoa?.pessoa_id) return null;
 
@@ -486,12 +515,14 @@ export const useConfiguracaoFiscalPage = () => {
         pairingCode: qrResponse?.data?.pairingCode || qrResponse?.data?.code,
       });
 
-      showAlert({
+      await showAlert({
         title: "Escaneie o QR Code",
-        text:
-          qrResponse?.message ||
-          "A instância foi preparada. Escaneie o QR Code para conectar o WhatsApp.",
-        icon: "success",
+        html: buildWhatsAppQrHtml({
+          image: qrResponse?.data?.image,
+          pairingCode: qrResponse?.data?.pairingCode || qrResponse?.data?.code,
+        }),
+        confirmButtonText: "Fechar",
+        width: 520,
       });
     } catch (error) {
       showAlert({

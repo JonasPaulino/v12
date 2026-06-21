@@ -69,15 +69,16 @@ export const RouteApp = () => (
         }
       />
       <Route
-        path="/configuracao-fiscal"
+        path="/configuracao"
         element={
           <AuthMiddleware>
-            <PageWrapper title="Configurações">
+            <PageWrapper title="Configuração">
               <ConfiguracaoFiscal />
             </PageWrapper>
           </AuthMiddleware>
         }
       />
+      <Route path="/configuracao-fiscal" element={<Navigate to="/configuracao" replace />} />
       <Route
         path="/nfe"
         element={

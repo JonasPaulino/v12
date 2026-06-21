@@ -8,13 +8,24 @@ const ReactSwal = withReactContent(Swal);
 export const SweetAlertProvider = ({ children }) => {
   const value = useMemo(
     () => ({
-      showAlert: ({ title, text, icon = "info", timer }) =>
+      showAlert: ({
+        title,
+        text,
+        html,
+        icon = "info",
+        timer,
+        confirmButtonText,
+        width,
+      }) =>
         ReactSwal.fire({
           title,
-          text,
+          text: html ? undefined : text,
+          html,
           icon,
           timer,
+          width,
           timerProgressBar: !!timer,
+          confirmButtonText,
           confirmButtonColor: "#0b5fff",
         }),
       askYesNoQuestion: async (title, text) => {
