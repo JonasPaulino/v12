@@ -25,6 +25,7 @@ export const ConfiguracaoFiscal = () => {
     whatsAppState,
     isWhatsAppConnected,
     canRestartWhatsApp,
+    canDeleteWhatsApp,
     updateField,
     loadEmitenteOptions,
     handleSelectEmitente,
@@ -32,6 +33,7 @@ export const ConfiguracaoFiscal = () => {
     handleConnectWhatsApp,
     handleDisconnectWhatsApp,
     handleRestartWhatsApp,
+    handleDeleteWhatsApp,
     handleSubmit,
   } = useConfiguracaoFiscalPage();
 
@@ -576,6 +578,18 @@ export const ConfiguracaoFiscal = () => {
                                       disabled={whatsAppState.loading}
                                     >
                                       ↻
+                                    </C.IconButton>
+                                  ) : null}
+
+                                  {canDeleteWhatsApp ? (
+                                    <C.IconButton
+                                      type="button"
+                                      title="Excluir instância"
+                                      aria-label="Excluir instância"
+                                      onClick={handleDeleteWhatsApp}
+                                      disabled={whatsAppState.loading}
+                                    >
+                                      🗑
                                     </C.IconButton>
                                   ) : null}
                                 </C.ConnectionActions>

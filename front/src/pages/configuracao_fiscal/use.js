@@ -3,6 +3,7 @@ import Swal from "sweetalert2";
 import { useSweetAlert } from "context/sweet_alert";
 import {
   createWhatsAppInstance,
+  deleteWhatsAppInstance,
   getConfiguracaoFiscal,
   getPessoasEmitenteSelect,
   getWhatsAppQrCode,
@@ -189,7 +190,7 @@ const readFileAsBase64 = (file) =>
   });
 
 export const useConfiguracaoFiscalPage = () => {
-  const { showAlert } = useSweetAlert();
+  const { showAlert, askYesNoQuestion } = useSweetAlert();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [tenant, setTenant] = useState(null);
@@ -406,6 +407,9 @@ export const useConfiguracaoFiscalPage = () => {
 
   const isWhatsAppConnected = whatsappResumo.status === "open";
   const canRestartWhatsApp = isWhatsAppConnected;
+  const canDeleteWhatsApp =
+    !!String(form.whatsapp_instance_name || "").trim() &&
+    !["not_found", "unknown"].includes(whatsappResumo.status);
 
   const applyWhatsAppConnection = useCallback((payload = {}) => {
     const nextState = normalizeWhatsAppStatus(payload.state);
@@ -638,6 +642,47 @@ export const useConfiguracaoFiscalPage = () => {
     }
   }, [fetchWhatsAppStatus, form.whatsapp_instance_name, showAlert]);
 
+  const handleDeleteWhatsApp = useCallback(async () => {
+    const confirmed = await askYesNoQuestion(
+      "Excluir instância",
+      "Deseja realmente excluir a instância do WhatsApp desta filial?"
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setWhatsAppState((prev) => ({ ...prev, loading: true }));
+
+      await deleteWhatsAppInstance(form.whatsapp_instance_name);
+      applyWhatsAppConnection({
+        state: "not_found",
+        image: "",
+        pairingCode: "",
+      });
+
+      showAlert({
+        title: "Instância excluída",
+        text: "A instância do WhatsApp foi removida com sucesso.",
+        icon: "success",
+      });
+    } catch (error) {
+      showAlert({
+        title: "Falha no WhatsApp",
+        text:
+          error?.response?.data?.message ||
+          "Não foi possível excluir a instância do WhatsApp.",
+        icon: "error",
+      });
+    } finally {
+      setWhatsAppState((prev) => ({ ...prev, loading: false }));
+    }
+  }, [
+    applyWhatsAppConnection,
+    askYesNoQuestion,
+    form.whatsapp_instance_name,
+    showAlert,
+  ]);
+
   useEffect(() => {
     if (!String(form.whatsapp_instance_name || "").trim()) return;
     fetchWhatsAppStatus({ silent: true });
@@ -759,6 +804,7 @@ export const useConfiguracaoFiscalPage = () => {
     whatsAppState,
     isWhatsAppConnected,
     canRestartWhatsApp,
+    canDeleteWhatsApp,
     updateField,
     loadEmitenteOptions,
     handleSelectEmitente,
@@ -766,6 +812,7 @@ export const useConfiguracaoFiscalPage = () => {
     handleConnectWhatsApp,
     handleDisconnectWhatsApp,
     handleRestartWhatsApp,
+    handleDeleteWhatsApp,
     handleSubmit,
   };
 };

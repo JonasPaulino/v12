@@ -14,6 +14,13 @@ const encode = (value) => encodeURIComponent(String(value || "").trim());
 const pick = (...values) =>
   values.find((value) => value !== undefined && value !== null && value !== "");
 
+const looksLikeBase64Image = (value) => {
+  const normalized = String(value || "").trim();
+  if (!normalized || normalized.length < 120) return false;
+
+  return /^[A-Za-z0-9+/=\r\n]+$/.test(normalized);
+};
+
 const normalizeState = (payload) => {
   const raw = String(
     pick(
@@ -187,10 +194,6 @@ router.get("/whatsapp/instance/:instanceName/qrcode", async (req, res) => {
 
     const payload = data?.data || data || {};
     const rawCode = pick(
-      payload.image,
-      payload.base64,
-      payload.imageUrl,
-      payload.image_url,
       payload.qrcode,
       payload.qrCode,
       payload.qr,
@@ -204,6 +207,10 @@ router.get("/whatsapp/instance/:instanceName/qrcode", async (req, res) => {
 
     if (candidate.startsWith("data:image/")) {
       image = candidate;
+    } else if (/^https?:\/\//i.test(candidate)) {
+      image = candidate;
+    } else if (looksLikeBase64Image(candidate)) {
+      image = `data:image/png;base64,${candidate.replace(/\s+/g, "")}`;
     } else if (rawCode) {
       image = await QRCode.toDataURL(String(rawCode), {
         errorCorrectionLevel: "M",
@@ -216,7 +223,7 @@ router.get("/whatsapp/instance/:instanceName/qrcode", async (req, res) => {
       success: true,
       data: {
         image,
-        code: typeof rawCode === "string" ? rawCode : null,
+        code: null,
         pairingCode: payload.pairingCode || payload.codePairing || null,
       },
     });
