@@ -140,8 +140,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
-    ports:
-      - "${EVOLUTION_API_EXPOSE_PORT:-8090}:8080"
     volumes:
       - evolution_store:/evolution/store
       - evolution_instances:/evolution/instances
