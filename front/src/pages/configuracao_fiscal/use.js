@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Swal from "sweetalert2";
 import { useSweetAlert } from "context/sweet_alert";
 import {
   createWhatsAppInstance,
@@ -94,7 +95,7 @@ const buildWhatsAppQrHtml = ({ image = "", pairingCode = "" } = {}) => `
     ${
       pairingCode
         ? `<div style="display:grid;gap:6px;justify-items:center;">
-             <span style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;">Código de pareamento</span>
+             <span style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;">Código</span>
              <strong style="font-size:18px;color:#13233f;">${escapeHtml(pairingCode)}</strong>
            </div>`
         : ""
@@ -510,20 +511,57 @@ export const useConfiguracaoFiscalPage = () => {
       }
 
       const qrResponse = await getWhatsAppQrCode(instanceName);
+      const qrImage = qrResponse?.data?.image || "";
+      const pairingCode = qrResponse?.data?.pairingCode || "";
+
       applyWhatsAppConnection({
         state: currentState === "unknown" ? "connecting" : currentState,
-        image: qrResponse?.data?.image,
-        pairingCode: qrResponse?.data?.pairingCode || qrResponse?.data?.code,
+        image: qrImage,
+        pairingCode,
       });
 
-      await showAlert({
+      let pollingId = null;
+
+      await Swal.fire({
         title: "Escaneie o QR Code",
         html: buildWhatsAppQrHtml({
-          image: qrResponse?.data?.image,
-          pairingCode: qrResponse?.data?.pairingCode || qrResponse?.data?.code,
+          image: qrImage,
+          pairingCode,
         }),
-        confirmButtonText: "Fechar",
+        showConfirmButton: false,
+        showCancelButton: true,
+        cancelButtonText: "Cancelar",
+        cancelButtonColor: "#0b5fff",
         width: 520,
+        didOpen: () => {
+          pollingId = window.setInterval(async () => {
+            try {
+              const liveStatus = await getWhatsAppStatus(instanceName);
+              const nextState = applyWhatsAppConnection({
+                state: liveStatus?.data?.state,
+              });
+
+              if (nextState === "open") {
+                if (pollingId) {
+                  window.clearInterval(pollingId);
+                  pollingId = null;
+                }
+
+                Swal.close();
+                showAlert({
+                  title: "WhatsApp conectado",
+                  text: "A instância foi conectada com sucesso.",
+                  icon: "success",
+                });
+              }
+            } catch {}
+          }, 4000);
+        },
+        willClose: () => {
+          if (pollingId) {
+            window.clearInterval(pollingId);
+          }
+        },
       });
     } catch (error) {
       showAlert({
