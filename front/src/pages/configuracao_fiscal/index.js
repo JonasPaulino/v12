@@ -20,6 +20,8 @@ export const ConfiguracaoFiscal = () => {
     selectedEmitente,
     emitenteEndereco,
     certificadoResumo,
+    contasResumo,
+    whatsappResumo,
     whatsAppState,
     isWhatsAppConnected,
     canRestartWhatsApp,
