@@ -25,7 +25,10 @@ export const SweetAlertProvider = ({ children }) => {
           timer,
           width,
           timerProgressBar: !!timer,
-          confirmButtonText,
+          confirmButtonText:
+            typeof confirmButtonText === "string" && confirmButtonText.trim()
+              ? confirmButtonText
+              : "OK",
           confirmButtonColor: "#0b5fff",
         }),
       askYesNoQuestion: async (title, text) => {
