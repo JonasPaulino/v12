@@ -21,10 +21,18 @@ export const ConfiguracaoFiscal = () => {
     emitenteEndereco,
     certificadoResumo,
     contasResumo,
+    whatsappResumo,
+    whatsAppState,
     updateField,
     loadEmitenteOptions,
     handleSelectEmitente,
     handleSelectCertificado,
+    handleCreateWhatsAppInstance,
+    handleRefreshWhatsAppStatus,
+    handleLoadWhatsAppQrCode,
+    handleRestartWhatsApp,
+    handleLogoutWhatsApp,
+    handleDeleteWhatsAppInstance,
     handleSubmit,
   } = useConfiguracaoFiscalPage();
 
@@ -91,6 +99,13 @@ export const ConfiguracaoFiscal = () => {
                       onClick={() => setActiveTab("contas")}
                     >
                       Contas
+                    </C.TabButton>
+                    <C.TabButton
+                      type="button"
+                      $active={activeTab === "mensagens"}
+                      onClick={() => setActiveTab("mensagens")}
+                    >
+                      Mensagens
                     </C.TabButton>
                   </C.Tabs>
 
@@ -466,6 +481,195 @@ export const ConfiguracaoFiscal = () => {
                       </C.Field>
                     </C.SectionBody>
                   ) : null}
+
+                  {activeTab === "mensagens" ? (
+                    <C.SectionBody>
+                      <C.CardHeader>
+                        <C.CardTitle>WhatsApp da filial</C.CardTitle>
+                        <C.CardText>
+                          Configure a instância da Evolution API para enviar boletos e PIX pelo
+                          WhatsApp usando o cadastro da própria filial.
+                        </C.CardText>
+                      </C.CardHeader>
+
+                      <C.FieldsGrid>
+                        <C.Field>
+                          <C.FieldSpan>Provider</C.FieldSpan>
+                          <C.Select
+                            value={form.whatsapp_provider}
+                            onChange={(event) =>
+                              updateField("whatsapp_provider", event.target.value)
+                            }
+                          >
+                            <option value="evolution">Evolution API</option>
+                          </C.Select>
+                        </C.Field>
+
+                        <C.Field>
+                          <C.FieldSpan>Nome da instância</C.FieldSpan>
+                          <C.Input
+                            value={form.whatsapp_instance_name}
+                            onChange={(event) =>
+                              updateField("whatsapp_instance_name", event.target.value)
+                            }
+                            placeholder="Ex.: v12-filial-centro"
+                          />
+                        </C.Field>
+
+                        <C.Field>
+                          <C.FieldSpan>Número remetente</C.FieldSpan>
+                          <C.Input
+                            value={form.whatsapp_remetente_numero}
+                            onChange={(event) =>
+                              updateField("whatsapp_remetente_numero", event.target.value)
+                            }
+                            placeholder="5511999999999"
+                          />
+                        </C.Field>
+                      </C.FieldsGrid>
+
+                      <C.ToggleList>
+                        <C.ToggleRow>
+                          <C.Checkbox
+                            type="checkbox"
+                            checked={form.whatsapp_ativo}
+                            onChange={(event) =>
+                              updateField("whatsapp_ativo", event.target.checked)
+                            }
+                          />
+                          <span>Ativar envio de mensagens por WhatsApp nesta filial</span>
+                        </C.ToggleRow>
+
+                        <C.ToggleRow>
+                          <C.Checkbox
+                            type="checkbox"
+                            checked={form.whatsapp_auto_enviar_boleto_venda}
+                            onChange={(event) =>
+                              updateField(
+                                "whatsapp_auto_enviar_boleto_venda",
+                                event.target.checked
+                              )
+                            }
+                          />
+                          <span>Sugerir envio de boletos ao concluir uma venda</span>
+                        </C.ToggleRow>
+
+                        <C.ToggleRow>
+                          <C.Checkbox
+                            type="checkbox"
+                            checked={form.whatsapp_auto_enviar_pix_venda}
+                            onChange={(event) =>
+                              updateField(
+                                "whatsapp_auto_enviar_pix_venda",
+                                event.target.checked
+                              )
+                            }
+                          />
+                          <span>Sugerir envio de PIX ao concluir uma venda</span>
+                        </C.ToggleRow>
+                      </C.ToggleList>
+
+                      <C.InfoGrid>
+                        <C.InfoCard>
+                          <C.InfoLabel>Status da instância</C.InfoLabel>
+                          <C.InfoValue>{whatsappResumo.status}</C.InfoValue>
+                        </C.InfoCard>
+                        <C.InfoCard>
+                          <C.InfoLabel>Instância</C.InfoLabel>
+                          <C.InfoValue>{whatsappResumo.instanceName}</C.InfoValue>
+                        </C.InfoCard>
+                        <C.InfoCard>
+                          <C.InfoLabel>Remetente</C.InfoLabel>
+                          <C.InfoValue>{whatsappResumo.remetenteNumero}</C.InfoValue>
+                        </C.InfoCard>
+                      </C.InfoGrid>
+
+                      <C.ActionRow>
+                        <C.SecondaryButton
+                          type="button"
+                          onClick={handleCreateWhatsAppInstance}
+                          disabled={whatsAppState.loading}
+                        >
+                          Criar instância
+                        </C.SecondaryButton>
+                        <C.SecondaryButton
+                          type="button"
+                          onClick={handleRefreshWhatsAppStatus}
+                          disabled={whatsAppState.loading}
+                        >
+                          Ver status
+                        </C.SecondaryButton>
+                        <C.SecondaryButton
+                          type="button"
+                          onClick={handleLoadWhatsAppQrCode}
+                          disabled={whatsAppState.loading}
+                        >
+                          Carregar QR Code
+                        </C.SecondaryButton>
+                        <C.SecondaryButton
+                          type="button"
+                          onClick={handleRestartWhatsApp}
+                          disabled={whatsAppState.loading}
+                        >
+                          Reiniciar
+                        </C.SecondaryButton>
+                        <C.SecondaryButton
+                          type="button"
+                          onClick={handleLogoutWhatsApp}
+                          disabled={whatsAppState.loading}
+                        >
+                          Desconectar
+                        </C.SecondaryButton>
+                        <C.SecondaryButton
+                          type="button"
+                          onClick={handleDeleteWhatsAppInstance}
+                          disabled={whatsAppState.loading}
+                        >
+                          Excluir instância
+                        </C.SecondaryButton>
+                      </C.ActionRow>
+
+                      {whatsAppState.image || whatsAppState.pairingCode ? (
+                        <C.CertificateBox>
+                          <C.InfoLabel>Conectar WhatsApp</C.InfoLabel>
+                          {whatsAppState.image ? (
+                            <img
+                              src={whatsAppState.image}
+                              alt="QR Code do WhatsApp"
+                              style={{ width: 220, height: 220, objectFit: "contain" }}
+                            />
+                          ) : null}
+                          {whatsAppState.pairingCode ? (
+                            <C.CardText>Código de pareamento: {whatsAppState.pairingCode}</C.CardText>
+                          ) : null}
+                        </C.CertificateBox>
+                      ) : null}
+
+                      <C.FieldsGrid>
+                        <C.Field>
+                          <C.FieldSpan>Mensagem padrão do boleto</C.FieldSpan>
+                          <C.Textarea
+                            value={form.whatsapp_mensagem_boleto_padrao}
+                            onChange={(event) =>
+                              updateField("whatsapp_mensagem_boleto_padrao", event.target.value)
+                            }
+                            placeholder="Use {nome}, {titulo_id} e {boletos}"
+                          />
+                        </C.Field>
+
+                        <C.Field>
+                          <C.FieldSpan>Mensagem padrão do PIX</C.FieldSpan>
+                          <C.Textarea
+                            value={form.whatsapp_mensagem_pix_padrao}
+                            onChange={(event) =>
+                              updateField("whatsapp_mensagem_pix_padrao", event.target.value)
+                            }
+                            placeholder="Use {nome}, {titulo_id}, {parcela}, {valor}, {vencimento} e {pix_copia_cola}"
+                          />
+                        </C.Field>
+                      </C.FieldsGrid>
+                    </C.SectionBody>
+                  ) : null}
                 </C.Card>
 
                 <C.ActionRow>
@@ -549,6 +753,37 @@ export const ConfiguracaoFiscal = () => {
                           ? contasResumo.webhookMasked
                           : "Não configurado"}
                       </C.InfoValue>
+                    </C.InfoCard>
+                  </C.InfoGrid>
+                </C.Card>
+
+                <C.Card>
+                  <C.CardHeader>
+                    <C.CardTitle>Mensagens</C.CardTitle>
+                    <C.CardText>
+                      O WhatsApp da filial usa uma instância dedicada e modelos prontos para
+                      cobrança.
+                    </C.CardText>
+                  </C.CardHeader>
+
+                  <C.InfoGrid>
+                    <C.InfoCard>
+                      <C.InfoLabel>Status</C.InfoLabel>
+                      <C.InfoValue>
+                        {whatsappResumo.ativo ? "WhatsApp ativo" : "WhatsApp inativo"}
+                      </C.InfoValue>
+                    </C.InfoCard>
+                    <C.InfoCard>
+                      <C.InfoLabel>Provider</C.InfoLabel>
+                      <C.InfoValue>{whatsappResumo.provider}</C.InfoValue>
+                    </C.InfoCard>
+                    <C.InfoCard>
+                      <C.InfoLabel>Instância</C.InfoLabel>
+                      <C.InfoValue>{whatsappResumo.instanceName}</C.InfoValue>
+                    </C.InfoCard>
+                    <C.InfoCard>
+                      <C.InfoLabel>Conexão</C.InfoLabel>
+                      <C.InfoValue>{whatsappResumo.status}</C.InfoValue>
                     </C.InfoCard>
                   </C.InfoGrid>
                 </C.Card>

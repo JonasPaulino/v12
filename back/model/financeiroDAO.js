@@ -88,6 +88,33 @@ const parseNumeric = (
 
 const roundCurrency = (value) => Number((Number(value || 0)).toFixed(2));
 
+const normalizeDateValue = (value) => {
+  if (!value) return null;
+
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value.toISOString().slice(0, 10);
+  }
+
+  const normalized = String(value).trim();
+  if (!normalized) return null;
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+    return normalized;
+  }
+
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(normalized)) {
+    const [day, month, year] = normalized.split("/");
+    return `${year}-${month}-${day}`;
+  }
+
+  const parsed = new Date(normalized);
+  if (!Number.isNaN(parsed.getTime())) {
+    return parsed.toISOString().slice(0, 10);
+  }
+
+  return normalized.slice(0, 10);
+};
+
 const addDays = (baseDate, days) => {
   const date = new Date(`${baseDate}T12:00:00`);
   date.setDate(date.getDate() + Number(days || 0));
@@ -511,12 +538,16 @@ class FinanceiroDAO {
         acrescimo: Number(titulo.acrescimo || 0),
         valor_final: Number(titulo.valor_final || 0),
         valor_baixado: Number(titulo.valor_baixado || 0),
+        data_emissao: normalizeDateValue(titulo.data_emissao),
+        data_vencimento: normalizeDateValue(titulo.data_vencimento),
         saldo: roundCurrency(Number(titulo.valor_final || 0) - Number(titulo.valor_baixado || 0)),
       },
       parcelas: parcelasResult.rows.map((parcela) => ({
         ...parcela,
         valor_parcela: Number(parcela.valor_parcela || 0),
         valor_recebido: Number(parcela.valor_recebido || 0),
+        data_vencimento: normalizeDateValue(parcela.data_vencimento),
+        data_pagamento: normalizeDateValue(parcela.data_pagamento),
         saldo: roundCurrency(
           Number(parcela.valor_parcela || 0) - Number(parcela.valor_recebido || 0)
         ),
@@ -601,11 +632,13 @@ class FinanceiroDAO {
       allowNull: true,
       label: "Forma de pagamento",
     });
-    const formaPagamento = await this.buscarFormaPagamento(client, formaPagamentoId, {
-      tipo: "receber",
-    });
+    const formaPagamento = formaPagamentoId
+      ? await this.buscarFormaPagamento(client, formaPagamentoId, {
+          tipo: "receber",
+        })
+      : null;
 
-    if (!formaPagamento) {
+    if (billingType === "PIX" && !formaPagamento) {
       throw new Error("Forma de pagamento inválida para cobrança.");
     }
 
@@ -613,7 +646,11 @@ class FinanceiroDAO {
       throw new Error("Selecione uma forma de pagamento PIX para gerar o QR Code.");
     }
 
-    if (billingType === "BOLETO" && !/boleto/i.test(String(formaPagamento.descricao || ""))) {
+    if (
+      billingType === "BOLETO" &&
+      formaPagamento &&
+      !/boleto/i.test(String(formaPagamento.descricao || ""))
+    ) {
       throw new Error("Selecione uma forma de pagamento boleto para gerar a cobrança.");
     }
 

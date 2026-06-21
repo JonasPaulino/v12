@@ -48,6 +48,8 @@ services:
       TOKEN_EXPIRES_IN: 8h
       PAYMENTS_SERVICE_URL: http://payments:4200
       PAYMENTS_SERVICE_TOKEN: ${PAYMENTS_SERVICE_TOKEN:-troque-este-token-interno}
+      MESSAGE_SERVICE_URL: http://message:${MESSAGE_PORT:-4300}
+      MESSAGE_SERVICE_TOKEN: ${MESSAGE_SERVICE_TOKEN:-troque-este-token-message}
     ports:
       - "${API_EXPOSE_PORT:-4000}:4000"
     networks:
@@ -77,6 +79,91 @@ services:
       BACKEND_SERVICE_TOKEN: ${PAYMENTS_SERVICE_TOKEN:-troque-este-token-interno}
     ports:
       - "${PAYMENTS_EXPOSE_PORT:-4200}:4200"
+    networks:
+      - v12-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: v12-message-redis
+    restart: always
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    networks:
+      - v12-net
+
+  evolution-api:
+    image: evoapicloud/evolution-api:v2.3.7
+    container_name: v12-evolution-api
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ:-America/Sao_Paulo}
+      AUTHENTICATION_API_KEY: ${EVOLUTION_AUTH_KEY:-troque-esta-chave-evolution}
+      AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES: "true"
+      LANGUAGE: "pt"
+      SERVER_TYPE: "http"
+      SERVER_PORT: "8080"
+      SERVER_URL: ${EVOLUTION_SERVER_URL:-http://localhost:8090}
+      DATABASE_ENABLED: "true"
+      DATABASE_PROVIDER: "postgresql"
+      DATABASE_CONNECTION_URI: "postgresql://${POSTGRES_USER:-v12}:${POSTGRES_PASSWORD:-v12_password}@db:5432/${POSTGRES_DB:-db_v12}?schema=evolution_api"
+      DATABASE_CONNECTION_CLIENT_NAME: "evolution_v12"
+      DATABASE_SAVE_DATA_INSTANCE: "true"
+      DATABASE_SAVE_DATA_NEW_MESSAGE: "true"
+      DATABASE_SAVE_MESSAGE_UPDATE: "true"
+      DATABASE_SAVE_DATA_CONTACTS: "true"
+      DATABASE_SAVE_DATA_CHATS: "true"
+      DATABASE_SAVE_DATA_LABELS: "true"
+      DATABASE_SAVE_DATA_HISTORIC: "true"
+      DATABASE_SAVE_IS_ON_WHATSAPP: "true"
+      DATABASE_SAVE_IS_ON_WHATSAPP_DAYS: "7"
+      DATABASE_DELETE_MESSAGE: "true"
+      CACHE_REDIS_ENABLED: "true"
+      CACHE_REDIS_URI: "redis://redis:6379/6"
+      CACHE_REDIS_TTL: "604800"
+      CACHE_REDIS_PREFIX_KEY: "evolution"
+      CACHE_REDIS_SAVE_INSTANCES: "false"
+      CACHE_LOCAL_ENABLED: "false"
+      CORS_ORIGIN: "*"
+      CORS_METHODS: "GET,POST,PUT,DELETE"
+      CORS_CREDENTIALS: "true"
+      LOG_LEVEL: "ERROR,WARN,DEBUG,INFO,LOG,VERBOSE"
+      LOG_COLOR: "true"
+      LOG_BAILEYS: "info"
+      CONFIG_SESSION_PHONE_CLIENT: "Evolution API"
+      CONFIG_SESSION_PHONE_NAME: "Chrome"
+      CONFIG_SESSION_PHONE_VERSION: "2.3000.1030110621"
+      QRCODE_LIMIT: "30"
+      QRCODE_COLOR: "#175197"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    ports:
+      - "${EVOLUTION_API_EXPOSE_PORT:-8090}:8080"
+    volumes:
+      - evolution_store:/evolution/store
+      - evolution_instances:/evolution/instances
+    networks:
+      - v12-net
+
+  message:
+    build: ./message
+    container_name: v12-message
+    restart: always
+    depends_on:
+      evolution-api:
+        condition: service_started
+    environment:
+      TZ: ${TZ:-America/Sao_Paulo}
+      PORT: ${MESSAGE_PORT:-4300}
+      EVOLUTION_API_BASE_URL: http://evolution-api:8080
+      EVOLUTION_API_KEY: ${EVOLUTION_AUTH_KEY:-troque-esta-chave-evolution}
+      EVOLUTION_DEFAULT_INSTANCE: ${MESSAGE_EVOLUTION_DEFAULT_INSTANCE:-v12-main}
+      SERVICE_TOKEN: ${MESSAGE_SERVICE_TOKEN:-troque-este-token-message}
+    ports:
+      - "${MESSAGE_EXPOSE_PORT:-4300}:4300"
     networks:
       - v12-net
 
@@ -119,6 +206,8 @@ services:
         condition: service_started
       payments:
         condition: service_started
+      message:
+        condition: service_started
       acbr:
         condition: service_started
     ports:
@@ -133,3 +222,8 @@ networks:
   proxy-net:
     external: true
     name: ${NPM_EXTERNAL_NETWORK:-nginx-proxy-manager_default}
+
+volumes:
+  evolution_store:
+  evolution_instances:
+  redis_data:

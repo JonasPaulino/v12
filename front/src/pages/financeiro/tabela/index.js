@@ -39,6 +39,8 @@ const Tabela = ({
     sort,
     toggleSort,
     paginationItems,
+    handleEnviarBoletoWhatsApp,
+    handleEnviarPixWhatsApp,
   } = useTabelaFinanceiro({
     search,
     tipo,
@@ -68,6 +70,7 @@ const Tabela = ({
       const veioDePedido = !!titulo.pedido_venda_id;
       const editDisabled = veioDePedido || possuiBaixas || isCancelado || isQuitado;
       const cancelDisabled = possuiBaixas || isCancelado || isQuitado;
+      const canSend = titulo.tipo === "receber" && !isCancelado;
 
       let editTitle = "";
       if (veioDePedido) {
@@ -108,9 +111,25 @@ const Tabela = ({
           danger: true,
           onClick: () => onCancelar?.(titulo.financeiro_titulo_id),
         },
+        {
+          label: "Enviar boleto no WhatsApp",
+          disabled: !canSend,
+          title: canSend
+            ? ""
+            : "O envio por WhatsApp só está disponível para contas a receber ativas.",
+          onClick: () => handleEnviarBoletoWhatsApp(titulo.financeiro_titulo_id),
+        },
+        {
+          label: "Enviar PIX no WhatsApp",
+          disabled: !canSend,
+          title: canSend
+            ? ""
+            : "O envio por WhatsApp só está disponível para contas a receber ativas.",
+          onClick: () => handleEnviarPixWhatsApp(titulo.financeiro_titulo_id),
+        },
       ];
     },
-    [onBaixa, onCancelar, onEditar]
+    [handleEnviarBoletoWhatsApp, handleEnviarPixWhatsApp, onBaixa, onCancelar, onEditar]
   );
 
   React.useEffect(() => {

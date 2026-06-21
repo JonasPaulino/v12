@@ -1,8 +1,26 @@
 import express from "express";
 import FinanceiroDAO from "../model/financeiroDAO.js";
+import MensagemDAO from "../model/mensagemDAO.js";
 import { criarCobrancaBoleto, criarCobrancaPix } from "../services/paymentsGatewayService.js";
+import { enviarWhatsAppTexto } from "../services/messageGatewayService.js";
 
 const router = express.Router();
+
+const currencyFormatter = new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+});
+
+const dateFormatter = (value) => {
+  if (!value) return "--";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString("pt-BR");
+};
+
+const normalizePhoneNumber = (value) => {
+  const digits = String(value || "").replace(/\D/g, "");
+  return digits.length >= 10 ? digits : "";
+};
 
 router.get("/support-data", async (req, res) => {
   try {
@@ -226,6 +244,265 @@ router.post("/:id/cobrancas/boleto", async (req, res) => {
     return res.status(400).json({
       success: false,
       message: error.message || "Não foi possível gerar o boleto.",
+    });
+  }
+});
+
+router.post("/:id/enviar-whatsapp/boleto", async (req, res) => {
+  try {
+    const financeiroTituloId = Number(req.params.id);
+    const detail = await FinanceiroDAO.buscarPorId(req.db, financeiroTituloId);
+
+    if (!detail?.titulo) {
+      throw new Error("Título financeiro não encontrado.");
+    }
+
+    if (detail.titulo.tipo !== "receber") {
+      throw new Error("O envio de boleto só está disponível para contas a receber.");
+    }
+
+    const openParcelas = (detail.parcelas || []).filter(
+      (parcela) => parcela.status !== "cancelada" && Number(parcela.saldo || 0) > 0
+    );
+
+    if (!openParcelas.length) {
+      throw new Error("Não há parcelas em aberto para enviar boleto.");
+    }
+
+    const pessoaContexto = await req.db.query(
+      `
+        SELECT
+          pessoa_nome_razao,
+          pessoa_whatsapp,
+          pessoa_telefone,
+          pessoa_cpf_cnpj
+        FROM pessoa
+        WHERE pessoa_id = $1
+        LIMIT 1
+      `,
+      [detail.titulo.pessoa_id]
+    );
+
+    const pessoa = pessoaContexto.rows[0];
+    if (!pessoa) {
+      throw new Error("Pessoa vinculada ao título não encontrada.");
+    }
+
+    const toNumber = normalizePhoneNumber(pessoa.pessoa_whatsapp || pessoa.pessoa_telefone);
+    if (!toNumber) {
+      throw new Error("A pessoa não possui WhatsApp ou telefone válido para envio.");
+    }
+
+    const config = await MensagemDAO.buscarConfiguracaoAtivaWhatsApp(req.db);
+    const boletos = [];
+
+    for (const parcela of openParcelas) {
+      const response = await criarCobrancaBoleto({
+        tenantId: Number(req.user?.tenantId),
+        financeiroTituloId,
+        financeiroTituloParcelaId: Number(parcela.financeiro_titulo_parcela_id),
+        financeiroFormaPagamentoId: null,
+        customer: {
+          pessoaId: Number(detail.titulo.pessoa_id),
+          nome: pessoa.pessoa_nome_razao,
+          documento: pessoa.pessoa_cpf_cnpj,
+          email: "",
+          telefone: pessoa.pessoa_telefone || "",
+          whatsapp: pessoa.pessoa_whatsapp || "",
+        },
+        charge: {
+          valor: Number(parcela.saldo || 0),
+          dueDate: String(parcela.data_vencimento || "").slice(0, 10),
+          description:
+            detail.titulo.descricao ||
+            `Boleto do título financeiro #${detail.titulo.financeiro_titulo_id}`,
+        },
+      });
+
+      boletos.push({
+        numeroParcela: Number(parcela.numero_parcela || 0),
+        valor: Number(parcela.saldo || 0),
+        vencimento: dateFormatter(parcela.data_vencimento),
+        linhaDigitavel: response?.data?.boleto?.identificationField || "",
+        boletoUrl: response?.data?.boleto?.bankSlipUrl || response?.data?.invoiceUrl || "",
+      });
+    }
+
+    const boletosTexto = boletos
+      .map((boleto) => {
+        const parts = [
+          `Parcela ${boleto.numeroParcela} • ${currencyFormatter.format(boleto.valor)} • vence ${boleto.vencimento}`,
+        ];
+        if (boleto.linhaDigitavel) parts.push(`Linha digitável: ${boleto.linhaDigitavel}`);
+        if (boleto.boletoUrl) parts.push(`Link: ${boleto.boletoUrl}`);
+        return parts.join("\n");
+      })
+      .join("\n\n");
+
+    const text = MensagemDAO.renderTemplate(config.mensagem_boleto_padrao, {
+      nome: pessoa.pessoa_nome_razao,
+      titulo_id: detail.titulo.financeiro_titulo_id,
+      numero_documento: detail.titulo.numero_documento || "",
+      descricao: detail.titulo.descricao || "",
+      boletos: boletosTexto,
+    });
+
+    await enviarWhatsAppTexto({
+      instanceName: config.instance_name,
+      remetenteNumero: config.remetente_numero,
+      toNumber,
+      text,
+    });
+
+    return res.json({
+      success: true,
+      message: "Boletos enviados por WhatsApp com sucesso.",
+      data: {
+        total_boletos: boletos.length,
+        toNumber,
+      },
+    });
+  } catch (error) {
+    console.error("[financeiro] Falha ao enviar boleto por WhatsApp:", error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Não foi possível enviar o boleto por WhatsApp.",
+    });
+  }
+});
+
+router.post("/:id/enviar-whatsapp/pix", async (req, res) => {
+  try {
+    const financeiroTituloId = Number(req.params.id);
+    const detail = await FinanceiroDAO.buscarPorId(req.db, financeiroTituloId);
+
+    if (!detail?.titulo) {
+      throw new Error("Título financeiro não encontrado.");
+    }
+
+    if (detail.titulo.tipo !== "receber") {
+      throw new Error("O envio de PIX só está disponível para contas a receber.");
+    }
+
+    const openParcelas = (detail.parcelas || []).filter(
+      (parcela) => parcela.status !== "cancelada" && Number(parcela.saldo || 0) > 0
+    );
+
+    if (!openParcelas.length) {
+      throw new Error("Não há parcelas em aberto para enviar PIX.");
+    }
+
+    if (openParcelas.length > 1) {
+      throw new Error(
+        "Este título possui mais de uma parcela em aberto. Gere o PIX da parcela desejada pelo modal de recebimento."
+      );
+    }
+
+    const parcela = openParcelas[0];
+
+    const pixFormResult = await req.db.query(
+      `
+        SELECT financeiro_forma_pagamento_id
+        FROM financeiro_forma_pagamento
+        WHERE tenant_id = current_setting('app.tenant_id', true)::INTEGER
+          AND ativo = TRUE
+          AND (tipo = 'receber' OR tipo = 'ambos')
+          AND LOWER(unaccent(descricao)) LIKE '%pix%'
+        ORDER BY padrao DESC, ordem ASC, financeiro_forma_pagamento_id ASC
+        LIMIT 1
+      `
+    );
+
+    const pixFormaPagamentoId = pixFormResult.rows[0]?.financeiro_forma_pagamento_id;
+    if (!pixFormaPagamentoId) {
+      throw new Error("Cadastre uma forma de pagamento PIX ativa para enviar a cobrança.");
+    }
+
+    const pessoaContexto = await req.db.query(
+      `
+        SELECT
+          pessoa_nome_razao,
+          pessoa_whatsapp,
+          pessoa_telefone,
+          pessoa_cpf_cnpj,
+          pessoa_email
+        FROM pessoa
+        WHERE pessoa_id = $1
+        LIMIT 1
+      `,
+      [detail.titulo.pessoa_id]
+    );
+
+    const pessoa = pessoaContexto.rows[0];
+    if (!pessoa) {
+      throw new Error("Pessoa vinculada ao título não encontrada.");
+    }
+
+    const toNumber = normalizePhoneNumber(pessoa.pessoa_whatsapp || pessoa.pessoa_telefone);
+    if (!toNumber) {
+      throw new Error("A pessoa não possui WhatsApp ou telefone válido para envio.");
+    }
+
+    const config = await MensagemDAO.buscarConfiguracaoAtivaWhatsApp(req.db);
+
+    const response = await criarCobrancaPix({
+      tenantId: Number(req.user?.tenantId),
+      financeiroTituloId,
+      financeiroTituloParcelaId: Number(parcela.financeiro_titulo_parcela_id),
+      financeiroFormaPagamentoId: Number(pixFormaPagamentoId),
+      customer: {
+        pessoaId: Number(detail.titulo.pessoa_id),
+        nome: pessoa.pessoa_nome_razao,
+        documento: pessoa.pessoa_cpf_cnpj,
+        email: pessoa.pessoa_email || "",
+        telefone: pessoa.pessoa_telefone || "",
+        whatsapp: pessoa.pessoa_whatsapp || "",
+      },
+      charge: {
+        valor: Number(parcela.saldo || 0),
+        dueDate: String(parcela.data_vencimento || "").slice(0, 10),
+        description:
+          detail.titulo.descricao ||
+          `Cobrança PIX do título financeiro #${detail.titulo.financeiro_titulo_id}`,
+      },
+    });
+
+    const pixPayload = response?.data?.pix?.payload || "";
+    if (!pixPayload) {
+      throw new Error("O gateway não retornou o código copia e cola do PIX.");
+    }
+
+    const text = MensagemDAO.renderTemplate(config.mensagem_pix_padrao, {
+      nome: pessoa.pessoa_nome_razao,
+      titulo_id: detail.titulo.financeiro_titulo_id,
+      parcela: parcela.numero_parcela,
+      valor: currencyFormatter.format(Number(parcela.saldo || 0)),
+      vencimento: dateFormatter(parcela.data_vencimento),
+      pix_copia_cola: pixPayload,
+      descricao: detail.titulo.descricao || "",
+      numero_documento: detail.titulo.numero_documento || "",
+    });
+
+    await enviarWhatsAppTexto({
+      instanceName: config.instance_name,
+      remetenteNumero: config.remetente_numero,
+      toNumber,
+      text,
+    });
+
+    return res.json({
+      success: true,
+      message: "PIX enviado por WhatsApp com sucesso.",
+      data: {
+        toNumber,
+        parcela: parcela.numero_parcela,
+      },
+    });
+  } catch (error) {
+    console.error("[financeiro] Falha ao enviar PIX por WhatsApp:", error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Não foi possível enviar o PIX por WhatsApp.",
     });
   }
 });

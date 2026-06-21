@@ -333,6 +333,8 @@ export const FileInput = styled.input`
 export const ActionRow = styled.div`
   display: flex;
   justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
 `;
 
 export const PrimaryButton = styled.button`
@@ -351,6 +353,28 @@ export const PrimaryButton = styled.button`
     cursor: not-allowed;
     opacity: 0.68;
     box-shadow: none;
+  }
+
+  @media (max-width: 640px) {
+    width: 100%;
+    min-width: 0;
+  }
+`;
+
+export const SecondaryButton = styled.button`
+  min-width: 180px;
+  height: 46px;
+  padding: 0 18px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radius.pill};
+  background: ${({ theme }) => theme.colors.surface};
+  color: ${({ theme }) => theme.colors.text};
+  font-weight: 600;
+  cursor: pointer;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.68;
   }
 
   @media (max-width: 640px) {

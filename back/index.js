@@ -18,6 +18,7 @@ import vendaRoutes from "./routes/vendaRoutes.js";
 import financeiroRoutes from "./routes/financeiroRoutes.js";
 import configuracaoFiscalRoutes from "./routes/configuracaoFiscalRoutes.js";
 import paymentIntegrationRoutes from "./routes/paymentIntegrationRoutes.js";
+import messageIntegrationRoutes from "./routes/messageIntegrationRoutes.js";
 
 dotenv.config();
 
@@ -71,6 +72,7 @@ privateRouter.use("/pessoa", pessoaRoutes);
 privateRouter.use("/venda", vendaRoutes);
 privateRouter.use("/financeiro", financeiroRoutes);
 privateRouter.use("/configuracao-fiscal", configuracaoFiscalRoutes);
+privateRouter.use("/integracoes/mensagens", messageIntegrationRoutes);
 
 app.use(privateRouter);
 

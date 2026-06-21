@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { TENANT_CONTEXT_SQL } from "../utils/sql.js";
+import MensagemDAO from "./mensagemDAO.js";
 
 const normalizeText = (value, maxLength, { required = false, label = "Campo" } = {}) => {
   const normalized = String(value ?? "").trim();
@@ -393,6 +394,9 @@ class ConfiguracaoFiscalDAO {
         configurado: !!row.certificado_nome_arquivo,
       },
       contas: buildGatewayView(gatewayViewRow),
+      mensagens: {
+        whatsapp: await MensagemDAO.buscarConfiguracaoWhatsApp(client),
+      },
     };
   }
 
@@ -522,6 +526,9 @@ class ConfiguracaoFiscalDAO {
   static async salvar(client, payload = {}) {
     const data = this.normalizarPayload(payload);
     const contas = this.normalizarPayloadContas(payload.contas || {});
+    const whatsapp = MensagemDAO.normalizarPayloadWhatsApp(
+      payload?.mensagens?.whatsapp || {}
+    );
     const emitente = await this.obterPessoaEmitente(client, data.emitente_pessoa_id);
     this.validarPessoaEmitente(emitente);
 
@@ -535,6 +542,7 @@ class ConfiguracaoFiscalDAO {
     try {
       const gatewayAtual = await this.buscarGatewayAtual(client);
       this.validarConfiguracaoContas(contas, gatewayAtual);
+      MensagemDAO.validarConfiguracaoWhatsApp(whatsapp);
 
       await client.query(
         `
@@ -705,6 +713,8 @@ class ConfiguracaoFiscalDAO {
           contas.observacao,
         ]
       );
+
+      await MensagemDAO.salvarConfiguracaoWhatsApp(client, whatsapp);
 
       await client.query("COMMIT");
       return this.buscar(client);

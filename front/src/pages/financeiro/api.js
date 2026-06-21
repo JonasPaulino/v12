@@ -54,3 +54,13 @@ export const gerarCobrancaBoletoFinanceira = async (financeiroTituloId, payload)
   const { data } = await api.post(`/financeiro/${financeiroTituloId}/cobrancas/boleto`, payload);
   return data;
 };
+
+export const enviarBoletoWhatsAppFinanceiro = async (financeiroTituloId) => {
+  const { data } = await api.post(`/financeiro/${financeiroTituloId}/enviar-whatsapp/boleto`);
+  return data;
+};
+
+export const enviarPixWhatsAppFinanceiro = async (financeiroTituloId) => {
+  const { data } = await api.post(`/financeiro/${financeiroTituloId}/enviar-whatsapp/pix`);
+  return data;
+};

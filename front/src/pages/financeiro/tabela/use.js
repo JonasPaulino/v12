@@ -1,7 +1,7 @@
 import { useContext, useEffect, useMemo, useState } from "react";
 import { AppContext } from "context";
 import { useSweetAlert } from "context/sweet_alert";
-import { getFinanceiro } from "./api";
+import { getFinanceiro, sendBoletoWhatsApp, sendPixWhatsApp } from "./api";
 
 export const useTabelaFinanceiro = ({ search, tipo, status, refreshKey }) => {
   const { showLoading, hideLoading } = useContext(AppContext);
@@ -96,6 +96,49 @@ export const useTabelaFinanceiro = ({ search, tipo, status, refreshKey }) => {
     return items;
   }, [page, totalPages]);
 
+  const handleEnviarBoletoWhatsApp = async (financeiroTituloId) => {
+    try {
+      showLoading();
+      const response = await sendBoletoWhatsApp(financeiroTituloId);
+      showAlert({
+        title: "Envio concluído",
+        text: response?.message || "Boletos enviados por WhatsApp com sucesso.",
+        icon: "success",
+      });
+    } catch (error) {
+      showAlert({
+        title: "Falha ao enviar",
+        text:
+          error?.response?.data?.message ||
+          "Não foi possível enviar os boletos por WhatsApp.",
+        icon: "error",
+      });
+    } finally {
+      hideLoading();
+    }
+  };
+
+  const handleEnviarPixWhatsApp = async (financeiroTituloId) => {
+    try {
+      showLoading();
+      const response = await sendPixWhatsApp(financeiroTituloId);
+      showAlert({
+        title: "Envio concluído",
+        text: response?.message || "PIX enviado por WhatsApp com sucesso.",
+        icon: "success",
+      });
+    } catch (error) {
+      showAlert({
+        title: "Falha ao enviar",
+        text:
+          error?.response?.data?.message || "Não foi possível enviar o PIX por WhatsApp.",
+        icon: "error",
+      });
+    } finally {
+      hideLoading();
+    }
+  };
+
   return {
     titulos,
     resumo,
@@ -105,5 +148,7 @@ export const useTabelaFinanceiro = ({ search, tipo, status, refreshKey }) => {
     sort,
     toggleSort,
     paginationItems,
+    handleEnviarBoletoWhatsApp,
+    handleEnviarPixWhatsApp,
   };
 };

@@ -1,8 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSweetAlert } from "context/sweet_alert";
 import {
+  createWhatsAppInstance,
+  deleteWhatsAppInstance,
   getConfiguracaoFiscal,
   getPessoasEmitenteSelect,
+  getWhatsAppQrCode,
+  getWhatsAppStatus,
+  logoutWhatsAppInstance,
+  restartWhatsAppInstance,
   updateConfiguracaoFiscal,
 } from "./api";
 
@@ -27,6 +33,14 @@ const buildInitialForm = () => ({
   gateway_observacao: "",
   gateway_api_key: "",
   gateway_webhook_auth_token: "",
+  whatsapp_provider: "evolution",
+  whatsapp_ativo: false,
+  whatsapp_instance_name: "",
+  whatsapp_remetente_numero: "",
+  whatsapp_auto_enviar_boleto_venda: false,
+  whatsapp_auto_enviar_pix_venda: false,
+  whatsapp_mensagem_boleto_padrao: "",
+  whatsapp_mensagem_pix_padrao: "",
 });
 
 const formatFileSize = (size) => {
@@ -154,6 +168,12 @@ export const useConfiguracaoFiscalPage = () => {
     webhook_auth_token_configurado: false,
     webhook_auth_token_masked: "",
   });
+  const [whatsAppState, setWhatsAppState] = useState({
+    state: "unknown",
+    image: "",
+    pairingCode: "",
+    loading: false,
+  });
   const [certificadoFile, setCertificadoFile] = useState(null);
 
   const applyData = useCallback((payload) => {
@@ -162,6 +182,7 @@ export const useConfiguracaoFiscalPage = () => {
     const emitente = data.emitente || null;
     const certificado = data.certificado || {};
     const contas = data.contas || {};
+    const whatsapp = data.mensagens?.whatsapp || {};
 
     setTenant(data.tenant || null);
     setForm({
@@ -185,6 +206,14 @@ export const useConfiguracaoFiscalPage = () => {
       gateway_observacao: contas.observacao || "",
       gateway_api_key: "",
       gateway_webhook_auth_token: "",
+      whatsapp_provider: whatsapp.provider || "evolution",
+      whatsapp_ativo: !!whatsapp.whatsapp_ativo,
+      whatsapp_instance_name: whatsapp.instance_name || "",
+      whatsapp_remetente_numero: whatsapp.remetente_numero || "",
+      whatsapp_auto_enviar_boleto_venda: !!whatsapp.auto_enviar_boleto_venda,
+      whatsapp_auto_enviar_pix_venda: !!whatsapp.auto_enviar_pix_venda,
+      whatsapp_mensagem_boleto_padrao: whatsapp.mensagem_boleto_padrao || "",
+      whatsapp_mensagem_pix_padrao: whatsapp.mensagem_pix_padrao || "",
     });
     setSelectedEmitente(buildEmitenteOption(emitente));
     setCertificadoAtual({
@@ -200,6 +229,12 @@ export const useConfiguracaoFiscalPage = () => {
       webhook_auth_token_configurado: !!contas.webhook_auth_token_configurado,
       webhook_auth_token_masked: contas.webhook_auth_token_masked || "",
     });
+    setWhatsAppState((prev) => ({
+      ...prev,
+      state: "unknown",
+      image: "",
+      pairingCode: "",
+    }));
     setCertificadoFile(null);
   }, []);
 
@@ -318,6 +353,123 @@ export const useConfiguracaoFiscalPage = () => {
     [form, gatewayAtual]
   );
 
+  const whatsappResumo = useMemo(
+    () => ({
+      provider: form.whatsapp_provider || "evolution",
+      ativo: !!form.whatsapp_ativo,
+      instanceName: form.whatsapp_instance_name || "--",
+      remetenteNumero: form.whatsapp_remetente_numero || "--",
+      status: whatsAppState.state || "unknown",
+    }),
+    [form, whatsAppState.state]
+  );
+
+  const runWhatsAppAction = useCallback(
+    async (action, successTitle, successFallback) => {
+      try {
+        setWhatsAppState((prev) => ({ ...prev, loading: true }));
+        const response = await action();
+        showAlert({
+          title: successTitle,
+          text: response?.message || successFallback,
+          icon: "success",
+        });
+        return response;
+      } catch (error) {
+        showAlert({
+          title: "Falha no WhatsApp",
+          text:
+            error?.response?.data?.message ||
+            "Não foi possível executar a ação do WhatsApp.",
+          icon: "error",
+        });
+        return null;
+      } finally {
+        setWhatsAppState((prev) => ({ ...prev, loading: false }));
+      }
+    },
+    [showAlert]
+  );
+
+  const handleRefreshWhatsAppStatus = useCallback(async () => {
+    const response = await runWhatsAppAction(
+      () => getWhatsAppStatus(form.whatsapp_instance_name),
+      "Status atualizado",
+      "Status do WhatsApp atualizado com sucesso."
+    );
+
+    if (response?.data) {
+      setWhatsAppState((prev) => ({
+        ...prev,
+        state: response.data.state || "unknown",
+      }));
+    }
+  }, [form.whatsapp_instance_name, runWhatsAppAction]);
+
+  const handleLoadWhatsAppQrCode = useCallback(async () => {
+    const response = await runWhatsAppAction(
+      () => getWhatsAppQrCode(form.whatsapp_instance_name),
+      "QR Code carregado",
+      "QR Code carregado com sucesso."
+    );
+
+    if (response?.data) {
+      setWhatsAppState((prev) => ({
+        ...prev,
+        image: response.data.image || "",
+        pairingCode: response.data.pairingCode || "",
+      }));
+    }
+  }, [form.whatsapp_instance_name, runWhatsAppAction]);
+
+  const handleCreateWhatsAppInstance = useCallback(async () => {
+    await runWhatsAppAction(
+      () =>
+        createWhatsAppInstance({
+          instance_name: form.whatsapp_instance_name,
+          remetente_numero: form.whatsapp_remetente_numero,
+        }),
+      "Instância criada",
+      "Instância do WhatsApp criada com sucesso."
+    );
+  }, [form.whatsapp_instance_name, form.whatsapp_remetente_numero, runWhatsAppAction]);
+
+  const handleRestartWhatsApp = useCallback(async () => {
+    await runWhatsAppAction(
+      () =>
+        restartWhatsAppInstance({
+          instance_name: form.whatsapp_instance_name,
+        }),
+      "Instância reiniciada",
+      "Instância do WhatsApp reiniciada com sucesso."
+    );
+  }, [form.whatsapp_instance_name, runWhatsAppAction]);
+
+  const handleLogoutWhatsApp = useCallback(async () => {
+    await runWhatsAppAction(
+      () => logoutWhatsAppInstance(form.whatsapp_instance_name),
+      "Instância desconectada",
+      "Instância do WhatsApp desconectada com sucesso."
+    );
+  }, [form.whatsapp_instance_name, runWhatsAppAction]);
+
+  const handleDeleteWhatsAppInstance = useCallback(async () => {
+    const response = await runWhatsAppAction(
+      () => deleteWhatsAppInstance(form.whatsapp_instance_name),
+      "Instância excluída",
+      "Instância do WhatsApp excluída com sucesso."
+    );
+
+    if (response) {
+      setWhatsAppState((prev) => ({
+        ...prev,
+        state: "not_found",
+        image: "",
+        pairingCode: "",
+      }));
+    }
+  }, [form.whatsapp_instance_name, runWhatsAppAction]);
+
   const handleSubmit = useCallback(
     async (event) => {
       event.preventDefault();
@@ -356,6 +508,18 @@ export const useConfiguracaoFiscalPage = () => {
             observacao: form.gateway_observacao,
             api_key: form.gateway_api_key,
             webhook_auth_token: form.gateway_webhook_auth_token,
+          },
+          mensagens: {
+            whatsapp: {
+              provider: form.whatsapp_provider,
+              whatsapp_ativo: form.whatsapp_ativo,
+              instance_name: form.whatsapp_instance_name,
+              remetente_numero: form.whatsapp_remetente_numero,
+              auto_enviar_boleto_venda: form.whatsapp_auto_enviar_boleto_venda,
+              auto_enviar_pix_venda: form.whatsapp_auto_enviar_pix_venda,
+              mensagem_boleto_padrao: form.whatsapp_mensagem_boleto_padrao,
+              mensagem_pix_padrao: form.whatsapp_mensagem_pix_padrao,
+            },
           },
         };
 
@@ -400,10 +564,18 @@ export const useConfiguracaoFiscalPage = () => {
     emitenteEndereco,
     certificadoResumo,
     contasResumo,
+    whatsappResumo,
+    whatsAppState,
     updateField,
     loadEmitenteOptions,
     handleSelectEmitente,
     handleSelectCertificado,
+    handleCreateWhatsAppInstance,
+    handleRefreshWhatsAppStatus,
+    handleLoadWhatsAppQrCode,
+    handleRestartWhatsApp,
+    handleLogoutWhatsApp,
+    handleDeleteWhatsAppInstance,
     handleSubmit,
   };
 };
