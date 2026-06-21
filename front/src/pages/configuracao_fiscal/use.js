@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSweetAlert } from "context/sweet_alert";
 import {
   createWhatsAppInstance,
-  deleteWhatsAppInstance,
   getConfiguracaoFiscal,
   getPessoasEmitenteSelect,
   getWhatsAppQrCode,
@@ -64,6 +63,17 @@ const formatDateTime = (value) => {
     dateStyle: "short",
     timeStyle: "short",
   }).format(date);
+};
+
+const normalizeWhatsAppStatus = (value) => {
+  const normalized = String(value || "").trim().toLowerCase();
+
+  if (normalized === "open") return "open";
+  if (normalized === "connecting") return "connecting";
+  if (normalized === "close") return "close";
+  if (normalized === "not_found") return "not_found";
+
+  return "unknown";
 };
 
 const buildEmitenteOption = (pessoa) => {
@@ -359,116 +369,227 @@ export const useConfiguracaoFiscalPage = () => {
       ativo: !!form.whatsapp_ativo,
       instanceName: form.whatsapp_instance_name || "--",
       remetenteNumero: form.whatsapp_remetente_numero || "--",
-      status: whatsAppState.state || "unknown",
+      status: normalizeWhatsAppStatus(whatsAppState.state),
     }),
     [form, whatsAppState.state]
   );
 
-  const runWhatsAppAction = useCallback(
-    async (action, successTitle, successFallback) => {
+  const isWhatsAppConnected = whatsappResumo.status === "open";
+  const canRestartWhatsApp = isWhatsAppConnected;
+
+  const applyWhatsAppConnection = useCallback((payload = {}) => {
+    const nextState = normalizeWhatsAppStatus(payload.state);
+
+    setWhatsAppState((prev) => ({
+      ...prev,
+      state: nextState,
+      image: nextState === "open" ? "" : payload.image || prev.image || "",
+      pairingCode:
+        nextState === "open" ? "" : payload.pairingCode || prev.pairingCode || "",
+    }));
+
+    return nextState;
+  }, []);
+
+  const fetchWhatsAppStatus = useCallback(
+    async ({ silent = false } = {}) => {
+      const instanceName = String(form.whatsapp_instance_name || "").trim();
+
+      if (!instanceName) {
+        if (!silent) {
+          showAlert({
+            title: "Nome da instância obrigatório",
+            text: "Informe o nome da instância para consultar a conexão do WhatsApp.",
+            icon: "warning",
+          });
+        }
+        return null;
+      }
+
       try {
-        setWhatsAppState((prev) => ({ ...prev, loading: true }));
-        const response = await action();
-        showAlert({
-          title: successTitle,
-          text: response?.message || successFallback,
-          icon: "success",
+        if (!silent) {
+          setWhatsAppState((prev) => ({ ...prev, loading: true }));
+        }
+
+        const response = await getWhatsAppStatus(instanceName);
+        const nextState = applyWhatsAppConnection({
+          state: response?.data?.state,
         });
-        return response;
+
+        if (!silent && nextState === "open") {
+          showAlert({
+            title: "WhatsApp conectado",
+            text: "A instância está conectada e pronta para envio.",
+            icon: "success",
+          });
+        }
+
+        return response?.data || null;
       } catch (error) {
-        showAlert({
-          title: "Falha no WhatsApp",
-          text:
-            error?.response?.data?.message ||
-            "Não foi possível executar a ação do WhatsApp.",
-          icon: "error",
-        });
+        if (!silent) {
+          showAlert({
+            title: "Falha no WhatsApp",
+            text:
+              error?.response?.data?.message ||
+              "Não foi possível consultar o status do WhatsApp.",
+            icon: "error",
+          });
+        }
         return null;
       } finally {
-        setWhatsAppState((prev) => ({ ...prev, loading: false }));
+        if (!silent) {
+          setWhatsAppState((prev) => ({ ...prev, loading: false }));
+        }
       }
     },
-    [showAlert]
+    [applyWhatsAppConnection, form.whatsapp_instance_name, showAlert]
   );
 
-  const handleRefreshWhatsAppStatus = useCallback(async () => {
-    const response = await runWhatsAppAction(
-      () => getWhatsAppStatus(form.whatsapp_instance_name),
-      "Status atualizado",
-      "Status do WhatsApp atualizado com sucesso."
-    );
+  const handleConnectWhatsApp = useCallback(async () => {
+    const instanceName = String(form.whatsapp_instance_name || "").trim();
 
-    if (response?.data) {
-      setWhatsAppState((prev) => ({
-        ...prev,
-        state: response.data.state || "unknown",
-      }));
+    if (!instanceName) {
+      showAlert({
+        title: "Nome da instância obrigatório",
+        text: "Informe o nome da instância antes de conectar o WhatsApp.",
+        icon: "warning",
+      });
+      return;
     }
-  }, [form.whatsapp_instance_name, runWhatsAppAction]);
 
-  const handleLoadWhatsAppQrCode = useCallback(async () => {
-    const response = await runWhatsAppAction(
-      () => getWhatsAppQrCode(form.whatsapp_instance_name),
-      "QR Code carregado",
-      "QR Code carregado com sucesso."
-    );
+    try {
+      setWhatsAppState((prev) => ({ ...prev, loading: true }));
 
-    if (response?.data) {
-      setWhatsAppState((prev) => ({
-        ...prev,
-        image: response.data.image || "",
-        pairingCode: response.data.pairingCode || "",
-      }));
+      await createWhatsAppInstance({
+        instance_name: instanceName,
+        remetente_numero: form.whatsapp_remetente_numero,
+      });
+
+      const statusData = await getWhatsAppStatus(instanceName);
+      const currentState = applyWhatsAppConnection({
+        state: statusData?.data?.state,
+      });
+
+      if (currentState === "open") {
+        showAlert({
+          title: "WhatsApp conectado",
+          text: "A instância já está conectada e pronta para uso.",
+          icon: "success",
+        });
+        return;
+      }
+
+      const qrResponse = await getWhatsAppQrCode(instanceName);
+      applyWhatsAppConnection({
+        state: currentState === "unknown" ? "connecting" : currentState,
+        image: qrResponse?.data?.image,
+        pairingCode: qrResponse?.data?.pairingCode || qrResponse?.data?.code,
+      });
+
+      showAlert({
+        title: "Escaneie o QR Code",
+        text:
+          qrResponse?.message ||
+          "A instância foi preparada. Escaneie o QR Code para conectar o WhatsApp.",
+        icon: "success",
+      });
+    } catch (error) {
+      showAlert({
+        title: "Falha no WhatsApp",
+        text:
+          error?.response?.data?.message ||
+          "Não foi possível iniciar a conexão do WhatsApp.",
+        icon: "error",
+      });
+    } finally {
+      setWhatsAppState((prev) => ({ ...prev, loading: false }));
     }
-  }, [form.whatsapp_instance_name, runWhatsAppAction]);
+  }, [
+    applyWhatsAppConnection,
+    form.whatsapp_instance_name,
+    form.whatsapp_remetente_numero,
+    showAlert,
+  ]);
 
-  const handleCreateWhatsAppInstance = useCallback(async () => {
-    await runWhatsAppAction(
-      () =>
-        createWhatsAppInstance({
-          instance_name: form.whatsapp_instance_name,
-          remetente_numero: form.whatsapp_remetente_numero,
-        }),
-      "Instância criada",
-      "Instância do WhatsApp criada com sucesso."
-    );
-  }, [form.whatsapp_instance_name, form.whatsapp_remetente_numero, runWhatsAppAction]);
+  const handleDisconnectWhatsApp = useCallback(async () => {
+    try {
+      setWhatsAppState((prev) => ({ ...prev, loading: true }));
 
-  const handleRestartWhatsApp = useCallback(async () => {
-    await runWhatsAppAction(
-      () =>
-        restartWhatsAppInstance({
-          instance_name: form.whatsapp_instance_name,
-        }),
-      "Instância reiniciada",
-      "Instância do WhatsApp reiniciada com sucesso."
-    );
-  }, [form.whatsapp_instance_name, runWhatsAppAction]);
-
-  const handleLogoutWhatsApp = useCallback(async () => {
-    await runWhatsAppAction(
-      () => logoutWhatsAppInstance(form.whatsapp_instance_name),
-      "Instância desconectada",
-      "Instância do WhatsApp desconectada com sucesso."
-    );
-  }, [form.whatsapp_instance_name, runWhatsAppAction]);
-
-  const handleDeleteWhatsAppInstance = useCallback(async () => {
-    const response = await runWhatsAppAction(
-      () => deleteWhatsAppInstance(form.whatsapp_instance_name),
-      "Instância excluída",
-      "Instância do WhatsApp excluída com sucesso."
-    );
-
-    if (response) {
-      setWhatsAppState((prev) => ({
-        ...prev,
-        state: "not_found",
+      await logoutWhatsAppInstance(form.whatsapp_instance_name);
+      applyWhatsAppConnection({
+        state: "close",
         image: "",
         pairingCode: "",
-      }));
+      });
+
+      showAlert({
+        title: "WhatsApp desconectado",
+        text: "A instância foi desconectada com sucesso.",
+        icon: "success",
+      });
+    } catch (error) {
+      showAlert({
+        title: "Falha no WhatsApp",
+        text:
+          error?.response?.data?.message ||
+          "Não foi possível desconectar a instância do WhatsApp.",
+        icon: "error",
+      });
+    } finally {
+      setWhatsAppState((prev) => ({ ...prev, loading: false }));
     }
-  }, [form.whatsapp_instance_name, runWhatsAppAction]);
+  }, [applyWhatsAppConnection, form.whatsapp_instance_name, showAlert]);
+
+  const handleRestartWhatsApp = useCallback(async () => {
+    try {
+      setWhatsAppState((prev) => ({ ...prev, loading: true }));
+
+      await restartWhatsAppInstance({
+        instance_name: form.whatsapp_instance_name,
+      });
+
+      await fetchWhatsAppStatus({ silent: true });
+
+      showAlert({
+        title: "Instância reiniciada",
+        text: "A conexão do WhatsApp foi reiniciada com sucesso.",
+        icon: "success",
+      });
+    } catch (error) {
+      showAlert({
+        title: "Falha no WhatsApp",
+        text:
+          error?.response?.data?.message ||
+          "Não foi possível reiniciar a instância do WhatsApp.",
+        icon: "error",
+      });
+    } finally {
+      setWhatsAppState((prev) => ({ ...prev, loading: false }));
+    }
+  }, [fetchWhatsAppStatus, form.whatsapp_instance_name, showAlert]);
+
+  useEffect(() => {
+    if (!String(form.whatsapp_instance_name || "").trim()) return;
+    fetchWhatsAppStatus({ silent: true });
+  }, [fetchWhatsAppStatus, form.whatsapp_instance_name]);
+
+  useEffect(() => {
+    if (whatsappResumo.status !== "connecting") return undefined;
+    if (!String(form.whatsapp_instance_name || "").trim()) return undefined;
+
+    const timer = setInterval(async () => {
+      const data = await fetchWhatsAppStatus({ silent: true });
+      if (normalizeWhatsAppStatus(data?.state) === "open") {
+        showAlert({
+          title: "WhatsApp conectado",
+          text: "A conexão foi concluída com sucesso.",
+          icon: "success",
+        });
+      }
+    }, 8000);
+
+    return () => clearInterval(timer);
+  }, [fetchWhatsAppStatus, form.whatsapp_instance_name, showAlert, whatsappResumo.status]);
 
   const handleSubmit = useCallback(
     async (event) => {
@@ -566,16 +687,15 @@ export const useConfiguracaoFiscalPage = () => {
     contasResumo,
     whatsappResumo,
     whatsAppState,
+    isWhatsAppConnected,
+    canRestartWhatsApp,
     updateField,
     loadEmitenteOptions,
     handleSelectEmitente,
     handleSelectCertificado,
-    handleCreateWhatsAppInstance,
-    handleRefreshWhatsAppStatus,
-    handleLoadWhatsAppQrCode,
+    handleConnectWhatsApp,
+    handleDisconnectWhatsApp,
     handleRestartWhatsApp,
-    handleLogoutWhatsApp,
-    handleDeleteWhatsAppInstance,
     handleSubmit,
   };
 };

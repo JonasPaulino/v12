@@ -11,32 +11,27 @@ const requiredTitle = "Este campo é obrigatório.";
 export const ConfiguracaoFiscal = () => {
   const { mOpen, abreFechaMenu } = useContext(AppContext);
   const [activeTab, setActiveTab] = useState("emitente");
+  const [activeMensagemTab, setActiveMensagemTab] = useState("conectar");
   const {
     loading,
     saving,
     tenant,
     form,
     selectedEmitente,
-    pendenciasEmitente,
     emitenteEndereco,
     certificadoResumo,
-    contasResumo,
-    whatsappResumo,
     whatsAppState,
+    isWhatsAppConnected,
+    canRestartWhatsApp,
     updateField,
     loadEmitenteOptions,
     handleSelectEmitente,
     handleSelectCertificado,
-    handleCreateWhatsAppInstance,
-    handleRefreshWhatsAppStatus,
-    handleLoadWhatsAppQrCode,
+    handleConnectWhatsApp,
+    handleDisconnectWhatsApp,
     handleRestartWhatsApp,
-    handleLogoutWhatsApp,
-    handleDeleteWhatsAppInstance,
     handleSubmit,
   } = useConfiguracaoFiscalPage();
-
-  const emitenteOk = !!selectedEmitente && pendenciasEmitente.length === 0;
 
   return (
     <C.Shell>
@@ -492,182 +487,204 @@ export const ConfiguracaoFiscal = () => {
                         </C.CardText>
                       </C.CardHeader>
 
-                      <C.FieldsGrid>
-                        <C.Field>
-                          <C.FieldSpan>Provider</C.FieldSpan>
-                          <C.Select
-                            value={form.whatsapp_provider}
-                            onChange={(event) =>
-                              updateField("whatsapp_provider", event.target.value)
-                            }
-                          >
-                            <option value="evolution">Evolution API</option>
-                          </C.Select>
-                        </C.Field>
-
-                        <C.Field>
-                          <C.FieldSpan>Nome da instância</C.FieldSpan>
-                          <C.Input
-                            value={form.whatsapp_instance_name}
-                            onChange={(event) =>
-                              updateField("whatsapp_instance_name", event.target.value)
-                            }
-                            placeholder="Ex.: v12-filial-centro"
-                          />
-                        </C.Field>
-
-                        <C.Field>
-                          <C.FieldSpan>Número remetente</C.FieldSpan>
-                          <C.Input
-                            value={form.whatsapp_remetente_numero}
-                            onChange={(event) =>
-                              updateField("whatsapp_remetente_numero", event.target.value)
-                            }
-                            placeholder="5511999999999"
-                          />
-                        </C.Field>
-                      </C.FieldsGrid>
-
-                      <C.ToggleList>
-                        <C.ToggleRow>
-                          <C.Checkbox
-                            type="checkbox"
-                            checked={form.whatsapp_ativo}
-                            onChange={(event) =>
-                              updateField("whatsapp_ativo", event.target.checked)
-                            }
-                          />
-                          <span>Ativar envio de mensagens por WhatsApp nesta filial</span>
-                        </C.ToggleRow>
-
-                        <C.ToggleRow>
-                          <C.Checkbox
-                            type="checkbox"
-                            checked={form.whatsapp_auto_enviar_boleto_venda}
-                            onChange={(event) =>
-                              updateField(
-                                "whatsapp_auto_enviar_boleto_venda",
-                                event.target.checked
-                              )
-                            }
-                          />
-                          <span>Sugerir envio de boletos ao concluir uma venda</span>
-                        </C.ToggleRow>
-
-                        <C.ToggleRow>
-                          <C.Checkbox
-                            type="checkbox"
-                            checked={form.whatsapp_auto_enviar_pix_venda}
-                            onChange={(event) =>
-                              updateField(
-                                "whatsapp_auto_enviar_pix_venda",
-                                event.target.checked
-                              )
-                            }
-                          />
-                          <span>Sugerir envio de PIX ao concluir uma venda</span>
-                        </C.ToggleRow>
-                      </C.ToggleList>
-
-                      <C.InfoGrid>
-                        <C.InfoCard>
-                          <C.InfoLabel>Status da instância</C.InfoLabel>
-                          <C.InfoValue>{whatsappResumo.status}</C.InfoValue>
-                        </C.InfoCard>
-                        <C.InfoCard>
-                          <C.InfoLabel>Instância</C.InfoLabel>
-                          <C.InfoValue>{whatsappResumo.instanceName}</C.InfoValue>
-                        </C.InfoCard>
-                        <C.InfoCard>
-                          <C.InfoLabel>Remetente</C.InfoLabel>
-                          <C.InfoValue>{whatsappResumo.remetenteNumero}</C.InfoValue>
-                        </C.InfoCard>
-                      </C.InfoGrid>
-
-                      <C.ActionRow>
-                        <C.SecondaryButton
+                      <C.SubTabs>
+                        <C.SubTabButton
                           type="button"
-                          onClick={handleCreateWhatsAppInstance}
-                          disabled={whatsAppState.loading}
+                          $active={activeMensagemTab === "conectar"}
+                          onClick={() => setActiveMensagemTab("conectar")}
                         >
-                          Criar instância
-                        </C.SecondaryButton>
-                        <C.SecondaryButton
+                          Conexão
+                        </C.SubTabButton>
+                        <C.SubTabButton
                           type="button"
-                          onClick={handleRefreshWhatsAppStatus}
-                          disabled={whatsAppState.loading}
+                          $active={activeMensagemTab === "mensagens"}
+                          onClick={() => setActiveMensagemTab("mensagens")}
                         >
-                          Ver status
-                        </C.SecondaryButton>
-                        <C.SecondaryButton
-                          type="button"
-                          onClick={handleLoadWhatsAppQrCode}
-                          disabled={whatsAppState.loading}
-                        >
-                          Carregar QR Code
-                        </C.SecondaryButton>
-                        <C.SecondaryButton
-                          type="button"
-                          onClick={handleRestartWhatsApp}
-                          disabled={whatsAppState.loading}
-                        >
-                          Reiniciar
-                        </C.SecondaryButton>
-                        <C.SecondaryButton
-                          type="button"
-                          onClick={handleLogoutWhatsApp}
-                          disabled={whatsAppState.loading}
-                        >
-                          Desconectar
-                        </C.SecondaryButton>
-                        <C.SecondaryButton
-                          type="button"
-                          onClick={handleDeleteWhatsAppInstance}
-                          disabled={whatsAppState.loading}
-                        >
-                          Excluir instância
-                        </C.SecondaryButton>
-                      </C.ActionRow>
+                          Mensagens padrão
+                        </C.SubTabButton>
+                      </C.SubTabs>
 
-                      {whatsAppState.image || whatsAppState.pairingCode ? (
-                        <C.CertificateBox>
-                          <C.InfoLabel>Conectar WhatsApp</C.InfoLabel>
-                          {whatsAppState.image ? (
-                            <img
-                              src={whatsAppState.image}
-                              alt="QR Code do WhatsApp"
-                              style={{ width: 220, height: 220, objectFit: "contain" }}
-                            />
-                          ) : null}
-                          {whatsAppState.pairingCode ? (
-                            <C.CardText>Código de pareamento: {whatsAppState.pairingCode}</C.CardText>
-                          ) : null}
-                        </C.CertificateBox>
+                      {activeMensagemTab === "conectar" ? (
+                        <>
+                          <C.FieldsGrid>
+                            <C.Field>
+                              <C.FieldSpan>Nome da instância</C.FieldSpan>
+                              <C.Input
+                                value={form.whatsapp_instance_name}
+                                onChange={(event) =>
+                                  updateField("whatsapp_instance_name", event.target.value)
+                                }
+                                placeholder="Ex.: v12-filial-centro"
+                              />
+                            </C.Field>
+
+                            <C.Field>
+                              <C.FieldSpan>Número remetente</C.FieldSpan>
+                              <C.Input
+                                value={form.whatsapp_remetente_numero}
+                                onChange={(event) =>
+                                  updateField("whatsapp_remetente_numero", event.target.value)
+                                }
+                                placeholder="5511999999999"
+                              />
+                            </C.Field>
+                          </C.FieldsGrid>
+
+                          <C.ConnectionCard>
+                            <C.ConnectionHeader>
+                              <div>
+                                <C.FieldSpan>Conexão do WhatsApp</C.FieldSpan>
+                                <C.CardText>
+                                  O botão conecta a instância, gera o QR Code quando necessário e,
+                                  após a leitura, passa a funcionar como desconectar.
+                                </C.CardText>
+                              </div>
+
+                              <C.ConnectionActions>
+                                <C.StatusPill $status={whatsappResumo.status}>
+                                  <C.StatusDot $status={whatsappResumo.status} />
+                                  <span>
+                                    {whatsappResumo.status === "open"
+                                      ? "Conectado"
+                                      : whatsappResumo.status === "connecting"
+                                      ? "Aguardando leitura"
+                                      : whatsappResumo.status === "not_found"
+                                      ? "Instância não encontrada"
+                                      : whatsappResumo.status === "close"
+                                      ? "Desconectado"
+                                      : "Sem status"}
+                                  </span>
+                                </C.StatusPill>
+
+                                {canRestartWhatsApp ? (
+                                  <C.IconButton
+                                    type="button"
+                                    title="Reiniciar conexão"
+                                    aria-label="Reiniciar conexão"
+                                    onClick={handleRestartWhatsApp}
+                                    disabled={whatsAppState.loading}
+                                  >
+                                    ↻
+                                  </C.IconButton>
+                                ) : null}
+
+                                <C.PrimaryInlineButton
+                                  type="button"
+                                  onClick={
+                                    isWhatsAppConnected
+                                      ? handleDisconnectWhatsApp
+                                      : handleConnectWhatsApp
+                                  }
+                                  disabled={whatsAppState.loading}
+                                >
+                                  {whatsAppState.loading
+                                    ? "Processando..."
+                                    : isWhatsAppConnected
+                                    ? "Desconectar"
+                                    : "Conectar"}
+                                </C.PrimaryInlineButton>
+                              </C.ConnectionActions>
+                            </C.ConnectionHeader>
+
+                            <C.InfoGrid>
+                              <C.InfoCard>
+                                <C.InfoLabel>Instância</C.InfoLabel>
+                                <C.InfoValue>{whatsappResumo.instanceName}</C.InfoValue>
+                              </C.InfoCard>
+                              <C.InfoCard>
+                                <C.InfoLabel>Remetente</C.InfoLabel>
+                                <C.InfoValue>{whatsappResumo.remetenteNumero}</C.InfoValue>
+                              </C.InfoCard>
+                            </C.InfoGrid>
+
+                            {whatsAppState.image || whatsAppState.pairingCode ? (
+                              <C.QrCard>
+                                <C.InfoLabel>Escaneie para conectar</C.InfoLabel>
+                                {whatsAppState.image ? (
+                                  <C.QrImage
+                                    src={whatsAppState.image}
+                                    alt="QR Code do WhatsApp"
+                                  />
+                                ) : null}
+                                {whatsAppState.pairingCode ? (
+                                  <C.CardText>
+                                    Código de pareamento: {whatsAppState.pairingCode}
+                                  </C.CardText>
+                                ) : null}
+                              </C.QrCard>
+                            ) : null}
+                          </C.ConnectionCard>
+                        </>
                       ) : null}
 
-                      <C.FieldsGrid>
-                        <C.Field>
-                          <C.FieldSpan>Mensagem padrão do boleto</C.FieldSpan>
-                          <C.Textarea
-                            value={form.whatsapp_mensagem_boleto_padrao}
-                            onChange={(event) =>
-                              updateField("whatsapp_mensagem_boleto_padrao", event.target.value)
-                            }
-                            placeholder="Use {nome}, {titulo_id} e {boletos}"
-                          />
-                        </C.Field>
+                      {activeMensagemTab === "mensagens" ? (
+                        <>
+                          <C.ToggleList>
+                            <C.ToggleRow>
+                              <C.Checkbox
+                                type="checkbox"
+                                checked={form.whatsapp_ativo}
+                                onChange={(event) =>
+                                  updateField("whatsapp_ativo", event.target.checked)
+                                }
+                              />
+                              <span>Ativar envio de mensagens por WhatsApp nesta filial</span>
+                            </C.ToggleRow>
 
-                        <C.Field>
-                          <C.FieldSpan>Mensagem padrão do PIX</C.FieldSpan>
-                          <C.Textarea
-                            value={form.whatsapp_mensagem_pix_padrao}
-                            onChange={(event) =>
-                              updateField("whatsapp_mensagem_pix_padrao", event.target.value)
-                            }
-                            placeholder="Use {nome}, {titulo_id}, {parcela}, {valor}, {vencimento} e {pix_copia_cola}"
-                          />
-                        </C.Field>
-                      </C.FieldsGrid>
+                            <C.ToggleRow>
+                              <C.Checkbox
+                                type="checkbox"
+                                checked={form.whatsapp_auto_enviar_boleto_venda}
+                                onChange={(event) =>
+                                  updateField(
+                                    "whatsapp_auto_enviar_boleto_venda",
+                                    event.target.checked
+                                  )
+                                }
+                              />
+                              <span>Sugerir envio de boletos ao concluir uma venda</span>
+                            </C.ToggleRow>
+
+                            <C.ToggleRow>
+                              <C.Checkbox
+                                type="checkbox"
+                                checked={form.whatsapp_auto_enviar_pix_venda}
+                                onChange={(event) =>
+                                  updateField(
+                                    "whatsapp_auto_enviar_pix_venda",
+                                    event.target.checked
+                                  )
+                                }
+                              />
+                              <span>Sugerir envio de PIX ao concluir uma venda</span>
+                            </C.ToggleRow>
+                          </C.ToggleList>
+
+                          <C.FieldsGrid>
+                            <C.Field>
+                              <C.FieldSpan>Mensagem padrão do boleto</C.FieldSpan>
+                              <C.Textarea
+                                value={form.whatsapp_mensagem_boleto_padrao}
+                                onChange={(event) =>
+                                  updateField("whatsapp_mensagem_boleto_padrao", event.target.value)
+                                }
+                                placeholder="Use {nome}, {titulo_id} e {boletos}"
+                              />
+                            </C.Field>
+
+                            <C.Field>
+                              <C.FieldSpan>Mensagem padrão do PIX</C.FieldSpan>
+                              <C.Textarea
+                                value={form.whatsapp_mensagem_pix_padrao}
+                                onChange={(event) =>
+                                  updateField("whatsapp_mensagem_pix_padrao", event.target.value)
+                                }
+                                placeholder="Use {nome}, {titulo_id}, {parcela}, {valor}, {vencimento} e {pix_copia_cola}"
+                              />
+                            </C.Field>
+                          </C.FieldsGrid>
+                        </>
+                      ) : null}
                     </C.SectionBody>
                   ) : null}
                 </C.Card>
@@ -678,116 +695,6 @@ export const ConfiguracaoFiscal = () => {
                   </C.PrimaryButton>
                 </C.ActionRow>
               </C.Form>
-
-              <C.Aside>
-                <C.StatusCard>
-                  <C.CardHeader>
-                    <C.CardTitle>Prontidão da emitente</C.CardTitle>
-                    <C.CardText>
-                      Antes de emitir NF-e, a pessoa vinculada a filial precisa atender os
-                      dados mínimos fiscais e de endereço.
-                    </C.CardText>
-                  </C.CardHeader>
-
-                  <C.StatusBadge $ok={emitenteOk}>
-                    {emitenteOk ? "Emitente pronta para NF-e" : "Pendências para corrigir"}
-                  </C.StatusBadge>
-
-                  <C.Checklist>
-                    {emitenteOk ? (
-                      <li>CNPJ, IE ou ISENTO, e endereço principal estão preenchidos.</li>
-                    ) : (
-                      pendenciasEmitente.map((item) => <li key={item}>{item}</li>)
-                    )}
-                  </C.Checklist>
-                </C.StatusCard>
-
-                {/* <C.Card>
-                  <C.CardHeader>
-                    <C.CardTitle>Modelo adotado</C.CardTitle>
-                    <C.CardText>
-                      `tenant` fica leve. A pessoa concentra os dados cadastrais da filial
-                      e esta pagina guarda apenas o que realmente e configuracao fiscal.
-                    </C.CardText>
-                  </C.CardHeader>
-                </C.Card> */}
-
-                <C.Card>
-                  <C.CardHeader>
-                    <C.CardTitle>Integração de contas</C.CardTitle>
-                    <C.CardText>
-                      O gateway fica separado da emissão fiscal, mas usa a mesma filial ativa
-                      e o mesmo padrão de segurança.
-                    </C.CardText>
-                  </C.CardHeader>
-
-                  <C.InfoGrid>
-                    <C.InfoCard>
-                      <C.InfoLabel>Status</C.InfoLabel>
-                      <C.InfoValue>
-                        {contasResumo.gateway_ativo ? "Integração ativa" : "Integração inativa"}
-                      </C.InfoValue>
-                    </C.InfoCard>
-                    <C.InfoCard>
-                      <C.InfoLabel>Provider</C.InfoLabel>
-                      <C.InfoValue>{contasResumo.provider}</C.InfoValue>
-                    </C.InfoCard>
-                    <C.InfoCard>
-                      <C.InfoLabel>Ambiente</C.InfoLabel>
-                      <C.InfoValue>
-                        {contasResumo.ambiente === "production" ? "Produção" : "Sandbox"}
-                      </C.InfoValue>
-                    </C.InfoCard>
-                    <C.InfoCard>
-                      <C.InfoLabel>API key</C.InfoLabel>
-                      <C.InfoValue>
-                        {contasResumo.apiKeyConfigurada
-                          ? contasResumo.apiKeyMasked
-                          : "Não configurada"}
-                      </C.InfoValue>
-                    </C.InfoCard>
-                    <C.InfoCard>
-                      <C.InfoLabel>Webhook</C.InfoLabel>
-                      <C.InfoValue>
-                        {contasResumo.webhookConfigurado
-                          ? contasResumo.webhookMasked
-                          : "Não configurado"}
-                      </C.InfoValue>
-                    </C.InfoCard>
-                  </C.InfoGrid>
-                </C.Card>
-
-                <C.Card>
-                  <C.CardHeader>
-                    <C.CardTitle>Mensagens</C.CardTitle>
-                    <C.CardText>
-                      O WhatsApp da filial usa uma instância dedicada e modelos prontos para
-                      cobrança.
-                    </C.CardText>
-                  </C.CardHeader>
-
-                  <C.InfoGrid>
-                    <C.InfoCard>
-                      <C.InfoLabel>Status</C.InfoLabel>
-                      <C.InfoValue>
-                        {whatsappResumo.ativo ? "WhatsApp ativo" : "WhatsApp inativo"}
-                      </C.InfoValue>
-                    </C.InfoCard>
-                    <C.InfoCard>
-                      <C.InfoLabel>Provider</C.InfoLabel>
-                      <C.InfoValue>{whatsappResumo.provider}</C.InfoValue>
-                    </C.InfoCard>
-                    <C.InfoCard>
-                      <C.InfoLabel>Instância</C.InfoLabel>
-                      <C.InfoValue>{whatsappResumo.instanceName}</C.InfoValue>
-                    </C.InfoCard>
-                    <C.InfoCard>
-                      <C.InfoLabel>Conexão</C.InfoLabel>
-                      <C.InfoValue>{whatsappResumo.status}</C.InfoValue>
-                    </C.InfoCard>
-                  </C.InfoGrid>
-                </C.Card>
-              </C.Aside>
             </C.Layout>
           )}
         </C.Body>

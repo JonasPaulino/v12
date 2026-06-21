@@ -66,13 +66,9 @@ export const IntroText = styled.p`
 
 export const Layout = styled.div`
   display: grid;
-  grid-template-columns: minmax(0, 1.65fr) minmax(300px, 0.95fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 18px;
   align-items: start;
-
-  @media (max-width: 1120px) {
-    grid-template-columns: 1fr;
-  }
 `;
 
 export const Form = styled.form`
@@ -94,6 +90,26 @@ export const TabButton = styled.button`
     ${({ theme, $active }) => ($active ? theme.colors.primary : theme.colors.border)};
   background: ${({ theme, $active }) =>
     $active ? "rgba(11, 95, 255, 0.1)" : theme.colors.surface};
+  color: ${({ theme, $active }) =>
+    $active ? theme.colors.primaryStrong : theme.colors.textSoft};
+  font-weight: 700;
+  cursor: pointer;
+`;
+
+export const SubTabs = styled.div`
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+`;
+
+export const SubTabButton = styled.button`
+  height: 38px;
+  padding: 0 16px;
+  border-radius: ${({ theme }) => theme.radius.pill};
+  border: 1px solid
+    ${({ theme, $active }) => ($active ? theme.colors.primary : theme.colors.border)};
+  background: ${({ theme, $active }) =>
+    $active ? "rgba(11, 95, 255, 0.08)" : theme.colors.surface};
   color: ${({ theme, $active }) =>
     $active ? theme.colors.primaryStrong : theme.colors.textSoft};
   font-weight: 700;
@@ -319,6 +335,117 @@ export const CertificateBox = styled.div`
   border: 1px dashed ${({ theme }) => theme.colors.border};
   border-radius: ${({ theme }) => theme.radius.md};
   background: rgba(248, 251, 255, 0.92);
+`;
+
+export const ConnectionCard = styled.div`
+  display: grid;
+  gap: 18px;
+  padding: 18px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radius.md};
+  background: rgba(248, 251, 255, 0.72);
+`;
+
+export const ConnectionHeader = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+
+  @media (max-width: 760px) {
+    flex-direction: column;
+  }
+`;
+
+export const ConnectionActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+`;
+
+export const StatusPill = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: ${({ theme }) => theme.radius.pill};
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  background: ${({ $status }) =>
+    $status === "open"
+      ? "rgba(31, 157, 106, 0.1)"
+      : $status === "connecting"
+      ? "rgba(214, 145, 24, 0.12)"
+      : "rgba(226, 232, 240, 0.72)"};
+  color: ${({ theme }) => theme.colors.text};
+  font-weight: 700;
+`;
+
+export const StatusDot = styled.span`
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: ${({ theme, $status }) =>
+    $status === "open"
+      ? theme.colors.success
+      : $status === "connecting"
+      ? "#d69118"
+      : theme.colors.textSoft};
+  flex: 0 0 10px;
+`;
+
+export const IconButton = styled.button`
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: 999px;
+  background: ${({ theme }) => theme.colors.surface};
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 1.1rem;
+  cursor: pointer;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.68;
+  }
+`;
+
+export const PrimaryInlineButton = styled.button`
+  min-width: 148px;
+  height: 42px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: ${({ theme }) => theme.radius.pill};
+  background: linear-gradient(135deg, #0b5fff 0%, #083b9a 100%);
+  color: #ffffff;
+  font-weight: 700;
+  cursor: pointer;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.68;
+  }
+`;
+
+export const QrCard = styled.div`
+  display: grid;
+  place-items: center;
+  gap: 12px;
+  padding: 18px;
+  border: 1px dashed ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radius.md};
+  background: #ffffff;
+  text-align: center;
+`;
+
+export const QrImage = styled.img`
+  width: 220px;
+  height: 220px;
+  object-fit: contain;
 `;
 
 export const FileInput = styled.input`
