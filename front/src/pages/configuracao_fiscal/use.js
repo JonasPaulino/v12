@@ -664,6 +664,7 @@ export const useConfiguracaoFiscalPage = () => {
         title: "Instância excluída",
         text: "A instância do WhatsApp foi removida com sucesso.",
         icon: "success",
+        confirmButtonText: "OK",
       });
     } catch (error) {
       showAlert({
