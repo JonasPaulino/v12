@@ -482,11 +482,7 @@ export const ConfiguracaoFiscal = () => {
                   {activeTab === "mensagens" ? (
                     <C.SectionBody>
                       <C.CardHeader>
-                        <C.CardTitle>WhatsApp da filial</C.CardTitle>
-                        <C.CardText>
-                          Configure a instância da Evolution API para enviar boletos e PIX pelo
-                          WhatsApp usando o cadastro da própria filial.
-                        </C.CardText>
+                        <C.CardTitle>Conexão do WhatsApp</C.CardTitle>
                       </C.CardHeader>
 
                       <C.SubTabs>
@@ -543,21 +539,6 @@ export const ConfiguracaoFiscal = () => {
                               </div>
 
                               <C.ConnectionActions>
-                                <C.StatusPill $status={whatsappResumo.status}>
-                                  <C.StatusDot $status={whatsappResumo.status} />
-                                  <span>
-                                    {whatsappResumo.status === "open"
-                                      ? "Conectado"
-                                      : whatsappResumo.status === "connecting"
-                                      ? "Aguardando leitura"
-                                      : whatsappResumo.status === "not_found"
-                                      ? "Instância não encontrada"
-                                      : whatsappResumo.status === "close"
-                                      ? "Desconectado"
-                                      : "Sem status"}
-                                  </span>
-                                </C.StatusPill>
-
                                 {canRestartWhatsApp ? (
                                   <C.IconButton
                                     type="button"
@@ -594,8 +575,21 @@ export const ConfiguracaoFiscal = () => {
                                 <C.InfoValue>{whatsappResumo.instanceName}</C.InfoValue>
                               </C.InfoCard>
                               <C.InfoCard>
-                                <C.InfoLabel>Remetente</C.InfoLabel>
-                                <C.InfoValue>{whatsappResumo.remetenteNumero}</C.InfoValue>
+                                <C.InfoLabel>Status</C.InfoLabel>
+                                <C.StatusPill $status={whatsappResumo.status}>
+                                  <C.StatusDot $status={whatsappResumo.status} />
+                                  <span>
+                                    {whatsappResumo.status === "open"
+                                      ? "Conectado"
+                                      : whatsappResumo.status === "connecting"
+                                      ? "Aguardando leitura"
+                                      : whatsappResumo.status === "not_found"
+                                      ? "Instância não encontrada"
+                                      : whatsappResumo.status === "close"
+                                      ? "Desconectado"
+                                      : "Sem status"}
+                                  </span>
+                                </C.StatusPill>
                               </C.InfoCard>
                             </C.InfoGrid>
 
