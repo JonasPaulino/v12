@@ -10,6 +10,7 @@ import verificarToken from "./middleware/authMiddleware.js";
 import { withTenantContext } from "./middleware/withTenantContext.js";
 import authRoutes from "./routes/authRoutes.js";
 import tenantRoutes from "./routes/tenantRoutes.js";
+import tenantSetupRoutes from "./routes/tenantSetupRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
 import usuarioRoutes from "./routes/usuarioRoutes.js";
 import produtoRoutes from "./routes/produtoRoutes.js";
@@ -19,6 +20,7 @@ import financeiroRoutes from "./routes/financeiroRoutes.js";
 import configuracaoFiscalRoutes from "./routes/configuracaoFiscalRoutes.js";
 import paymentIntegrationRoutes from "./routes/paymentIntegrationRoutes.js";
 import messageIntegrationRoutes from "./routes/messageIntegrationRoutes.js";
+import requireMaster from "./middleware/requireMaster.js";
 
 dotenv.config();
 
@@ -60,6 +62,7 @@ const loginLimiter = rateLimit({
 app.use("/auth/login", loginLimiter);
 app.use("/auth", authRoutes);
 app.use("/tenant", verificarToken, tenantRoutes);
+app.use("/tenant-setup", verificarToken, requireMaster, tenantSetupRoutes);
 app.use("/integracoes/pagamentos", paymentIntegrationRoutes);
 
 const privateRouter = express.Router();

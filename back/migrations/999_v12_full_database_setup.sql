@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS usuario (
   usuario_senha TEXT NOT NULL,
   usuario_ativo BOOLEAN NOT NULL DEFAULT TRUE,
   usuario_primeiro_login BOOLEAN NOT NULL DEFAULT FALSE,
+  usuario_master BOOLEAN NOT NULL DEFAULT FALSE,
   usuario_excluido BOOLEAN NOT NULL DEFAULT FALSE,
   criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   atualizado_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -113,6 +114,7 @@ INSERT INTO usuario (
   usuario_senha,
   usuario_ativo,
   usuario_primeiro_login,
+  usuario_master,
   usuario_excluido
 )
 VALUES (
@@ -124,6 +126,7 @@ VALUES (
   '5c5b84bfe8ae37b05c78de6ded7f2f83:9d2cc182b6c2ea85f335fffb3542cb3316f7fcf35eebe3a668b49edf191bc5254603c1818db124b78ac34db2c557f0385340774c3b342a663ebf13902b89615a',
   TRUE,
   FALSE,
+  TRUE,
   FALSE
 )
 ON CONFLICT (usuario_id) DO UPDATE
@@ -135,6 +138,7 @@ SET
   usuario_senha = EXCLUDED.usuario_senha,
   usuario_ativo = EXCLUDED.usuario_ativo,
   usuario_primeiro_login = EXCLUDED.usuario_primeiro_login,
+  usuario_master = EXCLUDED.usuario_master,
   usuario_excluido = EXCLUDED.usuario_excluido;
 
 SELECT setval('usuario_usuario_id_seq', GREATEST((SELECT MAX(usuario_id) FROM usuario), 1));
@@ -1420,3 +1424,14 @@ WHERE NOT EXISTS (
   FROM message.tenant_configuracao_whatsapp cfg
   WHERE cfg.tenant_id = t.tenant_id
 );
+
+
+-- =====================================================================
+-- 015_usuario_master_onboarding.sql
+-- =====================================================================
+ALTER TABLE usuario
+  ADD COLUMN IF NOT EXISTS usuario_master BOOLEAN NOT NULL DEFAULT FALSE;
+
+UPDATE usuario
+SET usuario_master = TRUE
+WHERE usuario_id = 1;

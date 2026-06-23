@@ -1,17 +1,22 @@
 import React from "react";
-import { MdExitToApp, MdKeyboardArrowDown } from "react-icons/md";
+import { MdExitToApp, MdKeyboardArrowDown, MdOutlineBusiness } from "react-icons/md";
 import * as C from "./style";
 import { useProfileActions, useToggleOptions, useUser } from "./use";
 
 const ProfileOptions = ({ open = true }) => {
   const { isOpen, toggleOptions, optionsContainerRef } = useToggleOptions();
-  const { handleLogout } = useProfileActions();
+  const { handleLogout, handleOpenTenantSetup } = useProfileActions();
   const user = useUser();
 
   return (
     <C.Container ref={optionsContainerRef}>
       {isOpen && (
         <C.Options>
+          {user.isMaster ? (
+            <C.OptionButton onClick={handleOpenTenantSetup}>
+              <MdOutlineBusiness /> Cadastrar empresa
+            </C.OptionButton>
+          ) : null}
           <C.OptionButton onClick={handleLogout}>
             <MdExitToApp /> Sair
           </C.OptionButton>

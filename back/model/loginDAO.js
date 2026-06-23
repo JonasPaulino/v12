@@ -11,7 +11,8 @@ class LoginDAO {
         usuario_username,
         usuario_senha,
         usuario_ativo,
-        usuario_primeiro_login
+        usuario_primeiro_login,
+        usuario_master
       FROM usuario
       WHERE
         usuario_excluido = FALSE
@@ -35,7 +36,8 @@ class LoginDAO {
         usuario_email,
         usuario_username,
         usuario_ativo,
-        usuario_primeiro_login
+        usuario_primeiro_login,
+        usuario_master
       FROM usuario
       WHERE usuario_id = $1
         AND usuario_excluido = FALSE
@@ -152,11 +154,27 @@ class LoginDAO {
         usuario_email,
         usuario_username,
         usuario_ativo,
-        usuario_primeiro_login
+        usuario_primeiro_login,
+        usuario_master
     `;
 
     const { rows } = await client.query(sql, [usuarioId, senhaHash]);
     return rows[0] || null;
+  }
+
+  static async usuarioEhMaster(client, usuarioId) {
+    const { rows } = await client.query(
+      `
+        SELECT usuario_master
+        FROM usuario
+        WHERE usuario_id = $1
+          AND usuario_excluido = FALSE
+        LIMIT 1
+      `,
+      [usuarioId]
+    );
+
+    return rows[0]?.usuario_master === true;
   }
 }
 

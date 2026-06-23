@@ -1,9 +1,9 @@
-Coloque aqui os schemas XML da NF-e usados pela ACBrLib.
+Esta pasta virou apenas um apoio opcional.
 
-Estrutura recomendada:
+A estrutura principal agora fica no proprio pacote da lib:
 
-- `resources/schemas/NFe/`
-- `resources/schemas/PL_009_V4/`
+- `lib/ACBrLibNFE/dep/Schemas/`
+- `lib/ACBrLibNFE/dep/Schemas/NFe/`
 
 O caminho informado em `ACBRLIB_SCHEMA_PATH` deve apontar para a pasta raiz
 que contem os subdiretorios de schemas distribuidos com a ACBrLib.

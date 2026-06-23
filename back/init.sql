@@ -9,3 +9,7 @@
 \i /docker-entrypoint-initdb.d/009_financeiro_baixa_historico.sql
 \i /docker-entrypoint-initdb.d/010_configuracao_gateway.sql
 \i /docker-entrypoint-initdb.d/011_gateway_config_payments_schema.sql
+\i /docker-entrypoint-initdb.d/012_produto_unidade_padrao_simples.sql
+\i /docker-entrypoint-initdb.d/013_condicao_boleto_venda.sql
+\i /docker-entrypoint-initdb.d/014_message_whatsapp_config.sql
+\i /docker-entrypoint-initdb.d/015_usuario_master_onboarding.sql

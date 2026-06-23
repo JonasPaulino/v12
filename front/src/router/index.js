@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useContext } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthMiddleware } from "middleware";
+import { AppContext } from "context";
 import PageWrapper from "./PageWrapper";
 import { Login } from "pages/login";
 import { Dashboard } from "pages/dashboard";
@@ -11,7 +12,18 @@ import { Venda } from "pages/venda";
 import { Financeiro } from "pages/financeiro";
 import { ConfiguracaoFiscal } from "pages/configuracao_fiscal";
 import { Nfe } from "pages/nfe";
+import { TenantSetup } from "pages/tenant_setup";
 import { NotFound } from "pages/404";
+
+const MasterOnly = ({ children }) => {
+  const { user } = useContext(AppContext);
+
+  if (!user?.usuario_master) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return children;
+};
 
 export const RouteApp = () => (
   <BrowserRouter>
@@ -79,6 +91,18 @@ export const RouteApp = () => (
         }
       />
       <Route path="/configuracao-fiscal" element={<Navigate to="/configuracao" replace />} />
+      <Route
+        path="/filiais/nova"
+        element={
+          <AuthMiddleware>
+            <MasterOnly>
+              <PageWrapper title="Cadastrar empresa">
+                <TenantSetup />
+              </PageWrapper>
+            </MasterOnly>
+          </AuthMiddleware>
+        }
+      />
       <Route
         path="/nfe"
         element={

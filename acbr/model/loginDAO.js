@@ -29,6 +29,21 @@ class LoginDAO {
 
     return !!rows[0];
   }
+
+  static async usuarioEhMaster(client, usuarioId) {
+    const { rows } = await client.query(
+      `
+        SELECT usuario_master
+        FROM usuario
+        WHERE usuario_id = $1
+          AND usuario_excluido = FALSE
+        LIMIT 1
+      `,
+      [usuarioId]
+    );
+
+    return rows[0]?.usuario_master === true;
+  }
 }
 
 export default LoginDAO;

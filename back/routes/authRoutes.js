@@ -26,6 +26,7 @@ const buildPublicUser = (usuario) => ({
   usuario_email: usuario.usuario_email,
   usuario_username: usuario.usuario_username,
   usuario_primeiro_login: !!usuario.usuario_primeiro_login,
+  usuario_master: !!usuario.usuario_master,
 });
 
 const buildTenantPayload = (tenant) => ({

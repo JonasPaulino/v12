@@ -42,6 +42,7 @@ export const useUser = () => {
     name: user?.usuario_nome || "",
     email: user?.usuario_email || "",
     shortName: getFirstName(user?.usuario_nome || ""),
+    isMaster: !!user?.usuario_master,
   };
 };
 
@@ -59,5 +60,9 @@ export const useProfileActions = () => {
     navigate("/login", { replace: true });
   };
 
-  return { handleLogout };
+  const handleOpenTenantSetup = () => {
+    navigate("/filiais/nova");
+  };
+
+  return { handleLogout, handleOpenTenantSetup };
 };
