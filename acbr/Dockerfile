@@ -1,6 +1,17 @@
-FROM node:20-alpine
+FROM node:20-bookworm-slim
 
 WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  xvfb \
+  xauth \
+  openssl \
+  libxml2 \
+  libgtk2.0-0 \
+  ca-certificates \
+  fonts-liberation \
+  && rm -rf /var/lib/apt/lists/* \
+  && if [ ! -e /usr/lib/libxml2.so ] && [ -e /usr/lib/x86_64-linux-gnu/libxml2.so.2 ]; then ln -s /usr/lib/x86_64-linux-gnu/libxml2.so.2 /usr/lib/libxml2.so; fi
 
 COPY package*.json ./
 RUN npm install --omit=dev

@@ -433,8 +433,8 @@ class NfeDAO {
           pvi.valor_total,
           pf.ncm,
           pf.cest,
-          pf.cfop_padrao_venda_dentro_uf,
-          pf.cfop_padrao_venda_fora_uf,
+          pf.cfop_venda_interna AS cfop_padrao_venda_dentro_uf,
+          pf.cfop_venda_interestadual AS cfop_padrao_venda_fora_uf,
           pf.origem_mercadoria
         FROM pedido_venda_item pvi
         LEFT JOIN produto_fiscal pf ON pf.produto_id = pvi.produto_id

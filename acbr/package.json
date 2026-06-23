@@ -10,6 +10,7 @@
     "migrate": "sh ./scripts/run_migrations.sh"
   },
   "dependencies": {
+    "@projetoacbr/acbrlib-nfe-node": "^1.0.11",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",

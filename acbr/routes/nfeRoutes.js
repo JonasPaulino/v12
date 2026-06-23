@@ -3,13 +3,13 @@ import NfeDAO from "../model/nfeDAO.js";
 import {
   AcbrLibProvider,
   AcbrLibNotConfiguredError,
-  AcbrLibNotImplementedError,
+  AcbrLibIntegrationError,
 } from "../providers/acbrlib/client.js";
 
 const router = express.Router();
 
 const isProviderStubError = (error) =>
-  error instanceof AcbrLibNotConfiguredError || error instanceof AcbrLibNotImplementedError;
+  error instanceof AcbrLibNotConfiguredError || error instanceof AcbrLibIntegrationError;
 
 router.get("/listar", async (req, res) => {
   try {
@@ -153,18 +153,21 @@ router.post("/importar-xml", async (req, res) => {
 
 router.post("/:id/processar", async (req, res) => {
   try {
-    await AcbrLibProvider.emitirNfe({
+    const data = await AcbrLibProvider.emitirNfe({
+      client: req.db,
       nfeId: Number(req.params.id),
       tenantId: Number(req.user?.tenantId),
+      userId: Number(req.user?.userId) || null,
     });
 
     return res.json({
       success: true,
-      message: "Integração ACBrLib executada com sucesso.",
+      message: "Emissão enviada para a ACBrLib.",
+      data,
     });
   } catch (error) {
     if (isProviderStubError(error)) {
-      return res.status(501).json({
+      return res.status(error instanceof AcbrLibNotConfiguredError ? 501 : 400).json({
         success: false,
         message: error.message,
       });
@@ -189,13 +192,22 @@ router.post("/:id/consultar-status", async (req, res) => {
     });
 
     try {
-      await AcbrLibProvider.consultarStatus({
+      const response = await AcbrLibProvider.consultarStatus({
+        client: req.db,
         nfeId: Number(req.params.id),
         tenantId: Number(req.user?.tenantId),
+        userId: Number(req.user?.userId) || null,
+      });
+
+      return res.json({
+        success: true,
+        message: "Consulta de status enviada para a integração fiscal.",
+        data,
+        response,
       });
     } catch (error) {
       if (isProviderStubError(error)) {
-        return res.status(501).json({
+        return res.status(error instanceof AcbrLibNotConfiguredError ? 501 : 400).json({
           success: false,
           message: error.message,
           data,
@@ -204,12 +216,6 @@ router.post("/:id/consultar-status", async (req, res) => {
 
       throw error;
     }
-
-    return res.json({
-      success: true,
-      message: "Consulta de status enviada para a integração fiscal.",
-      data,
-    });
   } catch (error) {
     console.error("[acbr:nfe] Falha ao consultar status:", error);
     return res.status(400).json({
@@ -230,14 +236,23 @@ router.post("/:id/cancelar", async (req, res) => {
     });
 
     try {
-      await AcbrLibProvider.cancelarNfe({
+      const response = await AcbrLibProvider.cancelarNfe({
+        client: req.db,
         nfeId: Number(req.params.id),
         tenantId: Number(req.user?.tenantId),
         justificativa: req.body?.justificativa || null,
+        userId: Number(req.user?.userId) || null,
+      });
+
+      return res.json({
+        success: true,
+        message: "Solicitação de cancelamento enviada para a integração fiscal.",
+        data,
+        response,
       });
     } catch (error) {
       if (isProviderStubError(error)) {
-        return res.status(501).json({
+        return res.status(error instanceof AcbrLibNotConfiguredError ? 501 : 400).json({
           success: false,
           message: error.message,
           data,
@@ -246,12 +261,6 @@ router.post("/:id/cancelar", async (req, res) => {
 
       throw error;
     }
-
-    return res.json({
-      success: true,
-      message: "Solicitação de cancelamento enviada para a integração fiscal.",
-      data,
-    });
   } catch (error) {
     console.error("[acbr:nfe] Falha ao cancelar NF-e:", error);
     return res.status(400).json({
