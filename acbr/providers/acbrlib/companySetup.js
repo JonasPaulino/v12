@@ -13,32 +13,73 @@ const execFileAsync = promisify(execFile);
 
 const normalizeBase64 = (value) => String(value || "").trim();
 const normalizeUF = (value) => String(value || "").trim().toUpperCase();
+const onlyDigits = (value) => String(value || "").replace(/\D/g, "");
 
 const extractTagValue = (raw, tag) => {
   const regex = new RegExp(`<${tag}>([^<]+)</${tag}>`, "i");
   return raw.match(regex)?.[1]?.trim() || "";
 };
 
-const parseCertificateSubject = (subject = "") => {
-  const cnpjPatterns = [
-    /2\.16\.76\.1\.3\.3=([0-9]{14})/i,
-    /OID\.2\.16\.76\.1\.3\.3=([0-9]{14})/i,
-    /CNPJ[:= ]+([0-9]{14})/i,
-    /serialNumber=([0-9]{14})/i,
+const extractCnpjFromText = (value = "") => {
+  const patterns = [
+    /2\.16\.76\.1\.3\.3\s*=\s*([0-9./-]{14,18})/i,
+    /OID\.2\.16\.76\.1\.3\.3\s*=\s*([0-9./-]{14,18})/i,
+    /CNPJ\s*[:= ]\s*([0-9./-]{14,18})/i,
+    /serialNumber\s*=\s*([0-9./-]{14,18})/i,
+    /serialNumber\s*=\s*.*?:\s*([0-9./-]{14,18})/i,
+    /othername:[^,\n]*?([0-9./-]{14,18})/i,
   ];
 
+  for (const pattern of patterns) {
+    const rawMatch = value.match(pattern)?.[1];
+    const normalized = onlyDigits(rawMatch);
+
+    if (normalized.length === 14) {
+      return normalized;
+    }
+  }
+
+  return "";
+};
+
+const extractCnpjFromAltName = (altNameText = "") => {
+  const directMatch = extractCnpjFromText(altNameText);
+  if (directMatch) return directMatch;
+
+  const maskedMatches = [...String(altNameText).matchAll(/\b\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}\b/g)]
+    .map((match) => onlyDigits(match[0]))
+    .filter((value) => value.length === 14);
+
+  if (maskedMatches.length === 1) return maskedMatches[0];
+
+  const plainMatches = [...String(altNameText).matchAll(/\b\d{14}\b/g)]
+    .map((match) => match[0])
+    .filter(Boolean);
+
+  if (plainMatches.length === 1) return plainMatches[0];
+
+  return "";
+};
+
+const parseCertificateSubject = ({ subject = "", certificateText = "", altNameText = "" }) => {
   const cnpj =
-    cnpjPatterns.map((pattern) => subject.match(pattern)?.[1]).find(Boolean) || "";
+    extractCnpjFromText(subject) ||
+    extractCnpjFromAltName(altNameText) ||
+    extractCnpjFromText(certificateText) ||
+    "";
 
   const commonName =
     subject.match(/CN=([^,]+)/i)?.[1]?.trim() ||
     subject.match(/CN = ([^,]+)/i)?.[1]?.trim() ||
+    certificateText.match(/Subject:.*?CN\s*=\s*([^,\n/]+)/i)?.[1]?.trim() ||
     "";
 
   return {
     cnpj,
     common_name: commonName,
     subject,
+    certificate_text: certificateText,
+    alt_name_text: altNameText,
   };
 };
 
@@ -117,7 +158,30 @@ const extractCertificatePreview = async ({ certificadoBuffer, certificadoSenha, 
       "RFC2253",
     ]);
 
-    return parseCertificateSubject(subjectOut);
+    const { stdout: textOut } = await execFileAsync("openssl", [
+      "x509",
+      "-in",
+      pemPath,
+      "-noout",
+      "-text",
+    ]);
+
+    const { stdout: altNameOut } = await execFileAsync("openssl", [
+      "x509",
+      "-in",
+      pemPath,
+      "-noout",
+      "-ext",
+      "subjectAltName",
+      "-certopt",
+      "ext_parse,ext_dump",
+    ]).catch(() => ({ stdout: "" }));
+
+    return parseCertificateSubject({
+      subject: subjectOut,
+      certificateText: textOut,
+      altNameText: altNameOut,
+    });
   } finally {
     await fs.rm(workDir, { recursive: true, force: true }).catch(() => {});
   }
@@ -159,6 +223,11 @@ class CompanySetupProvider {
     });
 
     if (!certificate.cnpj) {
+      console.error("[acbr:setup] CNPJ não encontrado no certificado.", {
+        subject: certificate.subject,
+        sample: String(certificate.certificate_text || "").slice(0, 1200),
+        subject_alt_name: String(certificate.alt_name_text || "").slice(0, 1200),
+      });
       throw new Error("Não foi possível identificar o CNPJ no certificado A1.");
     }
 
