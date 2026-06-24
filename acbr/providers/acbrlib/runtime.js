@@ -56,6 +56,11 @@ const writeFile = async (targetPath, content) => {
   await fs.writeFile(targetPath, content);
 };
 
+const isMissingConfigEntryError = (error) =>
+  /Chave .* não existe na Sessão|Chave .* nao existe na Sessao|Sessão .* não existe|Sessao .* nao existe/i.test(
+    String(error?.message || "")
+  );
+
 const setConfigValue = (acbr, sessao, chave, valor, { optional = false } = {}) => {
   try {
     acbr.configGravarValor(sessao, chave, valor);
@@ -69,16 +74,41 @@ const setConfigValue = (acbr, sessao, chave, valor, { optional = false } = {}) =
       });
     }
 
-    if (
-      optional &&
-      /Chave .* não existe na Sessão|Chave .* nao existe na Sessao|Sessão .* não existe|Sessao .* nao existe/i.test(
-        String(error?.message || "")
-      )
-    ) {
+    if (optional && isMissingConfigEntryError(error)) {
       return;
     }
 
     throw error;
+  }
+};
+
+const setConfigValueInSessions = (acbr, sessoes, chave, valor, { optional = false } = {}) => {
+  let lastError = null;
+
+  for (const sessao of sessoes) {
+    try {
+      acbr.configGravarValor(sessao, chave, valor);
+      return;
+    } catch (error) {
+      lastError = error;
+
+      if (ACBR_DEBUG_CONFIG) {
+        console.error("[acbr:config] Falha ao gravar configuração", {
+          sessao,
+          chave,
+          optional,
+          message: String(error?.message || error),
+        });
+      }
+
+      if (!isMissingConfigEntryError(error)) {
+        throw error;
+      }
+    }
+  }
+
+  if (!optional && lastError) {
+    throw lastError;
   }
 };
 
@@ -190,8 +220,13 @@ export const configureAcbrSession = async (session, context) => {
   setConfigValue(acbr, "DFe", "Senha", session.certificadoSenha, { optional: true });
   setConfigValue(acbr, "NFe", "ArquivoPFX", session.certPath, { optional: true });
   setConfigValue(acbr, "NFe", "Senha", session.certificadoSenha, { optional: true });
-  setConfigValue(acbr, "WebService", "UF", context.emitente.uf);
-  setConfigValue(acbr, "WebService", "Ambiente", context.nfe.ambiente_nfe);
+  setConfigValueInSessions(acbr, ["WebService", "WebServices"], "UF", context.emitente.uf);
+  setConfigValueInSessions(
+    acbr,
+    ["WebService", "WebServices"],
+    "Ambiente",
+    context.nfe.ambiente_nfe
+  );
   acbr.configGravar();
 };
 
@@ -213,8 +248,18 @@ export const configureAcbrLookupSession = async (session, { uf, ambiente = "2" }
   setConfigValue(acbr, "DFe", "Senha", session.certificadoSenha, { optional: true });
   setConfigValue(acbr, "NFe", "ArquivoPFX", session.certPath, { optional: true });
   setConfigValue(acbr, "NFe", "Senha", session.certificadoSenha, { optional: true });
-  setConfigValue(acbr, "WebService", "UF", String(uf || "").trim().toUpperCase());
-  setConfigValue(acbr, "WebService", "Ambiente", String(ambiente || "2"));
+  setConfigValueInSessions(
+    acbr,
+    ["WebService", "WebServices"],
+    "UF",
+    String(uf || "").trim().toUpperCase()
+  );
+  setConfigValueInSessions(
+    acbr,
+    ["WebService", "WebServices"],
+    "Ambiente",
+    String(ambiente || "2")
+  );
   acbr.configGravar();
 };
 
