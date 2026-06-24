@@ -4,7 +4,8 @@ import path from "path";
 import ACBrLibConsultaCNPJMT from "./consultaCnpjLib.js";
 import { findIniValue, parseIniLikeResponse } from "./parser.js";
 
-const DEFAULT_CONSULTA_CNPJ_LIB_PATH = "./lib/ACBrLibConsultaCNPJ/MT/libacbrconsultacnpj64.so";
+const DEFAULT_CONSULTA_CNPJ_LIB_PATH =
+  "./lib/ACBrLibConsultaCNPJ/CONSOLE-MT/libacbrconsultacnpj64.so";
 const DEFAULT_PROVIDER = String(process.env.ACBR_CONSULTA_CNPJ_PROVIDER || "1").trim() || "1";
 const ACBR_DEBUG_CONFIG = process.env.ACBR_DEBUG_CONFIG === "true";
 
