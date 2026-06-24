@@ -106,6 +106,17 @@ class ConsultaCnpjProvider {
 
     try {
       acbr.inicializar();
+      let libVersion = "";
+      let openSslInfo = "";
+
+      try {
+        libVersion = acbr.versao();
+      } catch {}
+
+      try {
+        openSslInfo = acbr.openSSLInfo();
+      } catch {}
+
       setConfigValue(acbr, "Principal", "LogPath", logDir);
       setConfigValue(acbr, "Principal", "LogNivel", "4");
       setConfigValue(acbr, "Principal", "TipoResposta", "0");
@@ -129,6 +140,10 @@ class ConsultaCnpjProvider {
         console.error("[acbr:consulta-cnpj] Runtime", {
           provider: DEFAULT_PROVIDER,
           libraryPath,
+          libVersion,
+          openSslInfo,
+          configPath,
+          logDir,
         });
       }
 
@@ -139,6 +154,8 @@ class ConsultaCnpjProvider {
         provider: DEFAULT_PROVIDER,
         cnpj: normalizedCnpj,
         libraryPath,
+        configPath,
+        logDir,
         message: error.message || "Falha ao consultar CNPJ.",
       });
       throw error;

@@ -204,14 +204,22 @@ class CompanySetupProvider {
       cadastro = JSON.parse(String(stdout || "{}").trim() || "{}");
     } catch (error) {
       const stderrMessage = String(error?.stderr || "").trim();
+      const stdoutMessage = String(error?.stdout || "").trim();
       const signal = error?.signal ? ` (signal: ${error.signal})` : "";
+      const exitCode =
+        error?.code !== undefined && error?.code !== null ? ` (exit: ${error.code})` : "";
       const defaultMessage =
         "A ACBrLibConsultaCNPJ falhou durante a consulta no ambiente Linux.";
 
       consultaErro =
-        stderrMessage ||
-        error?.message ||
-        `${defaultMessage}${signal}`;
+        [
+          stderrMessage,
+          stdoutMessage ? `[worker:stdout] ${stdoutMessage}` : "",
+          error?.message ? `[exec] ${error.message}` : "",
+          `${defaultMessage}${signal}${exitCode}`,
+        ]
+          .filter(Boolean)
+          .join("\n");
     }
 
     return {

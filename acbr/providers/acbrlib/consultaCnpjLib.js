@@ -106,6 +106,18 @@ class ACBrLibConsultaCNPJ {
     );
   }
 
+  versao() {
+    return this._callWithBuffer((buffer, bufferSize) =>
+      this.acbrlib.CNPJ_Versao(this.handle, buffer, bufferSize)
+    );
+  }
+
+  openSSLInfo() {
+    return this._callWithBuffer((buffer, bufferSize) =>
+      this.acbrlib.CNPJ_OpenSSLInfo(this.handle, buffer, bufferSize)
+    );
+  }
+
   configGravar() {
     const status = this.acbrlib.CNPJ_ConfigGravar(this.handle, this.arquivoConfig);
     this._checkResult(status);
