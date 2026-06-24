@@ -55,6 +55,23 @@ const writeFile = async (targetPath, content) => {
   await fs.writeFile(targetPath, content);
 };
 
+const setConfigValue = (acbr, sessao, chave, valor, { optional = false } = {}) => {
+  try {
+    acbr.configGravarValor(sessao, chave, valor);
+  } catch (error) {
+    if (
+      optional &&
+      /Chave .* não existe na Sessão|Chave .* nao existe na Sessao/i.test(
+        String(error?.message || "")
+      )
+    ) {
+      return;
+    }
+
+    throw error;
+  }
+};
+
 export const acbrRuntimePaths = {
   libPath: resolveLibPath,
   configDir: baseConfigDir,
@@ -146,20 +163,20 @@ export const configureAcbrSession = async (session, context) => {
 
   acbr.inicializar();
 
-  acbr.configGravarValor("Principal", "LogPath", session.logDir);
-  acbr.configGravarValor("Principal", "LogNivel", "4");
-  acbr.configGravarValor("DFe", "SSLLib", "libOpenSSL");
-  acbr.configGravarValor("DFe", "SSLCryptLib", "cryOpenSSL");
-  acbr.configGravarValor("DFe", "SSLHttpLib", "httpOpenSSL");
-  acbr.configGravarValor("DFe", "SSLXmlSignLib", "xsLibXml2");
-  acbr.configGravarValor("DFe", "FormaEmissao", "teNormal");
-  acbr.configGravarValor("Arquivos", "Salvar", "1");
-  acbr.configGravarValor("Arquivos", "PathSalvar", session.xmlDir);
-  acbr.configGravarValor("Arquivos", "PathSchemas", session.schemaDir);
-  acbr.configGravarValor("Certificado", "ArquivoPFX", session.certPath);
-  acbr.configGravarValor("Certificado", "Senha", session.certificadoSenha);
-  acbr.configGravarValor("WebService", "UF", context.emitente.uf);
-  acbr.configGravarValor("WebService", "Ambiente", context.nfe.ambiente_nfe);
+  setConfigValue(acbr, "Principal", "LogPath", session.logDir);
+  setConfigValue(acbr, "Principal", "LogNivel", "4");
+  setConfigValue(acbr, "DFe", "SSLLib", "libOpenSSL", { optional: true });
+  setConfigValue(acbr, "DFe", "SSLCryptLib", "cryOpenSSL", { optional: true });
+  setConfigValue(acbr, "DFe", "SSLHttpLib", "httpOpenSSL", { optional: true });
+  setConfigValue(acbr, "DFe", "SSLXmlSignLib", "xsLibXml2", { optional: true });
+  setConfigValue(acbr, "DFe", "FormaEmissao", "teNormal", { optional: true });
+  setConfigValue(acbr, "Arquivos", "Salvar", "1");
+  setConfigValue(acbr, "Arquivos", "PathSalvar", session.xmlDir);
+  setConfigValue(acbr, "Arquivos", "PathSchemas", session.schemaDir);
+  setConfigValue(acbr, "Certificado", "ArquivoPFX", session.certPath);
+  setConfigValue(acbr, "Certificado", "Senha", session.certificadoSenha);
+  setConfigValue(acbr, "WebService", "UF", context.emitente.uf);
+  setConfigValue(acbr, "WebService", "Ambiente", context.nfe.ambiente_nfe);
   acbr.configGravar();
 };
 
@@ -167,17 +184,17 @@ export const configureAcbrLookupSession = async (session, { uf, ambiente = "2" }
   const { acbr } = session;
 
   acbr.inicializar();
-  acbr.configGravarValor("Principal", "LogPath", session.logDir);
-  acbr.configGravarValor("Principal", "LogNivel", "4");
-  acbr.configGravarValor("DFe", "SSLLib", "libOpenSSL");
-  acbr.configGravarValor("DFe", "SSLCryptLib", "cryOpenSSL");
-  acbr.configGravarValor("DFe", "SSLHttpLib", "httpOpenSSL");
-  acbr.configGravarValor("DFe", "SSLXmlSignLib", "xsLibXml2");
-  acbr.configGravarValor("Arquivos", "PathSchemas", session.schemaDir);
-  acbr.configGravarValor("Certificado", "ArquivoPFX", session.certPath);
-  acbr.configGravarValor("Certificado", "Senha", session.certificadoSenha);
-  acbr.configGravarValor("WebService", "UF", String(uf || "").trim().toUpperCase());
-  acbr.configGravarValor("WebService", "Ambiente", String(ambiente || "2"));
+  setConfigValue(acbr, "Principal", "LogPath", session.logDir);
+  setConfigValue(acbr, "Principal", "LogNivel", "4");
+  setConfigValue(acbr, "DFe", "SSLLib", "libOpenSSL", { optional: true });
+  setConfigValue(acbr, "DFe", "SSLCryptLib", "cryOpenSSL", { optional: true });
+  setConfigValue(acbr, "DFe", "SSLHttpLib", "httpOpenSSL", { optional: true });
+  setConfigValue(acbr, "DFe", "SSLXmlSignLib", "xsLibXml2", { optional: true });
+  setConfigValue(acbr, "Arquivos", "PathSchemas", session.schemaDir);
+  setConfigValue(acbr, "Certificado", "ArquivoPFX", session.certPath);
+  setConfigValue(acbr, "Certificado", "Senha", session.certificadoSenha);
+  setConfigValue(acbr, "WebService", "UF", String(uf || "").trim().toUpperCase());
+  setConfigValue(acbr, "WebService", "Ambiente", String(ambiente || "2"));
   acbr.configGravar();
 };
 
