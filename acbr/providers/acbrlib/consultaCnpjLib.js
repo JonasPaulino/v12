@@ -1,10 +1,17 @@
 import { createRequire } from "module";
 
 const require = createRequire(import.meta.url);
-const ACBrBuffer = require("@projetoacbr/acbrlib-base-node/dist/src/ACBrBuffer").default;
-const { TAMANHO_PADRAO } = require("@projetoacbr/acbrlib-base-node/dist/src/ACBrBuffer");
+const koffi = require("koffi");
 
 import ACBrLibConsultaCNPJBridge from "./consultaCnpjBridge.js";
+
+const TAMANHO_PADRAO = 16 * 1024;
+
+const decodeCString = (buffer, fallbackSize) => {
+  const nullIndex = buffer.indexOf(0);
+  const endIndex = nullIndex >= 0 ? nullIndex : Math.min(fallbackSize, buffer.length);
+  return buffer.toString("utf8", 0, endIndex);
+};
 
 class ACBrLibConsultaCNPJ {
   constructor(libraryPath, arquivoConfig, chaveCrypt) {
@@ -27,11 +34,31 @@ class ACBrLibConsultaCNPJ {
     throw new Error(message ? `${status}: ${message}` : String(status));
   }
 
-  _callWithBuffer(callback) {
-    const acbrBuffer = new ACBrBuffer(TAMANHO_PADRAO);
-    const status = callback(acbrBuffer);
-    this._checkResult(status);
-    return acbrBuffer.toString();
+  _callWithBuffer(callback, initialSize = TAMANHO_PADRAO) {
+    let size = Number.isFinite(initialSize) && initialSize > 0 ? Math.trunc(initialSize) : TAMANHO_PADRAO;
+
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const buffer = Buffer.alloc(size);
+      const bufferSize = koffi.alloc("long", 1);
+
+      try {
+        koffi.encode(bufferSize, "long", size);
+        const status = callback(buffer, bufferSize);
+        this._checkResult(status);
+
+        const finalSize = Number(koffi.decode(bufferSize, "long")) || size;
+        if (finalSize > buffer.length && attempt === 0) {
+          size = finalSize + 1;
+          continue;
+        }
+
+        return decodeCString(buffer, finalSize);
+      } finally {
+        koffi.free(bufferSize);
+      }
+    }
+
+    throw new Error("Falha ao ler resposta da ACBrLibConsultaCNPJ.");
   }
 
   inicializar() {
@@ -52,8 +79,8 @@ class ACBrLibConsultaCNPJ {
   }
 
   ultimoRetorno() {
-    return this._callWithBuffer((acbrBuffer) =>
-      this.acbrlib.CNPJ_UltimoRetorno(acbrBuffer.getBuffer(), acbrBuffer.getRefTamanhoBuffer())
+    return this._callWithBuffer((buffer, bufferSize) =>
+      this.acbrlib.CNPJ_UltimoRetorno(buffer, bufferSize)
     );
   }
 
@@ -70,8 +97,8 @@ class ACBrLibConsultaCNPJ {
   }
 
   consultar(cnpj) {
-    return this._callWithBuffer((acbrBuffer) =>
-      this.acbrlib.CNPJ_Consultar(cnpj, acbrBuffer.getBuffer(), acbrBuffer.getRefTamanhoBuffer())
+    return this._callWithBuffer((buffer, bufferSize) =>
+      this.acbrlib.CNPJ_Consultar(cnpj, buffer, bufferSize)
     );
   }
 }

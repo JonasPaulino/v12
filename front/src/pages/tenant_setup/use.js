@@ -116,15 +116,12 @@ export const useTenantSetupPage = () => {
     setLoadingPreview(true);
 
     try {
-      const conteudoBase64 = await readFileAsBase64(certificadoFile);
+      const certificadoArrayBuffer = await certificadoFile.arrayBuffer();
       const result = await previewTenantCompany({
+        certificadoArrayBuffer,
+        certificadoSenha: form.certificado_senha,
         uf: form.uf_consulta,
         ambiente: "2",
-        certificado: {
-          nome_arquivo: certificadoFile.name,
-          senha: form.certificado_senha,
-          conteudo_base64: conteudoBase64,
-        },
       });
 
       const companyPreview = result?.data || null;

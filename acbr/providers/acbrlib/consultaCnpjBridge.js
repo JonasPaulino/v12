@@ -8,27 +8,29 @@ class ACBrLibConsultaCNPJBridge {
     const acbr = koffi.load(libraryPath);
 
     this.acbrNativeLib = {
-      CNPJ_Inicializar: acbr.func("CNPJ_Inicializar", "int", ["string", "string"]),
-      CNPJ_Finalizar: acbr.func("CNPJ_Finalizar", "int", []),
-      CNPJ_UltimoRetorno: acbr.func("CNPJ_UltimoRetorno", "int", ["char*", "int*"]),
-      CNPJ_Nome: acbr.func("CNPJ_Nome", "int", ["char*", "int*"]),
-      CNPJ_Versao: acbr.func("CNPJ_Versao", "int", ["char*", "int*"]),
-      CNPJ_OpenSSLInfo: acbr.func("CNPJ_OpenSSLInfo", "int", ["char*", "int*"]),
-      CNPJ_ConfigLer: acbr.func("CNPJ_ConfigLer", "int", ["string"]),
-      CNPJ_ConfigGravar: acbr.func("CNPJ_ConfigGravar", "int", ["string"]),
+      CNPJ_Inicializar: acbr.func("cdecl", "CNPJ_Inicializar", "int", ["string", "string"]),
+      CNPJ_Finalizar: acbr.func("cdecl", "CNPJ_Finalizar", "int", []),
+      CNPJ_UltimoRetorno: acbr.func("cdecl", "CNPJ_UltimoRetorno", "int", ["char*", "long*"]),
+      CNPJ_Nome: acbr.func("cdecl", "CNPJ_Nome", "int", ["char*", "long*"]),
+      CNPJ_Versao: acbr.func("cdecl", "CNPJ_Versao", "int", ["char*", "long*"]),
+      CNPJ_OpenSSLInfo: acbr.func("cdecl", "CNPJ_OpenSSLInfo", "int", ["char*", "long*"]),
+      CNPJ_ConfigLer: acbr.func("cdecl", "CNPJ_ConfigLer", "int", ["string"]),
+      CNPJ_ConfigGravar: acbr.func("cdecl", "CNPJ_ConfigGravar", "int", ["string"]),
       CNPJ_ConfigLerValor: acbr.func(
+        "cdecl",
         "CNPJ_ConfigLerValor",
         "int",
-        ["string", "string", "char*", "int*"]
+        ["string", "string", "char*", "long*"]
       ),
       CNPJ_ConfigGravarValor: acbr.func(
+        "cdecl",
         "CNPJ_ConfigGravarValor",
         "int",
         ["string", "string", "string"]
       ),
-      CNPJ_ConfigImportar: acbr.func("CNPJ_ConfigImportar", "int", ["string"]),
-      CNPJ_ConfigExportar: acbr.func("CNPJ_ConfigExportar", "int", ["char*", "int*"]),
-      CNPJ_Consultar: acbr.func("CNPJ_Consultar", "int", ["string", "char*", "int*"]),
+      CNPJ_ConfigImportar: acbr.func("cdecl", "CNPJ_ConfigImportar", "int", ["string"]),
+      CNPJ_ConfigExportar: acbr.func("cdecl", "CNPJ_ConfigExportar", "int", ["char*", "long*"]),
+      CNPJ_Consultar: acbr.func("cdecl", "CNPJ_Consultar", "int", ["string", "char*", "long*"]),
     };
   }
 
