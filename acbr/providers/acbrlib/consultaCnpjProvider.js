@@ -117,8 +117,29 @@ class ConsultaCnpjProvider {
 
       acbr.configGravar();
 
+      if (ACBR_DEBUG_CONFIG) {
+        console.error("[acbr:consulta-cnpj] Runtime", {
+          provider: DEFAULT_PROVIDER,
+          libraryPath,
+          libName: safeCall(() => acbr.nome()),
+          libVersion: safeCall(() => acbr.versao()),
+          openSslInfo: safeCall(() => acbr.openSslInfo()),
+        });
+      }
+
       const raw = acbr.consultar(normalizedCnpj);
       return parseConsultaResponse(raw);
+    } catch (error) {
+      console.error("[acbr:consulta-cnpj] Falha na consulta", {
+        provider: DEFAULT_PROVIDER,
+        cnpj: normalizedCnpj,
+        libraryPath,
+        libName: safeCall(() => acbr.nome()),
+        libVersion: safeCall(() => acbr.versao()),
+        openSslInfo: safeCall(() => acbr.openSslInfo()),
+        message: error.message || "Falha ao consultar CNPJ.",
+      });
+      throw error;
     } finally {
       try {
         acbr.finalizar();
@@ -126,5 +147,13 @@ class ConsultaCnpjProvider {
     }
   }
 }
+
+const safeCall = (callback) => {
+  try {
+    return callback();
+  } catch (error) {
+    return `falhou: ${String(error?.message || error)}`;
+  }
+};
 
 export default ConsultaCnpjProvider;
