@@ -8,6 +8,7 @@ const ACBrLibNFeMT = require("@projetoacbr/acbrlib-nfe-node/dist/src").default;
 
 const DEFAULT_NFE_LIB_PATH = "./lib/ACBrLibNFE/linux/mt/libacbrnfe64.so";
 const DEFAULT_NFE_SCHEMA_PATH = "./lib/ACBrLibNFE/dep/Schemas";
+const ACBR_DEBUG_CONFIG = process.env.ACBR_DEBUG_CONFIG === "true";
 
 const resolveAppPath = (value, fallback) => path.resolve(process.cwd(), value || fallback);
 const resolveLibPath = () => {
@@ -59,6 +60,15 @@ const setConfigValue = (acbr, sessao, chave, valor, { optional = false } = {}) =
   try {
     acbr.configGravarValor(sessao, chave, valor);
   } catch (error) {
+    if (ACBR_DEBUG_CONFIG) {
+      console.error("[acbr:config] Falha ao gravar configuração", {
+        sessao,
+        chave,
+        optional,
+        message: String(error?.message || error),
+      });
+    }
+
     if (
       optional &&
       /Chave .* não existe na Sessão|Chave .* nao existe na Sessao|Sessão .* não existe|Sessao .* nao existe/i.test(
@@ -174,8 +184,12 @@ export const configureAcbrSession = async (session, context) => {
   setConfigValue(acbr, "Arquivos", "PathSalvar", session.xmlDir, { optional: true });
   setConfigValue(acbr, "Arquivos", "PathSchemas", session.schemaDir, { optional: true });
   setConfigValue(acbr, "Geral", "PathSchemas", session.schemaDir, { optional: true });
-  setConfigValue(acbr, "Certificado", "ArquivoPFX", session.certPath);
-  setConfigValue(acbr, "Certificado", "Senha", session.certificadoSenha);
+  setConfigValue(acbr, "Certificado", "ArquivoPFX", session.certPath, { optional: true });
+  setConfigValue(acbr, "Certificado", "Senha", session.certificadoSenha, { optional: true });
+  setConfigValue(acbr, "DFe", "ArquivoPFX", session.certPath, { optional: true });
+  setConfigValue(acbr, "DFe", "Senha", session.certificadoSenha, { optional: true });
+  setConfigValue(acbr, "NFe", "ArquivoPFX", session.certPath, { optional: true });
+  setConfigValue(acbr, "NFe", "Senha", session.certificadoSenha, { optional: true });
   setConfigValue(acbr, "WebService", "UF", context.emitente.uf);
   setConfigValue(acbr, "WebService", "Ambiente", context.nfe.ambiente_nfe);
   acbr.configGravar();
@@ -193,8 +207,12 @@ export const configureAcbrLookupSession = async (session, { uf, ambiente = "2" }
   setConfigValue(acbr, "DFe", "SSLXmlSignLib", "xsLibXml2", { optional: true });
   setConfigValue(acbr, "Arquivos", "PathSchemas", session.schemaDir, { optional: true });
   setConfigValue(acbr, "Geral", "PathSchemas", session.schemaDir, { optional: true });
-  setConfigValue(acbr, "Certificado", "ArquivoPFX", session.certPath);
-  setConfigValue(acbr, "Certificado", "Senha", session.certificadoSenha);
+  setConfigValue(acbr, "Certificado", "ArquivoPFX", session.certPath, { optional: true });
+  setConfigValue(acbr, "Certificado", "Senha", session.certificadoSenha, { optional: true });
+  setConfigValue(acbr, "DFe", "ArquivoPFX", session.certPath, { optional: true });
+  setConfigValue(acbr, "DFe", "Senha", session.certificadoSenha, { optional: true });
+  setConfigValue(acbr, "NFe", "ArquivoPFX", session.certPath, { optional: true });
+  setConfigValue(acbr, "NFe", "Senha", session.certificadoSenha, { optional: true });
   setConfigValue(acbr, "WebService", "UF", String(uf || "").trim().toUpperCase());
   setConfigValue(acbr, "WebService", "Ambiente", String(ambiente || "2"));
   acbr.configGravar();
