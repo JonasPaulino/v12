@@ -12,6 +12,7 @@ export const TenantSetup = () => {
     step,
     saving,
     form,
+    preview,
     certificateSummary,
     updateField,
     handleSelectCertificado,
@@ -95,6 +96,23 @@ export const TenantSetup = () => {
                     <C.SummaryValue>{certificateSummary.tamanho}</C.SummaryValue>
                   </C.SummaryCard>
                 </C.SummaryGrid>
+
+                {preview ? (
+                  <C.SummaryGrid $columns={3}>
+                    <C.SummaryCard>
+                      <C.SummaryLabel>CNPJ</C.SummaryLabel>
+                      <C.SummaryValue>{preview.cnpj || "--"}</C.SummaryValue>
+                    </C.SummaryCard>
+                    <C.SummaryCard>
+                      <C.SummaryLabel>Nome no certificado</C.SummaryLabel>
+                      <C.SummaryValue>{preview.common_name || "--"}</C.SummaryValue>
+                    </C.SummaryCard>
+                    <C.SummaryCard>
+                      <C.SummaryLabel>Subject</C.SummaryLabel>
+                      <C.SummaryValue>{preview.subject || "--"}</C.SummaryValue>
+                    </C.SummaryCard>
+                  </C.SummaryGrid>
+                ) : null}
 
                 <C.Actions>
                   <C.PrimaryButton type="button" onClick={handleConfirmCertificate}>

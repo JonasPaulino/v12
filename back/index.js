@@ -20,6 +20,7 @@ import financeiroRoutes from "./routes/financeiroRoutes.js";
 import configuracaoFiscalRoutes from "./routes/configuracaoFiscalRoutes.js";
 import paymentIntegrationRoutes from "./routes/paymentIntegrationRoutes.js";
 import messageIntegrationRoutes from "./routes/messageIntegrationRoutes.js";
+import tenantCertificateRoutes from "./routes/tenantCertificateRoutes.js";
 import requireMaster from "./middleware/requireMaster.js";
 
 dotenv.config();
@@ -63,6 +64,7 @@ app.use("/auth/login", loginLimiter);
 app.use("/auth", authRoutes);
 app.use("/tenant", verificarToken, tenantRoutes);
 app.use("/tenant-setup", verificarToken, requireMaster, tenantSetupRoutes);
+app.use("/tenant-certificate", verificarToken, requireMaster, tenantCertificateRoutes);
 app.use("/integracoes/pagamentos", paymentIntegrationRoutes);
 
 const privateRouter = express.Router();

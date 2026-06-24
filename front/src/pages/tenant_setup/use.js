@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSweetAlert } from "context/sweet_alert";
-import { createTenantSetup } from "./api";
+import { createTenantSetup, previewTenantCertificate } from "./api";
 
 const REQUIRED_TITLE = "Este campo é obrigatório.";
 
@@ -49,6 +49,7 @@ export const useTenantSetupPage = () => {
   const [saving, setSaving] = useState(false);
   const [certificadoFile, setCertificadoFile] = useState(null);
   const [form, setForm] = useState(initialForm);
+  const [preview, setPreview] = useState(null);
 
   const updateField = useCallback((field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -81,7 +82,28 @@ export const useTenantSetupPage = () => {
       return;
     }
 
-    setStep(2);
+    try {
+      const conteudoBase64 = await readFileAsBase64(certificadoFile);
+      const result = await previewTenantCertificate({
+        certificadoBase64: conteudoBase64,
+        certificadoSenha: form.certificado_senha,
+      });
+
+      setPreview(result?.data || null);
+      setForm((prev) => ({
+        ...prev,
+        cnpj: result?.data?.cnpj || prev.cnpj,
+        nome_razao: result?.data?.common_name || prev.nome_razao,
+        tenant_nome: prev.tenant_nome || result?.data?.common_name || prev.nome_razao || "",
+      }));
+      setStep(2);
+    } catch (error) {
+      await showAlert({
+        title: "Falha ao ler certificado",
+        text: error?.response?.data?.message || error?.message || "Não foi possível ler o certificado.",
+        icon: "error",
+      });
+    }
   }, [certificadoFile, form.certificado_senha, showAlert]);
 
   const goNextStep = useCallback(async () => {
@@ -251,6 +273,7 @@ export const useTenantSetupPage = () => {
     step,
     saving,
     form,
+    preview,
     certificateSummary,
     updateField,
     handleSelectCertificado,
