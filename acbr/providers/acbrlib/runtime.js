@@ -61,7 +61,7 @@ const setConfigValue = (acbr, sessao, chave, valor, { optional = false } = {}) =
   } catch (error) {
     if (
       optional &&
-      /Chave .* não existe na Sessão|Chave .* nao existe na Sessao/i.test(
+      /Chave .* não existe na Sessão|Chave .* nao existe na Sessao|Sessão .* não existe|Sessao .* nao existe/i.test(
         String(error?.message || "")
       )
     ) {
@@ -170,9 +170,10 @@ export const configureAcbrSession = async (session, context) => {
   setConfigValue(acbr, "DFe", "SSLHttpLib", "httpOpenSSL", { optional: true });
   setConfigValue(acbr, "DFe", "SSLXmlSignLib", "xsLibXml2", { optional: true });
   setConfigValue(acbr, "DFe", "FormaEmissao", "teNormal", { optional: true });
-  setConfigValue(acbr, "Arquivos", "Salvar", "1");
-  setConfigValue(acbr, "Arquivos", "PathSalvar", session.xmlDir);
-  setConfigValue(acbr, "Arquivos", "PathSchemas", session.schemaDir);
+  setConfigValue(acbr, "Arquivos", "Salvar", "1", { optional: true });
+  setConfigValue(acbr, "Arquivos", "PathSalvar", session.xmlDir, { optional: true });
+  setConfigValue(acbr, "Arquivos", "PathSchemas", session.schemaDir, { optional: true });
+  setConfigValue(acbr, "Geral", "PathSchemas", session.schemaDir, { optional: true });
   setConfigValue(acbr, "Certificado", "ArquivoPFX", session.certPath);
   setConfigValue(acbr, "Certificado", "Senha", session.certificadoSenha);
   setConfigValue(acbr, "WebService", "UF", context.emitente.uf);
@@ -190,7 +191,8 @@ export const configureAcbrLookupSession = async (session, { uf, ambiente = "2" }
   setConfigValue(acbr, "DFe", "SSLCryptLib", "cryOpenSSL", { optional: true });
   setConfigValue(acbr, "DFe", "SSLHttpLib", "httpOpenSSL", { optional: true });
   setConfigValue(acbr, "DFe", "SSLXmlSignLib", "xsLibXml2", { optional: true });
-  setConfigValue(acbr, "Arquivos", "PathSchemas", session.schemaDir);
+  setConfigValue(acbr, "Arquivos", "PathSchemas", session.schemaDir, { optional: true });
+  setConfigValue(acbr, "Geral", "PathSchemas", session.schemaDir, { optional: true });
   setConfigValue(acbr, "Certificado", "ArquivoPFX", session.certPath);
   setConfigValue(acbr, "Certificado", "Senha", session.certificadoSenha);
   setConfigValue(acbr, "WebService", "UF", String(uf || "").trim().toUpperCase());
