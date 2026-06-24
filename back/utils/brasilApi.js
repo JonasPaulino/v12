@@ -12,21 +12,83 @@ const pickFirst = (...values) => {
 
 const normalizeInscricaoEstadual = (value) => {
   if (Array.isArray(value)) {
-    return pickFirst(...value);
+    for (const item of value) {
+      if (item && typeof item === "object") {
+        const ie = pickFirst(item.inscricao_estadual, item.ie, item.number, item.valor);
+        if (ie) return ie;
+      } else {
+        const text = cleanText(item);
+        if (text) return text;
+      }
+    }
+
+    return "";
   }
 
   if (value && typeof value === "object") {
-    return pickFirst(value?.inscricao_estadual, value?.ie, value?.number);
+    return pickFirst(
+      value?.inscricao_estadual,
+      value?.ie,
+      value?.number,
+      value?.valor,
+      value?.codigo
+    );
   }
 
   return cleanText(value);
+};
+
+const findInscricaoEstadualByUf = (payload = {}, uf = "") => {
+  const ufNormalized = cleanText(uf).toUpperCase();
+  const candidatos = [
+    payload?.inscricao_estadual,
+    payload?.inscricoes_estaduais,
+    payload?.estabelecimento?.inscricao_estadual,
+    payload?.estabelecimento?.inscricoes_estaduais,
+    payload?.estabelecimento?.ie,
+  ];
+
+  for (const candidato of candidatos) {
+    if (!candidato) continue;
+
+    if (Array.isArray(candidato)) {
+      for (const item of candidato) {
+        if (!item) continue;
+
+        if (typeof item === "object") {
+          const itemUf = cleanText(item.uf || item.estado || item.sigla).toUpperCase();
+          if (ufNormalized && itemUf && itemUf !== ufNormalized) continue;
+
+          const ie = normalizeInscricaoEstadual(item);
+          if (ie) return ie;
+        } else {
+          const ie = cleanText(item);
+          if (ie) return ie;
+        }
+      }
+      continue;
+    }
+
+    if (typeof candidato === "object") {
+      const candidatoUf = cleanText(candidato.uf || candidato.estado || candidato.sigla).toUpperCase();
+      if (ufNormalized && candidatoUf && candidatoUf !== ufNormalized) continue;
+
+      const ie = normalizeInscricaoEstadual(candidato);
+      if (ie) return ie;
+    } else {
+      const ie = cleanText(candidato);
+      if (ie) return ie;
+    }
+  }
+
+  return "";
 };
 
 const mapBrasilApiToEmpresa = (data = {}, cnpjFallback = "") => {
   const cnpj = onlyDigits(data.cnpj || cnpjFallback);
   const razaoSocial = pickFirst(data.razao_social, data.nome, data.nome_empresarial);
   const nomeFantasia = pickFirst(data.nome_fantasia, data.fantasia);
-  const inscricaoEstadual = normalizeInscricaoEstadual(data.inscricoes_estaduais);
+  const inscricaoEstadual = findInscricaoEstadualByUf(data, data.uf);
   const cep = onlyDigits(data.cep);
   const numero = pickFirst(data.numero);
   const complemento = pickFirst(data.complemento, data.complemento_endereco);
