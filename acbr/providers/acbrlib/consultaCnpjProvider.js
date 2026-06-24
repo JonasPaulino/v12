@@ -1,11 +1,10 @@
 import fs from "fs/promises";
 import { existsSync } from "fs";
 import path from "path";
-import ACBrLibConsultaCNPJMT from "./consultaCnpjLib.js";
+import ACBrLibConsultaCNPJ from "./consultaCnpjLib.js";
 import { findIniValue, parseIniLikeResponse } from "./parser.js";
 
-const DEFAULT_CONSULTA_CNPJ_LIB_PATH =
-  "./lib/ACBrLibConsultaCNPJ/CONSOLE-MT/libacbrconsultacnpj64.so";
+const DEFAULT_CONSULTA_CNPJ_LIB_PATH = "./lib/ACBrLibConsultaCNPJ/ST/libacbrconsultacnpj64.so";
 const DEFAULT_PROVIDER = String(process.env.ACBR_CONSULTA_CNPJ_PROVIDER || "1").trim() || "1";
 const ACBR_DEBUG_CONFIG = process.env.ACBR_DEBUG_CONFIG === "true";
 
@@ -94,7 +93,7 @@ class ConsultaCnpjProvider {
     await ensureDir(rootDir);
     await ensureDir(logDir);
 
-    const acbr = new ACBrLibConsultaCNPJMT(libraryPath, configPath, "");
+    const acbr = new ACBrLibConsultaCNPJ(libraryPath, configPath, "");
 
     try {
       acbr.inicializar();

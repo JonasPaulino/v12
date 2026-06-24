@@ -1,81 +1,79 @@
 import { createRequire } from "module";
 
 const require = createRequire(import.meta.url);
-const ACBrLibBaseMT = require("@projetoacbr/acbrlib-base-node/dist/src").default;
 const ACBrBuffer = require("@projetoacbr/acbrlib-base-node/dist/src/ACBrBuffer").default;
 const { TAMANHO_PADRAO } = require("@projetoacbr/acbrlib-base-node/dist/src/ACBrBuffer");
 
-import ACBrLibConsultaCNPJBridgeMT from "./consultaCnpjBridge.js";
+import ACBrLibConsultaCNPJBridge from "./consultaCnpjBridge.js";
 
-class ACBrLibConsultaCNPJMT extends ACBrLibBaseMT {
+class ACBrLibConsultaCNPJ {
   constructor(libraryPath, arquivoConfig, chaveCrypt) {
-    super(new ACBrLibConsultaCNPJBridgeMT(libraryPath).getAcbrNativeLib(), arquivoConfig, chaveCrypt);
+    this.acbrlib = new ACBrLibConsultaCNPJBridge(libraryPath).getAcbrNativeLib();
+    this.arquivoConfig = arquivoConfig;
+    this.chaveCrypt = chaveCrypt;
+    this.initialized = false;
   }
 
-  getAcbrlib() {
-    return super.getAcbrlib();
+  _checkResult(status) {
+    if (status >= 0) return status;
+
+    let message = "";
+    if (this.initialized) {
+      try {
+        message = this.ultimoRetorno();
+      } catch {}
+    }
+
+    throw new Error(message ? `${status}: ${message}` : String(status));
   }
 
-  LIB_Inicializar(handle, configPath, chaveCrypt) {
-    return this.getAcbrlib().CNPJ_Inicializar(handle, configPath, chaveCrypt);
+  _callWithBuffer(callback) {
+    const acbrBuffer = new ACBrBuffer(TAMANHO_PADRAO);
+    const status = callback(acbrBuffer);
+    this._checkResult(status);
+    return acbrBuffer.toString();
   }
 
-  LIB_Finalizar(handle) {
-    return this.getAcbrlib().CNPJ_Finalizar(handle);
+  inicializar() {
+    const status = this.acbrlib.CNPJ_Inicializar(this.arquivoConfig, this.chaveCrypt);
+    if (status === 0) {
+      this.initialized = true;
+    }
+    this._checkResult(status);
+    return status;
   }
 
-  LIB_UltimoRetorno(handle, mensagem, refTamanho) {
-    return this.getAcbrlib().CNPJ_UltimoRetorno(handle, mensagem, refTamanho);
+  finalizar() {
+    if (!this.initialized) return 0;
+    const status = this.acbrlib.CNPJ_Finalizar();
+    this.initialized = false;
+    this._checkResult(status);
+    return status;
   }
 
-  LIB_Nome(handle, nome, refTamanho) {
-    return this.getAcbrlib().CNPJ_Nome(handle, nome, refTamanho);
+  ultimoRetorno() {
+    return this._callWithBuffer((acbrBuffer) =>
+      this.acbrlib.CNPJ_UltimoRetorno(acbrBuffer.getBuffer(), acbrBuffer.getRefTamanhoBuffer())
+    );
   }
 
-  LIB_Versao(handle, versao, refTamanho) {
-    return this.getAcbrlib().CNPJ_Versao(handle, versao, refTamanho);
+  configGravar() {
+    const status = this.acbrlib.CNPJ_ConfigGravar(this.arquivoConfig);
+    this._checkResult(status);
+    return status;
   }
 
-  LIB_ConfigLer(handle, arqConfig) {
-    return this.getAcbrlib().CNPJ_ConfigLer(handle, arqConfig);
-  }
-
-  LIB_ConfigGravar(handle, arqConfig) {
-    return this.getAcbrlib().CNPJ_ConfigGravar(handle, arqConfig);
-  }
-
-  LIB_ConfigLerValor(handle, sessao, chave, valor, refTamanho) {
-    return this.getAcbrlib().CNPJ_ConfigLerValor(handle, sessao, chave, valor, refTamanho);
-  }
-
-  LIB_ConfigGravarValor(handle, sessao, chave, valor) {
-    return this.getAcbrlib().CNPJ_ConfigGravarValor(handle, sessao, chave, valor);
-  }
-
-  LIB_ConfigImportar(handle, arqConfig) {
-    return this.getAcbrlib().CNPJ_ConfigImportar(handle, arqConfig);
-  }
-
-  LIB_ConfigExportar(handle, configuracoes, refTamanho) {
-    return this.getAcbrlib().CNPJ_ConfigExportar(handle, configuracoes, refTamanho);
-  }
-
-  LIB_OpenSSLInfo(handle, configuracoes, refTamanho) {
-    return this.getAcbrlib().CNPJ_OpenSSLInfo(handle, configuracoes, refTamanho);
+  configGravarValor(sessao, chave, valor) {
+    const status = this.acbrlib.CNPJ_ConfigGravarValor(sessao, chave, valor);
+    this._checkResult(status);
+    return status;
   }
 
   consultar(cnpj) {
-    const acbrBuffer = new ACBrBuffer(TAMANHO_PADRAO);
-    const status = this.getAcbrlib().CNPJ_Consultar(
-      this.getHandle(),
-      cnpj,
-      acbrBuffer.getBuffer(),
-      acbrBuffer.getRefTamanhoBuffer()
+    return this._callWithBuffer((acbrBuffer) =>
+      this.acbrlib.CNPJ_Consultar(cnpj, acbrBuffer.getBuffer(), acbrBuffer.getRefTamanhoBuffer())
     );
-
-    this._checkResult(status);
-    return this._processaResult(acbrBuffer);
   }
 }
 
-export default ACBrLibConsultaCNPJMT;
+export default ACBrLibConsultaCNPJ;
