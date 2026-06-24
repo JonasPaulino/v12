@@ -2,7 +2,6 @@ import fs from "fs/promises";
 import path from "path";
 import { execFile } from "child_process";
 import { promisify } from "util";
-import ConsultaCnpjProvider from "./consultaCnpjProvider.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -187,14 +186,32 @@ class CompanySetupProvider {
     let consultaErro = null;
 
     try {
-      cadastro = await ConsultaCnpjProvider.consultar({
+      const workerPath = path.resolve(process.cwd(), "providers", "acbrlib", "consultaCnpjWorker.js");
+      const workerPayload = JSON.stringify({
         cnpj: certificate.cnpj,
         scopeKey,
         uf: normalizedUf,
         ambiente,
       });
+
+      const { stdout } = await execFileAsync(process.execPath, [workerPath, workerPayload], {
+        cwd: process.cwd(),
+        env: process.env,
+        timeout: 30000,
+        maxBuffer: 1024 * 1024,
+      });
+
+      cadastro = JSON.parse(String(stdout || "{}").trim() || "{}");
     } catch (error) {
-      consultaErro = error.message || "Falha ao consultar o cadastro do contribuinte.";
+      const stderrMessage = String(error?.stderr || "").trim();
+      const signal = error?.signal ? ` (signal: ${error.signal})` : "";
+      const defaultMessage =
+        "A ACBrLibConsultaCNPJ falhou durante a consulta no ambiente Linux.";
+
+      consultaErro =
+        stderrMessage ||
+        error?.message ||
+        `${defaultMessage}${signal}`;
     }
 
     return {
