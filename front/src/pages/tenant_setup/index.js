@@ -10,14 +10,12 @@ export const TenantSetup = () => {
   const {
     REQUIRED_TITLE,
     step,
-    loadingPreview,
     saving,
     form,
-    preview,
     certificateSummary,
     updateField,
     handleSelectCertificado,
-    handlePreviewCompany,
+    handleConfirmCertificate,
     goNextStep,
     goPreviousStep,
     handleSubmit,
@@ -36,9 +34,8 @@ export const TenantSetup = () => {
             <C.CardHeader>
               <C.CardTitle>Cadastrar empresa</C.CardTitle>
               <C.CardText>
-                Este fluxo cria uma nova filial do sistema, importa o certificado A1,
-                reaproveita os dados do contribuinte e já entrega um usuário admin para
-                a empresa começar a usar o ERP.
+                Este fluxo cria uma nova filial do sistema, importa o certificado A1
+                e já entrega um usuário admin para a empresa começar a usar o ERP.
               </C.CardText>
             </C.CardHeader>
 
@@ -60,8 +57,8 @@ export const TenantSetup = () => {
             {step === 1 ? (
               <C.Section>
                 <C.Hint>
-                  A primeira etapa lê o certificado A1, extrai o CNPJ e consulta o
-                  cadastro do contribuinte para pré-preencher a nova filial.
+                  Anexe o certificado A1 da empresa e informe a senha para seguir com
+                  o cadastro manual da nova filial.
                 </C.Hint>
 
                 <C.FieldsGrid>
@@ -86,21 +83,9 @@ export const TenantSetup = () => {
                     />
                   </C.Field>
 
-                  <C.Field>
-                    <C.FieldSpan>
-                      UF da consulta
-                      <C.RequiredMark title={REQUIRED_TITLE}>*</C.RequiredMark>
-                    </C.FieldSpan>
-                    <C.Input
-                      value={form.uf_consulta}
-                      onChange={(event) => updateField("uf_consulta", event.target.value.toUpperCase())}
-                      placeholder="Ex.: SP"
-                      maxLength={2}
-                    />
-                  </C.Field>
                 </C.FieldsGrid>
 
-                <C.SummaryGrid>
+                <C.SummaryGrid $columns={2}>
                   <C.SummaryCard>
                     <C.SummaryLabel>Arquivo</C.SummaryLabel>
                     <C.SummaryValue>{certificateSummary.nome_arquivo}</C.SummaryValue>
@@ -109,19 +94,11 @@ export const TenantSetup = () => {
                     <C.SummaryLabel>Tamanho</C.SummaryLabel>
                     <C.SummaryValue>{certificateSummary.tamanho}</C.SummaryValue>
                   </C.SummaryCard>
-                  <C.SummaryCard>
-                    <C.SummaryLabel>CNPJ encontrado</C.SummaryLabel>
-                    <C.SummaryValue>{preview?.certificado?.cnpj || "--"}</C.SummaryValue>
-                  </C.SummaryCard>
                 </C.SummaryGrid>
 
                 <C.Actions>
-                  <C.PrimaryButton
-                    type="button"
-                    onClick={handlePreviewCompany}
-                    disabled={loadingPreview}
-                  >
-                    {loadingPreview ? "Consultando..." : "Ler certificado e consultar"}
+                  <C.PrimaryButton type="button" onClick={handleConfirmCertificate}>
+                    Confirmar certificado
                   </C.PrimaryButton>
                 </C.Actions>
               </C.Section>
@@ -130,8 +107,7 @@ export const TenantSetup = () => {
             {step === 2 ? (
               <C.Section>
                 <C.Hint>
-                  Revise os dados da nova filial. O que vier da consulta pode ser ajustado
-                  antes do cadastro definitivo.
+                  Preencha os dados da nova filial antes do cadastro definitivo.
                 </C.Hint>
 
                 <C.FieldsGrid>
@@ -331,11 +307,8 @@ export const TenantSetup = () => {
 
             <C.Toolbar>
               <C.Hint>
-                {preview?.consulta_erro
-                  ? `Consulta parcial: ${preview.consulta_erro}`
-                  : preview?.empresa?.situacao_cadastro
-                  ? `Situação do cadastro consultado: ${preview.empresa.situacao_cadastro}`
-                  : "Use o certificado da empresa e a UF correta para pré-preencher os dados."}
+                O certificado fica vinculado à filial e os demais dados da empresa são
+                preenchidos manualmente neste cadastro.
               </C.Hint>
 
               <C.Actions>

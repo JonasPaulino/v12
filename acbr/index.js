@@ -6,10 +6,8 @@ import helmet from "helmet";
 
 import corsOptions from "./config/corsOptions.js";
 import verificarToken from "./middleware/authMiddleware.js";
-import requireMaster from "./middleware/requireMaster.js";
 import { withTenantContext } from "./middleware/withTenantContext.js";
 import nfeRoutes from "./routes/nfeRoutes.js";
-import setupRoutes from "./routes/setupRoutes.js";
 
 dotenv.config();
 
@@ -39,12 +37,6 @@ app.get("/healthz", (_req, res) => {
     service: "v12-acbr",
   });
 });
-
-const setupRouter = express.Router();
-setupRouter.use(verificarToken);
-setupRouter.use(requireMaster);
-setupRouter.use("/setup", setupRoutes);
-app.use(setupRouter);
 
 const privateRouter = express.Router();
 privateRouter.use(verificarToken);

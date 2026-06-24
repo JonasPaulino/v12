@@ -178,7 +178,7 @@ export const Hint = styled.p`
 
 export const SummaryGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(${({ $columns = 3 }) => $columns}, minmax(0, 1fr));
   gap: 14px;
 
   @media (max-width: 980px) {

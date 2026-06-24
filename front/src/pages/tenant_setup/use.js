@@ -1,13 +1,12 @@
 import { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSweetAlert } from "context/sweet_alert";
-import { createTenantSetup, previewTenantCompany } from "./api";
+import { createTenantSetup } from "./api";
 
 const REQUIRED_TITLE = "Este campo é obrigatório.";
 
 const initialForm = {
   certificado_senha: "",
-  uf_consulta: "",
   tenant_nome: "",
   nome_razao: "",
   nome_fantasia: "",
@@ -47,11 +46,9 @@ export const useTenantSetupPage = () => {
   const navigate = useNavigate();
   const { showAlert } = useSweetAlert();
   const [step, setStep] = useState(1);
-  const [loadingPreview, setLoadingPreview] = useState(false);
   const [saving, setSaving] = useState(false);
   const [certificadoFile, setCertificadoFile] = useState(null);
   const [form, setForm] = useState(initialForm);
-  const [preview, setPreview] = useState(null);
 
   const updateField = useCallback((field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -65,27 +62,7 @@ export const useTenantSetupPage = () => {
     []
   );
 
-  const fillCompanyData = useCallback((empresa) => {
-    setForm((prev) => ({
-      ...prev,
-      tenant_nome: prev.tenant_nome || empresa.nome_fantasia || empresa.nome_razao || "",
-      nome_razao: empresa.nome_razao || prev.nome_razao,
-      nome_fantasia: empresa.nome_fantasia || prev.nome_fantasia,
-      cnpj: empresa.cnpj || prev.cnpj,
-      inscricao_estadual: empresa.inscricao_estadual || prev.inscricao_estadual,
-      cep: empresa.cep || prev.cep,
-      logradouro: empresa.logradouro || prev.logradouro,
-      numero: empresa.numero || prev.numero,
-      complemento: empresa.complemento || prev.complemento,
-      bairro: empresa.bairro || prev.bairro,
-      cidade: empresa.cidade || prev.cidade,
-      uf: empresa.uf || prev.uf,
-      codigo_ibge: empresa.codigo_ibge || prev.codigo_ibge,
-      pais: empresa.pais || prev.pais || "Brasil",
-    }));
-  }, []);
-
-  const handlePreviewCompany = useCallback(async () => {
+  const handleConfirmCertificate = useCallback(async () => {
     if (!certificadoFile) {
       await showAlert({
         title: "Certificado obrigatório",
@@ -104,50 +81,15 @@ export const useTenantSetupPage = () => {
       return;
     }
 
-    if (!String(form.uf_consulta || "").trim()) {
-      await showAlert({
-        title: "UF obrigatória",
-        text: "Informe a UF para consultar o cadastro do contribuinte.",
-        icon: "warning",
-      });
-      return;
-    }
-
-    setLoadingPreview(true);
-
-    try {
-      const certificadoArrayBuffer = await certificadoFile.arrayBuffer();
-      const result = await previewTenantCompany({
-        certificadoArrayBuffer,
-        certificadoSenha: form.certificado_senha,
-        uf: form.uf_consulta,
-        ambiente: "2",
-      });
-
-      const companyPreview = result?.data || null;
-      setPreview(companyPreview);
-      fillCompanyData(companyPreview?.empresa || {});
-      setStep(2);
-    } catch (error) {
-      await showAlert({
-        title: "Falha na consulta",
-        text:
-          error?.response?.data?.message ||
-          error?.message ||
-          "Não foi possível consultar os dados da empresa pelo certificado.",
-        icon: "error",
-      });
-    } finally {
-      setLoadingPreview(false);
-    }
-  }, [certificadoFile, fillCompanyData, form.certificado_senha, form.uf_consulta, showAlert]);
+    setStep(2);
+  }, [certificadoFile, form.certificado_senha, showAlert]);
 
   const goNextStep = useCallback(async () => {
     if (step === 1) {
-      if (!preview?.certificado?.cnpj) {
+      if (!certificadoFile || !String(form.certificado_senha || "").trim()) {
         await showAlert({
-          title: "Leia o certificado primeiro",
-          text: "Faça a leitura do certificado e a consulta da empresa antes de avançar.",
+          title: "Certificado incompleto",
+          text: "Selecione o certificado A1 e informe a senha antes de avançar.",
           icon: "warning",
         });
         return;
@@ -179,7 +121,7 @@ export const useTenantSetupPage = () => {
     }
 
     setStep((prev) => Math.min(prev + 1, 3));
-  }, [form, preview, showAlert, step]);
+  }, [certificadoFile, form, showAlert, step]);
 
   const goPreviousStep = useCallback(() => {
     setStep((prev) => Math.max(prev - 1, 1));
@@ -307,14 +249,12 @@ export const useTenantSetupPage = () => {
   return {
     REQUIRED_TITLE,
     step,
-    loadingPreview,
     saving,
     form,
-    preview,
     certificateSummary,
     updateField,
     handleSelectCertificado,
-    handlePreviewCompany,
+    handleConfirmCertificate,
     goNextStep,
     goPreviousStep,
     handleSubmit,
