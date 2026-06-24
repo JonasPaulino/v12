@@ -8,6 +8,7 @@ import corsOptions from "./config/corsOptions.js";
 import verificarToken from "./middleware/authMiddleware.js";
 import { withTenantContext } from "./middleware/withTenantContext.js";
 import nfeRoutes from "./routes/nfeRoutes.js";
+import setupRoutes from "./routes/setupRoutes.js";
 
 dotenv.config();
 
@@ -41,6 +42,7 @@ app.get("/healthz", (_req, res) => {
 const privateRouter = express.Router();
 privateRouter.use(verificarToken);
 privateRouter.use(withTenantContext);
+privateRouter.use("/setup", setupRoutes);
 privateRouter.use("/nfe", nfeRoutes);
 
 app.use(privateRouter);

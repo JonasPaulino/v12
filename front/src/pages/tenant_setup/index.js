@@ -36,8 +36,8 @@ export const TenantSetup = () => {
               <C.CardTitle>Cadastrar empresa</C.CardTitle>
               <C.CardText>
                 Este fluxo cria uma nova filial do sistema, lê o certificado A1,
-                consulta os dados do CNPJ pela BrasilAPI e já entrega um usuário admin
-                para a empresa começar a usar o ERP.
+                consulta os dados do CNPJ pela BrasilAPI, tenta buscar a IE na SEFAZ
+                e já entrega um usuário admin para a empresa começar a usar o ERP.
               </C.CardText>
             </C.CardHeader>
 
@@ -128,6 +128,27 @@ export const TenantSetup = () => {
                     <C.SummaryCard>
                       <C.SummaryLabel>Situação</C.SummaryLabel>
                       <C.SummaryValue>{preview.empresa.situacao_cadastro || "--"}</C.SummaryValue>
+                    </C.SummaryCard>
+                  </C.SummaryGrid>
+                ) : null}
+
+                {preview?.consulta_ie?.empresa ? (
+                  <C.SummaryGrid $columns={3}>
+                    <C.SummaryCard>
+                      <C.SummaryLabel>IE consultada</C.SummaryLabel>
+                      <C.SummaryValue>
+                        {preview.consulta_ie.empresa.inscricao_estadual || "--"}
+                      </C.SummaryValue>
+                    </C.SummaryCard>
+                    <C.SummaryCard>
+                      <C.SummaryLabel>UF da IE</C.SummaryLabel>
+                      <C.SummaryValue>{preview.consulta_ie.empresa.uf || "--"}</C.SummaryValue>
+                    </C.SummaryCard>
+                    <C.SummaryCard>
+                      <C.SummaryLabel>Status IE</C.SummaryLabel>
+                      <C.SummaryValue>
+                        {preview.consulta_ie.empresa.situacao_cadastro || "--"}
+                      </C.SummaryValue>
                     </C.SummaryCard>
                   </C.SummaryGrid>
                 ) : null}
