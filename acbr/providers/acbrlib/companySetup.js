@@ -2,12 +2,7 @@ import fs from "fs/promises";
 import path from "path";
 import { execFile } from "child_process";
 import { promisify } from "util";
-import {
-  configureAcbrLookupSession,
-  createAcbrLookupSession,
-  destroyAcbrSession,
-} from "./runtime.js";
-import { parseIniLikeResponse, findIniValue } from "./parser.js";
+import ConsultaCnpjProvider from "./consultaCnpjProvider.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -18,11 +13,6 @@ const normalizeBase64 = (value) =>
     .trim();
 const normalizeUF = (value) => String(value || "").trim().toUpperCase();
 const onlyDigits = (value) => String(value || "").replace(/\D/g, "");
-
-const extractTagValue = (raw, tag) => {
-  const regex = new RegExp(`<${tag}>([^<]+)</${tag}>`, "i");
-  return raw.match(regex)?.[1]?.trim() || "";
-};
 
 const extractCnpjFromText = (value = "") => {
   const patterns = [
@@ -86,50 +76,6 @@ const parseCertificateSubject = ({ subject = "", certificateText = "", altNameTe
     subject,
     certificate_text: certificateText,
     alt_name_text: altNameText,
-  };
-};
-
-const parseCadastroResponse = (rawText) => {
-  const parsedIni = parseIniLikeResponse(rawText);
-  const nomeRazao =
-    extractTagValue(rawText, "xNome") ||
-    findIniValue(parsedIni, ["xNome", "Nome", "RazaoSocial"]);
-  const nomeFantasia =
-    extractTagValue(rawText, "xFant") || findIniValue(parsedIni, ["xFant", "Fantasia"]);
-  const inscricaoEstadual =
-    extractTagValue(rawText, "IE") || findIniValue(parsedIni, ["IE", "IEAtual", "IEUnica"]);
-  const logradouro =
-    extractTagValue(rawText, "xLgr") || findIniValue(parsedIni, ["xLgr", "Logradouro"]);
-  const numero = extractTagValue(rawText, "nro") || findIniValue(parsedIni, ["nro", "Numero"]);
-  const complemento =
-    extractTagValue(rawText, "xCpl") || findIniValue(parsedIni, ["xCpl", "Complemento"]);
-  const bairro =
-    extractTagValue(rawText, "xBairro") || findIniValue(parsedIni, ["xBairro", "Bairro"]);
-  const cidade = extractTagValue(rawText, "xMun") || findIniValue(parsedIni, ["xMun", "Cidade"]);
-  const uf = extractTagValue(rawText, "UF") || findIniValue(parsedIni, ["UF"]);
-  const cep = extractTagValue(rawText, "CEP") || findIniValue(parsedIni, ["CEP"]);
-  const codigoIbge =
-    extractTagValue(rawText, "cMun") || findIniValue(parsedIni, ["cMun", "cMunFG"]);
-  const situacao =
-    extractTagValue(rawText, "cSit") ||
-    findIniValue(parsedIni, ["cSit", "Situacao"]) ||
-    extractTagValue(rawText, "xSit") ||
-    findIniValue(parsedIni, ["xSit"]);
-
-  return {
-    nome_razao: nomeRazao || "",
-    nome_fantasia: nomeFantasia || "",
-    inscricao_estadual: inscricaoEstadual || "",
-    logradouro: logradouro || "",
-    numero: numero || "",
-    complemento: complemento || "",
-    bairro: bairro || "",
-    cidade: cidade || "",
-    uf: uf || "",
-    cep: cep || "",
-    codigo_ibge: codigoIbge || "",
-    situacao: situacao || "",
-    raw: rawText,
   };
 };
 
@@ -237,58 +183,46 @@ class CompanySetupProvider {
       throw new Error("Não foi possível identificar o CNPJ no certificado A1.");
     }
 
-    const session = await createAcbrLookupSession({
-      scopeKey,
-      certificadoBuffer,
-      certificadoSenha: normalizedSenha,
-    });
+    let cadastro = null;
+    let consultaErro = null;
 
     try {
-      let cadastro = null;
-      let rawCadastro = null;
-      let consultaErro = null;
-
-      try {
-        await configureAcbrLookupSession(session, {
-          uf: normalizedUf,
-          ambiente,
-        });
-
-        rawCadastro = session.acbr.consultaCadastro(normalizedUf, certificate.cnpj, false);
-        cadastro = parseCadastroResponse(rawCadastro);
-      } catch (error) {
-        consultaErro = error.message || "Falha ao consultar o cadastro do contribuinte.";
-      }
-
-      return {
-        certificado: {
-          cnpj: certificate.cnpj,
-          common_name: certificate.common_name,
-          subject: certificate.subject,
-        },
-        empresa: {
-          cnpj: certificate.cnpj,
-          nome_razao: cadastro?.nome_razao || certificate.common_name || "",
-          nome_fantasia: cadastro?.nome_fantasia || "",
-          inscricao_estadual: cadastro?.inscricao_estadual || "",
-          cep: cadastro?.cep || "",
-          logradouro: cadastro?.logradouro || "",
-          numero: cadastro?.numero || "",
-          complemento: cadastro?.complemento || "",
-          bairro: cadastro?.bairro || "",
-          cidade: cadastro?.cidade || "",
-          uf: cadastro?.uf || normalizedUf,
-          codigo_ibge: cadastro?.codigo_ibge || "",
-          pais: "Brasil",
-          situacao_cadastro: cadastro?.situacao || "",
-        },
-        raw: rawCadastro,
-        consulta_ok: !consultaErro,
-        consulta_erro: consultaErro,
-      };
-    } finally {
-      await destroyAcbrSession(session);
+      cadastro = await ConsultaCnpjProvider.consultar({
+        cnpj: certificate.cnpj,
+        scopeKey,
+        uf: normalizedUf,
+        ambiente,
+      });
+    } catch (error) {
+      consultaErro = error.message || "Falha ao consultar o cadastro do contribuinte.";
     }
+
+    return {
+      certificado: {
+        cnpj: certificate.cnpj,
+        common_name: certificate.common_name,
+        subject: certificate.subject,
+      },
+      empresa: {
+        cnpj: certificate.cnpj,
+        nome_razao: cadastro?.nome_razao || certificate.common_name || "",
+        nome_fantasia: cadastro?.nome_fantasia || "",
+        inscricao_estadual: cadastro?.inscricao_estadual || "",
+        cep: cadastro?.cep || "",
+        logradouro: cadastro?.logradouro || "",
+        numero: cadastro?.numero || "",
+        complemento: cadastro?.complemento || "",
+        bairro: cadastro?.bairro || "",
+        cidade: cadastro?.cidade || "",
+        uf: cadastro?.uf || normalizedUf,
+        codigo_ibge: cadastro?.codigo_ibge || "",
+        pais: "Brasil",
+        situacao_cadastro: cadastro?.situacao || "",
+      },
+      raw: cadastro?.raw || null,
+      consulta_ok: !consultaErro,
+      consulta_erro: consultaErro,
+    };
   }
 }
 
