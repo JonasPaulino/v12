@@ -90,11 +90,25 @@ export const useTenantSetupPage = () => {
       });
 
       setPreview(result?.data || null);
+      const empresa = result?.data?.empresa || {};
       setForm((prev) => ({
         ...prev,
-        cnpj: result?.data?.cnpj || prev.cnpj,
-        nome_razao: result?.data?.common_name || prev.nome_razao,
-        tenant_nome: prev.tenant_nome || result?.data?.common_name || prev.nome_razao || "",
+        tenant_nome: prev.tenant_nome || empresa.tenant_nome || empresa.nome_fantasia || empresa.nome_razao || "",
+        nome_razao: empresa.nome_razao || prev.nome_razao,
+        nome_fantasia: empresa.nome_fantasia || prev.nome_fantasia,
+        cnpj: empresa.cnpj || prev.cnpj,
+        inscricao_estadual: empresa.inscricao_estadual || prev.inscricao_estadual,
+        email: empresa.email || prev.email,
+        telefone: empresa.telefone || prev.telefone,
+        cep: empresa.cep || prev.cep,
+        logradouro: empresa.logradouro || prev.logradouro,
+        numero: empresa.numero || prev.numero,
+        complemento: empresa.complemento || prev.complemento,
+        bairro: empresa.bairro || prev.bairro,
+        cidade: empresa.cidade || prev.cidade,
+        uf: empresa.uf || prev.uf,
+        codigo_ibge: empresa.codigo_ibge || prev.codigo_ibge,
+        pais: empresa.pais || prev.pais,
       }));
       setStep(2);
     } catch (error) {

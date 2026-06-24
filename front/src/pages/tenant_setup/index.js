@@ -35,8 +35,9 @@ export const TenantSetup = () => {
             <C.CardHeader>
               <C.CardTitle>Cadastrar empresa</C.CardTitle>
               <C.CardText>
-                Este fluxo cria uma nova filial do sistema, importa o certificado A1
-                e já entrega um usuário admin para a empresa começar a usar o ERP.
+                Este fluxo cria uma nova filial do sistema, lê o certificado A1,
+                consulta os dados do CNPJ pela BrasilAPI e já entrega um usuário admin
+                para a empresa começar a usar o ERP.
               </C.CardText>
             </C.CardHeader>
 
@@ -58,8 +59,8 @@ export const TenantSetup = () => {
             {step === 1 ? (
               <C.Section>
                 <C.Hint>
-                  Anexe o certificado A1 da empresa e informe a senha para seguir com
-                  o cadastro manual da nova filial.
+                  Anexe o certificado A1 da empresa e informe a senha para consultar
+                  os dados do CNPJ e pré-preencher a nova filial.
                 </C.Hint>
 
                 <C.FieldsGrid>
@@ -100,16 +101,33 @@ export const TenantSetup = () => {
                 {preview ? (
                   <C.SummaryGrid $columns={3}>
                     <C.SummaryCard>
-                      <C.SummaryLabel>CNPJ</C.SummaryLabel>
-                      <C.SummaryValue>{preview.cnpj || "--"}</C.SummaryValue>
+                      <C.SummaryLabel>CNPJ do certificado</C.SummaryLabel>
+                      <C.SummaryValue>{preview.certificado?.cnpj || "--"}</C.SummaryValue>
                     </C.SummaryCard>
                     <C.SummaryCard>
                       <C.SummaryLabel>Nome no certificado</C.SummaryLabel>
-                      <C.SummaryValue>{preview.common_name || "--"}</C.SummaryValue>
+                      <C.SummaryValue>{preview.certificado?.common_name || "--"}</C.SummaryValue>
                     </C.SummaryCard>
                     <C.SummaryCard>
                       <C.SummaryLabel>Subject</C.SummaryLabel>
-                      <C.SummaryValue>{preview.subject || "--"}</C.SummaryValue>
+                      <C.SummaryValue>{preview.certificado?.subject || "--"}</C.SummaryValue>
+                    </C.SummaryCard>
+                  </C.SummaryGrid>
+                ) : null}
+
+                {preview?.empresa ? (
+                  <C.SummaryGrid $columns={3}>
+                    <C.SummaryCard>
+                      <C.SummaryLabel>Razão social</C.SummaryLabel>
+                      <C.SummaryValue>{preview.empresa.nome_razao || "--"}</C.SummaryValue>
+                    </C.SummaryCard>
+                    <C.SummaryCard>
+                      <C.SummaryLabel>Nome fantasia</C.SummaryLabel>
+                      <C.SummaryValue>{preview.empresa.nome_fantasia || "--"}</C.SummaryValue>
+                    </C.SummaryCard>
+                    <C.SummaryCard>
+                      <C.SummaryLabel>Situação</C.SummaryLabel>
+                      <C.SummaryValue>{preview.empresa.situacao_cadastro || "--"}</C.SummaryValue>
                     </C.SummaryCard>
                   </C.SummaryGrid>
                 ) : null}
@@ -125,7 +143,8 @@ export const TenantSetup = () => {
             {step === 2 ? (
               <C.Section>
                 <C.Hint>
-                  Preencha os dados da nova filial antes do cadastro definitivo.
+                  Confira os dados preenchidos pela BrasilAPI e ajuste apenas o que for
+                  necessário antes do cadastro definitivo.
                 </C.Hint>
 
                 <C.FieldsGrid>
@@ -325,8 +344,8 @@ export const TenantSetup = () => {
 
             <C.Toolbar>
               <C.Hint>
-                O certificado fica vinculado à filial e os demais dados da empresa são
-                preenchidos manualmente neste cadastro.
+                O certificado fica vinculado à filial e os dados principais são
+                preenchidos automaticamente pela consulta do CNPJ.
               </C.Hint>
 
               <C.Actions>
