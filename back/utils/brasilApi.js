@@ -76,6 +76,11 @@ export const consultarCnpjBrasilApi = async (cnpj) => {
       signal: controller.signal,
       headers: {
         Accept: "application/json",
+        "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8",
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
+        Referer: "https://brasilapi.com.br/",
+        "User-Agent": "v12/1.0 (+https://v12.jhes.com.br)",
       },
     });
 
@@ -92,8 +97,12 @@ export const consultarCnpjBrasilApi = async (cnpj) => {
       const message =
         payload?.message ||
         payload?.errors?.[0]?.message ||
+        rawText?.slice(0, 200) ||
         `Falha ao consultar CNPJ na BrasilAPI (${response.status}).`;
-      throw new Error(message);
+      const error = new Error(message);
+      error.statusCode = response.status;
+      error.responseBody = rawText;
+      throw error;
     }
 
     return {
