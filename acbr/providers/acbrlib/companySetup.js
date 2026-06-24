@@ -11,7 +11,11 @@ import { parseIniLikeResponse, findIniValue } from "./parser.js";
 
 const execFileAsync = promisify(execFile);
 
-const normalizeBase64 = (value) => String(value || "").trim();
+const normalizeBase64 = (value) =>
+  String(value || "")
+    .replace(/^data:.*?;base64,/i, "")
+    .replace(/\s/g, "")
+    .trim();
 const normalizeUF = (value) => String(value || "").trim().toUpperCase();
 const onlyDigits = (value) => String(value || "").replace(/\D/g, "");
 
@@ -27,6 +31,8 @@ const extractCnpjFromText = (value = "") => {
     /CNPJ\s*[:= ]\s*([0-9./-]{14,18})/i,
     /serialNumber\s*=\s*([0-9./-]{14,18})/i,
     /serialNumber\s*=\s*.*?:\s*([0-9./-]{14,18})/i,
+    /CN\s*=\s*[^,\n:]+:\s*([0-9./-]{14,18})/i,
+    /CN\s*=\s*.*?\b([0-9]{2}\.?[0-9]{3}\.?[0-9]{3}\/?[0-9]{4}-?[0-9]{2})\b/i,
     /othername:[^,\n]*?([0-9./-]{14,18})/i,
   ];
 
