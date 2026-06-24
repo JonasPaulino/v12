@@ -12,6 +12,59 @@ const normalizeBase64 = (value) =>
     .trim();
 const normalizeUF = (value) => String(value || "").trim().toUpperCase();
 const onlyDigits = (value) => String(value || "").replace(/\D/g, "");
+const sanitizeScope = (value) =>
+  String(value || "default")
+    .replace(/[^a-zA-Z0-9_-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80) || "default";
+
+const readAcbrConsultaArtifacts = async (scopeKey) => {
+  try {
+    const safeScope = sanitizeScope(scopeKey);
+    const baseDir = path.resolve(process.cwd(), "temp", "consulta-cnpj", safeScope);
+    const logDir = path.join(baseDir, "log");
+    const configPath = path.resolve(
+      process.cwd(),
+      "config",
+      "acbrlib",
+      `consulta-cnpj-${safeScope}.ini`
+    );
+
+    let configSnippet = "";
+    let logSnippet = "";
+
+    try {
+      const configRaw = await fs.readFile(configPath, "utf8");
+      configSnippet = configRaw.slice(-4000);
+    } catch {}
+
+    try {
+      const logFiles = (await fs.readdir(logDir))
+        .filter((fileName) => fileName.toLowerCase().endsWith(".log"))
+        .sort();
+
+      if (logFiles.length) {
+        const latestLogPath = path.join(logDir, logFiles[logFiles.length - 1]);
+        const logRaw = await fs.readFile(latestLogPath, "utf8");
+        logSnippet = logRaw.slice(-4000);
+      }
+    } catch {}
+
+    return {
+      configPath,
+      logDir,
+      configSnippet,
+      logSnippet,
+    };
+  } catch {
+    return {
+      configPath: "",
+      logDir: "",
+      configSnippet: "",
+      logSnippet: "",
+    };
+  }
+};
 
 const extractCnpjFromText = (value = "") => {
   const patterns = [
@@ -208,6 +261,7 @@ class CompanySetupProvider {
       const signal = error?.signal ? ` (signal: ${error.signal})` : "";
       const exitCode =
         error?.code !== undefined && error?.code !== null ? ` (exit: ${error.code})` : "";
+      const artifacts = await readAcbrConsultaArtifacts(scopeKey);
       const defaultMessage =
         "A ACBrLibConsultaCNPJ falhou durante a consulta no ambiente Linux.";
 
@@ -216,6 +270,10 @@ class CompanySetupProvider {
           stderrMessage,
           stdoutMessage ? `[worker:stdout] ${stdoutMessage}` : "",
           error?.message ? `[exec] ${error.message}` : "",
+          artifacts.configPath ? `[acbr:configPath] ${artifacts.configPath}` : "",
+          artifacts.logDir ? `[acbr:logDir] ${artifacts.logDir}` : "",
+          artifacts.configSnippet ? `[acbr:configTail]\n${artifacts.configSnippet}` : "",
+          artifacts.logSnippet ? `[acbr:logTail]\n${artifacts.logSnippet}` : "",
           `${defaultMessage}${signal}${exitCode}`,
         ]
           .filter(Boolean)
