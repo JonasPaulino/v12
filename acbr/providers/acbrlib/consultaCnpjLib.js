@@ -19,6 +19,8 @@ class ACBrLibConsultaCNPJ {
     this.arquivoConfig = arquivoConfig;
     this.chaveCrypt = chaveCrypt;
     this.initialized = false;
+    this.handleRef = null;
+    this.handle = 0;
   }
 
   _checkResult(status) {
@@ -62,43 +64,63 @@ class ACBrLibConsultaCNPJ {
   }
 
   inicializar() {
-    const status = this.acbrlib.CNPJ_Inicializar(this.arquivoConfig, this.chaveCrypt);
-    if (status === 0) {
-      this.initialized = true;
+    this.handleRef = koffi.alloc("uintptr_t", 1);
+    koffi.encode(this.handleRef, "uintptr_t", 0);
+
+    try {
+      const status = this.acbrlib.CNPJ_Inicializar(this.handleRef, this.arquivoConfig, this.chaveCrypt);
+      if (status === 0) {
+        this.handle = koffi.decode(this.handleRef, "uintptr_t");
+        this.initialized = true;
+      }
+      this._checkResult(status);
+      return status;
+    } catch (error) {
+      if (this.handleRef) {
+        koffi.free(this.handleRef);
+        this.handleRef = null;
+      }
+      throw error;
     }
-    this._checkResult(status);
-    return status;
   }
 
   finalizar() {
     if (!this.initialized) return 0;
-    const status = this.acbrlib.CNPJ_Finalizar();
-    this.initialized = false;
-    this._checkResult(status);
-    return status;
+    try {
+      const status = this.acbrlib.CNPJ_Finalizar(this.handle);
+      this.initialized = false;
+      this.handle = 0;
+      this._checkResult(status);
+      return status;
+    } finally {
+      if (this.handleRef) {
+        koffi.free(this.handleRef);
+        this.handleRef = null;
+      }
+    }
   }
 
   ultimoRetorno() {
     return this._callWithBuffer((buffer, bufferSize) =>
-      this.acbrlib.CNPJ_UltimoRetorno(buffer, bufferSize)
+      this.acbrlib.CNPJ_UltimoRetorno(this.handle, buffer, bufferSize)
     );
   }
 
   configGravar() {
-    const status = this.acbrlib.CNPJ_ConfigGravar(this.arquivoConfig);
+    const status = this.acbrlib.CNPJ_ConfigGravar(this.handle, this.arquivoConfig);
     this._checkResult(status);
     return status;
   }
 
   configGravarValor(sessao, chave, valor) {
-    const status = this.acbrlib.CNPJ_ConfigGravarValor(sessao, chave, valor);
+    const status = this.acbrlib.CNPJ_ConfigGravarValor(this.handle, sessao, chave, valor);
     this._checkResult(status);
     return status;
   }
 
   consultar(cnpj) {
     return this._callWithBuffer((buffer, bufferSize) =>
-      this.acbrlib.CNPJ_Consultar(cnpj, buffer, bufferSize)
+      this.acbrlib.CNPJ_Consultar(this.handle, cnpj, buffer, bufferSize)
     );
   }
 }
