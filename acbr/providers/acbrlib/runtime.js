@@ -9,8 +9,24 @@ const ACBrLibNFeMT = require("@projetoacbr/acbrlib-nfe-node/dist/src").default;
 const DEFAULT_NFE_LIB_PATH = "./lib/ACBrLibNFE/linux/mt/libacbrnfe64.so";
 const DEFAULT_NFE_SCHEMA_PATH = "./lib/ACBrLibNFE/dep/Schemas";
 const ACBR_DEBUG_CONFIG = process.env.ACBR_DEBUG_CONFIG === "true";
+const DEFAULT_SSL_CONFIG = {
+  sslCryptLib: "1",
+  sslHttpLib: "3",
+  sslXmlSignLib: "4",
+  sslType: "5",
+};
 
 const resolveAppPath = (value, fallback) => path.resolve(process.cwd(), value || fallback);
+const resolveAcbrConfigValue = (envName, fallback) => {
+  const value = String(process.env[envName] || "").trim();
+  return value || fallback;
+};
+const getAcbrSslConfig = () => ({
+  sslCryptLib: resolveAcbrConfigValue("ACBR_DFE_SSL_CRYPT_LIB", DEFAULT_SSL_CONFIG.sslCryptLib),
+  sslHttpLib: resolveAcbrConfigValue("ACBR_DFE_SSL_HTTP_LIB", DEFAULT_SSL_CONFIG.sslHttpLib),
+  sslXmlSignLib: resolveAcbrConfigValue("ACBR_DFE_SSL_XML_SIGN_LIB", DEFAULT_SSL_CONFIG.sslXmlSignLib),
+  sslType: resolveAcbrConfigValue("ACBR_NFE_SSL_TYPE", DEFAULT_SSL_CONFIG.sslType),
+});
 const resolveLibPath = () => {
   const configuredPath = String(process.env.ACBRLIB_PATH || "").trim();
   const resolvedConfiguredPath = configuredPath
@@ -73,6 +89,7 @@ const buildBaseNfeConfig = ({
   uf = "",
   ambiente = "2",
 } = {}) => {
+  const sslConfig = getAcbrSslConfig();
   const escapedLogDir = escapeIniValue(logDir);
   const escapedSchemaDir = escapeIniValue(schemaDir);
   const escapedCertPath = escapeIniValue(certPath);
@@ -89,9 +106,9 @@ LogNivel=4
 LogPath=${escapedLogDir}
 
 [DFe]
-SSLCryptLib=1
-SSLHttpLib=3
-SSLXmlSignLib=4
+SSLCryptLib=${sslConfig.sslCryptLib}
+SSLHttpLib=${sslConfig.sslHttpLib}
+SSLXmlSignLib=${sslConfig.sslXmlSignLib}
 UF=${escapedUf}
 ArquivoPFX=${escapedCertPath}
 Senha=${escapedSenha}
@@ -101,7 +118,7 @@ Ambiente=${escapedAmbiente}
 FormaEmissao=0
 ModeloDF=0
 VersaoDF=3
-SSLType=5
+SSLType=${sslConfig.sslType}
 PathSchemas=${escapedSchemaDir}
 PathSalvar=${escapedXmlDir}
 PathNFe=${escapedXmlDir}
@@ -205,6 +222,7 @@ export const getAcbrRuntimeDiagnostics = () => {
     schemaExists: existsSync(schemaDir),
     configDir,
     tempDir,
+    sslConfig: getAcbrSslConfig(),
   };
 };
 
@@ -313,14 +331,15 @@ export const createAcbrLookupSession = async ({
 
 export const configureAcbrSession = async (session, context) => {
   const { acbr } = session;
+  const sslConfig = getAcbrSslConfig();
 
   acbr.inicializar();
 
   setConfigValue(acbr, "Principal", "LogPath", session.logDir);
   setConfigValue(acbr, "Principal", "LogNivel", "4");
-  setConfigValue(acbr, "DFe", "SSLCryptLib", "1");
-  setConfigValue(acbr, "DFe", "SSLHttpLib", "3");
-  setConfigValue(acbr, "DFe", "SSLXmlSignLib", "4");
+  setConfigValue(acbr, "DFe", "SSLCryptLib", sslConfig.sslCryptLib);
+  setConfigValue(acbr, "DFe", "SSLHttpLib", sslConfig.sslHttpLib);
+  setConfigValue(acbr, "DFe", "SSLXmlSignLib", sslConfig.sslXmlSignLib);
   setConfigValue(acbr, "DFe", "UF", context.emitente.uf);
   setConfigValue(acbr, "DFe", "ArquivoPFX", session.certPath);
   setConfigValue(acbr, "DFe", "Senha", session.certificadoSenha);
@@ -334,7 +353,7 @@ export const configureAcbrSession = async (session, context) => {
   setConfigValue(acbr, "NFe", "FormaEmissao", "0", { optional: true });
   setConfigValue(acbr, "NFe", "ModeloDF", "0", { optional: true });
   setConfigValue(acbr, "NFe", "VersaoDF", "3", { optional: true });
-  setConfigValue(acbr, "NFe", "SSLType", "5", { optional: true });
+  setConfigValue(acbr, "NFe", "SSLType", sslConfig.sslType, { optional: true });
   setConfigValue(acbr, "NFe", "PathSchemas", session.schemaDir);
   setConfigValue(acbr, "NFe", "PathSalvar", session.xmlDir, { optional: true });
   setConfigValue(acbr, "NFe", "PathNFe", session.xmlDir, { optional: true });
@@ -344,13 +363,14 @@ export const configureAcbrSession = async (session, context) => {
 
 export const configureAcbrLookupSession = async (session, { uf, ambiente = "2" }) => {
   const { acbr } = session;
+  const sslConfig = getAcbrSslConfig();
 
   acbr.inicializar();
   setConfigValue(acbr, "Principal", "LogPath", session.logDir);
   setConfigValue(acbr, "Principal", "LogNivel", "4");
-  setConfigValue(acbr, "DFe", "SSLCryptLib", "1");
-  setConfigValue(acbr, "DFe", "SSLHttpLib", "3");
-  setConfigValue(acbr, "DFe", "SSLXmlSignLib", "4");
+  setConfigValue(acbr, "DFe", "SSLCryptLib", sslConfig.sslCryptLib);
+  setConfigValue(acbr, "DFe", "SSLHttpLib", sslConfig.sslHttpLib);
+  setConfigValue(acbr, "DFe", "SSLXmlSignLib", sslConfig.sslXmlSignLib);
   setConfigValue(acbr, "DFe", "UF", String(uf || "").trim().toUpperCase());
   setConfigValue(acbr, "DFe", "ArquivoPFX", session.certPath);
   setConfigValue(acbr, "DFe", "Senha", session.certificadoSenha);
@@ -359,7 +379,7 @@ export const configureAcbrLookupSession = async (session, { uf, ambiente = "2" }
   setConfigValue(acbr, "Certificado", "ArquivoPFX", session.certPath, { optional: true });
   setConfigValue(acbr, "Certificado", "Senha", session.certificadoSenha, { optional: true });
   setConfigValue(acbr, "NFe", "Ambiente", mapAcbrNfeAmbiente(ambiente));
-  setConfigValue(acbr, "NFe", "SSLType", "5", { optional: true });
+  setConfigValue(acbr, "NFe", "SSLType", sslConfig.sslType, { optional: true });
   setConfigValue(acbr, "NFe", "PathSchemas", session.schemaDir);
   acbr.configGravar();
 };
