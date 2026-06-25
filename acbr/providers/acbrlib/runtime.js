@@ -61,6 +61,8 @@ const escapeIniValue = (value) =>
     .replace(/\r?\n/g, " ")
     .trim();
 
+const mapAcbrNfeAmbiente = (value) => (String(value || "2") === "1" ? "0" : "1");
+
 const buildBaseNfeConfig = ({
   logDir,
   schemaDir,
@@ -78,7 +80,7 @@ const buildBaseNfeConfig = ({
   const escapedXmlDir = escapeIniValue(xmlDir);
   const escapedPdfDir = escapeIniValue(pdfDir);
   const escapedUf = escapeIniValue(uf).toUpperCase();
-  const escapedAmbiente = escapeIniValue(ambiente || "2");
+  const escapedAmbiente = mapAcbrNfeAmbiente(ambiente);
 
   return `[Principal]
 TipoResposta=0
@@ -95,17 +97,6 @@ ArquivoPFX=${escapedCertPath}
 Senha=${escapedSenha}
 
 [NFe]
-Ambiente=${escapedAmbiente}
-FormaEmissao=0
-ModeloDF=0
-VersaoDF=3
-SSLType=5
-PathSchemas=${escapedSchemaDir}
-PathSalvar=${escapedXmlDir}
-PathNFe=${escapedXmlDir}
-SepararPorCNPJ=1
-
-[NFE]
 Ambiente=${escapedAmbiente}
 FormaEmissao=0
 ModeloDF=0
@@ -339,20 +330,14 @@ export const configureAcbrSession = async (session, context) => {
   setConfigValue(acbr, "Geral", "PathSchemas", session.schemaDir, { optional: true });
   setConfigValue(acbr, "Certificado", "ArquivoPFX", session.certPath, { optional: true });
   setConfigValue(acbr, "Certificado", "Senha", session.certificadoSenha, { optional: true });
-  setConfigValueInSessions(acbr, ["NFe", "NFE"], "Ambiente", context.nfe.ambiente_nfe);
-  setConfigValueInSessions(acbr, ["NFe", "NFE"], "FormaEmissao", "0", { optional: true });
-  setConfigValueInSessions(acbr, ["NFe", "NFE"], "ModeloDF", "0", { optional: true });
-  setConfigValueInSessions(acbr, ["NFe", "NFE"], "VersaoDF", "3", { optional: true });
-  setConfigValueInSessions(acbr, ["NFe", "NFE"], "SSLType", "5", { optional: true });
-  setConfigValueInSessions(acbr, ["NFe", "NFE"], "PathSchemas", session.schemaDir);
-  setConfigValueInSessions(
-    acbr,
-    ["NFe", "NFE"],
-    "PathSalvar",
-    session.xmlDir,
-    { optional: true }
-  );
-  setConfigValueInSessions(acbr, ["NFe", "NFE"], "PathNFe", session.xmlDir, { optional: true });
+  setConfigValue(acbr, "NFe", "Ambiente", mapAcbrNfeAmbiente(context.nfe.ambiente_nfe));
+  setConfigValue(acbr, "NFe", "FormaEmissao", "0", { optional: true });
+  setConfigValue(acbr, "NFe", "ModeloDF", "0", { optional: true });
+  setConfigValue(acbr, "NFe", "VersaoDF", "3", { optional: true });
+  setConfigValue(acbr, "NFe", "SSLType", "5", { optional: true });
+  setConfigValue(acbr, "NFe", "PathSchemas", session.schemaDir);
+  setConfigValue(acbr, "NFe", "PathSalvar", session.xmlDir, { optional: true });
+  setConfigValue(acbr, "NFe", "PathNFe", session.xmlDir, { optional: true });
   setConfigValue(acbr, "DANFE", "PathPDF", session.pdfDir, { optional: true });
   acbr.configGravar();
 };
@@ -373,9 +358,9 @@ export const configureAcbrLookupSession = async (session, { uf, ambiente = "2" }
   setConfigValue(acbr, "Geral", "PathSchemas", session.schemaDir, { optional: true });
   setConfigValue(acbr, "Certificado", "ArquivoPFX", session.certPath, { optional: true });
   setConfigValue(acbr, "Certificado", "Senha", session.certificadoSenha, { optional: true });
-  setConfigValueInSessions(acbr, ["NFe", "NFE"], "Ambiente", String(ambiente || "2"));
-  setConfigValueInSessions(acbr, ["NFe", "NFE"], "SSLType", "5", { optional: true });
-  setConfigValueInSessions(acbr, ["NFe", "NFE"], "PathSchemas", session.schemaDir);
+  setConfigValue(acbr, "NFe", "Ambiente", mapAcbrNfeAmbiente(ambiente));
+  setConfigValue(acbr, "NFe", "SSLType", "5", { optional: true });
+  setConfigValue(acbr, "NFe", "PathSchemas", session.schemaDir);
   acbr.configGravar();
 };
 
