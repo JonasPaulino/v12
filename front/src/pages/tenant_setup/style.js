@@ -157,10 +157,10 @@ const inputStyles = `
   width: 100%;
   min-width: 0;
   height: 48px;
-  padding: 0 18px;
+  padding: 0 14px;
   border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: ${({ theme }) => theme.radius.pill};
-  background: rgba(255, 255, 255, 0.92);
+  border-radius: ${({ theme }) => theme.radius.md};
+  background: ${({ theme }) => theme.colors.surfaceAlt};
   color: ${({ theme }) => theme.colors.text};
   font-size: 1rem;
   outline: none;
@@ -181,9 +181,9 @@ export const Select = styled.select`
 
 export const TextArea = styled.textarea`
   ${inputStyles}
-  min-height: 140px;
+  min-height: 108px;
   height: auto;
-  padding: 14px 18px;
+  padding: 12px 14px;
   border-radius: ${({ theme }) => theme.radius.md};
   resize: vertical;
 `;
@@ -201,15 +201,15 @@ export const FileInput = styled.input`
 `;
 
 export const UploadControl = styled.label`
-  min-height: 52px;
+  min-height: 48px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 12px;
-  padding: 6px 6px 6px 18px;
+  gap: 10px;
+  padding: 4px 4px 4px 14px;
   border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: ${({ theme }) => theme.radius.pill};
-  background: rgba(255, 255, 255, 0.92);
+  border-radius: ${({ theme }) => theme.radius.md};
+  background: ${({ theme }) => theme.colors.surfaceAlt};
   cursor: pointer;
   transition:
     border-color 0.2s ease,
@@ -242,7 +242,7 @@ export const UploadAction = styled.span`
   justify-content: center;
   padding: 0 16px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  background: ${({ theme }) => theme.colors.primary};
+  background: linear-gradient(135deg, #0b5fff 0%, #083b9a 100%);
   color: #ffffff;
   font-weight: 700;
   white-space: nowrap;
@@ -327,16 +327,17 @@ export const GhostButton = styled.button`
 `;
 
 export const PrimaryButton = styled.button`
-  min-height: 48px;
+  height: 48px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 14px 20px;
+  padding: 0 18px;
   border: 0;
   border-radius: ${({ theme }) => theme.radius.pill};
-  background: ${({ theme }) => theme.colors.primary};
+  background: linear-gradient(135deg, #0b5fff 0%, #083b9a 100%);
   color: #fff;
   font-weight: 700;
+  cursor: pointer;
   white-space: nowrap;
 
   @media (max-width: 720px) {
