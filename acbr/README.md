@@ -54,15 +54,15 @@ O provider da ACBrLib fica isolado em `providers/acbrlib/` e usa:
 ## Requisitos para emissao
 
 - `ACBRLIB_ENABLED=true`
-- `ACBRLIB_PATH` apontando para `./lib/ACBrLibNFE/linux/mt/libacbrnfe64.so`
-- em ambiente Node/Linux prefira a variante `mt` da biblioteca
-- `ACBRLIB_SCHEMA_PATH` apontando para `./lib/ACBrLibNFE/dep/Schemas`
+- `ACBRLIB_PATH` apontando para `./lib/ACBrLibNFE/linux/CONSOLE-MT/libacbrnfe64.so`
+- em ambiente Node/Linux prefira a variante `CONSOLE-MT` da biblioteca
+- `ACBRLIB_SCHEMA_PATH` apontando para `./lib/ACBrLibNFE/dep/Schemas/NFe`
 - certificado A1 configurado na filial
 - emitente completo na configuracao
 
 ## Instalacao recomendada da lib
 
 - manter a estrutura original do download dentro de `acbr/lib/`
-- usar a biblioteca em `acbr/lib/ACBrLibNFE/linux/mt/libacbrnfe64.so`
-- usar os schemas em `acbr/lib/ACBrLibNFE/dep/Schemas`
-- se o pacote vier separado em `mt/` e `st/`, usar a `mt`
+- usar a biblioteca em `acbr/lib/ACBrLibNFE/linux/CONSOLE-MT/libacbrnfe64.so`
+- usar os schemas em `acbr/lib/ACBrLibNFE/dep/Schemas/NFe`
+- se o pacote vier separado em `CONSOLE-MT/`, `mt/` e `st/`, usar a `CONSOLE-MT`

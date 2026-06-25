@@ -7,7 +7,7 @@ const require = createRequire(import.meta.url);
 const ACBrLibNFeMT = require("@projetoacbr/acbrlib-nfe-node/dist/src").default;
 
 const DEFAULT_NFE_LIB_PATH = "./lib/ACBrLibNFE/linux/CONSOLE-MT/libacbrnfe64.so";
-const DEFAULT_NFE_SCHEMA_PATH = "./lib/ACBrLibNFE/dep/Schemas";
+const DEFAULT_NFE_SCHEMA_PATH = "./lib/ACBrLibNFE/dep/Schemas/NFe";
 const ACBR_DEBUG_CONFIG = process.env.ACBR_DEBUG_CONFIG === "true";
 const DEFAULT_SSL_CONFIG = {
   sslCryptLib: "1",
@@ -51,6 +51,11 @@ const baseSchemaDir = () => {
   const fallbackPath = path.resolve(process.cwd(), DEFAULT_NFE_SCHEMA_PATH);
 
   if (resolvedConfiguredPath && existsSync(resolvedConfiguredPath)) {
+    const nfeSubdir = path.join(resolvedConfiguredPath, "NFe");
+    if (existsSync(nfeSubdir)) {
+      return nfeSubdir;
+    }
+
     return resolvedConfiguredPath;
   }
 
