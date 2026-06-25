@@ -17,7 +17,9 @@ const mapStatusTone = (status) => {
 };
 
 const canProcessar = (status) =>
-  ["rascunho", "erro_integracao", "rejeitada"].includes(String(status || "").toLowerCase());
+  ["rascunho", "erro_integracao", "rejeitada", "processando"].includes(
+    String(status || "").toLowerCase()
+  );
 
 const formatDate = (value) => {
   if (!value) return "--";
@@ -169,7 +171,10 @@ const Tabela = ({ search, status, refreshKey, onChanged }) => {
                         minWidth={210}
                         items={[
                           {
-                            label: "Processar emissão",
+                            label:
+                              String(nfe.status || "").toLowerCase() === "processando"
+                                ? "Retomar emissão"
+                                : "Processar emissão",
                             disabled: !canProcessar(nfe.status),
                             onClick: () => handleProcessar(nfe),
                           },
