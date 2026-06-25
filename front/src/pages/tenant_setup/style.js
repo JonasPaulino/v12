@@ -305,11 +305,30 @@ export const SearchRow = styled.div`
   gap: 12px;
   align-items: center;
   justify-content: space-between;
+
+  @media (max-width: 840px) {
+    align-items: stretch;
+  }
 `;
 
 export const SearchInput = styled.input`
-  ${inputStyles}
-  max-width: 420px;
+  width: min(420px, 100%);
+  height: 48px;
+  padding: 0 18px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radius.pill};
+  background: rgba(255, 255, 255, 0.92);
+  color: ${({ theme }) => theme.colors.text};
+  outline: none;
+
+  &:focus {
+    border-color: ${({ theme }) => theme.colors.primary};
+    box-shadow: 0 0 0 4px rgba(11, 95, 255, 0.12);
+  }
+
+  @media (max-width: 840px) {
+    width: 100%;
+  }
 `;
 
 export const CountText = styled.span`
