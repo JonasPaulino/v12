@@ -30,6 +30,61 @@ const buildInitialForm = () => ({
   },
 });
 
+const normalizeDigits = (value) => String(value || "").replace(/\D/g, "");
+
+const hasRepeatedDigits = (digits) => /^(\d)\1+$/.test(digits);
+
+const isValidCpf = (digits) => {
+  if (!/^\d{11}$/.test(digits) || hasRepeatedDigits(digits)) return false;
+
+  const nums = digits.split("").map(Number);
+  const sum1 = nums.slice(0, 9).reduce((acc, num, index) => acc + num * (10 - index), 0);
+  let check1 = (sum1 * 10) % 11;
+  if (check1 === 10) check1 = 0;
+  if (check1 !== nums[9]) return false;
+
+  const sum2 = nums.slice(0, 10).reduce((acc, num, index) => acc + num * (11 - index), 0);
+  let check2 = (sum2 * 10) % 11;
+  if (check2 === 10) check2 = 0;
+  return check2 === nums[10];
+};
+
+const isValidCnpj = (digits) => {
+  if (!/^\d{14}$/.test(digits) || hasRepeatedDigits(digits)) return false;
+
+  const nums = digits.split("").map(Number);
+  const calcDigit = (base, weights) => {
+    const sum = base.reduce((acc, num, index) => acc + num * weights[index], 0);
+    const mod = sum % 11;
+    return mod < 2 ? 0 : 11 - mod;
+  };
+
+  const digit1 = calcDigit(nums.slice(0, 12), [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
+  if (digit1 !== nums[12]) return false;
+
+  const digit2 = calcDigit(nums.slice(0, 13), [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
+  return digit2 === nums[13];
+};
+
+const validateCpfCnpj = (tipoPessoa, documento) => {
+  const digits = normalizeDigits(documento);
+
+  if (tipoPessoa === "J") {
+    if (!isValidCnpj(digits)) return "Informe um CNPJ válido.";
+    return "";
+  }
+
+  if (tipoPessoa === "F") {
+    if (!isValidCpf(digits)) return "Informe um CPF válido.";
+    return "";
+  }
+
+  if (digits.length === 14 && isValidCnpj(digits)) return "";
+  if (digits.length === 11 && isValidCpf(digits)) return "";
+
+  return "Informe um CPF ou CNPJ válido.";
+};
+
 export const useModalPessoa = ({ isOpen, pessoaId, onClose }) => {
   const { showLoading, hideLoading } = useContext(AppContext);
   const { showAlert } = useSweetAlert();
@@ -203,6 +258,16 @@ export const useModalPessoa = ({ isOpen, pessoaId, onClose }) => {
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (submitting) return;
+
+    const documentoError = validateCpfCnpj(form.pessoa_tipo, form.pessoa_cpf_cnpj);
+    if (documentoError) {
+      await showAlert({
+        title: "Documento inválido",
+        text: documentoError,
+        icon: "warning",
+      });
+      return;
+    }
 
     try {
       setSubmitting(true);
