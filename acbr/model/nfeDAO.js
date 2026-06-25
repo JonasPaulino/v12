@@ -166,45 +166,44 @@ class NfeDAO {
 
     const orderBy = buildOrderBy(sort);
 
-    const [listResult, countResult] = await Promise.all([
-      client.query(
-        `
-          SELECT
-            n.nfe_id,
-            n.pedido_venda_id,
-            n.modelo,
-            n.serie,
-            n.numero,
-            n.chave_acesso,
-            n.natureza_operacao,
-            n.tipo_operacao,
-            n.finalidade,
-            n.status,
-            n.status_sefaz,
-            n.ambiente_nfe,
-            n.valor_total,
-            n.criado_em,
-            d.pessoa_nome_razao AS destinatario_nome_razao,
-            d.pessoa_cpf_cnpj AS destinatario_cpf_cnpj
-          FROM fiscal.nfe n
-          LEFT JOIN pessoa d ON d.pessoa_id = n.destinatario_pessoa_id
-          ${where}
-          ORDER BY ${orderBy}
-          LIMIT $${values.length + 1}
-          OFFSET $${values.length + 2}
-        `,
-        [...values, safeLimit, offset]
-      ),
-      client.query(
-        `
-          SELECT COUNT(*)::int AS total
-          FROM fiscal.nfe n
-          LEFT JOIN pessoa d ON d.pessoa_id = n.destinatario_pessoa_id
-          ${where}
-        `,
-        values
-      ),
-    ]);
+    const listResult = await client.query(
+      `
+        SELECT
+          n.nfe_id,
+          n.pedido_venda_id,
+          n.modelo,
+          n.serie,
+          n.numero,
+          n.chave_acesso,
+          n.natureza_operacao,
+          n.tipo_operacao,
+          n.finalidade,
+          n.status,
+          n.status_sefaz,
+          n.ambiente_nfe,
+          n.valor_total,
+          n.criado_em,
+          d.pessoa_nome_razao AS destinatario_nome_razao,
+          d.pessoa_cpf_cnpj AS destinatario_cpf_cnpj
+        FROM fiscal.nfe n
+        LEFT JOIN pessoa d ON d.pessoa_id = n.destinatario_pessoa_id
+        ${where}
+        ORDER BY ${orderBy}
+        LIMIT $${values.length + 1}
+        OFFSET $${values.length + 2}
+      `,
+      [...values, safeLimit, offset]
+    );
+
+    const countResult = await client.query(
+      `
+        SELECT COUNT(*)::int AS total
+        FROM fiscal.nfe n
+        LEFT JOIN pessoa d ON d.pessoa_id = n.destinatario_pessoa_id
+        ${where}
+      `,
+      values
+    );
 
     const total = countResult.rows[0]?.total || 0;
 
@@ -301,53 +300,54 @@ class NfeDAO {
     const data = rows[0];
     if (!data) return null;
 
-    const [itemsResult, impostosResult, eventosResult, xmlsResult] = await Promise.all([
-      client.query(
-        `
-          SELECT *
-          FROM fiscal.nfe_item
-          WHERE nfe_id = $1
-            AND tenant_id = ${TENANT_CONTEXT_SQL}
-          ORDER BY nfe_item_id
-        `,
-        [safeNfeId]
-      ),
-      client.query(
-        `
-          SELECT *
-          FROM fiscal.nfe_item_imposto
-          WHERE nfe_id = $1
-            AND tenant_id = ${TENANT_CONTEXT_SQL}
-          ORDER BY nfe_item_id, nfe_item_imposto_id
-        `,
-        [safeNfeId]
-      ),
-      client.query(
-        `
-          SELECT *
-          FROM fiscal.nfe_evento
-          WHERE nfe_id = $1
-            AND tenant_id = ${TENANT_CONTEXT_SQL}
-          ORDER BY criado_em DESC, nfe_evento_id DESC
-        `,
-        [safeNfeId]
-      ),
-      client.query(
-        `
-          SELECT
-            nfe_xml_id,
-            tipo_xml,
-            chave_acesso,
-            hash_sha256,
-            criado_em
-          FROM fiscal.nfe_xml
-          WHERE nfe_id = $1
-            AND tenant_id = ${TENANT_CONTEXT_SQL}
-          ORDER BY criado_em DESC, nfe_xml_id DESC
-        `,
-        [safeNfeId]
-      ),
-    ]);
+    const itemsResult = await client.query(
+      `
+        SELECT *
+        FROM fiscal.nfe_item
+        WHERE nfe_id = $1
+          AND tenant_id = ${TENANT_CONTEXT_SQL}
+        ORDER BY nfe_item_id
+      `,
+      [safeNfeId]
+    );
+
+    const impostosResult = await client.query(
+      `
+        SELECT *
+        FROM fiscal.nfe_item_imposto
+        WHERE nfe_id = $1
+          AND tenant_id = ${TENANT_CONTEXT_SQL}
+        ORDER BY nfe_item_id, nfe_item_imposto_id
+      `,
+      [safeNfeId]
+    );
+
+    const eventosResult = await client.query(
+      `
+        SELECT *
+        FROM fiscal.nfe_evento
+        WHERE nfe_id = $1
+          AND tenant_id = ${TENANT_CONTEXT_SQL}
+        ORDER BY criado_em DESC, nfe_evento_id DESC
+      `,
+      [safeNfeId]
+    );
+
+    const xmlsResult = await client.query(
+      `
+        SELECT
+          nfe_xml_id,
+          tipo_xml,
+          chave_acesso,
+          hash_sha256,
+          criado_em
+        FROM fiscal.nfe_xml
+        WHERE nfe_id = $1
+          AND tenant_id = ${TENANT_CONTEXT_SQL}
+        ORDER BY criado_em DESC, nfe_xml_id DESC
+      `,
+      [safeNfeId]
+    );
 
     return {
       ...data,
