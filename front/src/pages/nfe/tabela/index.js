@@ -16,6 +16,9 @@ const mapStatusTone = (status) => {
   return "primary";
 };
 
+const canProcessar = (status) =>
+  ["rascunho", "erro_integracao", "rejeitada"].includes(String(status || "").toLowerCase());
+
 const formatDate = (value) => {
   if (!value) return "--";
   const date = new Date(value);
@@ -167,7 +170,7 @@ const Tabela = ({ search, status, refreshKey, onChanged }) => {
                         items={[
                           {
                             label: "Processar emissão",
-                            disabled: nfe.status !== "rascunho",
+                            disabled: !canProcessar(nfe.status),
                             onClick: () => handleProcessar(nfe),
                           },
                           {
