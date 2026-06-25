@@ -108,6 +108,7 @@ CREATE TABLE IF NOT EXISTS fiscal.nfe_evento (
   status VARCHAR(30) NOT NULL DEFAULT 'pendente',
   mensagem TEXT,
   payload_json JSONB,
+  resposta_json JSONB,
   criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   atualizado_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
