@@ -131,6 +131,11 @@ export const useTabelaNfe = ({ search, status, refreshKey, onChanged }) => {
     );
   };
 
+  const handleAbrirDanfe = (nfe) => {
+    if (!nfe?.nfe_id) return;
+    window.open(`/reports/nfe/${nfe.nfe_id}/danfe`, "_blank", "noopener,noreferrer");
+  };
+
   const paginationItems = useMemo(() => {
     const items = [];
     for (let current = 1; current <= totalPages; current += 1) {
@@ -153,6 +158,7 @@ export const useTabelaNfe = ({ search, status, refreshKey, onChanged }) => {
     paginationItems,
     handleProcessar,
     handleConsultarStatus,
+    handleAbrirDanfe,
     handleCancelar,
   };
 };

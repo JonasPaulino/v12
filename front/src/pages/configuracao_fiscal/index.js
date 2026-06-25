@@ -20,6 +20,7 @@ export const ConfiguracaoFiscal = () => {
     selectedEmitente,
     emitenteEndereco,
     certificadoResumo,
+    logoResumo,
     contasResumo,
     whatsappResumo,
     whatsAppState,
@@ -30,6 +31,7 @@ export const ConfiguracaoFiscal = () => {
     loadEmitenteOptions,
     handleSelectEmitente,
     handleSelectCertificado,
+    handleSelectLogo,
     handleConnectWhatsApp,
     handleDisconnectWhatsApp,
     handleRestartWhatsApp,
@@ -311,6 +313,15 @@ export const ConfiguracaoFiscal = () => {
                         </C.CardText>
                       </C.CertificateBox>
 
+                      <C.CertificateBox>
+                        <C.InfoLabel>Logo atual da filial</C.InfoLabel>
+                        <C.InfoValue>{logoResumo.nome_arquivo}</C.InfoValue>
+                        <C.CardText>
+                          Tamanho: {logoResumo.tamanho} • Importado em:{" "}
+                          {logoResumo.importadoEm}
+                        </C.CardText>
+                      </C.CertificateBox>
+
                       <C.FieldsGrid>
                         <C.Field>
                           <C.FieldSpan>Arquivo do certificado</C.FieldSpan>
@@ -331,6 +342,19 @@ export const ConfiguracaoFiscal = () => {
                             }
                             placeholder="Obrigatória ao importar um novo A1"
                           />
+                        </C.Field>
+
+                        <C.Field>
+                          <C.FieldSpan>Logo da filial para DANFE</C.FieldSpan>
+                          <C.FileInput
+                            type="file"
+                            accept="image/*"
+                            onChange={handleSelectLogo}
+                          />
+                          <C.FieldHint>
+                            A logo não é enviada para a SEFAZ. Ela é usada apenas na impressão
+                            do DANFE e relatórios.
+                          </C.FieldHint>
                         </C.Field>
                       </C.FieldsGrid>
                     </C.SectionBody>

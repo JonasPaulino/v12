@@ -38,6 +38,7 @@ const Tabela = ({ search, status, refreshKey, onChanged }) => {
     paginationItems,
     handleProcessar,
     handleConsultarStatus,
+    handleAbrirDanfe,
     handleCancelar,
   } = useTabelaNfe({
     search,
@@ -182,6 +183,11 @@ const Tabela = ({ search, status, refreshKey, onChanged }) => {
                             label: "Consultar status",
                             disabled: !nfe.chave_acesso,
                             onClick: () => handleConsultarStatus(nfe),
+                          },
+                          {
+                            label: "Imprimir DANFE",
+                            disabled: String(nfe.status || "").toLowerCase() !== "autorizada",
+                            onClick: () => handleAbrirDanfe(nfe),
                           },
                           {
                             label: "Solicitar cancelamento",

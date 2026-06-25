@@ -355,6 +355,11 @@ class ConfiguracaoFiscalDAO {
           cert.validade_em AS certificado_validade_em,
           cert.importado_em AS certificado_importado_em,
           cert.atualizado_em AS certificado_atualizado_em,
+          logo.nome_arquivo AS logo_nome_arquivo,
+          logo.mime_type AS logo_mime_type,
+          logo.tamanho_arquivo AS logo_tamanho_arquivo,
+          logo.importado_em AS logo_importado_em,
+          logo.atualizado_em AS logo_atualizado_em,
           gw.provider AS gateway_provider,
           gw.ambiente AS gateway_ambiente,
           gw.wallet_id AS gateway_wallet_id,
@@ -380,6 +385,8 @@ class ConfiguracaoFiscalDAO {
           ON cfg.tenant_id = t.tenant_id
         LEFT JOIN tenant_certificado_a1 cert
           ON cert.tenant_id = t.tenant_id
+        LEFT JOIN tenant_logo logo
+          ON logo.tenant_id = t.tenant_id
         LEFT JOIN payments.tenant_configuracao_gateway gw
           ON gw.tenant_id = t.tenant_id
         LEFT JOIN tenant_responsavel_tecnico rt
@@ -420,6 +427,14 @@ class ConfiguracaoFiscalDAO {
         importado_em: row.certificado_importado_em || null,
         atualizado_em: row.certificado_atualizado_em || null,
         configurado: !!row.certificado_nome_arquivo,
+      },
+      logo: {
+        nome_arquivo: row.logo_nome_arquivo || "",
+        mime_type: row.logo_mime_type || "",
+        tamanho_arquivo: Number(row.logo_tamanho_arquivo || 0),
+        importado_em: row.logo_importado_em || null,
+        atualizado_em: row.logo_atualizado_em || null,
+        configurado: !!row.logo_nome_arquivo,
       },
       responsavel_tecnico: {
         cnpj: row.responsavel_tecnico_cnpj || DEFAULT_RESPONSAVEL_TECNICO.cnpj,
@@ -481,6 +496,16 @@ class ConfiguracaoFiscalDAO {
     });
     const certificadoConteudoBase64 = normalizeText(certificado.conteudo_base64, null, {
       label: "Conteúdo do certificado",
+    });
+    const logo = payload.logo || {};
+    const logoNomeArquivo = normalizeText(logo.nome_arquivo, 180, {
+      label: "Nome da logo",
+    });
+    const logoMimeType = normalizeText(logo.mime_type, 80, {
+      label: "Tipo da logo",
+    });
+    const logoConteudoBase64 = normalizeText(logo.conteudo_base64, null, {
+      label: "Conteúdo da logo",
     });
     const responsavelTecnicoPayload = payload.responsavel_tecnico || {};
     const responsavelTecnico = {
@@ -553,6 +578,11 @@ class ConfiguracaoFiscalDAO {
         nome_arquivo: certificadoNomeArquivo,
         senha: certificadoSenha,
         conteudo_base64: certificadoConteudoBase64,
+      },
+      logo: {
+        nome_arquivo: logoNomeArquivo,
+        mime_type: logoMimeType,
+        conteudo_base64: logoConteudoBase64,
       },
       responsavel_tecnico: responsavelTecnico,
     };
@@ -631,6 +661,8 @@ class ConfiguracaoFiscalDAO {
       !!data.certificado.conteudo_base64 ||
       !!data.certificado.senha ||
       !!data.certificado.nome_arquivo;
+    const shouldUpdateLogo =
+      !!data.logo.conteudo_base64 || !!data.logo.nome_arquivo || !!data.logo.mime_type;
 
     await client.query("BEGIN");
 
@@ -808,6 +840,50 @@ class ConfiguracaoFiscalDAO {
             buffer.length,
             certificadoPreview.validade_em,
           ]
+        );
+      }
+
+      if (shouldUpdateLogo) {
+        if (!data.logo.nome_arquivo || !data.logo.mime_type || !data.logo.conteudo_base64) {
+          throw new Error("Para importar a logo informe arquivo, conteúdo e tipo.");
+        }
+
+        if (!String(data.logo.mime_type).startsWith("image/")) {
+          throw new Error("A logo precisa ser uma imagem.");
+        }
+
+        const buffer = Buffer.from(data.logo.conteudo_base64, "base64");
+        if (!buffer.length) {
+          throw new Error("Conteúdo da logo inválido.");
+        }
+
+        await client.query(
+          `
+            INSERT INTO tenant_logo (
+              tenant_id,
+              nome_arquivo,
+              mime_type,
+              conteudo,
+              tamanho_arquivo,
+              importado_em
+            )
+            VALUES (
+              ${TENANT_CONTEXT_SQL},
+              $1,
+              $2,
+              $3,
+              $4,
+              NOW()
+            )
+            ON CONFLICT (tenant_id) DO UPDATE
+            SET
+              nome_arquivo = EXCLUDED.nome_arquivo,
+              mime_type = EXCLUDED.mime_type,
+              conteudo = EXCLUDED.conteudo,
+              tamanho_arquivo = EXCLUDED.tamanho_arquivo,
+              importado_em = EXCLUDED.importado_em
+          `,
+          [data.logo.nome_arquivo, data.logo.mime_type, buffer, buffer.length]
         );
       }
 
