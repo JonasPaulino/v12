@@ -1,4 +1,8 @@
+import { execFile } from "child_process";
 import fs from "fs/promises";
+import os from "os";
+import path from "path";
+import { promisify } from "util";
 import {
   configureAcbrSession,
   createAcbrSession,
@@ -8,6 +12,7 @@ import {
 import { buildNfeIni } from "./iniBuilder.js";
 
 const [, , inputPath, outputPath] = process.argv;
+const execFileAsync = promisify(execFile);
 
 const writeOutput = async (payload) => {
   if (!outputPath) return;
@@ -26,6 +31,40 @@ const safeGetXml = (acbr) => {
   }
 };
 
+const validateCertificateFile = async ({ certPath, certificadoSenha }) => {
+  const tempPem = path.join(os.tmpdir(), `v12-cert-${process.pid}-${Date.now()}.pem`);
+
+  try {
+    await execFileAsync(
+      "openssl",
+      [
+        "pkcs12",
+        "-in",
+        certPath,
+        "-nokeys",
+        "-clcerts",
+        "-passin",
+        `pass:${certificadoSenha || ""}`,
+        "-out",
+        tempPem,
+      ],
+      {
+        maxBuffer: 1024 * 1024,
+        timeout: 30000,
+      }
+    );
+  } catch (error) {
+    const stderr = String(error.stderr || "").trim();
+    if (/invalid password|mac verify error/i.test(stderr)) {
+      throw new Error("Senha do certificado A1 inválida ou certificado incompatível.");
+    }
+
+    throw new Error(stderr || error.message || "Não foi possível validar o certificado A1.");
+  } finally {
+    await fs.rm(tempPem, { force: true });
+  }
+};
+
 const run = async () => {
   const rawInput = await fs.readFile(inputPath, "utf8");
   const payload = JSON.parse(rawInput);
@@ -41,6 +80,10 @@ const run = async () => {
   let preXml = null;
 
   try {
+    logStep("certificado:validar:start", { tenantId, nfeId });
+    await validateCertificateFile({ certPath: session.certPath, certificadoSenha });
+    logStep("certificado:validar:done", { tenantId, nfeId });
+
     logStep("configure:start", { tenantId, nfeId });
     await configureAcbrSession(session, context);
     logStep("configure:done", { tenantId, nfeId, configPath: session.configPath });

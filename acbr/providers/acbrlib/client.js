@@ -118,9 +118,9 @@ const runNfeEmissionWorker = async ({ tenantId, nfeId, context, certificadoSenha
       ? `A ACBrLib falhou durante a assinatura/envio da NF-e${signal}. O serviço permaneceu ativo; verifique o evento de erro e os logs do ACBr.`
       : "";
     const message =
+      nativeCrashMessage ||
       result?.lastReturn ||
       result?.message ||
-      nativeCrashMessage ||
       stderr ||
       `A ACBrLib falhou durante a emissão da NF-e${signal}.`;
 
