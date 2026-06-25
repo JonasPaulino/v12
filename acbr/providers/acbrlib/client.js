@@ -1,14 +1,22 @@
+import { execFile } from "child_process";
+import fs from "fs/promises";
+import os from "os";
+import path from "path";
+import { fileURLToPath } from "url";
+import { promisify } from "util";
 import AcbrNfeIntegrationDAO from "../../model/acbrNfeIntegrationDAO.js";
 import { decryptSecret } from "../../utils/secret.js";
-import { buildNfeIni } from "./iniBuilder.js";
 import { findIniValue, mapNfeReturnToStatus, parseIniLikeResponse } from "./parser.js";
 import {
   configureAcbrSession,
   createAcbrSession,
   destroyAcbrSession,
   getAcbrRuntimeDiagnostics,
-  writeAcbrIni,
 } from "./runtime.js";
+
+const execFileAsync = promisify(execFile);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const NFE_NATIVE_WORKER_PATH = path.join(__dirname, "nfeNativeWorker.js");
 
 class AcbrLibNotConfiguredError extends Error {
   constructor(message = "ACBrLib não configurada neste ambiente.") {
@@ -34,19 +42,94 @@ const safeParseInteger = (value) => {
   return Number.isInteger(parsed) ? parsed : null;
 };
 
-const safeGetXml = (acbr) => {
-  try {
-    return acbr.obterXml(0);
-  } catch {
-    return null;
-  }
-};
-
 const logAcbrStep = (step, details = {}) => {
   console.error("[acbr:nfe:step]", {
     step,
     ...details,
   });
+};
+
+const normalizeContextForWorker = (context) => ({
+  ...context,
+  certificado: {
+    nome_arquivo: context.certificado?.nome_arquivo || "",
+  },
+});
+
+const safeReadJsonFile = async (filePath) => {
+  try {
+    const content = await fs.readFile(filePath, "utf8");
+    return JSON.parse(content);
+  } catch {
+    return null;
+  }
+};
+
+const runNfeEmissionWorker = async ({ tenantId, nfeId, context, certificadoSenha }) => {
+  const workDir = await fs.mkdtemp(path.join(os.tmpdir(), `v12-nfe-${tenantId}-${nfeId}-`));
+  const inputPath = path.join(workDir, "input.json");
+  const outputPath = path.join(workDir, "output.json");
+  const certificadoBase64 = Buffer.from(context.certificado.conteudo_pfx).toString("base64");
+
+  await fs.writeFile(
+    inputPath,
+    JSON.stringify({
+      tenantId,
+      nfeId,
+      context: normalizeContextForWorker(context),
+      certificadoBase64,
+      certificadoSenha,
+    }),
+    "utf8"
+  );
+
+  try {
+    const { stderr } = await execFileAsync(process.execPath, [NFE_NATIVE_WORKER_PATH, inputPath, outputPath], {
+      cwd: process.cwd(),
+      env: process.env,
+      maxBuffer: 10 * 1024 * 1024,
+      timeout: 120000,
+    });
+
+    if (stderr) {
+      console.error(stderr.trim());
+    }
+
+    const result = await safeReadJsonFile(outputPath);
+    if (!result?.ok) {
+      throw new AcbrLibIntegrationError(result?.message || "Falha ao emitir NF-e com a ACBrLib.", {
+        nfeId,
+        tenantId,
+        workerResult: result,
+      });
+    }
+
+    return result;
+  } catch (error) {
+    const result = await safeReadJsonFile(outputPath);
+    const signal = error.signal ? ` (signal: ${error.signal})` : "";
+    const stderr = String(error.stderr || "").trim();
+    const crashedNative = error.signal || /segmentation fault|core dumped|sigsegv/i.test(stderr);
+    const nativeCrashMessage = crashedNative
+      ? `A ACBrLib falhou durante a assinatura/envio da NF-e${signal}. O serviço permaneceu ativo; verifique o evento de erro e os logs do ACBr.`
+      : "";
+    const message =
+      result?.lastReturn ||
+      result?.message ||
+      nativeCrashMessage ||
+      stderr ||
+      `A ACBrLib falhou durante a emissão da NF-e${signal}.`;
+
+    throw new AcbrLibIntegrationError(message, {
+      nfeId,
+      tenantId,
+      workerResult: result,
+      signal: error.signal || null,
+      stderr,
+    });
+  } finally {
+    await fs.rm(workDir, { recursive: true, force: true });
+  }
 };
 
 const buildResponseMetadata = (rawText, operation) => {
@@ -215,60 +298,28 @@ class AcbrLibProvider {
       throw error;
     }
 
-    const session = await createAcbrSession({
-      tenantId,
-      nfeId,
-      certificadoBuffer: context.certificado.conteudo_pfx,
-      certificadoSenha: decryptSecret(context.certificado.senha_criptografada),
-    });
-
     let preXml = null;
     let lastReturn = null;
 
     try {
-      logAcbrStep("configure:start", { tenantId, nfeId });
-      await configureAcbrSession(session, context);
-      logAcbrStep("configure:done", { tenantId, nfeId, configPath: session.configPath });
+      logAcbrStep("worker:start", { tenantId, nfeId });
+      const workerResult = await runNfeEmissionWorker({
+        tenantId,
+        nfeId,
+        context,
+        certificadoSenha: decryptSecret(context.certificado.senha_criptografada),
+      });
+      logAcbrStep("worker:done", { tenantId, nfeId });
 
-      const iniContent = buildNfeIni(context);
-      const iniPath = await writeAcbrIni(session, iniContent);
-      logAcbrStep("ini:written", { tenantId, nfeId, iniPath });
-
-      logAcbrStep("limparLista:start", { tenantId, nfeId });
-      session.acbr.limparLista();
-      logAcbrStep("limparLista:done", { tenantId, nfeId });
-
-      logAcbrStep("carregarINI:start", { tenantId, nfeId, iniPath });
-      session.acbr.carregarINI(iniPath);
-      logAcbrStep("carregarINI:done", { tenantId, nfeId });
-
-      logAcbrStep("obterXml:pre:start", { tenantId, nfeId });
-      preXml = safeGetXml(session.acbr);
-      logAcbrStep("obterXml:pre:done", { tenantId, nfeId, hasXml: !!preXml });
-
-      logAcbrStep("assinar:start", { tenantId, nfeId });
-      session.acbr.assinar();
-      logAcbrStep("assinar:done", { tenantId, nfeId });
-
-      logAcbrStep("validar:start", { tenantId, nfeId });
-      session.acbr.validar();
-      logAcbrStep("validar:done", { tenantId, nfeId });
-
-      logAcbrStep("enviar:start", { tenantId, nfeId, lote: 1 });
-      const rawResponse = session.acbr.enviar(1, false, true, false);
-      logAcbrStep("enviar:done", { tenantId, nfeId });
-
-      logAcbrStep("obterXml:post:start", { tenantId, nfeId });
-      const postXml = safeGetXml(session.acbr);
-      logAcbrStep("obterXml:post:done", { tenantId, nfeId, hasXml: !!postXml });
-      const metadata = buildResponseMetadata(rawResponse, "emitir");
+      preXml = workerResult.preXml;
+      const metadata = buildResponseMetadata(workerResult.rawResponse, "emitir");
 
       await persistSuccess(client, {
         context,
         userId,
         metadata,
         preXml,
-        postXml,
+        postXml: workerResult.postXml,
         eventType: "emissao_retorno",
       });
 
@@ -277,11 +328,9 @@ class AcbrLibProvider {
         ...metadata,
       };
     } catch (error) {
-      try {
-        lastReturn = session.acbr?.ultimoRetorno?.() || null;
-      } catch {
-        lastReturn = null;
-      }
+      const workerResult = error.details?.workerResult || null;
+      preXml = workerResult?.preXml || preXml;
+      lastReturn = workerResult?.lastReturn || error.details?.stderr || null;
 
       await persistFailure(client, {
         context,
@@ -294,10 +343,8 @@ class AcbrLibProvider {
 
       throw new AcbrLibIntegrationError(
         lastReturn || error.message || "Falha ao emitir NF-e com a ACBrLib.",
-        { nfeId, tenantId }
+        { nfeId, tenantId, workerResult, signal: error.details?.signal || null }
       );
-    } finally {
-      await destroyAcbrSession(session);
     }
   }
 

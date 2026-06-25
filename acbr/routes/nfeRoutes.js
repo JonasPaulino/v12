@@ -172,6 +172,13 @@ router.post("/:id/processar", async (req, res) => {
     });
   } catch (error) {
     if (isProviderStubError(error)) {
+      if (error instanceof AcbrLibIntegrationError) {
+        console.error("[acbr:nfe] Falha de integração ACBrLib:", {
+          message: error.message,
+          details: error.details,
+        });
+      }
+
       return res.status(error instanceof AcbrLibNotConfiguredError ? 501 : 400).json({
         success: false,
         message: error.message,
