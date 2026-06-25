@@ -96,7 +96,7 @@ export const RouteApp = () => (
         element={
           <AuthMiddleware>
             <MasterOnly>
-              <PageWrapper title="Cadastrar empresa">
+              <PageWrapper title="Empresas">
                 <TenantSetup />
               </PageWrapper>
             </MasterOnly>

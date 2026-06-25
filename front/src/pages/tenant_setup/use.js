@@ -1,11 +1,11 @@
-import { useCallback, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSweetAlert } from "context/sweet_alert";
-import { createTenantSetup, previewTenantCertificate } from "./api";
+import { createTenantSetup, listTenants, previewTenantCertificate } from "./api";
 
 const REQUIRED_TITLE = "Este campo é obrigatório.";
+const PAGE_SIZE = 8;
 
-const initialForm = {
+const createInitialForm = () => ({
   certificado_senha: "",
   tenant_nome: "",
   nome_razao: "",
@@ -29,7 +29,7 @@ const initialForm = {
   usuario_username: "",
   usuario_password: "",
   usuario_confirm_password: "",
-};
+});
 
 const readFileAsBase64 = (file) =>
   new Promise((resolve, reject) => {
@@ -42,26 +42,72 @@ const readFileAsBase64 = (file) =>
     reader.readAsDataURL(file);
   });
 
+const normalizeSearch = (value) =>
+  String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+
 export const useTenantSetupPage = () => {
-  const navigate = useNavigate();
   const { showAlert } = useSweetAlert();
-  const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
+  const [loadingTenants, setLoadingTenants] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [step, setStep] = useState(1);
   const [certificadoFile, setCertificadoFile] = useState(null);
-  const [form, setForm] = useState(initialForm);
+  const [form, setForm] = useState(() => createInitialForm());
   const [preview, setPreview] = useState(null);
+  const [tenants, setTenants] = useState([]);
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+
+  const resetForm = useCallback(() => {
+    setStep(1);
+    setCertificadoFile(null);
+    setForm(createInitialForm());
+    setPreview(null);
+  }, []);
+
+  const loadTenants = useCallback(async () => {
+    setLoadingTenants(true);
+
+    try {
+      const result = await listTenants();
+      setTenants(Array.isArray(result?.data) ? result.data : []);
+    } catch (error) {
+      await showAlert({
+        title: "Falha ao carregar empresas",
+        text: error?.response?.data?.error || error?.message || "Não foi possível listar as filiais.",
+        icon: "error",
+      });
+    } finally {
+      setLoadingTenants(false);
+    }
+  }, [showAlert]);
+
+  useEffect(() => {
+    loadTenants();
+  }, [loadTenants]);
+
+  const openModal = useCallback(() => {
+    resetForm();
+    setIsModalOpen(true);
+  }, [resetForm]);
+
+  const closeModal = useCallback(() => {
+    setIsModalOpen(false);
+    resetForm();
+  }, [resetForm]);
 
   const updateField = useCallback((field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   }, []);
 
-  const handleSelectCertificado = useCallback(
-    (event) => {
-      const file = event.target.files?.[0] || null;
-      setCertificadoFile(file);
-    },
-    []
-  );
+  const handleSelectCertificado = useCallback((event) => {
+    const file = event.target.files?.[0] || null;
+    setCertificadoFile(file);
+  }, []);
 
   const handleConfirmCertificate = useCallback(async () => {
     if (!certificadoFile) {
@@ -93,7 +139,8 @@ export const useTenantSetupPage = () => {
       const empresa = result?.data?.empresa || {};
       setForm((prev) => ({
         ...prev,
-        tenant_nome: prev.tenant_nome || empresa.tenant_nome || empresa.nome_fantasia || empresa.nome_razao || "",
+        tenant_nome:
+          prev.tenant_nome || empresa.tenant_nome || empresa.nome_fantasia || empresa.nome_razao || "",
         nome_razao: empresa.nome_razao || prev.nome_razao,
         nome_fantasia: empresa.nome_fantasia || prev.nome_fantasia,
         cnpj: empresa.cnpj || prev.cnpj,
@@ -246,6 +293,7 @@ export const useTenantSetupPage = () => {
       };
 
       await createTenantSetup(payload);
+      await loadTenants();
 
       await showAlert({
         title: "Filial cadastrada",
@@ -253,7 +301,8 @@ export const useTenantSetupPage = () => {
         icon: "success",
       });
 
-      navigate("/dashboard", { replace: true });
+      await loadTenants();
+      closeModal();
     } catch (error) {
       await showAlert({
         title: "Falha ao cadastrar filial",
@@ -266,7 +315,7 @@ export const useTenantSetupPage = () => {
     } finally {
       setSaving(false);
     }
-  }, [certificadoFile, form, navigate, showAlert]);
+  }, [certificadoFile, closeModal, form, loadTenants, showAlert]);
 
   const certificateSummary = useMemo(() => {
     if (!certificadoFile) {
@@ -282,18 +331,60 @@ export const useTenantSetupPage = () => {
     };
   }, [certificadoFile]);
 
+  const filteredTenants = useMemo(() => {
+    const query = normalizeSearch(search);
+
+    if (!query) return tenants;
+
+    return tenants.filter((tenant) => {
+      const searchable = [
+        tenant.tenant_nome,
+        tenant.tenant_slug,
+        tenant.tenant_documento,
+        tenant.perfil,
+      ]
+        .map(normalizeSearch)
+        .join(" ");
+
+      return searchable.includes(query);
+    });
+  }, [search, tenants]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredTenants.length / PAGE_SIZE));
+
+  useEffect(() => {
+    setPage((current) => Math.min(current, totalPages));
+  }, [totalPages]);
+
+  const paginatedTenants = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filteredTenants.slice(start, start + PAGE_SIZE);
+  }, [filteredTenants, page]);
+
   return {
     REQUIRED_TITLE,
-    step,
     saving,
+    loadingTenants,
+    isModalOpen,
+    step,
     form,
     preview,
     certificateSummary,
+    tenants: paginatedTenants,
+    totalTenants: filteredTenants.length,
+    page,
+    totalPages,
+    search,
     updateField,
+    setSearch,
+    setPage,
+    openModal,
+    closeModal,
     handleSelectCertificado,
     handleConfirmCertificate,
     goNextStep,
     goPreviousStep,
     handleSubmit,
+    loadTenants,
   };
 };

@@ -248,3 +248,195 @@ export const LoadingCard = styled.div`
   background: rgba(255, 255, 255, 0.9);
   color: ${({ theme }) => theme.colors.textSoft};
 `;
+
+export const PageGrid = styled.div`
+  display: grid;
+  gap: 18px;
+`;
+
+export const ListCard = styled.div`
+  display: grid;
+  gap: 18px;
+  padding: 24px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radius.lg};
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: ${({ theme }) => theme.colors.shadowSoft};
+`;
+
+export const ListHeader = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+`;
+
+export const ListHeaderText = styled.div`
+  display: grid;
+  gap: 8px;
+`;
+
+export const ListKicker = styled.span`
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 6px 10px;
+  border-radius: ${({ theme }) => theme.radius.pill};
+  background: rgba(11, 95, 255, 0.08);
+  color: ${({ theme }) => theme.colors.primaryStrong};
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+`;
+
+export const SearchRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+export const SearchInput = styled.input`
+  ${inputStyles}
+  max-width: 420px;
+`;
+
+export const CountText = styled.span`
+  color: ${({ theme }) => theme.colors.textSoft};
+  font-size: 0.94rem;
+`;
+
+export const TenantGrid = styled.div`
+  display: grid;
+  gap: 12px;
+`;
+
+export const TenantItem = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px 18px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radius.md};
+  background: ${({ theme }) => theme.colors.surfaceAlt};
+`;
+
+export const TenantItemTitle = styled.strong`
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 1rem;
+`;
+
+export const TenantMeta = styled.div`
+  display: grid;
+  gap: 4px;
+  color: ${({ theme }) => theme.colors.textSoft};
+  font-size: 0.92rem;
+`;
+
+export const EmptyState = styled.div`
+  display: grid;
+  gap: 8px;
+  padding: 26px;
+  border: 1px dashed ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radius.md};
+  background: rgba(255, 255, 255, 0.64);
+  text-align: center;
+`;
+
+export const EmptyTitle = styled.strong`
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 1.02rem;
+`;
+
+export const EmptyText = styled.p`
+  margin: 0;
+  color: ${({ theme }) => theme.colors.textSoft};
+  line-height: 1.55;
+`;
+
+export const Pagination = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+`;
+
+export const PaginationActions = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+`;
+
+export const PageButton = styled.button`
+  padding: 12px 16px;
+  border-radius: ${({ theme }) => theme.radius.pill};
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  background: #fff;
+  color: ${({ theme, $active }) => ($active ? theme.colors.primaryStrong : theme.colors.text)};
+  font-weight: 700;
+`;
+
+export const ModalOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 28px 16px;
+  background: rgba(7, 16, 34, 0.48);
+  backdrop-filter: blur(4px);
+  overflow-y: auto;
+`;
+
+export const ModalPanel = styled.div`
+  width: min(1180px, 100%);
+  margin: auto 0;
+  display: grid;
+  gap: 18px;
+  padding: 24px;
+  border-radius: ${({ theme }) => theme.radius.lg};
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: ${({ theme }) => theme.colors.shadowSoft};
+`;
+
+export const ModalHeader = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+`;
+
+export const ModalTitle = styled.div`
+  display: grid;
+  gap: 6px;
+`;
+
+export const ModalTitleText = styled.h3`
+  margin: 0;
+  font-family: ${({ theme }) => theme.fonts.heading};
+  font-size: 1.8rem;
+  color: ${({ theme }) => theme.colors.text};
+`;
+
+export const ModalCloseButton = styled.button`
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  background: #fff;
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 1.1rem;
+  font-weight: 700;
+`;
+
+export const ModalBody = styled.div`
+  display: grid;
+  gap: 18px;
+`;
