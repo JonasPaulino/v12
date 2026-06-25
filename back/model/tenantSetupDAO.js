@@ -140,6 +140,106 @@ const seedFormasPagamento = async (client, tenantId) => {
 };
 
 class TenantSetupDAO {
+  static async obterFilialPorId(client, tenantId) {
+    const { rows } = await client.query(
+      `
+        SELECT
+          t.tenant_id,
+          t.tenant_nome,
+          t.tenant_slug,
+          t.tenant_documento,
+          t.tenant_ativo,
+          t.pessoa_id,
+          p.pessoa_nome_razao,
+          p.pessoa_nome_fantasia,
+          p.pessoa_cpf_cnpj,
+          p.pessoa_inscricao_estadual,
+          p.pessoa_inscricao_municipal,
+          p.pessoa_email,
+          p.pessoa_telefone,
+          pe.cep,
+          pe.logradouro,
+          pe.numero,
+          pe.complemento,
+          pe.bairro,
+          pe.cidade,
+          pe.uf,
+          pe.codigo_ibge,
+          pe.pais,
+          cfg.ambiente_nfe,
+          cfg.serie_nfe_padrao,
+          cfg.proximo_numero_nfe,
+          cfg.crt,
+          cfg.cnae,
+          cfg.natureza_operacao_padrao,
+          cert.nome_arquivo AS certificado_nome_arquivo,
+          cert.tamanho_arquivo AS certificado_tamanho_arquivo,
+          cert.validade_em AS certificado_validade_em,
+          cert.importado_em AS certificado_importado_em
+        FROM tenant t
+        LEFT JOIN pessoa p ON p.pessoa_id = t.pessoa_id
+        LEFT JOIN LATERAL (
+          SELECT *
+          FROM pessoa_endereco
+          WHERE pessoa_id = t.pessoa_id
+            AND endereco_tipo = 'principal'
+          ORDER BY atualizado_em DESC, criado_em DESC
+          LIMIT 1
+        ) pe ON TRUE
+        LEFT JOIN tenant_configuracao_fiscal cfg ON cfg.tenant_id = t.tenant_id
+        LEFT JOIN tenant_certificado_a1 cert ON cert.tenant_id = t.tenant_id
+        WHERE t.tenant_id = $1
+        LIMIT 1
+      `,
+      [tenantId]
+    );
+
+    const row = rows[0];
+    if (!row) return null;
+
+    return {
+      tenant_id: row.tenant_id,
+      tenant_nome: row.tenant_nome,
+      tenant_slug: row.tenant_slug,
+      tenant_documento: row.tenant_documento,
+      tenant_ativo: row.tenant_ativo,
+      pessoa_id: row.pessoa_id,
+      empresa: {
+        tenant_nome: row.tenant_nome || "",
+        nome_razao: row.pessoa_nome_razao || "",
+        nome_fantasia: row.pessoa_nome_fantasia || "",
+        cnpj: row.pessoa_cpf_cnpj || row.tenant_documento || "",
+        inscricao_estadual: row.pessoa_inscricao_estadual || "",
+        inscricao_municipal: row.pessoa_inscricao_municipal || "",
+        email: row.pessoa_email || "",
+        telefone: row.pessoa_telefone || "",
+        cep: row.cep || "",
+        logradouro: row.logradouro || "",
+        numero: row.numero || "",
+        complemento: row.complemento || "",
+        bairro: row.bairro || "",
+        cidade: row.cidade || "",
+        uf: row.uf || "",
+        codigo_ibge: row.codigo_ibge || "",
+        pais: row.pais || "Brasil",
+      },
+      fiscal: {
+        ambiente_nfe: row.ambiente_nfe || "2",
+        serie_nfe_padrao: Number(row.serie_nfe_padrao || 1),
+        proximo_numero_nfe: Number(row.proximo_numero_nfe || 1),
+        crt: row.crt || "3",
+        cnae: row.cnae || "",
+        natureza_operacao_padrao: row.natureza_operacao_padrao || "Venda de mercadoria",
+      },
+      certificado: {
+        nome_arquivo: row.certificado_nome_arquivo || "",
+        tamanho_arquivo: Number(row.certificado_tamanho_arquivo || 0),
+        validade_em: row.certificado_validade_em || null,
+        importado_em: row.certificado_importado_em || null,
+      },
+    };
+  }
+
   static normalizarPayload(payload = {}) {
     const empresa = payload.empresa || {};
     const usuario = payload.usuario || {};
@@ -594,6 +694,213 @@ class TenantSetupDAO {
       await client.query("ROLLBACK");
       throw error;
     }
+  }
+
+  static async atualizarFilial(client, tenantId, payload) {
+    const empresa = payload?.empresa || {};
+    const fiscal = payload?.fiscal || {};
+    const certificado = payload?.certificado || {};
+
+    const data = {
+      empresa: {
+        tenant_nome: normalizeText(empresa.tenant_nome, 150, {
+          required: true,
+          label: "Nome da filial",
+        }),
+        nome_razao: normalizeText(empresa.nome_razao, 180, {
+          required: true,
+          label: "Razão social",
+        }),
+        nome_fantasia: normalizeText(empresa.nome_fantasia, 180),
+        cnpj: normalizeDigits(empresa.cnpj, 14, {
+          required: true,
+          label: "CNPJ",
+        }),
+        inscricao_estadual: normalizeText(empresa.inscricao_estadual, 20),
+        inscricao_municipal: normalizeText(empresa.inscricao_municipal, 20),
+        email: normalizeText(empresa.email, 150),
+        telefone: normalizeText(empresa.telefone, 20),
+        cep: normalizeText(empresa.cep, 9),
+        logradouro: normalizeText(empresa.logradouro, 180),
+        numero: normalizeText(empresa.numero, 20),
+        complemento: normalizeText(empresa.complemento, 120),
+        bairro: normalizeText(empresa.bairro, 100),
+        cidade: normalizeText(empresa.cidade, 100),
+        uf: normalizeText(empresa.uf, 2),
+        codigo_ibge: normalizeText(empresa.codigo_ibge, 10),
+        pais: normalizeText(empresa.pais, 60) || "Brasil",
+      },
+      fiscal: {
+        ambiente_nfe: normalizeText(fiscal.ambiente_nfe, 1) || "2",
+        serie_nfe_padrao: parseInteger(fiscal.serie_nfe_padrao ?? 1, {
+          required: true,
+          label: "Série padrão",
+        }),
+        proximo_numero_nfe: parseInteger(fiscal.proximo_numero_nfe ?? 1, {
+          required: true,
+          label: "Próximo número da NF-e",
+        }),
+        crt: normalizeText(fiscal.crt, 1) || "3",
+        cnae: normalizeText(fiscal.cnae, 7),
+        natureza_operacao_padrao:
+          normalizeText(fiscal.natureza_operacao_padrao, 120) || "Venda de mercadoria",
+      },
+      certificado: {
+        nome_arquivo: normalizeText(certificado.nome_arquivo, 180),
+        senha: normalizeText(certificado.senha, 180),
+        conteudo_base64: normalizeText(certificado.conteudo_base64, null),
+      },
+    };
+
+    await client.query("BEGIN");
+
+    try {
+      const tenantResult = await client.query(
+        `
+          UPDATE tenant
+          SET tenant_nome = $2,
+              tenant_documento = $3
+          WHERE tenant_id = $1
+          RETURNING tenant_id
+        `,
+        [tenantId, data.empresa.tenant_nome, data.empresa.cnpj]
+      );
+
+      if (!tenantResult.rows[0]) {
+        throw new Error("Filial não encontrada.");
+      }
+
+      const pessoaResult = await client.query(
+        `
+          SELECT pessoa_id
+          FROM tenant
+          WHERE tenant_id = $1
+          LIMIT 1
+        `,
+        [tenantId]
+      );
+
+      const pessoaId = Number(pessoaResult.rows[0]?.pessoa_id || 0);
+
+      if (pessoaId) {
+        await client.query(
+          `
+            UPDATE pessoa
+            SET pessoa_nome_razao = $2,
+                pessoa_nome_fantasia = $3,
+                pessoa_cpf_cnpj = $4,
+                pessoa_inscricao_estadual = $5,
+                pessoa_inscricao_municipal = $6,
+                pessoa_email = $7,
+                pessoa_telefone = $8
+            WHERE pessoa_id = $1
+          `,
+          [
+            pessoaId,
+            data.empresa.nome_razao,
+            data.empresa.nome_fantasia,
+            data.empresa.cnpj,
+            data.empresa.inscricao_estadual,
+            data.empresa.inscricao_municipal,
+            data.empresa.email,
+            data.empresa.telefone,
+          ]
+        );
+
+        await client.query(
+          `
+            UPDATE pessoa_endereco
+            SET cep = $2,
+                logradouro = $3,
+                numero = $4,
+                complemento = $5,
+                bairro = $6,
+                cidade = $7,
+                uf = $8,
+                codigo_ibge = $9,
+                pais = $10
+            WHERE pessoa_id = $1
+              AND endereco_tipo = 'principal'
+          `,
+          [
+            pessoaId,
+            data.empresa.cep,
+            data.empresa.logradouro,
+            data.empresa.numero,
+            data.empresa.complemento,
+            data.empresa.bairro,
+            data.empresa.cidade,
+            data.empresa.uf,
+            data.empresa.codigo_ibge,
+            data.empresa.pais,
+          ]
+        );
+      }
+
+      if (data.certificado.conteudo_base64 && data.certificado.senha) {
+        const certificadoBuffer = Buffer.from(data.certificado.conteudo_base64, "base64");
+        if (!certificadoBuffer.length) {
+          throw new Error("Conteúdo do certificado inválido.");
+        }
+
+        const certificadoPreview = await previewCertificate({
+          certificadoBase64: data.certificado.conteudo_base64,
+          certificadoSenha: data.certificado.senha,
+          scopeKey: `tenant-update-${tenantId}-${Date.now()}`,
+        });
+
+        await client.query(
+          `
+            INSERT INTO tenant_certificado_a1 (
+              tenant_id,
+              nome_arquivo,
+              conteudo_pfx,
+              senha_criptografada,
+              tamanho_arquivo,
+              validade_em,
+              importado_em
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, NOW())
+            ON CONFLICT (tenant_id) DO UPDATE
+            SET
+              nome_arquivo = EXCLUDED.nome_arquivo,
+              conteudo_pfx = EXCLUDED.conteudo_pfx,
+              senha_criptografada = EXCLUDED.senha_criptografada,
+              tamanho_arquivo = EXCLUDED.tamanho_arquivo,
+              validade_em = EXCLUDED.validade_em,
+              importado_em = EXCLUDED.importado_em
+          `,
+          [
+            tenantId,
+            data.certificado.nome_arquivo || `certificado-${tenantId}.pfx`,
+            certificadoBuffer,
+            encryptSecret(data.certificado.senha),
+            certificadoBuffer.length,
+            certificadoPreview.validade_em,
+          ]
+        );
+      }
+
+      await client.query("COMMIT");
+      return this.obterFilialPorId(client, tenantId);
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    }
+  }
+
+  static async alternarStatusFilial(client, tenantId, tenantAtivo) {
+    const { rows } = await client.query(
+      `
+        UPDATE tenant
+        SET tenant_ativo = $2
+        WHERE tenant_id = $1
+        RETURNING tenant_id, tenant_nome, tenant_ativo
+      `,
+      [tenantId, !!tenantAtivo]
+    );
+
+    return rows[0] || null;
   }
 }
 

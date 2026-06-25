@@ -5,6 +5,11 @@ export const listTenants = async () => {
   return data;
 };
 
+export const getTenantSetup = async (tenantId) => {
+  const { data } = await api.get(`/tenant-setup/${tenantId}`);
+  return data;
+};
+
 export const previewTenantCertificate = async ({ certificadoBase64, certificadoSenha }) => {
   const { data } = await api.post("/tenant-certificate/preview", {
     certificado: {
@@ -17,5 +22,17 @@ export const previewTenantCertificate = async ({ certificadoBase64, certificadoS
 
 export const createTenantSetup = async (payload) => {
   const { data } = await api.post("/tenant-setup", payload);
+  return data;
+};
+
+export const updateTenantSetup = async (tenantId, payload) => {
+  const { data } = await api.put(`/tenant-setup/${tenantId}`, payload);
+  return data;
+};
+
+export const toggleTenantSetupStatus = async (tenantId, tenantAtivo) => {
+  const { data } = await api.patch(`/tenant-setup/${tenantId}/status`, {
+    tenant_ativo: tenantAtivo,
+  });
   return data;
 };

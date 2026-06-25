@@ -324,6 +324,18 @@ export const TenantItem = styled.div`
   background: ${({ theme }) => theme.colors.surfaceAlt};
 `;
 
+export const TenantItemLeft = styled.div`
+  display: grid;
+  gap: 8px;
+`;
+
+export const TenantItemRight = styled.div`
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+`;
+
 export const TenantItemTitle = styled.strong`
   color: ${({ theme }) => theme.colors.text};
   font-size: 1rem;
@@ -334,6 +346,57 @@ export const TenantMeta = styled.div`
   gap: 4px;
   color: ${({ theme }) => theme.colors.textSoft};
   font-size: 0.92rem;
+`;
+
+export const TenantStatusBadge = styled.span`
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 6px 10px;
+  border-radius: ${({ theme }) => theme.radius.pill};
+  background: ${({ $active }) => ($active ? "rgba(15, 168, 88, 0.12)" : "rgba(230, 66, 87, 0.12)")};
+  color: ${({ $active }) => ($active ? "#0f9f52" : "#cf3b50")};
+  font-size: 0.78rem;
+  font-weight: 700;
+`;
+
+export const TenantMenuToggle = styled.button`
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: 999px;
+  background: #fff;
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 1.15rem;
+`;
+
+export const TenantMenu = styled.div`
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 5;
+  min-width: 200px;
+  padding: 8px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radius.md};
+  background: #fff;
+  box-shadow: ${({ theme }) => theme.colors.shadowSoft};
+`;
+
+export const TenantMenuButton = styled.button`
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: ${({ theme }) => theme.radius.sm};
+  background: ${({ theme }) => theme.colors.surfaceAlt};
+  color: ${({ theme }) => theme.colors.text};
+  font-weight: 600;
+  text-align: left;
 `;
 
 export const EmptyState = styled.div`

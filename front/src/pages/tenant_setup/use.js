@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSweetAlert } from "context/sweet_alert";
-import { createTenantSetup, listTenants, previewTenantCertificate } from "./api";
+import {
+  createTenantSetup,
+  getTenantSetup,
+  listTenants,
+  previewTenantCertificate,
+  toggleTenantSetupStatus,
+  updateTenantSetup,
+} from "./api";
 
 const REQUIRED_TITLE = "Este campo é obrigatório.";
 const PAGE_SIZE = 8;
@@ -49,8 +56,10 @@ const normalizeSearch = (value) =>
     .toLowerCase()
     .trim();
 
+const normalizeCnpj = (value) => String(value || "").replace(/\D/g, "");
+
 export const useTenantSetupPage = () => {
-  const { showAlert } = useSweetAlert();
+  const { showAlert, askYesNoQuestion } = useSweetAlert();
   const [saving, setSaving] = useState(false);
   const [loadingTenants, setLoadingTenants] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -61,12 +70,16 @@ export const useTenantSetupPage = () => {
   const [tenants, setTenants] = useState([]);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [editingTenantId, setEditingTenantId] = useState(null);
+  const [actionMenuTenantId, setActionMenuTenantId] = useState(null);
 
   const resetForm = useCallback(() => {
     setStep(1);
     setCertificadoFile(null);
     setForm(createInitialForm());
     setPreview(null);
+    setEditingTenantId(null);
+    setActionMenuTenantId(null);
   }, []);
 
   const loadTenants = useCallback(async () => {
@@ -94,6 +107,70 @@ export const useTenantSetupPage = () => {
     resetForm();
     setIsModalOpen(true);
   }, [resetForm]);
+
+  const openEditModal = useCallback(
+    async (tenantId) => {
+      setActionMenuTenantId(null);
+      setLoadingTenants(true);
+
+      try {
+        const result = await getTenantSetup(tenantId);
+        const data = result?.data || {};
+        const empresa = data.empresa || {};
+        const certificado = data.certificado || {};
+
+        setEditingTenantId(tenantId);
+        setForm({
+          ...createInitialForm(),
+          tenant_nome: empresa.tenant_nome || "",
+          nome_razao: empresa.nome_razao || "",
+          nome_fantasia: empresa.nome_fantasia || "",
+          cnpj: empresa.cnpj || "",
+          inscricao_estadual: empresa.inscricao_estadual || "",
+          inscricao_municipal: empresa.inscricao_municipal || "",
+          email: empresa.email || "",
+          telefone: empresa.telefone || "",
+          cep: empresa.cep || "",
+          logradouro: empresa.logradouro || "",
+          numero: empresa.numero || "",
+          complemento: empresa.complemento || "",
+          bairro: empresa.bairro || "",
+          cidade: empresa.cidade || "",
+          uf: empresa.uf || "",
+          codigo_ibge: empresa.codigo_ibge || "",
+          pais: empresa.pais || "Brasil",
+        });
+        setPreview({
+          certificado: {
+            nome_arquivo: certificado.nome_arquivo || "",
+            validade_em: certificado.validade_em || null,
+          },
+          empresa,
+        });
+        setStep(2);
+        setIsModalOpen(true);
+      } catch (error) {
+        await showAlert({
+          title: "Falha ao carregar filial",
+          text: error?.response?.data?.message || error?.message || "Não foi possível carregar a filial.",
+          icon: "error",
+        });
+      } finally {
+        setLoadingTenants(false);
+      }
+    },
+    [showAlert]
+  );
+
+  const findTenantByCnpj = useCallback(
+    (cnpj) => {
+      const normalized = normalizeCnpj(cnpj);
+      if (!normalized) return null;
+
+      return tenants.find((tenant) => normalizeCnpj(tenant.tenant_documento) === normalized) || null;
+    },
+    [tenants]
+  );
 
   const closeModal = useCallback(() => {
     setIsModalOpen(false);
@@ -135,8 +212,22 @@ export const useTenantSetupPage = () => {
         certificadoSenha: form.certificado_senha,
       });
 
-      setPreview(result?.data || null);
-      const empresa = result?.data?.empresa || {};
+      const previewData = result?.data || null;
+      const empresa = previewData?.empresa || {};
+
+      if (!editingTenantId) {
+        const tenantExistente = findTenantByCnpj(empresa.cnpj);
+        if (tenantExistente) {
+          await showAlert({
+            title: "Empresa já cadastrada",
+            text: `Já existe uma filial cadastrada com este CNPJ (${tenantExistente.tenant_nome}).`,
+            icon: "warning",
+          });
+          return;
+        }
+      }
+
+      setPreview(previewData);
       setForm((prev) => ({
         ...prev,
         tenant_nome:
@@ -165,11 +256,11 @@ export const useTenantSetupPage = () => {
         icon: "error",
       });
     }
-  }, [certificadoFile, form.certificado_senha, showAlert]);
+  }, [certificadoFile, editingTenantId, findTenantByCnpj, form.certificado_senha, showAlert]);
 
   const goNextStep = useCallback(async () => {
     if (step === 1) {
-      if (!certificadoFile || !String(form.certificado_senha || "").trim()) {
+      if (!editingTenantId && (!certificadoFile || !String(form.certificado_senha || "").trim())) {
         await showAlert({
           title: "Certificado incompleto",
           text: "Selecione o certificado A1 e informe a senha antes de avançar.",
@@ -203,15 +294,15 @@ export const useTenantSetupPage = () => {
       }
     }
 
-    setStep((prev) => Math.min(prev + 1, 3));
-  }, [certificadoFile, form, showAlert, step]);
+    setStep((prev) => Math.min(prev + 1, editingTenantId ? 2 : 3));
+  }, [certificadoFile, editingTenantId, form, showAlert, step]);
 
   const goPreviousStep = useCallback(() => {
     setStep((prev) => Math.max(prev - 1, 1));
   }, []);
 
   const handleSubmit = useCallback(async () => {
-    if (!certificadoFile) {
+    if (!certificadoFile && !editingTenantId) {
       await showAlert({
         title: "Certificado obrigatório",
         text: "Selecione o certificado da empresa antes de concluir o cadastro.",
@@ -220,45 +311,9 @@ export const useTenantSetupPage = () => {
       return;
     }
 
-    const requiredUserFields = [
-      ["usuario_nome", "Nome do usuário admin"],
-      ["usuario_email", "E-mail do usuário admin"],
-      ["usuario_username", "Login do usuário admin"],
-      ["usuario_password", "Senha do usuário admin"],
-    ];
-
-    const missing = requiredUserFields.find(([field]) => !String(form[field] || "").trim());
-    if (missing) {
-      await showAlert({
-        title: "Usuário incompleto",
-        text: `${missing[1]} é obrigatório.`,
-        icon: "warning",
-      });
-      return;
-    }
-
-    if (String(form.usuario_password || "").length < 6) {
-      await showAlert({
-        title: "Senha inválida",
-        text: "A senha do usuário admin precisa ter pelo menos 6 caracteres.",
-        icon: "warning",
-      });
-      return;
-    }
-
-    if (form.usuario_password !== form.usuario_confirm_password) {
-      await showAlert({
-        title: "Senha não confere",
-        text: "A confirmação da senha do usuário admin não confere.",
-        icon: "warning",
-      });
-      return;
-    }
-
     setSaving(true);
 
     try {
-      const conteudoBase64 = await readFileAsBase64(certificadoFile);
       const payload = {
         empresa: {
           tenant_nome: form.tenant_nome,
@@ -279,33 +334,94 @@ export const useTenantSetupPage = () => {
           codigo_ibge: form.codigo_ibge,
           pais: form.pais,
         },
-        usuario: {
+      };
+
+      if (editingTenantId) {
+        if (certificadoFile) {
+          const conteudoBase64 = await readFileAsBase64(certificadoFile);
+          payload.certificado = {
+            nome_arquivo: certificadoFile.name,
+            senha: form.certificado_senha,
+            conteudo_base64: conteudoBase64,
+          };
+        }
+
+        await updateTenantSetup(editingTenantId, payload);
+      } else {
+        const tenantExistente = findTenantByCnpj(form.cnpj);
+        if (tenantExistente) {
+          await showAlert({
+            title: "Empresa já cadastrada",
+            text: `Já existe uma filial cadastrada com este CNPJ (${tenantExistente.tenant_nome}).`,
+            icon: "warning",
+          });
+          return;
+        }
+
+        const conteudoBase64 = await readFileAsBase64(certificadoFile);
+        const requiredUserFields = [
+          ["usuario_nome", "Nome do usuário admin"],
+          ["usuario_email", "E-mail do usuário admin"],
+          ["usuario_username", "Login do usuário admin"],
+          ["usuario_password", "Senha do usuário admin"],
+        ];
+
+        const missing = requiredUserFields.find(([field]) => !String(form[field] || "").trim());
+        if (missing) {
+          await showAlert({
+            title: "Usuário incompleto",
+            text: `${missing[1]} é obrigatório.`,
+            icon: "warning",
+          });
+          return;
+        }
+
+        if (String(form.usuario_password || "").length < 6) {
+          await showAlert({
+            title: "Senha inválida",
+            text: "A senha do usuário admin precisa ter pelo menos 6 caracteres.",
+            icon: "warning",
+          });
+          return;
+        }
+
+        if (form.usuario_password !== form.usuario_confirm_password) {
+          await showAlert({
+            title: "Senha não confere",
+            text: "A confirmação da senha do usuário admin não confere.",
+            icon: "warning",
+          });
+          return;
+        }
+
+        payload.usuario = {
           nome: form.usuario_nome,
           email: form.usuario_email,
           username: form.usuario_username,
           password: form.usuario_password,
-        },
-        certificado: {
+        };
+        payload.certificado = {
           nome_arquivo: certificadoFile.name,
           senha: form.certificado_senha,
           conteudo_base64: conteudoBase64,
-        },
-      };
+        };
 
-      await createTenantSetup(payload);
+        await createTenantSetup(payload);
+      }
+
       await loadTenants();
-
       await showAlert({
-        title: "Filial cadastrada",
-        text: "A nova empresa foi cadastrada com sucesso e já possui usuário admin.",
+        title: editingTenantId ? "Filial atualizada" : "Filial cadastrada",
+        text: editingTenantId
+          ? "Os dados da empresa foram atualizados com sucesso."
+          : "A nova empresa foi cadastrada com sucesso e já possui usuário admin.",
         icon: "success",
       });
 
-      await loadTenants();
       closeModal();
     } catch (error) {
       await showAlert({
-        title: "Falha ao cadastrar filial",
+        title: editingTenantId ? "Falha ao atualizar filial" : "Falha ao cadastrar filial",
         text:
           error?.response?.data?.message ||
           error?.message ||
@@ -315,7 +431,7 @@ export const useTenantSetupPage = () => {
     } finally {
       setSaving(false);
     }
-  }, [certificadoFile, closeModal, form, loadTenants, showAlert]);
+  }, [certificadoFile, closeModal, editingTenantId, findTenantByCnpj, form, loadTenants, showAlert]);
 
   const certificateSummary = useMemo(() => {
     if (!certificadoFile) {
@@ -361,6 +477,24 @@ export const useTenantSetupPage = () => {
     return filteredTenants.slice(start, start + PAGE_SIZE);
   }, [filteredTenants, page]);
 
+  const handleToggleTenantStatus = useCallback(
+    async (tenant) => {
+      setActionMenuTenantId(null);
+      const confirmed = await askYesNoQuestion(
+        tenant.tenant_ativo ? "Inativar empresa?" : "Reativar empresa?",
+        tenant.tenant_ativo
+          ? `Tem certeza que deseja inativar ${tenant.tenant_nome}?`
+          : `Tem certeza que deseja reativar ${tenant.tenant_nome}?`
+      );
+
+      if (!confirmed) return;
+
+      await toggleTenantSetupStatus(tenant.tenant_id, !tenant.tenant_ativo);
+      await loadTenants();
+    },
+    [askYesNoQuestion, loadTenants]
+  );
+
   return {
     REQUIRED_TITLE,
     saving,
@@ -375,11 +509,16 @@ export const useTenantSetupPage = () => {
     page,
     totalPages,
     search,
+    editingTenantId,
+    actionMenuTenantId,
     updateField,
     setSearch,
     setPage,
+    setActionMenuTenantId,
     openModal,
+    openEditModal,
     closeModal,
+    handleToggleTenantStatus,
     handleSelectCertificado,
     handleConfirmCertificate,
     goNextStep,

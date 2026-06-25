@@ -35,6 +35,7 @@ const buildTenantPayload = (tenant) => ({
   tenant_slug: tenant.tenant_slug,
   tenant_documento: tenant.tenant_documento,
   perfil: tenant.perfil,
+  tenant_ativo: tenant.tenant_ativo ?? tenant.ativo ?? true,
 });
 
 router.post("/login", async (req, res) => {

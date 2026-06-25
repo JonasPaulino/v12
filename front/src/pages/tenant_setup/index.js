@@ -7,6 +7,7 @@ import * as C from "./style";
 
 const Wizard = ({
   REQUIRED_TITLE,
+  editingTenantId,
   step,
   saving,
   form,
@@ -20,6 +21,9 @@ const Wizard = ({
   handleSubmit,
 }) => (
   <>
+    {editingTenantId ? (
+      <C.ListKicker>Editar filial</C.ListKicker>
+    ) : null}
     <C.Steps>
       <C.StepButton type="button" $active={step === 1}>
         <C.StepNumber>1</C.StepNumber>
@@ -29,10 +33,12 @@ const Wizard = ({
         <C.StepNumber>2</C.StepNumber>
         Dados da filial
       </C.StepButton>
-      <C.StepButton type="button" $active={step === 3}>
-        <C.StepNumber>3</C.StepNumber>
-        Usuário admin
-      </C.StepButton>
+      {editingTenantId ? null : (
+        <C.StepButton type="button" $active={step === 3}>
+          <C.StepNumber>3</C.StepNumber>
+          Usuário admin
+        </C.StepButton>
+      )}
     </C.Steps>
 
     {step === 1 ? (
@@ -270,7 +276,7 @@ const Wizard = ({
       </C.Section>
     ) : null}
 
-    {step === 3 ? (
+    {!editingTenantId && step === 3 ? (
       <C.Section>
         <C.Hint>
           Este usuário será o admin da nova empresa. O usuário master continua sendo
@@ -346,13 +352,19 @@ const Wizard = ({
             Voltar
           </C.GhostButton>
         ) : null}
-        {step < 3 ? (
+        {step < (editingTenantId ? 2 : 3) ? (
           <C.PrimaryButton type="button" onClick={goNextStep}>
             Próxima etapa
           </C.PrimaryButton>
         ) : (
           <C.PrimaryButton type="button" onClick={handleSubmit} disabled={saving}>
-            {saving ? "Cadastrando..." : "Cadastrar empresa"}
+            {saving
+              ? editingTenantId
+                ? "Salvando..."
+                : "Cadastrando..."
+              : editingTenantId
+                ? "Salvar alterações"
+                : "Cadastrar empresa"}
           </C.PrimaryButton>
         )}
       </C.Actions>
@@ -367,6 +379,7 @@ export const TenantSetup = () => {
     loadingTenants,
     isModalOpen,
     step,
+    editingTenantId,
     saving,
     form,
     preview,
@@ -376,9 +389,12 @@ export const TenantSetup = () => {
     page,
     totalPages,
     search,
+    actionMenuTenantId,
     setSearch,
     setPage,
+    setActionMenuTenantId,
     openModal,
+    openEditModal,
     closeModal,
     updateField,
     handleSelectCertificado,
@@ -386,6 +402,7 @@ export const TenantSetup = () => {
     goNextStep,
     goPreviousStep,
     handleSubmit,
+    handleToggleTenantStatus,
   } = useTenantSetupPage();
 
   return (
@@ -433,17 +450,48 @@ export const TenantSetup = () => {
                 <C.TenantGrid>
                   {tenants.map((tenant) => (
                     <C.TenantItem key={tenant.tenant_id}>
-                      <div>
+                      <C.TenantItemLeft>
                         <C.TenantItemTitle>{tenant.tenant_nome}</C.TenantItemTitle>
                         <C.TenantMeta>
                           <span>CNPJ: {tenant.tenant_documento || "--"}</span>
                           <span>Slug: {tenant.tenant_slug || "--"}</span>
+                          <span>Perfil: {tenant.perfil || "--"}</span>
                         </C.TenantMeta>
-                      </div>
-                      <C.TenantMeta>
-                        <span>Perfil: {tenant.perfil || "--"}</span>
-                        <span>Status: {tenant.ativo ? "Ativa" : "Inativa"}</span>
-                      </C.TenantMeta>
+                      </C.TenantItemLeft>
+                      <C.TenantItemRight>
+                        <C.TenantStatusBadge $active={!!tenant.tenant_ativo}>
+                          {tenant.tenant_ativo ? "Ativa" : "Inativa"}
+                        </C.TenantStatusBadge>
+                        <div style={{ position: "relative" }}>
+                          <C.TenantMenuToggle
+                            type="button"
+                            onClick={() =>
+                              setActionMenuTenantId((current) =>
+                                current === tenant.tenant_id ? null : tenant.tenant_id
+                              )
+                            }
+                            title="Ações"
+                          >
+                            ⋮
+                          </C.TenantMenuToggle>
+                          {actionMenuTenantId === tenant.tenant_id ? (
+                            <C.TenantMenu>
+                              <C.TenantMenuButton
+                                type="button"
+                                onClick={() => openEditModal(tenant.tenant_id)}
+                              >
+                                Editar cadastro
+                              </C.TenantMenuButton>
+                              <C.TenantMenuButton
+                                type="button"
+                                onClick={() => handleToggleTenantStatus(tenant)}
+                              >
+                                {tenant.tenant_ativo ? "Inativar empresa" : "Reativar empresa"}
+                              </C.TenantMenuButton>
+                            </C.TenantMenu>
+                          ) : null}
+                        </div>
+                      </C.TenantItemRight>
                     </C.TenantItem>
                   ))}
                 </C.TenantGrid>
@@ -482,11 +530,14 @@ export const TenantSetup = () => {
           <C.ModalPanel>
             <C.ModalHeader>
               <C.ModalTitle>
-                <C.ListKicker>Cadastro</C.ListKicker>
-                <C.ModalTitleText>Cadastrar empresa</C.ModalTitleText>
+                <C.ListKicker>{editingTenantId ? "Edição" : "Cadastro"}</C.ListKicker>
+                <C.ModalTitleText>
+                  {editingTenantId ? "Editar filial" : "Cadastrar empresa"}
+                </C.ModalTitleText>
                 <C.CardText>
-                  Este fluxo cria uma nova filial do sistema, lê o certificado A1,
-                  consulta os dados do CNPJ pela BrasilAPI e tenta buscar a IE na SEFAZ.
+                  {editingTenantId
+                    ? "Atualize os dados da filial e, se necessário, substitua o certificado."
+                    : "Este fluxo cria uma nova filial do sistema, lê o certificado A1, consulta os dados do CNPJ pela BrasilAPI e tenta buscar a IE na SEFAZ."}
                 </C.CardText>
               </C.ModalTitle>
 
@@ -497,6 +548,7 @@ export const TenantSetup = () => {
 
             <Wizard
               REQUIRED_TITLE={REQUIRED_TITLE}
+              editingTenantId={editingTenantId}
               step={step}
               saving={saving}
               form={form}
