@@ -87,6 +87,13 @@ export const ConfiguracaoFiscal = () => {
                     </C.TabButton>
                     <C.TabButton
                       type="button"
+                      $active={activeTab === "responsavel"}
+                      onClick={() => setActiveTab("responsavel")}
+                    >
+                      Responsável técnico
+                    </C.TabButton>
+                    <C.TabButton
+                      type="button"
                       $active={activeTab === "certificado"}
                       onClick={() => setActiveTab("certificado")}
                     >
@@ -323,6 +330,151 @@ export const ConfiguracaoFiscal = () => {
                               updateField("certificado_senha", event.target.value)
                             }
                             placeholder="Obrigatória ao importar um novo A1"
+                          />
+                        </C.Field>
+                      </C.FieldsGrid>
+                    </C.SectionBody>
+                  ) : null}
+
+                  {activeTab === "responsavel" ? (
+                    <C.SectionBody>
+                      <C.CardHeader>
+                        <C.CardTitle>Responsável técnico</C.CardTitle>
+                        <C.CardText>
+                          Dados do fornecedor do sistema enviados no grupo técnico da NF-e.
+                          PE exige essas informações para autorizar a emissão.
+                        </C.CardText>
+                      </C.CardHeader>
+
+                      <C.FieldsGrid>
+                        <C.Field>
+                          <C.FieldSpan>
+                            CNPJ
+                            <C.RequiredMark title={requiredTitle}>*</C.RequiredMark>
+                          </C.FieldSpan>
+                          <C.Input
+                            value={form.responsavel_tecnico_cnpj}
+                            onChange={(event) =>
+                              updateField("responsavel_tecnico_cnpj", event.target.value)
+                            }
+                            inputMode="numeric"
+                            placeholder="66056990000198"
+                          />
+                        </C.Field>
+
+                        <C.Field>
+                          <C.FieldSpan>
+                            Nome
+                            <C.RequiredMark title={requiredTitle}>*</C.RequiredMark>
+                          </C.FieldSpan>
+                          <C.Input
+                            value={form.responsavel_tecnico_nome}
+                            onChange={(event) =>
+                              updateField("responsavel_tecnico_nome", event.target.value)
+                            }
+                            placeholder="jhes sistemas"
+                          />
+                        </C.Field>
+
+                        <C.Field>
+                          <C.FieldSpan>
+                            Contato
+                            <C.RequiredMark title={requiredTitle}>*</C.RequiredMark>
+                          </C.FieldSpan>
+                          <C.Input
+                            value={form.responsavel_tecnico_contato}
+                            onChange={(event) =>
+                              updateField("responsavel_tecnico_contato", event.target.value)
+                            }
+                            placeholder="Jonas Paulino"
+                          />
+                        </C.Field>
+
+                        <C.Field>
+                          <C.FieldSpan>
+                            E-mail
+                            <C.RequiredMark title={requiredTitle}>*</C.RequiredMark>
+                          </C.FieldSpan>
+                          <C.Input
+                            type="email"
+                            value={form.responsavel_tecnico_email}
+                            onChange={(event) =>
+                              updateField("responsavel_tecnico_email", event.target.value)
+                            }
+                            placeholder="jonaspaulino@jhes.com.br"
+                          />
+                        </C.Field>
+
+                        <C.Field>
+                          <C.FieldSpan>
+                            Telefone
+                            <C.RequiredMark title={requiredTitle}>*</C.RequiredMark>
+                          </C.FieldSpan>
+                          <C.Input
+                            value={form.responsavel_tecnico_telefone}
+                            onChange={(event) =>
+                              updateField("responsavel_tecnico_telefone", event.target.value)
+                            }
+                            inputMode="tel"
+                            placeholder="819984163086"
+                          />
+                        </C.Field>
+
+                        <C.Field>
+                          <C.FieldSpan>UF</C.FieldSpan>
+                          <C.Input
+                            value={form.responsavel_tecnico_uf}
+                            onChange={(event) =>
+                              updateField(
+                                "responsavel_tecnico_uf",
+                                event.target.value.toUpperCase().slice(0, 2)
+                              )
+                            }
+                            placeholder="PE"
+                          />
+                        </C.Field>
+
+                        <C.Field>
+                          <C.FieldSpan>Logradouro</C.FieldSpan>
+                          <C.Input
+                            value={form.responsavel_tecnico_logradouro}
+                            onChange={(event) =>
+                              updateField("responsavel_tecnico_logradouro", event.target.value)
+                            }
+                            placeholder="Rua nova Baraunas"
+                          />
+                        </C.Field>
+
+                        <C.Field>
+                          <C.FieldSpan>Número</C.FieldSpan>
+                          <C.Input
+                            value={form.responsavel_tecnico_numero}
+                            onChange={(event) =>
+                              updateField("responsavel_tecnico_numero", event.target.value)
+                            }
+                            placeholder="451"
+                          />
+                        </C.Field>
+
+                        <C.Field>
+                          <C.FieldSpan>Bairro</C.FieldSpan>
+                          <C.Input
+                            value={form.responsavel_tecnico_bairro}
+                            onChange={(event) =>
+                              updateField("responsavel_tecnico_bairro", event.target.value)
+                            }
+                            placeholder="nova caruaru"
+                          />
+                        </C.Field>
+
+                        <C.Field>
+                          <C.FieldSpan>Cidade</C.FieldSpan>
+                          <C.Input
+                            value={form.responsavel_tecnico_cidade}
+                            onChange={(event) =>
+                              updateField("responsavel_tecnico_cidade", event.target.value)
+                            }
+                            placeholder="Caruaru"
                           />
                         </C.Field>
                       </C.FieldsGrid>

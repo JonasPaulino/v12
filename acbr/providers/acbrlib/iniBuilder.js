@@ -98,10 +98,12 @@ const buildInfAdic = (context) => {
 };
 
 export const buildNfeIni = (context) => {
-  const { nfe, emitente, destinatario, itens, configuracao } = context;
+  const { nfe, emitente, destinatario, itens, configuracao, responsavel_tecnico } = context;
   const lines = [];
   const cnpjEmitente = onlyDigits(emitente.cpf_cnpj);
   const cnpjDestinatario = onlyDigits(destinatario?.cpf_cnpj);
+  const responsavelTecnicoCnpj = onlyDigits(responsavel_tecnico?.cnpj);
+  const responsavelTecnicoTelefone = onlyDigits(responsavel_tecnico?.telefone);
   const cUfEmitente = getUfCode(emitente.uf, emitente.codigo_ibge);
   const now = new Date();
 
@@ -260,6 +262,13 @@ export const buildNfeIni = (context) => {
 
   appendSection(lines, "pag001", {
     tPag: "90",
+  });
+
+  appendSection(lines, "infRespTec", {
+    CNPJ: responsavelTecnicoCnpj,
+    xContato: responsavel_tecnico?.contato,
+    email: responsavel_tecnico?.email,
+    fone: responsavelTecnicoTelefone,
   });
 
   appendSection(lines, "infAdic", {

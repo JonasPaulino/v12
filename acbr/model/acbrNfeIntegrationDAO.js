@@ -126,6 +126,11 @@ class AcbrNfeIntegrationDAO {
           cfg.crt,
           cfg.cnae,
           cfg.nfe_habilitada,
+          rt.cnpj AS responsavel_tecnico_cnpj,
+          rt.nome AS responsavel_tecnico_nome,
+          rt.contato AS responsavel_tecnico_contato,
+          rt.email AS responsavel_tecnico_email,
+          rt.telefone AS responsavel_tecnico_telefone,
           cert.nome_arquivo AS certificado_nome_arquivo,
           cert.conteudo_pfx,
           cert.senha_criptografada,
@@ -165,6 +170,8 @@ class AcbrNfeIntegrationDAO {
           ON cfg.tenant_id = n.tenant_id
         LEFT JOIN tenant_certificado_a1 cert
           ON cert.tenant_id = n.tenant_id
+        LEFT JOIN tenant_responsavel_tecnico rt
+          ON rt.tenant_id = n.tenant_id
         JOIN pessoa emit
           ON emit.pessoa_id = n.emitente_pessoa_id
         LEFT JOIN pessoa_endereco ee
@@ -280,6 +287,13 @@ class AcbrNfeIntegrationDAO {
         conteudo_pfx: row.conteudo_pfx || null,
         senha_criptografada: row.senha_criptografada || null,
       },
+      responsavel_tecnico: {
+        cnpj: row.responsavel_tecnico_cnpj || "",
+        nome: row.responsavel_tecnico_nome || "",
+        contato: row.responsavel_tecnico_contato || "",
+        email: row.responsavel_tecnico_email || "",
+        telefone: row.responsavel_tecnico_telefone || "",
+      },
       emitente: {
         pessoa_id: row.emitente_pessoa_id,
         nome_razao: row.emitente_nome_razao,
@@ -367,6 +381,22 @@ class AcbrNfeIntegrationDAO {
 
     if (!context.certificado.conteudo_pfx) {
       throw new Error("Certificado A1 não configurado para a filial.");
+    }
+
+    if (!/^\d{14}$/.test(onlyDigits(context.responsavel_tecnico?.cnpj))) {
+      throw new Error("Configure o CNPJ do responsável técnico antes de emitir a NF-e.");
+    }
+
+    if (!String(context.responsavel_tecnico?.contato || "").trim()) {
+      throw new Error("Configure o contato do responsável técnico antes de emitir a NF-e.");
+    }
+
+    if (!String(context.responsavel_tecnico?.email || "").includes("@")) {
+      throw new Error("Configure o e-mail do responsável técnico antes de emitir a NF-e.");
+    }
+
+    if (onlyDigits(context.responsavel_tecnico?.telefone).length < 10) {
+      throw new Error("Configure o telefone do responsável técnico antes de emitir a NF-e.");
     }
 
     if (!onlyDigits(context.emitente.cpf_cnpj)) {

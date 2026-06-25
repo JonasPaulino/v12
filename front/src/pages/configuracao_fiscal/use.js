@@ -24,6 +24,16 @@ const buildInitialForm = () => ({
   nfe_habilitada: false,
   observacao: "",
   certificado_senha: "",
+  responsavel_tecnico_cnpj: "66056990000198",
+  responsavel_tecnico_nome: "jhes sistemas",
+  responsavel_tecnico_contato: "Jonas Paulino",
+  responsavel_tecnico_email: "jonaspaulino@jhes.com.br",
+  responsavel_tecnico_telefone: "819984163086",
+  responsavel_tecnico_logradouro: "Rua nova Baraunas",
+  responsavel_tecnico_numero: "451",
+  responsavel_tecnico_bairro: "nova caruaru",
+  responsavel_tecnico_cidade: "Caruaru",
+  responsavel_tecnico_uf: "PE",
   gateway_provider: "asaas",
   gateway_ambiente: "sandbox",
   gateway_wallet_id: "",
@@ -224,6 +234,7 @@ export const useConfiguracaoFiscalPage = () => {
     const certificado = data.certificado || {};
     const contas = data.contas || {};
     const whatsapp = data.mensagens?.whatsapp || {};
+    const responsavelTecnico = data.responsavel_tecnico || {};
 
     setTenant(data.tenant || null);
     setForm({
@@ -237,6 +248,18 @@ export const useConfiguracaoFiscalPage = () => {
       nfe_habilitada: !!fiscal.nfe_habilitada,
       observacao: fiscal.observacao || "",
       certificado_senha: "",
+      responsavel_tecnico_cnpj: responsavelTecnico.cnpj || "66056990000198",
+      responsavel_tecnico_nome: responsavelTecnico.nome || "jhes sistemas",
+      responsavel_tecnico_contato: responsavelTecnico.contato || "Jonas Paulino",
+      responsavel_tecnico_email:
+        responsavelTecnico.email || "jonaspaulino@jhes.com.br",
+      responsavel_tecnico_telefone: responsavelTecnico.telefone || "819984163086",
+      responsavel_tecnico_logradouro:
+        responsavelTecnico.logradouro || "Rua nova Baraunas",
+      responsavel_tecnico_numero: responsavelTecnico.numero || "451",
+      responsavel_tecnico_bairro: responsavelTecnico.bairro || "nova caruaru",
+      responsavel_tecnico_cidade: responsavelTecnico.cidade || "Caruaru",
+      responsavel_tecnico_uf: responsavelTecnico.uf || "PE",
       gateway_provider: contas.provider || "asaas",
       gateway_ambiente: contas.ambiente || "sandbox",
       gateway_wallet_id: contas.wallet_id || "",
@@ -734,6 +757,18 @@ export const useConfiguracaoFiscalPage = () => {
           natureza_operacao_padrao: form.natureza_operacao_padrao,
           nfe_habilitada: form.nfe_habilitada,
           observacao: form.observacao,
+          responsavel_tecnico: {
+            cnpj: form.responsavel_tecnico_cnpj,
+            nome: form.responsavel_tecnico_nome,
+            contato: form.responsavel_tecnico_contato,
+            email: form.responsavel_tecnico_email,
+            telefone: form.responsavel_tecnico_telefone,
+            logradouro: form.responsavel_tecnico_logradouro,
+            numero: form.responsavel_tecnico_numero,
+            bairro: form.responsavel_tecnico_bairro,
+            cidade: form.responsavel_tecnico_cidade,
+            uf: form.responsavel_tecnico_uf,
+          },
           contas: {
             provider: form.gateway_provider,
             ambiente: form.gateway_ambiente,

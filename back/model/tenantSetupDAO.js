@@ -626,6 +626,39 @@ class TenantSetupDAO {
 
       await client.query(
         `
+          INSERT INTO tenant_responsavel_tecnico (
+            tenant_id,
+            cnpj,
+            nome,
+            contato,
+            email,
+            telefone,
+            logradouro,
+            numero,
+            bairro,
+            cidade,
+            uf
+          )
+          VALUES (
+            $1,
+            '66056990000198',
+            'jhes sistemas',
+            'Jonas Paulino',
+            'jonaspaulino@jhes.com.br',
+            '819984163086',
+            'Rua nova Baraunas',
+            '451',
+            'nova caruaru',
+            'Caruaru',
+            'PE'
+          )
+          ON CONFLICT (tenant_id) DO NOTHING
+        `,
+        [tenantId]
+      );
+
+      await client.query(
+        `
           INSERT INTO tabela_preco (tenant_id, nome, padrao, ativo, excluido)
           VALUES ($1, 'Tabela Padrão', TRUE, TRUE, FALSE)
         `,

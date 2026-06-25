@@ -45,6 +45,19 @@ const normalizeBoolean = (value, defaultValue = false) => {
 
 const normalizeDigits = (value) => String(value ?? "").replace(/\D/g, "");
 
+const DEFAULT_RESPONSAVEL_TECNICO = {
+  cnpj: "66056990000198",
+  nome: "jhes sistemas",
+  contato: "Jonas Paulino",
+  email: "jonaspaulino@jhes.com.br",
+  telefone: "819984163086",
+  logradouro: "Rua nova Baraunas",
+  numero: "451",
+  bairro: "nova caruaru",
+  cidade: "Caruaru",
+  uf: "PE",
+};
+
 const maskSecret = (value, { visibleStart = 4, visibleEnd = 4 } = {}) => {
   const normalized = String(value || "").trim();
   if (!normalized) return "";
@@ -351,7 +364,17 @@ class ConfiguracaoFiscalDAO {
           gw.auto_criar_cliente,
           gw.baixa_automatica_pix,
           gw.baixa_automatica_boleto,
-          gw.observacao AS gateway_observacao
+          gw.observacao AS gateway_observacao,
+          rt.cnpj AS responsavel_tecnico_cnpj,
+          rt.nome AS responsavel_tecnico_nome,
+          rt.contato AS responsavel_tecnico_contato,
+          rt.email AS responsavel_tecnico_email,
+          rt.telefone AS responsavel_tecnico_telefone,
+          rt.logradouro AS responsavel_tecnico_logradouro,
+          rt.numero AS responsavel_tecnico_numero,
+          rt.bairro AS responsavel_tecnico_bairro,
+          rt.cidade AS responsavel_tecnico_cidade,
+          rt.uf AS responsavel_tecnico_uf
         FROM tenant t
         LEFT JOIN tenant_configuracao_fiscal cfg
           ON cfg.tenant_id = t.tenant_id
@@ -359,6 +382,8 @@ class ConfiguracaoFiscalDAO {
           ON cert.tenant_id = t.tenant_id
         LEFT JOIN payments.tenant_configuracao_gateway gw
           ON gw.tenant_id = t.tenant_id
+        LEFT JOIN tenant_responsavel_tecnico rt
+          ON rt.tenant_id = t.tenant_id
         WHERE t.tenant_id = ${TENANT_CONTEXT_SQL}
         LIMIT 1
       `
@@ -395,6 +420,19 @@ class ConfiguracaoFiscalDAO {
         importado_em: row.certificado_importado_em || null,
         atualizado_em: row.certificado_atualizado_em || null,
         configurado: !!row.certificado_nome_arquivo,
+      },
+      responsavel_tecnico: {
+        cnpj: row.responsavel_tecnico_cnpj || DEFAULT_RESPONSAVEL_TECNICO.cnpj,
+        nome: row.responsavel_tecnico_nome || DEFAULT_RESPONSAVEL_TECNICO.nome,
+        contato: row.responsavel_tecnico_contato || DEFAULT_RESPONSAVEL_TECNICO.contato,
+        email: row.responsavel_tecnico_email || DEFAULT_RESPONSAVEL_TECNICO.email,
+        telefone: row.responsavel_tecnico_telefone || DEFAULT_RESPONSAVEL_TECNICO.telefone,
+        logradouro:
+          row.responsavel_tecnico_logradouro || DEFAULT_RESPONSAVEL_TECNICO.logradouro,
+        numero: row.responsavel_tecnico_numero || DEFAULT_RESPONSAVEL_TECNICO.numero,
+        bairro: row.responsavel_tecnico_bairro || DEFAULT_RESPONSAVEL_TECNICO.bairro,
+        cidade: row.responsavel_tecnico_cidade || DEFAULT_RESPONSAVEL_TECNICO.cidade,
+        uf: row.responsavel_tecnico_uf || DEFAULT_RESPONSAVEL_TECNICO.uf,
       },
       contas: buildGatewayView(gatewayViewRow),
       mensagens: {
@@ -444,6 +482,59 @@ class ConfiguracaoFiscalDAO {
     const certificadoConteudoBase64 = normalizeText(certificado.conteudo_base64, null, {
       label: "Conteúdo do certificado",
     });
+    const responsavelTecnicoPayload = payload.responsavel_tecnico || {};
+    const responsavelTecnico = {
+      cnpj:
+        normalizeDigits(responsavelTecnicoPayload.cnpj) ||
+        DEFAULT_RESPONSAVEL_TECNICO.cnpj,
+      nome:
+        normalizeText(responsavelTecnicoPayload.nome, 150, {
+          label: "Nome do responsável técnico",
+        }) || DEFAULT_RESPONSAVEL_TECNICO.nome,
+      contato:
+        normalizeText(responsavelTecnicoPayload.contato, 120, {
+          label: "Contato do responsável técnico",
+        }) || DEFAULT_RESPONSAVEL_TECNICO.contato,
+      email:
+        normalizeText(responsavelTecnicoPayload.email, 150, {
+          label: "E-mail do responsável técnico",
+        }) || DEFAULT_RESPONSAVEL_TECNICO.email,
+      telefone:
+        normalizeDigits(responsavelTecnicoPayload.telefone) ||
+        DEFAULT_RESPONSAVEL_TECNICO.telefone,
+      logradouro:
+        normalizeText(responsavelTecnicoPayload.logradouro, 180, {
+          label: "Logradouro do responsável técnico",
+        }) || DEFAULT_RESPONSAVEL_TECNICO.logradouro,
+      numero:
+        normalizeText(responsavelTecnicoPayload.numero, 20, {
+          label: "Número do responsável técnico",
+        }) || DEFAULT_RESPONSAVEL_TECNICO.numero,
+      bairro:
+        normalizeText(responsavelTecnicoPayload.bairro, 100, {
+          label: "Bairro do responsável técnico",
+        }) || DEFAULT_RESPONSAVEL_TECNICO.bairro,
+      cidade:
+        normalizeText(responsavelTecnicoPayload.cidade, 100, {
+          label: "Cidade do responsável técnico",
+        }) || DEFAULT_RESPONSAVEL_TECNICO.cidade,
+      uf:
+        normalizeText(responsavelTecnicoPayload.uf, 2, {
+          label: "UF do responsável técnico",
+        }) || DEFAULT_RESPONSAVEL_TECNICO.uf,
+    };
+
+    if (!/^\d{14}$/.test(responsavelTecnico.cnpj)) {
+      throw new Error("CNPJ do responsável técnico inválido.");
+    }
+
+    if (!responsavelTecnico.email.includes("@")) {
+      throw new Error("E-mail do responsável técnico inválido.");
+    }
+
+    if (responsavelTecnico.telefone.length < 10) {
+      throw new Error("Telefone do responsável técnico inválido.");
+    }
 
     return {
       emitente_pessoa_id: emitentePessoaId,
@@ -463,6 +554,7 @@ class ConfiguracaoFiscalDAO {
         senha: certificadoSenha,
         conteudo_base64: certificadoConteudoBase64,
       },
+      responsavel_tecnico: responsavelTecnico,
     };
   }
 
@@ -600,6 +692,61 @@ class ConfiguracaoFiscalDAO {
           data.natureza_operacao_padrao,
           data.nfe_habilitada,
           data.observacao,
+        ]
+      );
+
+      await client.query(
+        `
+          INSERT INTO tenant_responsavel_tecnico (
+            tenant_id,
+            cnpj,
+            nome,
+            contato,
+            email,
+            telefone,
+            logradouro,
+            numero,
+            bairro,
+            cidade,
+            uf
+          )
+          VALUES (
+            ${TENANT_CONTEXT_SQL},
+            $1,
+            $2,
+            $3,
+            $4,
+            $5,
+            $6,
+            $7,
+            $8,
+            $9,
+            $10
+          )
+          ON CONFLICT (tenant_id) DO UPDATE
+          SET
+            cnpj = EXCLUDED.cnpj,
+            nome = EXCLUDED.nome,
+            contato = EXCLUDED.contato,
+            email = EXCLUDED.email,
+            telefone = EXCLUDED.telefone,
+            logradouro = EXCLUDED.logradouro,
+            numero = EXCLUDED.numero,
+            bairro = EXCLUDED.bairro,
+            cidade = EXCLUDED.cidade,
+            uf = EXCLUDED.uf
+        `,
+        [
+          data.responsavel_tecnico.cnpj,
+          data.responsavel_tecnico.nome,
+          data.responsavel_tecnico.contato,
+          data.responsavel_tecnico.email,
+          data.responsavel_tecnico.telefone,
+          data.responsavel_tecnico.logradouro,
+          data.responsavel_tecnico.numero,
+          data.responsavel_tecnico.bairro,
+          data.responsavel_tecnico.cidade,
+          data.responsavel_tecnico.uf,
         ]
       );
 
