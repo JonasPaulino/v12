@@ -105,11 +105,19 @@ router.patch("/:tenantId/status", async (req, res) => {
     client = await pool.connect();
     const tenantId = Number(req.params.tenantId);
     const tenantAtivo = !!req.body?.tenant_ativo;
+    const currentTenantId = Number(req.user?.tenantId || 0);
 
     if (!tenantId) {
       return res.status(400).json({
         success: false,
         message: "Filial inválida.",
+      });
+    }
+
+    if (currentTenantId && currentTenantId === tenantId && !tenantAtivo) {
+      return res.status(403).json({
+        success: false,
+        message: "Você não pode inativar a filial em que está logado.",
       });
     }
 

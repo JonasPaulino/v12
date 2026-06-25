@@ -478,8 +478,22 @@ export const useTenantSetupPage = () => {
   }, [filteredTenants, page]);
 
   const handleToggleTenantStatus = useCallback(
-    async (tenant) => {
+    async (tenant, currentTenantId = null) => {
       setActionMenuTenantId(null);
+
+      if (
+        tenant.tenant_ativo &&
+        currentTenantId &&
+        Number(currentTenantId) === Number(tenant.tenant_id)
+      ) {
+        await showAlert({
+          title: "Ação indisponível",
+          text: "Você não pode inativar a filial em que está logado.",
+          icon: "warning",
+        });
+        return;
+      }
+
       const confirmed = await askYesNoQuestion(
         tenant.tenant_ativo ? "Inativar empresa?" : "Reativar empresa?",
         tenant.tenant_ativo
@@ -492,7 +506,7 @@ export const useTenantSetupPage = () => {
       await toggleTenantSetupStatus(tenant.tenant_id, !tenant.tenant_ativo);
       await loadTenants();
     },
-    [askYesNoQuestion, loadTenants]
+    [askYesNoQuestion, loadTenants, showAlert]
   );
 
   return {

@@ -373,7 +373,7 @@ const Wizard = ({
 );
 
 export const TenantSetup = () => {
-  const { mOpen, abreFechaMenu } = useContext(AppContext);
+  const { mOpen, abreFechaMenu, business } = useContext(AppContext);
   const {
     REQUIRED_TITLE,
     loadingTenants,
@@ -484,7 +484,7 @@ export const TenantSetup = () => {
                               </C.TenantMenuButton>
                               <C.TenantMenuButton
                                 type="button"
-                                onClick={() => handleToggleTenantStatus(tenant)}
+                                onClick={() => handleToggleTenantStatus(tenant, business?.tenant_id)}
                               >
                                 {tenant.tenant_ativo ? "Inativar empresa" : "Reativar empresa"}
                               </C.TenantMenuButton>
