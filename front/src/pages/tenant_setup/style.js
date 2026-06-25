@@ -50,15 +50,15 @@ export const Body = styled.section`
 
 export const Card = styled.div`
   display: grid;
-  gap: 18px;
-  padding: 24px;
+  gap: 22px;
+  padding: 28px;
   border: 1px solid ${({ theme }) => theme.colors.border};
   border-radius: ${({ theme }) => theme.radius.lg};
-  background: ${({ theme }) => theme.colors.surface};
+  background: rgba(255, 255, 255, 0.9);
   box-shadow: ${({ theme }) => theme.colors.shadowSoft};
 
   @media (max-width: 640px) {
-    padding: 18px 16px;
+    padding: 18px;
     border-radius: ${({ theme }) => theme.radius.md};
   }
 `;
@@ -83,27 +83,25 @@ export const CardText = styled.p`
 
 export const Steps = styled.div`
   display: flex;
-  gap: 10px;
   flex-wrap: wrap;
-  padding: 18px 26px 0;
+  gap: 12px;
 `;
 
 export const StepButton = styled.button`
-  height: 42px;
-  padding: 0 18px;
+  min-width: 170px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
+  padding: 14px 18px;
   border: 1px solid
     ${({ theme, $active }) => ($active ? theme.colors.primary : theme.colors.border)};
   border-radius: ${({ theme }) => theme.radius.pill};
   background: ${({ theme, $active }) =>
-    $active ? "rgba(11, 95, 255, 0.1)" : "rgba(255, 255, 255, 0.72)"};
+    $active ? "rgba(11,95,255,0.08)" : "rgba(255,255,255,0.72)"};
   color: ${({ theme, $active }) =>
     $active ? theme.colors.primaryStrong : theme.colors.textSoft};
   font-weight: 700;
-  cursor: pointer;
 `;
 
 export const StepNumber = styled.span`
@@ -158,7 +156,6 @@ export const RequiredMark = styled.span`
 const inputStyles = `
   width: 100%;
   min-width: 0;
-  box-sizing: border-box;
   height: 48px;
   padding: 0 14px;
   border: 1px solid ${({ theme }) => theme.colors.border};
@@ -166,9 +163,6 @@ const inputStyles = `
   background: ${({ theme }) => theme.colors.surfaceAlt};
   color: ${({ theme }) => theme.colors.text};
   font-size: 1rem;
-  font-family: inherit;
-  appearance: none;
-  -webkit-appearance: none;
   outline: none;
 
   &:focus {
@@ -216,7 +210,6 @@ export const UploadControl = styled.label`
   border: 1px solid ${({ theme }) => theme.colors.border};
   border-radius: ${({ theme }) => theme.radius.md};
   background: ${({ theme }) => theme.colors.surfaceAlt};
-  box-sizing: border-box;
   cursor: pointer;
   transition:
     border-color 0.2s ease,
@@ -253,7 +246,6 @@ export const UploadAction = styled.span`
   color: #ffffff;
   font-weight: 700;
   white-space: nowrap;
-  box-sizing: border-box;
 
   @media (max-width: 640px) {
     width: 100%;
@@ -266,11 +258,6 @@ export const PasswordActionRow = styled.div`
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 12px;
   align-items: end;
-  width: 100%;
-
-  > ${Field} {
-    margin: 0;
-  }
 
   button {
     height: 48px;
@@ -305,7 +292,7 @@ export const SummaryCard = styled.div`
   padding: 14px 16px;
   border: 1px solid ${({ theme }) => theme.colors.border};
   border-radius: ${({ theme }) => theme.radius.md};
-  background: ${({ theme }) => theme.colors.surfaceAlt};
+  background: rgba(255, 255, 255, 0.82);
 `;
 
 export const SummaryLabel = styled.span`
@@ -327,7 +314,6 @@ export const Toolbar = styled.div`
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  padding-top: 4px;
 `;
 
 export const Actions = styled.div`
@@ -589,30 +575,26 @@ export const PageButton = styled.button`
 export const ModalOverlay = styled.div`
   position: fixed;
   inset: 0;
-  z-index: 110;
+  z-index: 40;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  padding: 24px;
-  background: rgba(8, 17, 37, 0.54);
+  padding: 28px 16px;
+  background: rgba(7, 16, 34, 0.48);
   backdrop-filter: blur(4px);
+  overflow-y: auto;
 `;
 
 export const ModalPanel = styled.div`
-  width: min(980px, 100%);
-  max-height: min(92vh, 920px);
-  display: flex;
-  flex-direction: column;
+  width: min(1180px, 100%);
+  margin: auto 0;
+  display: grid;
+  gap: 18px;
+  padding: 24px;
   border-radius: ${({ theme }) => theme.radius.lg};
-  background: ${({ theme }) => theme.colors.surface};
-  box-shadow: ${({ theme }) => theme.colors.shadow};
-  overflow: hidden;
-
-  @media (max-width: 640px) {
-    width: 100%;
-    max-height: 96vh;
-    border-radius: ${({ theme }) => theme.radius.md};
-  }
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: ${({ theme }) => theme.colors.shadowSoft};
 `;
 
 export const ModalHeader = styled.div`
@@ -621,13 +603,11 @@ export const ModalHeader = styled.div`
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  padding: 24px 26px 18px;
-  border-bottom: 1px solid ${({ theme }) => theme.colors.border};
 `;
 
 export const ModalTitle = styled.div`
   display: grid;
-  gap: 4px;
+  gap: 6px;
 `;
 
 export const ModalTitleText = styled.h3`
@@ -640,24 +620,15 @@ export const ModalTitleText = styled.h3`
 export const ModalCloseButton = styled.button`
   width: 42px;
   height: 42px;
-  border-radius: 50%;
+  border-radius: 999px;
   border: 1px solid ${({ theme }) => theme.colors.border};
-  background: ${({ theme }) => theme.colors.surfaceAlt};
+  background: #fff;
   color: ${({ theme }) => theme.colors.text};
-  font-size: 1.4rem;
+  font-size: 1.1rem;
   font-weight: 700;
 `;
 
-export const TabsRow = styled.div`
-  display: flex;
-  gap: 10px;
-  padding: 18px 26px 0;
-  flex-wrap: wrap;
-`;
-
 export const ModalBody = styled.div`
-  padding: 22px 26px 26px;
-  overflow: auto;
   display: grid;
   gap: 18px;
 `;

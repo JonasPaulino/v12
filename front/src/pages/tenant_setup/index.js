@@ -558,23 +558,21 @@ export const TenantSetup = () => {
               </C.ModalCloseButton>
             </C.ModalHeader>
 
-            <C.ModalBody>
-              <Wizard
-                REQUIRED_TITLE={REQUIRED_TITLE}
-                editingTenantId={editingTenantId}
-                step={step}
-                saving={saving}
-                form={form}
-                preview={preview}
-                certificateSummary={certificateSummary}
-                updateField={updateField}
-                handleSelectCertificado={handleSelectCertificado}
-                handleConfirmCertificate={handleConfirmCertificate}
-                goNextStep={goNextStep}
-                goPreviousStep={goPreviousStep}
-                handleSubmit={handleSubmit}
-              />
-            </C.ModalBody>
+            <Wizard
+              REQUIRED_TITLE={REQUIRED_TITLE}
+              editingTenantId={editingTenantId}
+              step={step}
+              saving={saving}
+              form={form}
+              preview={preview}
+              certificateSummary={certificateSummary}
+              updateField={updateField}
+              handleSelectCertificado={handleSelectCertificado}
+              handleConfirmCertificate={handleConfirmCertificate}
+              goNextStep={goNextStep}
+              goPreviousStep={goPreviousStep}
+              handleSubmit={handleSubmit}
+            />
           </C.ModalPanel>
         </C.ModalOverlay>
       ) : null}
