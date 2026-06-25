@@ -175,7 +175,11 @@ class TenantSetupDAO {
           cert.nome_arquivo AS certificado_nome_arquivo,
           cert.tamanho_arquivo AS certificado_tamanho_arquivo,
           cert.validade_em AS certificado_validade_em,
-          cert.importado_em AS certificado_importado_em
+          cert.importado_em AS certificado_importado_em,
+          (
+            cert.conteudo_pfx IS NOT NULL
+            AND cert.senha_criptografada IS NOT NULL
+          ) AS certificado_configurado
         FROM tenant t
         LEFT JOIN pessoa p ON p.pessoa_id = t.pessoa_id
         LEFT JOIN LATERAL (
@@ -232,6 +236,7 @@ class TenantSetupDAO {
         natureza_operacao_padrao: row.natureza_operacao_padrao || "Venda de mercadoria",
       },
       certificado: {
+        configurado: !!row.certificado_configurado,
         nome_arquivo: row.certificado_nome_arquivo || "",
         tamanho_arquivo: Number(row.certificado_tamanho_arquivo || 0),
         validade_em: row.certificado_validade_em || null,
@@ -752,6 +757,18 @@ class TenantSetupDAO {
       },
     };
 
+    const querAtualizarCertificado =
+      !!data.certificado.nome_arquivo ||
+      !!data.certificado.senha ||
+      !!data.certificado.conteudo_base64;
+
+    if (
+      querAtualizarCertificado &&
+      (!data.certificado.senha || !data.certificado.conteudo_base64)
+    ) {
+      throw new Error("Para substituir o certificado, informe o arquivo PFX e a senha.");
+    }
+
     await client.query("BEGIN");
 
     try {
@@ -837,7 +854,7 @@ class TenantSetupDAO {
         );
       }
 
-      if (data.certificado.conteudo_base64 && data.certificado.senha) {
+      if (querAtualizarCertificado) {
         const certificadoBuffer = Buffer.from(data.certificado.conteudo_base64, "base64");
         if (!certificadoBuffer.length) {
           throw new Error("Conteúdo do certificado inválido.");

@@ -38,6 +38,22 @@ const createInitialForm = () => ({
   usuario_confirm_password: "",
 });
 
+const formatFileSize = (value) => {
+  const size = Number(value || 0);
+  if (!size) return "--";
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+  return `${(size / 1024 / 1024).toFixed(2)} MB`;
+};
+
+const formatDate = (value) => {
+  if (!value) return "--";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "--";
+
+  return date.toLocaleDateString("pt-BR");
+};
+
 const readFileAsBase64 = (file) =>
   new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -338,6 +354,15 @@ export const useTenantSetupPage = () => {
 
       if (editingTenantId) {
         if (certificadoFile) {
+          if (!String(form.certificado_senha || "").trim()) {
+            await showAlert({
+              title: "Senha obrigatória",
+              text: "Informe a senha do novo certificado para substituir o certificado atual.",
+              icon: "warning",
+            });
+            return;
+          }
+
           const conteudoBase64 = await readFileAsBase64(certificadoFile);
           payload.certificado = {
             nome_arquivo: certificadoFile.name,
@@ -435,17 +460,31 @@ export const useTenantSetupPage = () => {
 
   const certificateSummary = useMemo(() => {
     if (!certificadoFile) {
+      const persisted = preview?.certificado || null;
+      if (persisted?.configurado || persisted?.nome_arquivo) {
+        return {
+          nome_arquivo: persisted.nome_arquivo || "Certificado A1 vinculado",
+          tamanho: formatFileSize(persisted.tamanho_arquivo),
+          validade: formatDate(persisted.validade_em),
+          persisted: true,
+        };
+      }
+
       return {
         nome_arquivo: "Nenhum certificado selecionado",
         tamanho: "--",
+        validade: "--",
+        persisted: false,
       };
     }
 
     return {
       nome_arquivo: certificadoFile.name,
       tamanho: `${(certificadoFile.size / 1024).toFixed(1)} KB`,
+      validade: "--",
+      persisted: false,
     };
-  }, [certificadoFile]);
+  }, [certificadoFile, preview]);
 
   const filteredTenants = useMemo(() => {
     const query = normalizeSearch(search);

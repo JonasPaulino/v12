@@ -44,8 +44,9 @@ const Wizard = ({
     {step === 1 ? (
       <C.Section>
         <C.Hint>
-          Anexe o certificado A1 da empresa e informe a senha para consultar os
-          dados do CNPJ e pré-preencher a nova filial.
+          {editingTenantId
+            ? "O certificado atual fica salvo para emissão de NF-e. Se precisar trocar, selecione um novo arquivo e informe a senha."
+            : "Anexe o certificado A1 da empresa e informe a senha para consultar os dados do CNPJ e pré-preencher a nova filial."}
         </C.Hint>
 
         <C.FieldsGrid>
@@ -56,9 +57,13 @@ const Wizard = ({
             </C.FieldSpan>
             <C.UploadControl htmlFor="tenant-certificate-file">
               <C.UploadText>
-                {certificateSummary.nome_arquivo || "Selecionar certificado .pfx ou .p12"}
+                {certificateSummary.persisted
+                  ? `Certificado salvo: ${certificateSummary.nome_arquivo}`
+                  : certificateSummary.nome_arquivo || "Selecionar certificado .pfx ou .p12"}
               </C.UploadText>
-              <C.UploadAction>Procurar arquivo</C.UploadAction>
+              <C.UploadAction>
+                {certificateSummary.persisted ? "Substituir arquivo" : "Procurar arquivo"}
+              </C.UploadAction>
             </C.UploadControl>
             <C.FileInput
               id="tenant-certificate-file"
@@ -78,12 +83,16 @@ const Wizard = ({
                 type="password"
                 value={form.certificado_senha}
                 onChange={(event) => updateField("certificado_senha", event.target.value)}
-                placeholder="Informe a senha do .pfx"
+                placeholder={
+                  certificateSummary.persisted
+                    ? "Informe somente se for substituir o certificado"
+                    : "Informe a senha do .pfx"
+                }
               />
             </C.Field>
 
             <C.PrimaryButton type="button" onClick={handleConfirmCertificate}>
-              Confirmar certificado
+              {certificateSummary.persisted ? "Validar novo certificado" : "Confirmar certificado"}
             </C.PrimaryButton>
           </C.PasswordActionRow>
         </C.FieldsGrid>
@@ -97,6 +106,12 @@ const Wizard = ({
             <C.SummaryLabel>Tamanho</C.SummaryLabel>
             <C.SummaryValue>{certificateSummary.tamanho}</C.SummaryValue>
           </C.SummaryCard>
+          {certificateSummary.persisted ? (
+            <C.SummaryCard>
+              <C.SummaryLabel>Validade salva</C.SummaryLabel>
+              <C.SummaryValue>{certificateSummary.validade}</C.SummaryValue>
+            </C.SummaryCard>
+          ) : null}
         </C.SummaryGrid>
 
         {preview ? (

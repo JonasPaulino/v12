@@ -1,8 +1,10 @@
-FROM node:20-bullseye-slim
+FROM ubuntu:noble
 
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
+  nodejs \
+  npm \
   xvfb \
   xauth \
   openssl \
@@ -20,6 +22,27 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   && if [ ! -e /usr/lib/libxslt.so ] && [ -e /usr/lib/x86_64-linux-gnu/libxslt.so.1 ]; then ln -s /usr/lib/x86_64-linux-gnu/libxslt.so.1 /usr/lib/libxslt.so; fi \
   && if [ ! -e /usr/lib/libssl.so ] && [ -e /usr/lib/x86_64-linux-gnu/libssl.so.3 ]; then ln -s /usr/lib/x86_64-linux-gnu/libssl.so.3 /usr/lib/libssl.so; fi \
   && if [ ! -e /usr/lib/libcrypto.so ] && [ -e /usr/lib/x86_64-linux-gnu/libcrypto.so.3 ]; then ln -s /usr/lib/x86_64-linux-gnu/libcrypto.so.3 /usr/lib/libcrypto.so; fi
+
+# ACBrLibNFe demo for Node/Linux recommends Ubuntu noble, distro nodejs/npm,
+# libxml2 symlink, and OpenSSL legacy providers enabled.
+RUN printf '%s\n' \
+  'openssl_conf = openssl_init' \
+  '' \
+  '[openssl_init]' \
+  'providers = provider_sect' \
+  '' \
+  '[provider_sect]' \
+  'default = default_sect' \
+  'legacy = legacy_sect' \
+  '' \
+  '[default_sect]' \
+  'activate = 1' \
+  '' \
+  '[legacy_sect]' \
+  'activate = 1' \
+  > /etc/ssl/openssl-acbr.cnf
+
+ENV OPENSSL_CONF=/etc/ssl/openssl-acbr.cnf
 
 COPY package*.json ./
 RUN npm install --omit=dev
