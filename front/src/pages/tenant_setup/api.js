@@ -1,5 +1,17 @@
 import { api } from "api/axiosConfig";
 
+const isFormData = (payload) =>
+  typeof FormData !== "undefined" && payload instanceof FormData;
+
+const requestConfig = (payload) =>
+  isFormData(payload)
+    ? {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    : undefined;
+
 export const listTenants = async () => {
   const { data } = await api.get("/tenant");
   return data;
@@ -21,12 +33,16 @@ export const previewTenantCertificate = async ({ certificadoBase64, certificadoS
 };
 
 export const createTenantSetup = async (payload) => {
-  const { data } = await api.post("/tenant-setup", payload);
+  const { data } = await api.post("/tenant-setup", payload, requestConfig(payload));
   return data;
 };
 
 export const updateTenantSetup = async (tenantId, payload) => {
-  const { data } = await api.put(`/tenant-setup/${tenantId}`, payload);
+  const { data } = await api.put(
+    `/tenant-setup/${tenantId}`,
+    payload,
+    requestConfig(payload)
+  );
   return data;
 };
 

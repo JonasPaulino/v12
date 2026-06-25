@@ -20,7 +20,9 @@ const upload = multer({
 }).single("logo");
 
 const parseJsonPayload = (value) => {
-  if (!value) return {};
+  if (!value) {
+    throw new Error("Payload da filial não enviado no formulário.");
+  }
   if (typeof value === "object") return value;
 
   try {
