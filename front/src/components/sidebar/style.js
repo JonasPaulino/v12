@@ -2,12 +2,15 @@ import styled from "styled-components";
 
 export const Container = styled.aside`
   width: ${({ $open }) => ($open ? "300px" : "108px")};
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   gap: 28px;
   padding: 24px 18px;
+  overflow: hidden;
   background:
     linear-gradient(180deg, rgba(8, 59, 154, 0.98) 0%, rgba(10, 27, 64, 0.98) 100%);
   color: #ffffff;
@@ -75,6 +78,9 @@ export const BrandSub = styled.span`
 
 export const MenuContainer = styled.div`
   flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
 `;
 
 export const MenuLabel = styled.span`
@@ -122,6 +128,7 @@ export const NavText = styled.span`
 `;
 
 export const BottomArea = styled.div`
+  flex-shrink: 0;
   display: grid;
   gap: 14px;
 `;

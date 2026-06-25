@@ -1,9 +1,11 @@
 import styled from "styled-components";
 
 export const Shell = styled.div`
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
   display: flex;
-  overflow-x: clip;
+  overflow: hidden;
 `;
 
 export const Overlay = styled.div`
@@ -23,9 +25,11 @@ export const Content = styled.main`
   flex: 1;
   min-width: 0;
   width: 100%;
-  min-height: 100vh;
+  height: 100%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 `;
 
 export const Body = styled.section`
@@ -33,11 +37,14 @@ export const Body = styled.section`
   min-height: 0;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   padding: 0 18px 18px;
+  scrollbar-gutter: stable;
 
   @media (max-width: 640px) {
     padding: 0 14px 22px;
+    scrollbar-gutter: auto;
   }
 `;
 
