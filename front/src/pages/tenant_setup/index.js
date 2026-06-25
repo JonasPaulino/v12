@@ -54,21 +54,38 @@ const Wizard = ({
               Certificado A1
               <C.RequiredMark title={REQUIRED_TITLE}>*</C.RequiredMark>
             </C.FieldSpan>
-            <C.Input type="file" accept=".pfx,.p12" onChange={handleSelectCertificado} />
+            <C.UploadControl htmlFor="tenant-certificate-file">
+              <C.UploadText>
+                {certificateSummary.nome_arquivo || "Selecionar certificado .pfx ou .p12"}
+              </C.UploadText>
+              <C.UploadAction>Procurar arquivo</C.UploadAction>
+            </C.UploadControl>
+            <C.FileInput
+              id="tenant-certificate-file"
+              type="file"
+              accept=".pfx,.p12"
+              onChange={handleSelectCertificado}
+            />
           </C.FieldFull>
 
-          <C.Field>
-            <C.FieldSpan>
-              Senha do certificado
-              <C.RequiredMark title={REQUIRED_TITLE}>*</C.RequiredMark>
-            </C.FieldSpan>
-            <C.Input
-              type="password"
-              value={form.certificado_senha}
-              onChange={(event) => updateField("certificado_senha", event.target.value)}
-              placeholder="Informe a senha do .pfx"
-            />
-          </C.Field>
+          <C.PasswordActionRow>
+            <C.Field>
+              <C.FieldSpan>
+                Senha do certificado
+                <C.RequiredMark title={REQUIRED_TITLE}>*</C.RequiredMark>
+              </C.FieldSpan>
+              <C.Input
+                type="password"
+                value={form.certificado_senha}
+                onChange={(event) => updateField("certificado_senha", event.target.value)}
+                placeholder="Informe a senha do .pfx"
+              />
+            </C.Field>
+
+            <C.PrimaryButton type="button" onClick={handleConfirmCertificate}>
+              Confirmar certificado
+            </C.PrimaryButton>
+          </C.PasswordActionRow>
         </C.FieldsGrid>
 
         <C.SummaryGrid $columns={2}>
@@ -133,11 +150,6 @@ const Wizard = ({
           </C.SummaryGrid>
         ) : null}
 
-        <C.Actions>
-          <C.PrimaryButton type="button" onClick={handleConfirmCertificate}>
-            Confirmar certificado
-          </C.PrimaryButton>
-        </C.Actions>
       </C.Section>
     ) : null}
 

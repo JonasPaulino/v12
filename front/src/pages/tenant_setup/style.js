@@ -156,13 +156,19 @@ export const RequiredMark = styled.span`
 const inputStyles = `
   width: 100%;
   min-width: 0;
-  padding: 15px 16px;
+  height: 48px;
+  padding: 0 18px;
   border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: ${({ theme }) => theme.radius.md};
-  background: ${({ theme }) => theme.colors.surfaceAlt};
+  border-radius: ${({ theme }) => theme.radius.pill};
+  background: rgba(255, 255, 255, 0.92);
   color: ${({ theme }) => theme.colors.text};
   font-size: 1rem;
   outline: none;
+
+  &:focus {
+    border-color: ${({ theme }) => theme.colors.primary};
+    box-shadow: 0 0 0 4px rgba(11, 95, 255, 0.12);
+  }
 `;
 
 export const Input = styled.input`
@@ -176,7 +182,86 @@ export const Select = styled.select`
 export const TextArea = styled.textarea`
   ${inputStyles}
   min-height: 140px;
+  height: auto;
+  padding: 14px 18px;
+  border-radius: ${({ theme }) => theme.radius.md};
   resize: vertical;
+`;
+
+export const FileInput = styled.input`
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  border: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+`;
+
+export const UploadControl = styled.label`
+  min-height: 52px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 6px 6px 18px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radius.pill};
+  background: rgba(255, 255, 255, 0.92);
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+
+  &:hover {
+    border-color: ${({ theme }) => theme.colors.primary};
+    box-shadow: 0 0 0 4px rgba(11, 95, 255, 0.08);
+  }
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+    padding: 12px;
+    border-radius: ${({ theme }) => theme.radius.md};
+  }
+`;
+
+export const UploadText = styled.span`
+  min-width: 0;
+  overflow: hidden;
+  color: ${({ theme }) => theme.colors.text};
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+export const UploadAction = styled.span`
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+  border-radius: ${({ theme }) => theme.radius.pill};
+  background: ${({ theme }) => theme.colors.primary};
+  color: #ffffff;
+  font-weight: 700;
+  white-space: nowrap;
+
+  @media (max-width: 640px) {
+    width: 100%;
+  }
+`;
+
+export const PasswordActionRow = styled.div`
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+
+  @media (max-width: 720px) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 export const Hint = styled.p`
@@ -242,12 +327,21 @@ export const GhostButton = styled.button`
 `;
 
 export const PrimaryButton = styled.button`
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 14px 20px;
   border: 0;
   border-radius: ${({ theme }) => theme.radius.pill};
   background: ${({ theme }) => theme.colors.primary};
   color: #fff;
   font-weight: 700;
+  white-space: nowrap;
+
+  @media (max-width: 720px) {
+    width: 100%;
+  }
 `;
 
 export const LoadingCard = styled.div`
