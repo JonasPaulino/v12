@@ -42,6 +42,13 @@ const safeGetXml = (acbr) => {
   }
 };
 
+const logAcbrStep = (step, details = {}) => {
+  console.error("[acbr:nfe:step]", {
+    step,
+    ...details,
+  });
+};
+
 const buildResponseMetadata = (rawText, operation) => {
   const parsed = parseIniLikeResponse(rawText);
   const cStat = findIniValue(parsed, ["CStat", "cStat", "Status"], [
@@ -219,19 +226,41 @@ class AcbrLibProvider {
     let lastReturn = null;
 
     try {
+      logAcbrStep("configure:start", { tenantId, nfeId });
       await configureAcbrSession(session, context);
+      logAcbrStep("configure:done", { tenantId, nfeId, configPath: session.configPath });
 
       const iniContent = buildNfeIni(context);
       const iniPath = await writeAcbrIni(session, iniContent);
+      logAcbrStep("ini:written", { tenantId, nfeId, iniPath });
 
+      logAcbrStep("limparLista:start", { tenantId, nfeId });
       session.acbr.limparLista();
-      session.acbr.carregarINI(iniPath);
-      preXml = safeGetXml(session.acbr);
-      session.acbr.assinar();
-      session.acbr.validar();
+      logAcbrStep("limparLista:done", { tenantId, nfeId });
 
+      logAcbrStep("carregarINI:start", { tenantId, nfeId, iniPath });
+      session.acbr.carregarINI(iniPath);
+      logAcbrStep("carregarINI:done", { tenantId, nfeId });
+
+      logAcbrStep("obterXml:pre:start", { tenantId, nfeId });
+      preXml = safeGetXml(session.acbr);
+      logAcbrStep("obterXml:pre:done", { tenantId, nfeId, hasXml: !!preXml });
+
+      logAcbrStep("assinar:start", { tenantId, nfeId });
+      session.acbr.assinar();
+      logAcbrStep("assinar:done", { tenantId, nfeId });
+
+      logAcbrStep("validar:start", { tenantId, nfeId });
+      session.acbr.validar();
+      logAcbrStep("validar:done", { tenantId, nfeId });
+
+      logAcbrStep("enviar:start", { tenantId, nfeId, lote: 1 });
       const rawResponse = session.acbr.enviar(1, false, true, false);
+      logAcbrStep("enviar:done", { tenantId, nfeId });
+
+      logAcbrStep("obterXml:post:start", { tenantId, nfeId });
       const postXml = safeGetXml(session.acbr);
+      logAcbrStep("obterXml:post:done", { tenantId, nfeId, hasXml: !!postXml });
       const metadata = buildResponseMetadata(rawResponse, "emitir");
 
       await persistSuccess(client, {
