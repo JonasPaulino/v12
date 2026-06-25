@@ -58,16 +58,10 @@ export const LineChart = ({
 
           {points.map((point) => (
             <g key={`${point.label}-${point.x}`}>
+              <title>
+                {labelFormatter(point.label)} - {valueFormatter(point.value)}
+              </title>
               <circle cx={point.x} cy={point.y} r="5" fill="#ffffff" stroke={color} strokeWidth="3" />
-              <text
-                x={point.x}
-                y={point.y - 12}
-                textAnchor="middle"
-                fontSize="11"
-                fill="#5f6f8f"
-              >
-                {valueFormatter(point.value)}
-              </text>
             </g>
           ))}
         </C.Svg>

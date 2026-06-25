@@ -97,10 +97,10 @@ export const IntroText = styled.p`
 `;
 
 export const KpiGrid = styled.div`
-  margin-top: 18px;
+  margin-top: 14px;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
+  gap: 12px;
 
   @media (max-width: 1160px) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -218,31 +218,33 @@ export const QuickStatLabel = styled.span`
 `;
 
 export const AnalyticsGrid = styled.div`
-  margin-top: 14px;
+  margin-top: 16px;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-  flex: 1;
-  min-height: 0;
+  gap: 16px;
+  flex: none;
+  min-height: 280px;
 
   @media (max-width: 1160px) {
     grid-template-columns: 1fr;
+    min-height: 0;
     flex: none;
   }
 `;
 
 export const BottomRow = styled.div`
-  margin-top: 14px;
-  flex: 1;
-  min-height: 0;
+  margin-top: 16px;
+  flex: none;
+  min-height: 300px;
 
   @media (max-width: 1160px) {
     flex: none;
+    min-height: 280px;
   }
 `;
 
 export const Panel = styled.article`
-  padding: 16px 18px;
+  padding: 18px;
   border: 1px solid ${({ theme }) => theme.colors.border};
   border-radius: ${({ theme }) => theme.radius.lg};
   background: rgba(255, 255, 255, 0.84);
@@ -251,6 +253,7 @@ export const Panel = styled.article`
   height: 100%;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 
   @media (max-width: 640px) {
     padding: 16px;
@@ -263,6 +266,7 @@ export const PanelContent = styled.div`
   min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 `;
 
 export const PanelHeader = styled.div`
@@ -270,13 +274,14 @@ export const PanelHeader = styled.div`
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 `;
 
 export const PanelTitle = styled.h3`
   margin: 0;
   font-family: ${({ theme }) => theme.fonts.heading};
-  font-size: 1rem;
+  font-size: 0.98rem;
+  line-height: 1.25;
 `;
 
 export const PanelText = styled.p`
@@ -288,11 +293,11 @@ export const PanelText = styled.p`
 
 export const PanelBadge = styled.span`
   flex-shrink: 0;
-  padding: 6px 10px;
+  padding: 5px 9px;
   border-radius: ${({ theme }) => theme.radius.pill};
   background: ${({ theme }) => theme.colors.surfaceAlt};
   color: ${({ theme }) => theme.colors.primaryStrong};
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 700;
 `;
 
