@@ -168,7 +168,17 @@ const inputStyles = `
 `;
 
 export const Input = styled.input`
-  ${inputStyles}
+    height: 48px;
+  padding: 0 14px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radius.md};
+  background: ${({ theme }) => theme.colors.surfaceAlt};
+  outline: none;
+
+  &:focus {
+    border-color: ${({ theme }) => theme.colors.primary};
+    box-shadow: 0 0 0 4px rgba(11, 95, 255, 0.12);
+  }
 `;
 
 export const Select = styled.select`
