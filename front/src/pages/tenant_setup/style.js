@@ -1,4 +1,4 @@
-import styled from "styled-components";
+import styled, { css } from "styled-components";
 
 export const Shell = styled.div`
   height: 100vh;
@@ -153,12 +153,18 @@ export const RequiredMark = styled.span`
   margin-left: 4px;
 `;
 
-const inputStyles = `
+const inputStyles = css`
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   height: 48px;
   padding: 0 14px;
   border: 1px solid ${({ theme }) => theme.colors.border};
   border-radius: ${({ theme }) => theme.radius.md};
   background: ${({ theme }) => theme.colors.surfaceAlt};
+  color: ${({ theme }) => theme.colors.text};
+  font-family: inherit;
+  font-size: 1rem;
   outline: none;
 
   &:focus {
@@ -168,17 +174,7 @@ const inputStyles = `
 `;
 
 export const Input = styled.input`
-    height: 48px;
-  padding: 0 14px;
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: ${({ theme }) => theme.radius.md};
-  background: ${({ theme }) => theme.colors.surfaceAlt};
-  outline: none;
-
-  &:focus {
-    border-color: ${({ theme }) => theme.colors.primary};
-    box-shadow: 0 0 0 4px rgba(11, 95, 255, 0.12);
-  }
+  ${inputStyles}
 `;
 
 export const Select = styled.select`
