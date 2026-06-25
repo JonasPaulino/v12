@@ -53,7 +53,7 @@ const buildDhEmi = (date = new Date()) => {
   const minute = pad(date.getMinutes());
   const second = pad(date.getSeconds());
 
-  return `${year}-${month}-${day}T${hour}:${minute}:${second}-03:00`;
+  return `${day}/${month}/${year}T${hour}:${minute}:${second}`;
 };
 
 const buildInfAdic = (context) => {
