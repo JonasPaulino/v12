@@ -30,7 +30,7 @@ const verificarToken = async (req, res, next) => {
 
     const currentTenant = await tenantDAO.getById(pool, decoded.tenantId);
     if (!currentTenant || !currentTenant.tenant_ativo) {
-      return res.status(401).json({ message: "Filial inativa." });
+      return res.status(403).json({ message: "Filial inativa." });
     }
 
     req.user = decoded;

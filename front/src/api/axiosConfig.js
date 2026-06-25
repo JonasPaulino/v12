@@ -14,8 +14,14 @@ const createApiClient = (baseURL) => {
     (error) => {
       const status = error?.response?.status;
       const url = error?.config?.url || "";
+      const message =
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error?.response?.data?.msg ||
+        "";
+      const authRelatedMessage = /token|sess[aã]o|autentic|expir/i.test(String(message));
 
-      if (status === 401 && !url.includes("/auth/validar-token")) {
+      if (status === 401 && !url.includes("/auth/validar-token") && authRelatedMessage) {
         document.dispatchEvent(
           new CustomEvent("app:unauthorized", {
             detail: {
