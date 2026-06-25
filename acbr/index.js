@@ -34,10 +34,20 @@ app.use(express.urlencoded({ extended: true, limit: "25mb" }));
 app.use(cookieParser());
 
 app.get("/healthz", (_req, res) => {
+  let acbrlib = null;
+
+  try {
+    acbrlib = getAcbrRuntimeDiagnostics();
+  } catch (error) {
+    acbrlib = {
+      error: String(error?.message || error),
+    };
+  }
+
   res.status(200).json({
     status: "ok",
     service: "v12-acbr",
-    acbrlib: getAcbrRuntimeDiagnostics(),
+    acbrlib,
   });
 });
 
