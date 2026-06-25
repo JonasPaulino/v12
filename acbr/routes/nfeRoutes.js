@@ -11,6 +11,11 @@ const router = express.Router();
 const isProviderStubError = (error) =>
   error instanceof AcbrLibNotConfiguredError || error instanceof AcbrLibIntegrationError;
 
+const isFiscalValidationError = (error) =>
+  /NF-e|Configuração|configuração|Certificado|Emitente|Destinatário|destinatário|Item|Preencha|habilitada|filial|pedido|chave de acesso/i.test(
+    String(error?.message || "")
+  );
+
 router.get("/listar", async (req, res) => {
   try {
     const page = Number(req.query.page || 1);
@@ -174,6 +179,14 @@ router.post("/:id/processar", async (req, res) => {
     }
 
     console.error("[acbr:nfe] Falha ao processar emissao:", error);
+
+    if (isFiscalValidationError(error)) {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
     return res.status(500).json({
       success: false,
       message: "Não foi possível processar a emissão da NF-e.",
@@ -183,6 +196,23 @@ router.post("/:id/processar", async (req, res) => {
 
 router.post("/:id/consultar-status", async (req, res) => {
   try {
+    const nfe = await NfeDAO.buscarPorId(req.db, Number(req.params.id));
+
+    if (!nfe) {
+      return res.status(404).json({
+        success: false,
+        message: "NF-e não encontrada.",
+      });
+    }
+
+    if (!nfe.chave_acesso) {
+      return res.status(400).json({
+        success: false,
+        message: "A NF-e ainda não possui chave de acesso para consulta. Primeiro processe/envie a NF-e.",
+        data: nfe,
+      });
+    }
+
     const data = await NfeDAO.registrarEvento(req.db, {
       nfeId: Number(req.params.id),
       usuarioId: Number(req.user?.userId) || null,

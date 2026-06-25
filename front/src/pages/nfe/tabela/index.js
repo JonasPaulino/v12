@@ -172,6 +172,7 @@ const Tabela = ({ search, status, refreshKey, onChanged }) => {
                           },
                           {
                             label: "Consultar status",
+                            disabled: !nfe.chave_acesso,
                             onClick: () => handleConsultarStatus(nfe),
                           },
                           {
