@@ -6,6 +6,7 @@ import {
   configureAcbrSession,
   createAcbrSession,
   destroyAcbrSession,
+  getAcbrRuntimeDiagnostics,
   writeAcbrIni,
 } from "./runtime.js";
 
@@ -157,7 +158,23 @@ const persistFailure = async (client, { context, userId, eventType, error, respo
 class AcbrLibProvider {
   static ensureConfigured() {
     if (!isEnabled()) {
-      throw new AcbrLibNotConfiguredError();
+      throw new AcbrLibNotConfiguredError(
+        "ACBrLib desativada. Configure ACBRLIB_ENABLED=true no .env da VPS e recrie o container v12-acbr."
+      );
+    }
+
+    const diagnostics = getAcbrRuntimeDiagnostics();
+
+    if (!diagnostics.libExists) {
+      throw new AcbrLibNotConfiguredError(
+        `Biblioteca ACBrLibNFE não encontrada em ${diagnostics.libPath}. Ajuste ACBRLIB_PATH no .env.`
+      );
+    }
+
+    if (!diagnostics.schemaExists) {
+      throw new AcbrLibNotConfiguredError(
+        `Schemas da NF-e não encontrados em ${diagnostics.schemaDir}. Ajuste ACBRLIB_SCHEMA_PATH no .env.`
+      );
     }
   }
 

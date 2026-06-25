@@ -119,6 +119,23 @@ export const acbrRuntimePaths = {
   schemaDir: baseSchemaDir,
 };
 
+export const getAcbrRuntimeDiagnostics = () => {
+  const libPath = acbrRuntimePaths.libPath();
+  const schemaDir = acbrRuntimePaths.schemaDir();
+  const configDir = acbrRuntimePaths.configDir();
+  const tempDir = acbrRuntimePaths.tempDir();
+
+  return {
+    enabled: String(process.env.ACBRLIB_ENABLED || "").toLowerCase() === "true",
+    libPath,
+    libExists: existsSync(libPath),
+    schemaDir,
+    schemaExists: existsSync(schemaDir),
+    configDir,
+    tempDir,
+  };
+};
+
 export const ensureAcbrRuntimePrerequisites = async () => {
   const libPath = acbrRuntimePaths.libPath();
 

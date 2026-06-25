@@ -9,6 +9,7 @@ import verificarToken from "./middleware/authMiddleware.js";
 import { withTenantContext } from "./middleware/withTenantContext.js";
 import nfeRoutes from "./routes/nfeRoutes.js";
 import setupRoutes from "./routes/setupRoutes.js";
+import { getAcbrRuntimeDiagnostics } from "./providers/acbrlib/runtime.js";
 
 dotenv.config();
 
@@ -36,6 +37,7 @@ app.get("/healthz", (_req, res) => {
   res.status(200).json({
     status: "ok",
     service: "v12-acbr",
+    acbrlib: getAcbrRuntimeDiagnostics(),
   });
 });
 
