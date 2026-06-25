@@ -21,7 +21,7 @@ const buildInitialForm = () => ({
   pessoa_id: "",
   financeiro_condicao_pagamento_id: "",
   status: "aberto",
-  data_emissao: new Date().toISOString().slice(0, 10),
+  data_emissao: todayDate(),
   data_entrega: "",
   desconto: "0",
   acrescimo: "0",
@@ -41,6 +41,19 @@ const mergeUniqueOptions = (current = [], incoming = [], idKey) => {
 };
 
 const currency = (value) => Number(Number(value || 0).toFixed(2));
+const todayDate = () => new Date().toISOString().slice(0, 10);
+
+const normalizeDateInput = (value, fallback = "") => {
+  if (!value) return fallback;
+
+  const raw = String(value).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return fallback;
+
+  return date.toISOString().slice(0, 10);
+};
 
 const parseNumeric = (value) => {
   if (value === null || value === undefined || value === "") return 0;
@@ -57,20 +70,24 @@ const parseNumeric = (value) => {
 };
 
 const addDays = (baseDate, days) => {
-  const date = new Date(`${baseDate}T12:00:00`);
+  const normalizedBaseDate = normalizeDateInput(baseDate, todayDate());
+  const date = new Date(`${normalizedBaseDate}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return normalizedBaseDate;
+
   date.setDate(date.getDate() + Number(days || 0));
   return date.toISOString().slice(0, 10);
 };
 
 const buildStatusParcela = (dataVencimento) => {
-  const today = new Date().toISOString().slice(0, 10);
-  return dataVencimento < today ? "vencida" : "aberta";
+  const normalizedDataVencimento = normalizeDateInput(dataVencimento, todayDate());
+  return normalizedDataVencimento < todayDate() ? "vencida" : "aberta";
 };
 
 const buildParcelasPreview = ({ total, dataEmissao, condicao }) => {
   if (!condicao) return [];
 
   const totalPedido = currency(total);
+  const dataEmissaoBase = normalizeDateInput(dataEmissao, todayDate());
   const percentualEntrada = Number(condicao.percentual_entrada || 0);
   const quantidadeParcelas = Number(condicao.quantidade_parcelas || 1);
   const diasPrimeiroVencimento = Number(condicao.dias_primeiro_vencimento || 0);
@@ -86,8 +103,8 @@ const buildParcelasPreview = ({ total, dataEmissao, condicao }) => {
     parcelas.push({
       numero_parcela: numeroParcela,
       valor_parcela: valorEntrada,
-      data_vencimento: dataEmissao,
-      status: buildStatusParcela(dataEmissao),
+      data_vencimento: dataEmissaoBase,
+      status: buildStatusParcela(dataEmissaoBase),
     });
     numeroParcela += 1;
   }
@@ -102,7 +119,7 @@ const buildParcelasPreview = ({ total, dataEmissao, condicao }) => {
     acumulado = currency(acumulado + valorParcela);
 
     const dataVencimento = addDays(
-      dataEmissao,
+      dataEmissaoBase,
       diasPrimeiroVencimento + intervaloDias * index
     );
 
@@ -204,8 +221,8 @@ export const useModalVenda = ({ isOpen, vendaId, onClose }) => {
             financeiro_condicao_pagamento_id:
               data?.pedido?.financeiro_condicao_pagamento_id || "",
             status: data?.pedido?.status || "aberto",
-            data_emissao: data?.pedido?.data_emissao || new Date().toISOString().slice(0, 10),
-            data_entrega: data?.pedido?.data_entrega || "",
+            data_emissao: normalizeDateInput(data?.pedido?.data_emissao, todayDate()),
+            data_entrega: normalizeDateInput(data?.pedido?.data_entrega, ""),
             desconto: String(data?.pedido?.desconto ?? 0),
             acrescimo: String(data?.pedido?.acrescimo ?? 0),
             observacao: data?.pedido?.observacao || "",
