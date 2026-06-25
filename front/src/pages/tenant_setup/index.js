@@ -13,8 +13,10 @@ const Wizard = ({
   form,
   preview,
   certificateSummary,
+  logoSummary,
   updateField,
   handleSelectCertificado,
+  handleSelectLogo,
   handleConfirmCertificate,
   goNextStep,
   goPreviousStep,
@@ -299,7 +301,41 @@ const Wizard = ({
               onChange={(event) => updateField("codigo_ibge", event.target.value)}
             />
           </C.Field>
+          <C.FieldFull>
+            <C.FieldSpan>Logo da filial para DANFE e relatórios</C.FieldSpan>
+            <C.UploadControl htmlFor="tenant-logo-file">
+              <C.UploadText>
+                {logoSummary.persisted
+                  ? `Logo salva: ${logoSummary.nome_arquivo}`
+                  : logoSummary.nome_arquivo}
+              </C.UploadText>
+              <C.UploadAction>
+                {logoSummary.persisted ? "Substituir logo" : "Procurar logo"}
+              </C.UploadAction>
+            </C.UploadControl>
+            <C.FileInput
+              id="tenant-logo-file"
+              type="file"
+              accept="image/*"
+              onChange={handleSelectLogo}
+            />
+            <C.Hint>
+              Use PNG, JPG ou WEBP. Recomendado: logo horizontal, fundo transparente
+              ou branco, proporção aproximada 3:1 e mínimo de 600x200 px. O sistema
+              compacta a imagem antes de salvar.
+            </C.Hint>
+          </C.FieldFull>
         </C.FieldsGrid>
+        <C.SummaryGrid $columns={2}>
+          <C.SummaryCard>
+            <C.SummaryLabel>Logo</C.SummaryLabel>
+            <C.SummaryValue>{logoSummary.nome_arquivo}</C.SummaryValue>
+          </C.SummaryCard>
+          <C.SummaryCard>
+            <C.SummaryLabel>Tamanho salvo/envio</C.SummaryLabel>
+            <C.SummaryValue>{logoSummary.tamanho}</C.SummaryValue>
+          </C.SummaryCard>
+        </C.SummaryGrid>
       </C.Section>
     ) : null}
 
@@ -411,6 +447,7 @@ export const TenantSetup = () => {
     form,
     preview,
     certificateSummary,
+    logoSummary,
     tenants,
     totalTenants,
     page,
@@ -425,6 +462,7 @@ export const TenantSetup = () => {
     closeModal,
     updateField,
     handleSelectCertificado,
+    handleSelectLogo,
     handleConfirmCertificate,
     goNextStep,
     goPreviousStep,
@@ -583,8 +621,10 @@ export const TenantSetup = () => {
               form={form}
               preview={preview}
               certificateSummary={certificateSummary}
+              logoSummary={logoSummary}
               updateField={updateField}
               handleSelectCertificado={handleSelectCertificado}
+              handleSelectLogo={handleSelectLogo}
               handleConfirmCertificate={handleConfirmCertificate}
               goNextStep={goNextStep}
               goPreviousStep={goPreviousStep}

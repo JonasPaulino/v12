@@ -216,14 +216,6 @@ export const useConfiguracaoFiscalPage = () => {
     importado_em: null,
     atualizado_em: null,
   });
-  const [logoAtual, setLogoAtual] = useState({
-    configurado: false,
-    nome_arquivo: "",
-    mime_type: "",
-    tamanho_arquivo: 0,
-    importado_em: null,
-    atualizado_em: null,
-  });
   const [gatewayAtual, setGatewayAtual] = useState({
     api_key_configurada: false,
     api_key_masked: "",
@@ -237,14 +229,12 @@ export const useConfiguracaoFiscalPage = () => {
     loading: false,
   });
   const [certificadoFile, setCertificadoFile] = useState(null);
-  const [logoFile, setLogoFile] = useState(null);
 
   const applyData = useCallback((payload) => {
     const data = payload || {};
     const fiscal = data.fiscal || {};
     const emitente = data.emitente || null;
     const certificado = data.certificado || {};
-    const logo = data.logo || {};
     const contas = data.contas || {};
     const whatsapp = data.mensagens?.whatsapp || {};
     const responsavelTecnico = data.responsavel_tecnico || {};
@@ -300,14 +290,6 @@ export const useConfiguracaoFiscalPage = () => {
       importado_em: certificado.importado_em || null,
       atualizado_em: certificado.atualizado_em || null,
     });
-    setLogoAtual({
-      configurado: !!logo.configurado,
-      nome_arquivo: logo.nome_arquivo || "",
-      mime_type: logo.mime_type || "",
-      tamanho_arquivo: Number(logo.tamanho_arquivo || 0),
-      importado_em: logo.importado_em || null,
-      atualizado_em: logo.atualizado_em || null,
-    });
     setGatewayAtual({
       api_key_configurada: !!contas.api_key_configurada,
       api_key_masked: contas.api_key_masked || "",
@@ -321,7 +303,6 @@ export const useConfiguracaoFiscalPage = () => {
       pairingCode: "",
     }));
     setCertificadoFile(null);
-    setLogoFile(null);
   }, []);
 
   useEffect(() => {
@@ -398,31 +379,6 @@ export const useConfiguracaoFiscalPage = () => {
     [showAlert]
   );
 
-  const handleSelectLogo = useCallback(
-    (event) => {
-      const file = event.target.files?.[0] || null;
-
-      if (!file) {
-        setLogoFile(null);
-        return;
-      }
-
-      if (!String(file.type || "").startsWith("image/")) {
-        showAlert({
-          title: "Arquivo inválido",
-          text: "Selecione uma imagem para a logo da filial.",
-          icon: "warning",
-        });
-        event.target.value = "";
-        setLogoFile(null);
-        return;
-      }
-
-      setLogoFile(file);
-    },
-    [showAlert]
-  );
-
   const pendenciasEmitente = useMemo(
     () => buildPendenciasEmitente(selectedEmitente?.raw || null),
     [selectedEmitente]
@@ -450,24 +406,6 @@ export const useConfiguracaoFiscalPage = () => {
       importadoEm: formatDateTime(certificadoAtual.importado_em),
     };
   }, [certificadoAtual, certificadoFile]);
-
-  const logoResumo = useMemo(() => {
-    if (logoFile) {
-      return {
-        configurado: true,
-        nome_arquivo: logoFile.name,
-        tamanho: formatFileSize(logoFile.size),
-        importadoEm: "Novo arquivo selecionado",
-      };
-    }
-
-    return {
-      configurado: !!logoAtual.configurado,
-      nome_arquivo: logoAtual.nome_arquivo || "Nenhuma logo importada",
-      tamanho: formatFileSize(logoAtual.tamanho_arquivo),
-      importadoEm: formatDateTime(logoAtual.importado_em),
-    };
-  }, [logoAtual, logoFile]);
 
   const contasResumo = useMemo(
     () => ({
@@ -871,14 +809,6 @@ export const useConfiguracaoFiscalPage = () => {
           };
         }
 
-        if (logoFile) {
-          payload.logo = {
-            nome_arquivo: logoFile.name,
-            mime_type: logoFile.type,
-            conteudo_base64: await readFileAsBase64(logoFile),
-          };
-        }
-
         const response = await updateConfiguracaoFiscal(payload);
         applyData(response.data || null);
 
@@ -899,7 +829,7 @@ export const useConfiguracaoFiscalPage = () => {
         setSaving(false);
       }
     },
-    [applyData, certificadoFile, form, isUsuarioMaster, logoFile, saving, showAlert]
+    [applyData, certificadoFile, form, isUsuarioMaster, saving, showAlert]
   );
 
   return {
@@ -911,7 +841,6 @@ export const useConfiguracaoFiscalPage = () => {
     pendenciasEmitente,
     emitenteEndereco,
     certificadoResumo,
-    logoResumo,
     contasResumo,
     whatsappResumo,
     whatsAppState,
@@ -922,7 +851,6 @@ export const useConfiguracaoFiscalPage = () => {
     loadEmitenteOptions,
     handleSelectEmitente,
     handleSelectCertificado,
-    handleSelectLogo,
     handleConnectWhatsApp,
     handleDisconnectWhatsApp,
     handleRestartWhatsApp,

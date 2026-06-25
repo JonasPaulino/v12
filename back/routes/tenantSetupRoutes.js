@@ -1,5 +1,6 @@
 import express from "express";
 import { pool } from "../config/conexao.js";
+import { tenantLogoUpload } from "../middleware/tenantLogoUpload.js";
 import TenantSetupDAO from "../model/tenantSetupDAO.js";
 
 const router = express.Router();
@@ -39,7 +40,7 @@ router.get("/:tenantId", async (req, res) => {
   }
 });
 
-router.post("/", async (req, res) => {
+router.post("/", tenantLogoUpload, async (req, res) => {
   let client;
 
   try {
@@ -66,7 +67,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.put("/:tenantId", async (req, res) => {
+router.put("/:tenantId", tenantLogoUpload, async (req, res) => {
   let client;
 
   try {

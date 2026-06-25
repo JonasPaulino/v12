@@ -11,6 +11,9 @@ import {
 
 const REQUIRED_TITLE = "Este campo é obrigatório.";
 const PAGE_SIZE = 8;
+const LOGO_TARGET_BYTES = 500 * 1024;
+const LOGO_MAX_WIDTH = 900;
+const LOGO_MAX_HEIGHT = 300;
 
 const createInitialForm = () => ({
   certificado_senha: "",
@@ -65,6 +68,81 @@ const readFileAsBase64 = (file) =>
     reader.readAsDataURL(file);
   });
 
+const imageToCanvas = (file) =>
+  new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const image = new Image();
+
+    image.onload = () => {
+      URL.revokeObjectURL(url);
+
+      const scale = Math.min(
+        1,
+        LOGO_MAX_WIDTH / image.width,
+        LOGO_MAX_HEIGHT / image.height
+      );
+      const width = Math.max(1, Math.round(image.width * scale));
+      const height = Math.max(1, Math.round(image.height * scale));
+      const canvas = document.createElement("canvas");
+      const context = canvas.getContext("2d");
+
+      canvas.width = width;
+      canvas.height = height;
+      context.drawImage(image, 0, 0, width, height);
+      resolve(canvas);
+    };
+
+    image.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Não foi possível ler a imagem da logo."));
+    };
+
+    image.src = url;
+  });
+
+const canvasToBlob = (canvas, quality) =>
+  new Promise((resolve) => {
+    canvas.toBlob((blob) => resolve(blob), "image/webp", quality);
+  });
+
+const compressLogoFile = async (file) => {
+  if (!file || !String(file.type || "").startsWith("image/")) {
+    throw new Error("Selecione uma imagem válida para a logo.");
+  }
+
+  const canvas = await imageToCanvas(file);
+  let bestBlob = null;
+
+  for (const quality of [0.9, 0.8, 0.7, 0.6, 0.5]) {
+    const blob = await canvasToBlob(canvas, quality);
+    if (!blob) continue;
+
+    bestBlob = blob;
+    if (blob.size <= LOGO_TARGET_BYTES) break;
+  }
+
+  if (!bestBlob) {
+    throw new Error("Não foi possível compactar a logo.");
+  }
+
+  const name = String(file.name || "logo")
+    .replace(/\.[^.]+$/, "")
+    .replace(/[^\w.-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+
+  return new File([bestBlob], `${name || "logo"}.webp`, { type: "image/webp" });
+};
+
+const buildTenantRequestPayload = (payload, logoFile) => {
+  if (!logoFile) return payload;
+
+  const formData = new FormData();
+  formData.append("payload", JSON.stringify(payload));
+  formData.append("logo", logoFile);
+  return formData;
+};
+
 const normalizeSearch = (value) =>
   String(value || "")
     .normalize("NFD")
@@ -81,6 +159,7 @@ export const useTenantSetupPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [step, setStep] = useState(1);
   const [certificadoFile, setCertificadoFile] = useState(null);
+  const [logoFile, setLogoFile] = useState(null);
   const [form, setForm] = useState(() => createInitialForm());
   const [preview, setPreview] = useState(null);
   const [tenants, setTenants] = useState([]);
@@ -92,6 +171,7 @@ export const useTenantSetupPage = () => {
   const resetForm = useCallback(() => {
     setStep(1);
     setCertificadoFile(null);
+    setLogoFile(null);
     setForm(createInitialForm());
     setPreview(null);
     setEditingTenantId(null);
@@ -134,6 +214,7 @@ export const useTenantSetupPage = () => {
         const data = result?.data || {};
         const empresa = data.empresa || {};
         const certificado = data.certificado || {};
+        const logo = data.logo || {};
 
         setEditingTenantId(tenantId);
         setForm({
@@ -161,6 +242,7 @@ export const useTenantSetupPage = () => {
             nome_arquivo: certificado.nome_arquivo || "",
             validade_em: certificado.validade_em || null,
           },
+          logo,
           empresa,
         });
         setStep(2);
@@ -201,6 +283,31 @@ export const useTenantSetupPage = () => {
     const file = event.target.files?.[0] || null;
     setCertificadoFile(file);
   }, []);
+
+  const handleSelectLogo = useCallback(
+    async (event) => {
+      const file = event.target.files?.[0] || null;
+      event.target.value = "";
+
+      if (!file) {
+        setLogoFile(null);
+        return;
+      }
+
+      try {
+        const compressed = await compressLogoFile(file);
+        setLogoFile(compressed);
+      } catch (error) {
+        setLogoFile(null);
+        await showAlert({
+          title: "Logo inválida",
+          text: error.message || "Não foi possível processar a logo da filial.",
+          icon: "warning",
+        });
+      }
+    },
+    [showAlert]
+  );
 
   const handleConfirmCertificate = useCallback(async () => {
     if (!certificadoFile) {
@@ -371,7 +478,10 @@ export const useTenantSetupPage = () => {
           };
         }
 
-        await updateTenantSetup(editingTenantId, payload);
+        await updateTenantSetup(
+          editingTenantId,
+          buildTenantRequestPayload(payload, logoFile)
+        );
       } else {
         const tenantExistente = findTenantByCnpj(form.cnpj);
         if (tenantExistente) {
@@ -431,7 +541,7 @@ export const useTenantSetupPage = () => {
           conteudo_base64: conteudoBase64,
         };
 
-        await createTenantSetup(payload);
+        await createTenantSetup(buildTenantRequestPayload(payload, logoFile));
       }
 
       await loadTenants();
@@ -456,7 +566,16 @@ export const useTenantSetupPage = () => {
     } finally {
       setSaving(false);
     }
-  }, [certificadoFile, closeModal, editingTenantId, findTenantByCnpj, form, loadTenants, showAlert]);
+  }, [
+    certificadoFile,
+    closeModal,
+    editingTenantId,
+    findTenantByCnpj,
+    form,
+    loadTenants,
+    logoFile,
+    showAlert,
+  ]);
 
   const certificateSummary = useMemo(() => {
     if (!certificadoFile) {
@@ -485,6 +604,31 @@ export const useTenantSetupPage = () => {
       persisted: false,
     };
   }, [certificadoFile, preview]);
+
+  const logoSummary = useMemo(() => {
+    if (logoFile) {
+      return {
+        nome_arquivo: logoFile.name,
+        tamanho: formatFileSize(logoFile.size),
+        persisted: false,
+      };
+    }
+
+    const persisted = preview?.logo || null;
+    if (persisted?.configurado || persisted?.nome_arquivo) {
+      return {
+        nome_arquivo: persisted.nome_arquivo || "Logo vinculada",
+        tamanho: formatFileSize(persisted.tamanho_arquivo),
+        persisted: true,
+      };
+    }
+
+    return {
+      nome_arquivo: "Nenhuma logo selecionada",
+      tamanho: "--",
+      persisted: false,
+    };
+  }, [logoFile, preview]);
 
   const filteredTenants = useMemo(() => {
     const query = normalizeSearch(search);
@@ -557,6 +701,7 @@ export const useTenantSetupPage = () => {
     form,
     preview,
     certificateSummary,
+    logoSummary,
     tenants: paginatedTenants,
     totalTenants: filteredTenants.length,
     page,
@@ -573,6 +718,7 @@ export const useTenantSetupPage = () => {
     closeModal,
     handleToggleTenantStatus,
     handleSelectCertificado,
+    handleSelectLogo,
     handleConfirmCertificate,
     goNextStep,
     goPreviousStep,

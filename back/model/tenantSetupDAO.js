@@ -176,6 +176,10 @@ class TenantSetupDAO {
           cert.tamanho_arquivo AS certificado_tamanho_arquivo,
           cert.validade_em AS certificado_validade_em,
           cert.importado_em AS certificado_importado_em,
+          logo.nome_arquivo AS logo_nome_arquivo,
+          logo.mime_type AS logo_mime_type,
+          logo.tamanho_arquivo AS logo_tamanho_arquivo,
+          logo.importado_em AS logo_importado_em,
           (
             cert.conteudo_pfx IS NOT NULL
             AND cert.senha_criptografada IS NOT NULL
@@ -192,6 +196,7 @@ class TenantSetupDAO {
         ) pe ON TRUE
         LEFT JOIN tenant_configuracao_fiscal cfg ON cfg.tenant_id = t.tenant_id
         LEFT JOIN tenant_certificado_a1 cert ON cert.tenant_id = t.tenant_id
+        LEFT JOIN tenant_logo logo ON logo.tenant_id = t.tenant_id
         WHERE t.tenant_id = $1
         LIMIT 1
       `,
@@ -242,6 +247,13 @@ class TenantSetupDAO {
         validade_em: row.certificado_validade_em || null,
         importado_em: row.certificado_importado_em || null,
       },
+      logo: {
+        configurado: !!row.logo_nome_arquivo,
+        nome_arquivo: row.logo_nome_arquivo || "",
+        mime_type: row.logo_mime_type || "",
+        tamanho_arquivo: Number(row.logo_tamanho_arquivo || 0),
+        importado_em: row.logo_importado_em || null,
+      },
     };
   }
 
@@ -250,6 +262,7 @@ class TenantSetupDAO {
     const usuario = payload.usuario || {};
     const certificado = payload.certificado || {};
     const fiscal = payload.fiscal || {};
+    const logo = payload.logo || null;
 
     const tenantNome = normalizeText(empresa.tenant_nome, 150, {
       required: true,
@@ -337,6 +350,15 @@ class TenantSetupDAO {
         natureza_operacao_padrao:
           normalizeText(fiscal.natureza_operacao_padrao, 120) || "Venda de mercadoria",
       },
+      logo:
+        logo?.conteudo && logo?.mime_type
+          ? {
+              nome_arquivo: normalizeText(logo.nome_arquivo, 180) || "logo.webp",
+              mime_type: normalizeText(logo.mime_type, 80) || "image/webp",
+              conteudo: logo.conteudo,
+              tamanho_arquivo: Number(logo.tamanho_arquivo || logo.conteudo.length || 0),
+            }
+          : null,
     };
   }
 
@@ -624,6 +646,36 @@ class TenantSetupDAO {
         ]
       );
 
+      if (data.logo) {
+        await client.query(
+          `
+            INSERT INTO tenant_logo (
+              tenant_id,
+              nome_arquivo,
+              mime_type,
+              conteudo,
+              tamanho_arquivo,
+              importado_em
+            )
+            VALUES ($1, $2, $3, $4, $5, NOW())
+            ON CONFLICT (tenant_id) DO UPDATE
+            SET
+              nome_arquivo = EXCLUDED.nome_arquivo,
+              mime_type = EXCLUDED.mime_type,
+              conteudo = EXCLUDED.conteudo,
+              tamanho_arquivo = EXCLUDED.tamanho_arquivo,
+              importado_em = EXCLUDED.importado_em
+          `,
+          [
+            tenantId,
+            data.logo.nome_arquivo,
+            data.logo.mime_type,
+            data.logo.conteudo,
+            data.logo.tamanho_arquivo,
+          ]
+        );
+      }
+
       await client.query(
         `
           INSERT INTO tenant_responsavel_tecnico (
@@ -738,6 +790,7 @@ class TenantSetupDAO {
     const empresa = payload?.empresa || {};
     const fiscal = payload?.fiscal || {};
     const certificado = payload?.certificado || {};
+    const logo = payload?.logo || null;
 
     const data = {
       empresa: {
@@ -788,6 +841,15 @@ class TenantSetupDAO {
         senha: normalizeText(certificado.senha, 180),
         conteudo_base64: normalizeText(certificado.conteudo_base64, null),
       },
+      logo:
+        logo?.conteudo && logo?.mime_type
+          ? {
+              nome_arquivo: normalizeText(logo.nome_arquivo, 180) || "logo.webp",
+              mime_type: normalizeText(logo.mime_type, 80) || "image/webp",
+              conteudo: logo.conteudo,
+              tamanho_arquivo: Number(logo.tamanho_arquivo || logo.conteudo.length || 0),
+            }
+          : null,
     };
 
     const querAtualizarCertificado =
@@ -927,6 +989,36 @@ class TenantSetupDAO {
             encryptSecret(data.certificado.senha),
             certificadoBuffer.length,
             certificadoPreview.validade_em,
+          ]
+        );
+      }
+
+      if (data.logo) {
+        await client.query(
+          `
+            INSERT INTO tenant_logo (
+              tenant_id,
+              nome_arquivo,
+              mime_type,
+              conteudo,
+              tamanho_arquivo,
+              importado_em
+            )
+            VALUES ($1, $2, $3, $4, $5, NOW())
+            ON CONFLICT (tenant_id) DO UPDATE
+            SET
+              nome_arquivo = EXCLUDED.nome_arquivo,
+              mime_type = EXCLUDED.mime_type,
+              conteudo = EXCLUDED.conteudo,
+              tamanho_arquivo = EXCLUDED.tamanho_arquivo,
+              importado_em = EXCLUDED.importado_em
+          `,
+          [
+            tenantId,
+            data.logo.nome_arquivo,
+            data.logo.mime_type,
+            data.logo.conteudo,
+            data.logo.tamanho_arquivo,
           ]
         );
       }
