@@ -474,7 +474,7 @@ export const TenantSetup = () => {
                         <C.TenantStatusBadge $active={!!tenant.tenant_ativo}>
                           {tenant.tenant_ativo ? "Ativa" : "Inativa"}
                         </C.TenantStatusBadge>
-                        <div style={{ position: "relative" }}>
+                        <C.TenantMenuWrap>
                           <C.TenantMenuToggle
                             type="button"
                             onClick={() =>
@@ -497,12 +497,14 @@ export const TenantSetup = () => {
                               <C.TenantMenuButton
                                 type="button"
                                 onClick={() => handleToggleTenantStatus(tenant, business?.tenant_id)}
+                                $danger={tenant.tenant_ativo}
+                                $success={!tenant.tenant_ativo}
                               >
                                 {tenant.tenant_ativo ? "Inativar empresa" : "Reativar empresa"}
                               </C.TenantMenuButton>
                             </C.TenantMenu>
                           ) : null}
-                        </div>
+                        </C.TenantMenuWrap>
                       </C.TenantItemRight>
                     </C.TenantItem>
                   ))}
