@@ -435,9 +435,15 @@ class NfeDAO {
           pf.cest,
           pf.cfop_venda_interna AS cfop_padrao_venda_dentro_uf,
           pf.cfop_venda_interestadual AS cfop_padrao_venda_fora_uf,
-          pf.origem_mercadoria
+          pf.cfop_compra,
+          pf.origem_mercadoria,
+          um.sigla AS unidade_cadastro_sigla
         FROM pedido_venda_item pvi
         LEFT JOIN produto_fiscal pf ON pf.produto_id = pvi.produto_id
+          AND pf.tenant_id = pvi.tenant_id
+        LEFT JOIN produto_unidade pu ON pu.produto_id = pvi.produto_id
+          AND pu.tenant_id = pvi.tenant_id
+        LEFT JOIN unidade_medida um ON um.unidade_medida_id = pu.unidade_comercial_id
         WHERE pvi.pedido_venda_id = $1
           AND pvi.tenant_id = ${TENANT_CONTEXT_SQL}
         ORDER BY pvi.pedido_venda_item_id
@@ -629,8 +635,11 @@ class NfeDAO {
             item.descricao,
             item.ncm,
             item.cest,
-            item.cfop_padrao_venda_dentro_uf || null,
-            item.unidade_sigla,
+            item.cfop_padrao_venda_dentro_uf ||
+              item.cfop_padrao_venda_fora_uf ||
+              item.cfop_compra ||
+              null,
+            item.unidade_sigla || item.unidade_cadastro_sigla || "UN",
             item.quantidade || 0,
             item.valor_unitario || 0,
             item.desconto || 0,

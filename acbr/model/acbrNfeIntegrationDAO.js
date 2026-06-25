@@ -217,11 +217,26 @@ class AcbrNfeIntegrationDAO {
           nii.cofins_valor,
           nii.ipi_cst,
           nii.ipi_aliquota,
-          nii.ipi_valor
+          nii.ipi_valor,
+          pf.ncm AS produto_ncm,
+          pf.cest AS produto_cest,
+          pf.cfop_venda_interna AS produto_cfop_venda_interna,
+          pf.cfop_venda_interestadual AS produto_cfop_venda_interestadual,
+          pf.cfop_compra AS produto_cfop_compra,
+          pf.origem_mercadoria AS produto_origem_mercadoria,
+          um.sigla AS produto_unidade_sigla
         FROM fiscal.nfe_item ni
         LEFT JOIN fiscal.nfe_item_imposto nii
           ON nii.nfe_item_id = ni.nfe_item_id
          AND nii.tenant_id = ni.tenant_id
+        LEFT JOIN produto_fiscal pf
+          ON pf.produto_id = ni.produto_id
+         AND pf.tenant_id = ni.tenant_id
+        LEFT JOIN produto_unidade pu
+          ON pu.produto_id = ni.produto_id
+         AND pu.tenant_id = ni.tenant_id
+        LEFT JOIN unidade_medida um
+          ON um.unidade_medida_id = pu.unidade_comercial_id
         WHERE ni.tenant_id = ${TENANT_CONTEXT_SQL}
           AND ni.nfe_id = $1
         ORDER BY ni.nfe_item_id
@@ -305,16 +320,24 @@ class AcbrNfeIntegrationDAO {
         produto_id: item.produto_id,
         codigo_produto: item.codigo_produto || String(item.produto_id || item.nfe_item_id),
         descricao: item.descricao,
-        ncm: item.ncm || "",
-        cest: item.cest || "",
-        cfop: item.cfop || "",
-        unidade_comercial: item.unidade_comercial || "UN",
+        ncm: item.ncm || item.produto_ncm || "",
+        cest: item.cest || item.produto_cest || "",
+        cfop:
+          item.cfop ||
+          (row.emitente_uf === row.destinatario_uf
+            ? item.produto_cfop_venda_interna
+            : item.produto_cfop_venda_interestadual) ||
+          item.produto_cfop_venda_interna ||
+          item.produto_cfop_venda_interestadual ||
+          item.produto_cfop_compra ||
+          "",
+        unidade_comercial: item.unidade_comercial || item.produto_unidade_sigla || "UN",
         quantidade: Number(item.quantidade || 0),
         valor_unitario: Number(item.valor_unitario || 0),
         valor_desconto: Number(item.valor_desconto || 0),
         valor_acrescimo: Number(item.valor_acrescimo || 0),
         valor_total: Number(item.valor_total || 0),
-        origem_mercadoria: item.origem_mercadoria || "0",
+        origem_mercadoria: item.origem_mercadoria || item.produto_origem_mercadoria || "0",
         imposto: {
           icms_cst: item.icms_cst || "",
           icms_csosn: item.icms_csosn || "",
