@@ -79,8 +79,35 @@ class NfeReportDAO {
       [safeNfeId]
     );
 
+    const xmlResult = await client.query(
+      `
+        SELECT tipo_xml, chave_acesso, conteudo_xml, criado_em
+        FROM fiscal.nfe_xml
+        WHERE nfe_id = $1
+          AND tenant_id = ${TENANT_CONTEXT_SQL}
+          AND tipo_xml IN ('autorizado', 'retorno_autorizacao', 'importado')
+        ORDER BY
+          CASE tipo_xml
+            WHEN 'autorizado' THEN 1
+            WHEN 'retorno_autorizacao' THEN 2
+            ELSE 3
+          END,
+          criado_em DESC,
+          nfe_xml_id DESC
+        LIMIT 1
+      `,
+      [safeNfeId]
+    );
+
+    const xml = xmlResult.rows[0] || null;
+
     return {
-      nfe,
+      nfe: {
+        ...nfe,
+        xml_autorizado: nfe.xml_autorizado || xml?.conteudo_xml || null,
+        chave_acesso: nfe.chave_acesso || xml?.chave_acesso || null,
+        xml_tipo: xml?.tipo_xml || null,
+      },
       itens: itemsResult.rows,
     };
   }
