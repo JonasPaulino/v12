@@ -109,7 +109,11 @@ const runNfeEmissionWorker = async ({ tenantId, nfeId, context, certificadoSenha
     const result = await safeReadJsonFile(outputPath);
     const signal = error.signal ? ` (signal: ${error.signal})` : "";
     const stderr = String(error.stderr || "").trim();
-    const crashedNative = error.signal || /segmentation fault|core dumped|sigsegv/i.test(stderr);
+    const crashedNative =
+      error.signal ||
+      error.code === 139 ||
+      result?.stage === "before_assinar" ||
+      /segmentation fault|core dumped|sigsegv/i.test(stderr);
     const nativeCrashMessage = crashedNative
       ? `A ACBrLib falhou durante a assinatura/envio da NF-e${signal}. O serviço permaneceu ativo; verifique o evento de erro e os logs do ACBr.`
       : "";

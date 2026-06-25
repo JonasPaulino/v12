@@ -6,7 +6,7 @@ import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 const ACBrLibNFeMT = require("@projetoacbr/acbrlib-nfe-node/dist/src").default;
 
-const DEFAULT_NFE_LIB_PATH = "./lib/ACBrLibNFE/linux/mt/libacbrnfe64.so";
+const DEFAULT_NFE_LIB_PATH = "./lib/ACBrLibNFE/linux/CONSOLE-MT/libacbrnfe64.so";
 const DEFAULT_NFE_SCHEMA_PATH = "./lib/ACBrLibNFE/dep/Schemas";
 const ACBR_DEBUG_CONFIG = process.env.ACBR_DEBUG_CONFIG === "true";
 const DEFAULT_SSL_CONFIG = {
