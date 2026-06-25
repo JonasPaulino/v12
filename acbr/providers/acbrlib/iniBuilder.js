@@ -260,7 +260,6 @@ export const buildNfeIni = (context) => {
 
   appendSection(lines, "pag001", {
     tPag: "90",
-    vPag: decimal(nfe.valor_total, 2),
   });
 
   appendSection(lines, "infAdic", {

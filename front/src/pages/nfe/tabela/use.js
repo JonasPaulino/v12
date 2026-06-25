@@ -71,11 +71,18 @@ export const useTabelaNfe = ({ search, status, refreshKey, onChanged }) => {
     try {
       showLoading(loadingMessage);
       const response = await action();
+      const businessFailure = response?.success === false;
+      const mappedStatus = String(response?.data?.mappedStatus || "").toLowerCase();
       showAlert({
-        title: successTitle,
+        title:
+          businessFailure && mappedStatus === "rejeitada"
+            ? "NF-e rejeitada"
+            : businessFailure
+              ? "Retorno da SEFAZ"
+              : successTitle,
         text: response?.message || successFallbackMessage,
-        icon: "success",
-        timer: 2200,
+        icon: businessFailure ? "warning" : "success",
+        timer: businessFailure ? undefined : 2200,
       });
       onChanged?.();
     } catch (error) {

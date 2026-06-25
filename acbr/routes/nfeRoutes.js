@@ -16,6 +16,22 @@ const isFiscalValidationError = (error) =>
     String(error?.message || "")
   );
 
+const buildProcessarNfeMessage = (data = {}) => {
+  const status = String(data.mappedStatus || "").toLowerCase();
+  const motivo = data.xMotivo || data.raw || "";
+
+  if (status === "autorizada") return "NF-e autorizada pela SEFAZ.";
+  if (status === "processando") return "NF-e enviada para a SEFAZ e aguardando processamento.";
+  if (status === "rejeitada") {
+    return motivo ? `NF-e rejeitada pela SEFAZ: ${motivo}` : "NF-e rejeitada pela SEFAZ.";
+  }
+  if (status === "denegada") {
+    return motivo ? `NF-e denegada pela SEFAZ: ${motivo}` : "NF-e denegada pela SEFAZ.";
+  }
+
+  return motivo || "Emissão processada pela ACBrLib.";
+};
+
 router.get("/listar", async (req, res) => {
   try {
     const page = Number(req.query.page || 1);
@@ -166,8 +182,8 @@ router.post("/:id/processar", async (req, res) => {
     });
 
     return res.json({
-      success: true,
-      message: "Emissão enviada para a ACBrLib.",
+      success: !!data.success,
+      message: buildProcessarNfeMessage(data),
       data,
     });
   } catch (error) {
