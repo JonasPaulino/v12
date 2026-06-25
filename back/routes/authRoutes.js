@@ -109,7 +109,9 @@ router.post("/login", async (req, res) => {
       tenantIds: tenants.map((item) => item.tenant_id),
     });
 
-    if (!tenants.length) {
+    const activeTenants = tenants.filter((item) => item.tenant_ativo);
+
+    if (!activeTenants.length) {
       authDebugLog("login:denied", {
         reason: "no-active-tenants",
         usuarioId: usuario.usuario_id,
@@ -117,7 +119,8 @@ router.post("/login", async (req, res) => {
       return res.status(403).json({ error: "Usuário sem filiais ativas vinculadas." });
     }
     const activeTenant =
-      tenants.find((item) => item.tenant_id === usuario.tenant_id_default) || tenants[0];
+      activeTenants.find((item) => item.tenant_id === usuario.tenant_id_default) ||
+      activeTenants[0];
 
     const token = jwt.sign(
       {

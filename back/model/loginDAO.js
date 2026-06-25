@@ -62,7 +62,6 @@ class LoginDAO {
       JOIN tenant t ON t.tenant_id = ut.tenant_id
       WHERE ut.usuario_id = $1
         AND ut.ativo = TRUE
-        AND t.tenant_ativo = TRUE
       ORDER BY t.tenant_nome
     `;
 

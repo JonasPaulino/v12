@@ -58,6 +58,10 @@ router.post("/switch", async (req, res) => {
     const tenants = await loginDAO.listarTenantsDoUsuario(pool, req.user.userId);
     const activeTenant = tenants.find((item) => item.tenant_id === Number(tenantId));
 
+    if (!activeTenant || !activeTenant.tenant_ativo) {
+      return res.status(403).json({ error: "Filial inativa." });
+    }
+
     const token = jwt.sign(
       {
         userId: req.user.userId,
