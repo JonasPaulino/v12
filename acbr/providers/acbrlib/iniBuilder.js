@@ -44,6 +44,41 @@ const mapIndIEDest = (destinatario) => {
   return "1";
 };
 
+const UF_CODES = {
+  RO: "11",
+  AC: "12",
+  AM: "13",
+  RR: "14",
+  PA: "15",
+  AP: "16",
+  TO: "17",
+  MA: "21",
+  PI: "22",
+  CE: "23",
+  RN: "24",
+  PB: "25",
+  PE: "26",
+  AL: "27",
+  SE: "28",
+  BA: "29",
+  MG: "31",
+  ES: "32",
+  RJ: "33",
+  SP: "35",
+  PR: "41",
+  SC: "42",
+  RS: "43",
+  MS: "50",
+  MT: "51",
+  GO: "52",
+  DF: "53",
+};
+
+const getUfCode = (uf, codigoIbge) => {
+  const normalizedUf = String(uf || "").trim().toUpperCase();
+  return UF_CODES[normalizedUf] || onlyDigits(codigoIbge).slice(0, 2) || "35";
+};
+
 const buildDhEmi = (date = new Date()) => {
   const pad = (value) => String(value).padStart(2, "0");
   const year = date.getFullYear();
@@ -67,7 +102,7 @@ export const buildNfeIni = (context) => {
   const lines = [];
   const cnpjEmitente = onlyDigits(emitente.cpf_cnpj);
   const cnpjDestinatario = onlyDigits(destinatario?.cpf_cnpj);
-  const cUfEmitente = emitente.codigo_ibge?.slice(0, 2) || "35";
+  const cUfEmitente = getUfCode(emitente.uf, emitente.codigo_ibge);
   const now = new Date();
 
   appendSection(lines, "infNFe", {
@@ -75,12 +110,12 @@ export const buildNfeIni = (context) => {
     Id: "",
   });
 
-  appendSection(lines, "ide", {
+  appendSection(lines, "Identificacao", {
     cUF: cUfEmitente,
     cNF: String(nfe.codigo_numerico).padStart(8, "0"),
     natOp: nfe.natureza_operacao,
-    mod: "55",
-    serie: nfe.serie,
+    modelo: "55",
+    Serie: nfe.serie,
     nNF: nfe.numero,
     dhEmi: buildDhEmi(now),
     tpNF: mapTpNF(nfe.tipo_operacao),
@@ -100,17 +135,14 @@ export const buildNfeIni = (context) => {
     verProc: "v12",
   });
 
-  appendSection(lines, "emit", {
-    CNPJ: cnpjEmitente,
+  appendSection(lines, "Emitente", {
+    CNPJCPF: cnpjEmitente,
     xNome: emitente.nome_razao,
     xFant: emitente.nome_fantasia,
     IE: emitente.inscricao_estadual,
     IM: emitente.inscricao_municipal,
     CNAE: configuracao.cnae,
     CRT: configuracao.crt,
-  });
-
-  appendSection(lines, "enderEmit", {
     xLgr: emitente.logradouro,
     nro: emitente.numero,
     xCpl: emitente.complemento,
@@ -121,18 +153,16 @@ export const buildNfeIni = (context) => {
     CEP: onlyDigits(emitente.cep),
     cPais: "1058",
     xPais: emitente.pais || "Brasil",
-    fone: onlyDigits(emitente.telefone),
+    cUF: cUfEmitente,
+    Fone: onlyDigits(emitente.telefone),
   });
 
-  appendSection(lines, "dest", {
-    [`${cnpjDestinatario.length > 11 ? "CNPJ" : "CPF"}`]: cnpjDestinatario,
+  appendSection(lines, "Destinatario", {
+    CNPJCPF: cnpjDestinatario,
     xNome: destinatario.nome_razao,
     IE: destinatario.inscricao_estadual,
     indIEDest: mapIndIEDest(destinatario),
-    email: destinatario.email,
-  });
-
-  appendSection(lines, "enderDest", {
+    Email: destinatario.email,
     xLgr: destinatario.logradouro,
     nro: destinatario.numero,
     xCpl: destinatario.complemento,
@@ -143,18 +173,15 @@ export const buildNfeIni = (context) => {
     CEP: onlyDigits(destinatario.cep),
     cPais: "1058",
     xPais: destinatario.pais || "Brasil",
-    fone: onlyDigits(destinatario.telefone),
+    Fone: onlyDigits(destinatario.telefone),
   });
 
   itens.forEach((item, index) => {
     const suffix = String(index + 1).padStart(3, "0");
     const icms = item.imposto || {};
 
-    appendSection(lines, `det${suffix}`, {
+    appendSection(lines, `Produto${suffix}`, {
       nItem: index + 1,
-    });
-
-    appendSection(lines, `prod${suffix}`, {
       cProd: item.codigo_produto,
       cEAN: "",
       xProd: item.descricao,
@@ -170,9 +197,6 @@ export const buildNfeIni = (context) => {
       qTrib: decimal(item.quantidade, 4),
       vUnTrib: decimal(item.valor_unitario, 4),
       indTot: "1",
-    });
-
-    appendSection(lines, `imposto${suffix}`, {
       vTotTrib: "0.00",
     });
 
@@ -210,8 +234,7 @@ export const buildNfeIni = (context) => {
     }
   });
 
-  appendSection(lines, "total", {});
-  appendSection(lines, "ICMSTot", {
+  appendSection(lines, "Total", {
     vBC: "0.00",
     vICMS: "0.00",
     vICMSDeson: "0.00",
@@ -231,7 +254,7 @@ export const buildNfeIni = (context) => {
     vNF: decimal(nfe.valor_total, 2),
   });
 
-  appendSection(lines, "transp", {
+  appendSection(lines, "Transportador", {
     modFrete: "9",
   });
 

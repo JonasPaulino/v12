@@ -12,7 +12,7 @@ const isProviderStubError = (error) =>
   error instanceof AcbrLibNotConfiguredError || error instanceof AcbrLibIntegrationError;
 
 const isFiscalValidationError = (error) =>
-  /NF-e|Configuração|configuração|Certificado|Emitente|Destinatário|destinatário|Item|Preencha|habilitada|filial|pedido|chave de acesso/i.test(
+  /NF-e|Configuração|configuração|Certificado|Emitente|emitente|Destinatário|destinatário|Item|Preencha|Código IBGE|codigo IBGE|habilitada|filial|pedido|chave de acesso/i.test(
     String(error?.message || "")
   );
 

@@ -11,6 +11,8 @@ const parseInteger = (value, { label = "Campo", min = 1 } = {}) => {
 
 const onlyDigits = (value) => String(value || "").replace(/\D/g, "");
 
+const hasValidIbgeCode = (value) => /^\d{7}$/.test(onlyDigits(value));
+
 const sha256 = (value) =>
   crypto.createHash("sha256").update(String(value || ""), "utf8").digest("hex");
 
@@ -388,6 +390,10 @@ class AcbrNfeIntegrationDAO {
       throw new Error(`Preencha ${missingEmitente[1]} antes de emitir a NF-e.`);
     }
 
+    if (!hasValidIbgeCode(context.emitente.codigo_ibge)) {
+      throw new Error("Código IBGE do emitente precisa ter 7 dígitos.");
+    }
+
     if (!context.destinatario?.nome_razao) {
       throw new Error("Destinatário não encontrado na NF-e.");
     }
@@ -411,6 +417,10 @@ class AcbrNfeIntegrationDAO {
     );
     if (missingDestinatario) {
       throw new Error(`Preencha ${missingDestinatario[1]} antes de emitir a NF-e.`);
+    }
+
+    if (!hasValidIbgeCode(context.destinatario.codigo_ibge)) {
+      throw new Error("Código IBGE do destinatário precisa ter 7 dígitos.");
     }
 
     if (!context.itens.length) {
