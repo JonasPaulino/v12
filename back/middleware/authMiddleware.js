@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import { pool } from "../config/conexao.js";
 import loginDAO from "../model/loginDAO.js";
+import tenantDAO from "../model/tenantDAO.js";
 
 const verificarToken = async (req, res, next) => {
   const token = req.cookies?.token;
@@ -27,7 +28,7 @@ const verificarToken = async (req, res, next) => {
       return res.status(401).json({ message: "Acesso à filial inválido" });
     }
 
-    const currentTenant = await loginDAO.buscarTenantAtual(pool, decoded.userId);
+    const currentTenant = await tenantDAO.getById(pool, decoded.tenantId);
     if (!currentTenant || !currentTenant.tenant_ativo) {
       return res.status(401).json({ message: "Filial inativa." });
     }
