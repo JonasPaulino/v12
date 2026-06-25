@@ -361,24 +361,32 @@ CREATE TABLE IF NOT EXISTS regra_tributaria_ipi (
   aliquota NUMERIC(9,4)
 );
 
-CREATE TABLE IF NOT EXISTS nfe (
+CREATE SCHEMA IF NOT EXISTS fiscal;
+
+CREATE TABLE IF NOT EXISTS fiscal.nfe (
   nfe_id SERIAL PRIMARY KEY,
   tenant_id INTEGER NOT NULL REFERENCES tenant(tenant_id) ON DELETE CASCADE,
-  empresa_tenant_id INTEGER NOT NULL REFERENCES tenant(tenant_id),
-  destinatario_nome VARCHAR(180),
-  destinatario_documento VARCHAR(20),
+  pedido_venda_id INTEGER REFERENCES pedido_venda(pedido_venda_id) ON DELETE SET NULL,
+  emitente_pessoa_id INTEGER REFERENCES pessoa(pessoa_id),
+  destinatario_pessoa_id INTEGER REFERENCES pessoa(pessoa_id),
+  usuario_id INTEGER REFERENCES usuario(usuario_id) ON DELETE SET NULL,
   modelo VARCHAR(2) NOT NULL DEFAULT '55',
   serie INTEGER NOT NULL,
-  numero INTEGER NOT NULL,
-  chave VARCHAR(44),
+  numero INTEGER,
+  chave_acesso VARCHAR(44),
   natureza_operacao VARCHAR(120) NOT NULL,
-  tipo_operacao VARCHAR(1) NOT NULL,
-  finalidade VARCHAR(1) NOT NULL,
-  ambiente VARCHAR(1) NOT NULL DEFAULT '2',
+  tipo_operacao VARCHAR(10) NOT NULL,
+  finalidade VARCHAR(20) NOT NULL,
+  ambiente_nfe VARCHAR(1) NOT NULL DEFAULT '2',
   status VARCHAR(30) NOT NULL DEFAULT 'rascunho',
   protocolo VARCHAR(30),
   recibo VARCHAR(30),
-  status_sefaz VARCHAR(10),
+  status_sefaz VARCHAR(20),
+  valor_produtos NUMERIC(14,2) NOT NULL DEFAULT 0,
+  valor_desconto NUMERIC(14,2) NOT NULL DEFAULT 0,
+  valor_acrescimo NUMERIC(14,2) NOT NULL DEFAULT 0,
+  valor_total NUMERIC(14,2) NOT NULL DEFAULT 0,
+  observacao TEXT,
   xml_assinado TEXT,
   xml_autorizado TEXT,
   data_autorizacao TIMESTAMPTZ,
@@ -386,31 +394,33 @@ CREATE TABLE IF NOT EXISTS nfe (
   atualizado_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS nfe_item (
+CREATE TABLE IF NOT EXISTS fiscal.nfe_item (
   nfe_item_id SERIAL PRIMARY KEY,
   tenant_id INTEGER NOT NULL REFERENCES tenant(tenant_id) ON DELETE CASCADE,
-  nfe_id INTEGER NOT NULL REFERENCES nfe(nfe_id) ON DELETE CASCADE,
+  nfe_id INTEGER NOT NULL REFERENCES fiscal.nfe(nfe_id) ON DELETE CASCADE,
+  pedido_venda_item_id INTEGER REFERENCES pedido_venda_item(pedido_venda_item_id) ON DELETE SET NULL,
   produto_id INTEGER REFERENCES produto(produto_id),
   codigo_produto VARCHAR(60) NOT NULL,
-  gtin VARCHAR(20),
-  gtin_tributavel VARCHAR(20),
   descricao VARCHAR(240) NOT NULL,
   ncm VARCHAR(8) NOT NULL,
   cest VARCHAR(7),
-  cfop VARCHAR(4) NOT NULL,
+  cfop VARCHAR(4),
   unidade_comercial VARCHAR(10) NOT NULL,
-  quantidade_comercial NUMERIC(14,4) NOT NULL,
-  valor_unitario_comercial NUMERIC(14,4) NOT NULL,
+  quantidade NUMERIC(14,4) NOT NULL DEFAULT 0,
+  valor_unitario NUMERIC(14,4) NOT NULL DEFAULT 0,
+  valor_desconto NUMERIC(14,4) NOT NULL DEFAULT 0,
+  valor_acrescimo NUMERIC(14,4) NOT NULL DEFAULT 0,
   valor_total NUMERIC(14,4) NOT NULL,
-  unidade_tributavel VARCHAR(10) NOT NULL,
-  quantidade_tributavel NUMERIC(14,4) NOT NULL,
-  valor_unitario_tributavel NUMERIC(14,4) NOT NULL,
+  origem_mercadoria VARCHAR(1),
+  gtin VARCHAR(20),
+  gtin_tributavel VARCHAR(20),
+  unidade_tributavel VARCHAR(10),
+  quantidade_tributavel NUMERIC(14,4),
+  valor_unitario_tributavel NUMERIC(14,4),
   valor_frete NUMERIC(14,4) NOT NULL DEFAULT 0,
   valor_seguro NUMERIC(14,4) NOT NULL DEFAULT 0,
-  valor_desconto NUMERIC(14,4) NOT NULL DEFAULT 0,
   valor_outras_despesas NUMERIC(14,4) NOT NULL DEFAULT 0,
   ind_tot VARCHAR(1) NOT NULL DEFAULT '1',
-  origem_mercadoria VARCHAR(1),
   cbenef VARCHAR(10),
   fci VARCHAR(36),
   informacao_adicional_item TEXT,
@@ -418,10 +428,11 @@ CREATE TABLE IF NOT EXISTS nfe_item (
   atualizado_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS nfe_item_imposto (
+CREATE TABLE IF NOT EXISTS fiscal.nfe_item_imposto (
   nfe_item_imposto_id SERIAL PRIMARY KEY,
   tenant_id INTEGER NOT NULL REFERENCES tenant(tenant_id) ON DELETE CASCADE,
-  nfe_item_id INTEGER NOT NULL UNIQUE REFERENCES nfe_item(nfe_item_id) ON DELETE CASCADE,
+  nfe_id INTEGER NOT NULL REFERENCES fiscal.nfe(nfe_id) ON DELETE CASCADE,
+  nfe_item_id INTEGER NOT NULL UNIQUE REFERENCES fiscal.nfe_item(nfe_item_id) ON DELETE CASCADE,
   icms_origem VARCHAR(1),
   icms_cst VARCHAR(3),
   icms_csosn VARCHAR(3),
@@ -446,19 +457,56 @@ CREATE TABLE IF NOT EXISTS nfe_item_imposto (
   ipi_base NUMERIC(14,4),
   ipi_aliquota NUMERIC(9,4),
   ipi_valor NUMERIC(14,4),
-  ipi_enquadramento VARCHAR(3)
+  ipi_enquadramento VARCHAR(3),
+  criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  atualizado_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_tabela_preco_tenant ON tabela_preco (tenant_id);
-CREATE INDEX IF NOT EXISTS idx_deposito_tenant ON deposito (tenant_id);
-CREATE INDEX IF NOT EXISTS idx_produto_tenant ON produto (tenant_id);
-CREATE INDEX IF NOT EXISTS idx_produto_tenant_codigo ON produto (tenant_id, codigo_interno);
-CREATE INDEX IF NOT EXISTS idx_produto_tenant_descricao ON produto (tenant_id, descricao);
-CREATE INDEX IF NOT EXISTS idx_produto_preco_produto ON produto_preco (produto_id, data_inicio DESC);
-CREATE INDEX IF NOT EXISTS idx_produto_estoque_produto ON produto_estoque (produto_id);
-CREATE INDEX IF NOT EXISTS idx_estoque_movimento_produto ON estoque_movimento (produto_id, data_movimento DESC);
-CREATE INDEX IF NOT EXISTS idx_regra_tributaria_tenant ON regra_tributaria (tenant_id, ativo);
-CREATE INDEX IF NOT EXISTS idx_nfe_tenant ON nfe (tenant_id, status);
+CREATE TABLE IF NOT EXISTS fiscal.nfe_evento (
+  nfe_evento_id SERIAL PRIMARY KEY,
+  tenant_id INTEGER NOT NULL REFERENCES tenant(tenant_id) ON DELETE CASCADE,
+  nfe_id INTEGER NOT NULL REFERENCES fiscal.nfe(nfe_id) ON DELETE CASCADE,
+  usuario_id INTEGER REFERENCES usuario(usuario_id) ON DELETE SET NULL,
+  tipo_evento VARCHAR(80) NOT NULL,
+  status VARCHAR(30) NOT NULL DEFAULT 'pendente',
+  mensagem TEXT,
+  payload_json JSONB,
+  criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  atualizado_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS fiscal.nfe_xml (
+  nfe_xml_id SERIAL PRIMARY KEY,
+  tenant_id INTEGER NOT NULL REFERENCES tenant(tenant_id) ON DELETE CASCADE,
+  nfe_id INTEGER NOT NULL REFERENCES fiscal.nfe(nfe_id) ON DELETE CASCADE,
+  tipo_xml VARCHAR(30) NOT NULL,
+  chave_acesso VARCHAR(44),
+  conteudo_xml TEXT NOT NULL,
+  hash_sha256 VARCHAR(64) NOT NULL,
+  criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  atualizado_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS fiscal.nfe_importacao_xml (
+  nfe_importacao_xml_id SERIAL PRIMARY KEY,
+  tenant_id INTEGER NOT NULL REFERENCES tenant(tenant_id) ON DELETE CASCADE,
+  nfe_id INTEGER NOT NULL REFERENCES fiscal.nfe(nfe_id) ON DELETE CASCADE,
+  usuario_id INTEGER REFERENCES usuario(usuario_id) ON DELETE SET NULL,
+  chave_acesso VARCHAR(44),
+  origem VARCHAR(80),
+  conteudo_xml TEXT NOT NULL,
+  criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  atualizado_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_fiscal_nfe_tenant ON fiscal.nfe (tenant_id, status, criado_em DESC);
+CREATE INDEX IF NOT EXISTS idx_fiscal_nfe_pedido ON fiscal.nfe (pedido_venda_id);
+CREATE INDEX IF NOT EXISTS idx_fiscal_nfe_chave ON fiscal.nfe (chave_acesso);
+CREATE INDEX IF NOT EXISTS idx_fiscal_nfe_item_nfe ON fiscal.nfe_item (nfe_id);
+CREATE INDEX IF NOT EXISTS idx_fiscal_nfe_item_imposto_nfe ON fiscal.nfe_item_imposto (nfe_id);
+CREATE INDEX IF NOT EXISTS idx_fiscal_nfe_evento_nfe ON fiscal.nfe_evento (nfe_id, criado_em DESC);
+CREATE INDEX IF NOT EXISTS idx_fiscal_nfe_xml_nfe ON fiscal.nfe_xml (nfe_id, criado_em DESC);
+CREATE INDEX IF NOT EXISTS idx_fiscal_nfe_importacao_xml_nfe ON fiscal.nfe_importacao_xml (nfe_id, criado_em DESC);
 
 DROP TRIGGER IF EXISTS trg_unidade_medida_updated_at ON unidade_medida;
 CREATE TRIGGER trg_unidade_medida_updated_at
