@@ -206,7 +206,7 @@ export const UploadControl = styled.label`
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
-  padding: 4px 4px 4px 14px;
+  padding: 0 4px 0 14px;
   border: 1px solid ${({ theme }) => theme.colors.border};
   border-radius: ${({ theme }) => theme.radius.md};
   background: ${({ theme }) => theme.colors.surfaceAlt};
@@ -236,12 +236,12 @@ export const UploadText = styled.span`
 `;
 
 export const UploadAction = styled.span`
-  height: 40px;
+  height: 38px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 0 16px;
-  border-radius: ${({ theme }) => theme.radius.pill};
+  border-radius: ${({ theme }) => theme.radius.md};
   background: linear-gradient(135deg, #0b5fff 0%, #083b9a 100%);
   color: #ffffff;
   font-weight: 700;
@@ -258,6 +258,12 @@ export const PasswordActionRow = styled.div`
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 12px;
   align-items: end;
+
+  button {
+    height: 48px;
+    border-radius: ${({ theme }) => theme.radius.md};
+    padding: 0 18px;
+  }
 
   @media (max-width: 720px) {
     grid-template-columns: 1fr;
@@ -333,7 +339,7 @@ export const PrimaryButton = styled.button`
   justify-content: center;
   padding: 0 18px;
   border: 0;
-  border-radius: ${({ theme }) => theme.radius.pill};
+  border-radius: ${({ theme }) => theme.radius.md};
   background: linear-gradient(135deg, #0b5fff 0%, #083b9a 100%);
   color: #fff;
   font-weight: 700;
