@@ -15,7 +15,7 @@ class TenantDAO {
 
   static async getCurrent(client) {
     const sql = `
-      SELECT tenant_id, tenant_nome, tenant_slug, tenant_documento
+      SELECT tenant_id, tenant_nome, tenant_slug, tenant_documento, tenant_ativo
       FROM tenant
       WHERE tenant_id = ${TENANT_CONTEXT_SQL}
       LIMIT 1

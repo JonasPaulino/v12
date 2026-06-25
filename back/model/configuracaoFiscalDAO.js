@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { TENANT_CONTEXT_SQL } from "../utils/sql.js";
+import { previewCertificate } from "../utils/certificatePreview.js";
 import MensagemDAO from "./mensagemDAO.js";
 
 const normalizeText = (value, maxLength, { required = false, label = "Campo" } = {}) => {
@@ -338,6 +339,7 @@ class ConfiguracaoFiscalDAO {
           cfg.observacao,
           cert.nome_arquivo AS certificado_nome_arquivo,
           cert.tamanho_arquivo AS certificado_tamanho_arquivo,
+          cert.validade_em AS certificado_validade_em,
           cert.importado_em AS certificado_importado_em,
           cert.atualizado_em AS certificado_atualizado_em,
           gw.provider AS gateway_provider,
@@ -389,6 +391,7 @@ class ConfiguracaoFiscalDAO {
       certificado: {
         nome_arquivo: row.certificado_nome_arquivo || "",
         tamanho_arquivo: Number(row.certificado_tamanho_arquivo || 0),
+        validade_em: row.certificado_validade_em || null,
         importado_em: row.certificado_importado_em || null,
         atualizado_em: row.certificado_atualizado_em || null,
         configurado: !!row.certificado_nome_arquivo,
@@ -616,6 +619,12 @@ class ConfiguracaoFiscalDAO {
           throw new Error("Conteúdo do certificado A1 inválido.");
         }
 
+        const certificadoPreview = await previewCertificate({
+          certificadoBase64: data.certificado.conteudo_base64,
+          certificadoSenha: data.certificado.senha,
+          scopeKey: `config-fiscal-cert-${Date.now()}`,
+        });
+
         await client.query(
           `
             INSERT INTO tenant_certificado_a1 (
@@ -624,6 +633,7 @@ class ConfiguracaoFiscalDAO {
               conteudo_pfx,
               senha_criptografada,
               tamanho_arquivo,
+              validade_em,
               importado_em
             )
             VALUES (
@@ -632,6 +642,7 @@ class ConfiguracaoFiscalDAO {
               $2,
               $3,
               $4,
+              $5,
               NOW()
             )
             ON CONFLICT (tenant_id) DO UPDATE
@@ -640,6 +651,7 @@ class ConfiguracaoFiscalDAO {
               conteudo_pfx = EXCLUDED.conteudo_pfx,
               senha_criptografada = EXCLUDED.senha_criptografada,
               tamanho_arquivo = EXCLUDED.tamanho_arquivo,
+              validade_em = EXCLUDED.validade_em,
               importado_em = EXCLUDED.importado_em
           `,
           [
@@ -647,6 +659,7 @@ class ConfiguracaoFiscalDAO {
             buffer,
             encryptSecret(data.certificado.senha),
             buffer.length,
+            certificadoPreview.validade_em,
           ]
         );
       }

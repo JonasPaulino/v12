@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS tenant_certificado_a1 (
   conteudo_pfx BYTEA,
   senha_criptografada TEXT,
   tamanho_arquivo INTEGER,
+  validade_em TIMESTAMPTZ,
   importado_em TIMESTAMPTZ,
   atualizado_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

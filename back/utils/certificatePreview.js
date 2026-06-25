@@ -35,6 +35,14 @@ const extractCommonName = (subject = "") =>
   subject.match(/CN = ([^,]+)/i)?.[1]?.trim() ||
   "";
 
+const extractValidity = (text = "") => {
+  const match = String(text || "").match(/notAfter=([^\n]+)/i);
+  if (!match?.[1]) return null;
+
+  const parsed = new Date(match[1].trim());
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+};
+
 export const previewCertificate = async ({ certificadoBase64, certificadoSenha, scopeKey }) => {
   const normalizedBase64 = normalizeBase64(certificadoBase64);
   const senha = String(certificadoSenha || "");
@@ -77,13 +85,23 @@ export const previewCertificate = async ({ certificadoBase64, certificadoSenha, 
       "RFC2253",
     ]);
 
+    const { stdout: endDateOut } = await execFileAsync("openssl", [
+      "x509",
+      "-in",
+      pemPath,
+      "-noout",
+      "-enddate",
+    ]);
+
     const commonName = extractCommonName(subjectOut);
     const cnpj = extractCnpj(subjectOut);
+    const validadeEm = extractValidity(endDateOut);
 
     return {
       cnpj,
       common_name: commonName,
       subject: subjectOut,
+      validade_em: validadeEm,
     };
   } finally {
     await fs.rm(workDir, { recursive: true, force: true }).catch(() => {});

@@ -55,6 +55,7 @@ class LoginDAO {
         t.tenant_nome,
         t.tenant_slug,
         t.tenant_documento,
+        t.tenant_ativo,
         ut.perfil,
         ut.ativo
       FROM usuario_tenant ut
@@ -125,6 +126,7 @@ class LoginDAO {
         t.tenant_nome,
         t.tenant_slug,
         t.tenant_documento,
+        t.tenant_ativo,
         ut.perfil
       FROM usuario_tenant ut
       JOIN tenant t ON t.tenant_id = ut.tenant_id

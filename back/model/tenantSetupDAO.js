@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { hashPassword } from "../utils/password.js";
+import { previewCertificate } from "../utils/certificatePreview.js";
 
 const normalizeText = (value, maxLength, { required = false, label = "Campo" } = {}) => {
   const normalized = String(value ?? "").trim();
@@ -292,10 +293,16 @@ class TenantSetupDAO {
       data.empresa.nome_fantasia || data.empresa.nome_razao || data.empresa.tenant_nome
     );
 
-    const certificadoBuffer = Buffer.from(data.certificado.conteudo_base64, "base64");
-    if (!certificadoBuffer.length) {
-      throw new Error("Conteúdo do certificado inválido.");
-    }
+      const certificadoBuffer = Buffer.from(data.certificado.conteudo_base64, "base64");
+      if (!certificadoBuffer.length) {
+        throw new Error("Conteúdo do certificado inválido.");
+      }
+
+      const certificadoPreview = await previewCertificate({
+        certificadoBase64: data.certificado.conteudo_base64,
+        certificadoSenha: data.certificado.senha,
+        scopeKey: `tenant-create-${Date.now()}`,
+      });
 
     await client.query("BEGIN");
 
@@ -444,6 +451,26 @@ class TenantSetupDAO {
         [tenantId, usuarioId]
       );
 
+      if (usuarioCriadorId) {
+        await client.query(
+          `
+            INSERT INTO usuario_tenant (
+              tenant_id,
+              usuario_id,
+              perfil,
+              ativo,
+              ultimo_acesso_em
+            )
+            VALUES ($1, $2, 'admin', TRUE, NOW())
+            ON CONFLICT (tenant_id, usuario_id) DO UPDATE
+            SET
+              perfil = EXCLUDED.perfil,
+              ativo = TRUE
+          `,
+          [tenantId, usuarioCriadorId]
+        );
+      }
+
       await client.query(
         `
           INSERT INTO tenant_configuracao_fiscal (
@@ -477,9 +504,10 @@ class TenantSetupDAO {
             conteudo_pfx,
             senha_criptografada,
             tamanho_arquivo,
+            validade_em,
             importado_em
           )
-          VALUES ($1, $2, $3, $4, $5, NOW())
+          VALUES ($1, $2, $3, $4, $5, $6, NOW())
         `,
         [
           tenantId,
@@ -487,6 +515,7 @@ class TenantSetupDAO {
           certificadoBuffer,
           encryptSecret(data.certificado.senha),
           certificadoBuffer.length,
+          certificadoPreview.validade_em,
         ]
       );
 
@@ -557,6 +586,8 @@ class TenantSetupDAO {
         tenant_slug: tenantSlug,
         pessoa_id: pessoaId,
         usuario_id: usuarioId,
+        tenant_ativo: true,
+        certificado_validade_em: certificadoPreview.validade_em,
         created_by: usuarioCriadorId,
       };
     } catch (error) {
