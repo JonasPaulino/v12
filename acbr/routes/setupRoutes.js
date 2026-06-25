@@ -46,6 +46,17 @@ router.post("/company-preview", async (req, res) => {
     const rawResponse = session.acbr.consultaCadastro(cuf, cnpj, false);
     const parsed = parseConsultaCadastroResponse(rawResponse);
 
+    console.log("[acbr:setup] Consulta cadastral concluída", {
+      uf,
+      cuf,
+      cnpj,
+      rawType: typeof rawResponse,
+      rawLength: String(rawResponse || "").length,
+      cStat: parsed?.cStat || null,
+      consultaOk: parsed?.consulta_ok || false,
+      inscricaoEstadual: parsed?.empresa?.inscricao_estadual || "",
+    });
+
     return res.json({
       success: true,
       data: parsed,

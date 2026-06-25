@@ -252,13 +252,15 @@ export const configureAcbrLookupSession = async (session, { uf, ambiente = "2" }
     acbr,
     ["WebService", "WebServices"],
     "UF",
-    String(uf || "").trim().toUpperCase()
+    String(uf || "").trim().toUpperCase(),
+    { optional: true }
   );
   setConfigValueInSessions(
     acbr,
     ["WebService", "WebServices"],
     "Ambiente",
-    String(ambiente || "2")
+    String(ambiente || "2"),
+    { optional: true }
   );
   acbr.configGravar();
 };

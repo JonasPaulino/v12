@@ -29,6 +29,14 @@ router.post("/preview", async (req, res) => {
           uf,
           ambiente: "2",
         });
+
+        console.log("[tenant-certificate] IE consultada", {
+          cnpj: certificadoData.cnpj,
+          uf,
+          ie: consultaInscricaoEstadual?.empresa?.inscricao_estadual || "",
+          consultaOk: consultaInscricaoEstadual?.consulta_ok || false,
+          cStat: consultaInscricaoEstadual?.cStat || null,
+        });
       } catch (error) {
         console.error("[tenant-certificate] Falha ao consultar IE:", error);
       }
