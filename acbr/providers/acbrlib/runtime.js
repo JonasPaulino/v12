@@ -213,6 +213,14 @@ export const getAcbrRuntimeDiagnostics = () => {
   const schemaDir = acbrRuntimePaths.schemaDir();
   const configDir = acbrRuntimePaths.configDir();
   const tempDir = acbrRuntimePaths.tempDir();
+  const nativeLibraries = {
+    libxml2: existsSync("/usr/lib/libxml2.so"),
+    libxmlsec1: existsSync("/usr/lib/libxmlsec1.so"),
+    libxmlsec1OpenSsl: existsSync("/usr/lib/libxmlsec1-openssl.so"),
+    libxslt: existsSync("/usr/lib/libxslt.so"),
+    libssl: existsSync("/usr/lib/libssl.so"),
+    libcrypto: existsSync("/usr/lib/libcrypto.so"),
+  };
 
   return {
     enabled: String(process.env.ACBRLIB_ENABLED || "").toLowerCase() === "true",
@@ -223,6 +231,8 @@ export const getAcbrRuntimeDiagnostics = () => {
     configDir,
     tempDir,
     sslConfig: getAcbrSslConfig(),
+    openSslConf: process.env.OPENSSL_CONF || "",
+    nativeLibraries,
   };
 };
 

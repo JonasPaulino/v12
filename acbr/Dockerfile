@@ -43,6 +43,7 @@ RUN printf '%s\n' \
   > /etc/ssl/openssl-acbr.cnf
 
 ENV OPENSSL_CONF=/etc/ssl/openssl-acbr.cnf
+ENV LD_LIBRARY_PATH=/usr/lib:/usr/lib/x86_64-linux-gnu
 
 COPY package*.json ./
 RUN npm install --omit=dev
