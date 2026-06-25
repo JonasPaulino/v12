@@ -154,15 +154,11 @@ export const RequiredMark = styled.span`
 `;
 
 const inputStyles = `
-  width: 100%;
-  min-width: 0;
   height: 48px;
   padding: 0 14px;
   border: 1px solid ${({ theme }) => theme.colors.border};
   border-radius: ${({ theme }) => theme.radius.md};
   background: ${({ theme }) => theme.colors.surfaceAlt};
-  color: ${({ theme }) => theme.colors.text};
-  font-size: 1rem;
   outline: none;
 
   &:focus {
