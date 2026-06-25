@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import Swal from "sweetalert2";
+import { AppContext } from "context";
 import { useSweetAlert } from "context/sweet_alert";
 import {
   createWhatsAppInstance,
@@ -200,7 +201,9 @@ const readFileAsBase64 = (file) =>
   });
 
 export const useConfiguracaoFiscalPage = () => {
+  const { user } = useContext(AppContext);
   const { showAlert, askYesNoQuestion } = useSweetAlert();
+  const isUsuarioMaster = !!user?.usuario_master;
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [tenant, setTenant] = useState(null);
@@ -819,18 +822,6 @@ export const useConfiguracaoFiscalPage = () => {
           natureza_operacao_padrao: form.natureza_operacao_padrao,
           nfe_habilitada: form.nfe_habilitada,
           observacao: form.observacao,
-          responsavel_tecnico: {
-            cnpj: form.responsavel_tecnico_cnpj,
-            nome: form.responsavel_tecnico_nome,
-            contato: form.responsavel_tecnico_contato,
-            email: form.responsavel_tecnico_email,
-            telefone: form.responsavel_tecnico_telefone,
-            logradouro: form.responsavel_tecnico_logradouro,
-            numero: form.responsavel_tecnico_numero,
-            bairro: form.responsavel_tecnico_bairro,
-            cidade: form.responsavel_tecnico_cidade,
-            uf: form.responsavel_tecnico_uf,
-          },
           contas: {
             provider: form.gateway_provider,
             ambiente: form.gateway_ambiente,
@@ -856,6 +847,21 @@ export const useConfiguracaoFiscalPage = () => {
             },
           },
         };
+
+        if (isUsuarioMaster) {
+          payload.responsavel_tecnico = {
+            cnpj: form.responsavel_tecnico_cnpj,
+            nome: form.responsavel_tecnico_nome,
+            contato: form.responsavel_tecnico_contato,
+            email: form.responsavel_tecnico_email,
+            telefone: form.responsavel_tecnico_telefone,
+            logradouro: form.responsavel_tecnico_logradouro,
+            numero: form.responsavel_tecnico_numero,
+            bairro: form.responsavel_tecnico_bairro,
+            cidade: form.responsavel_tecnico_cidade,
+            uf: form.responsavel_tecnico_uf,
+          };
+        }
 
         if (certificadoFile) {
           payload.certificado = {
@@ -893,7 +899,7 @@ export const useConfiguracaoFiscalPage = () => {
         setSaving(false);
       }
     },
-    [applyData, certificadoFile, form, logoFile, saving, showAlert]
+    [applyData, certificadoFile, form, isUsuarioMaster, logoFile, saving, showAlert]
   );
 
   return {

@@ -9,9 +9,10 @@ import * as C from "./style";
 const requiredTitle = "Este campo é obrigatório.";
 
 export const ConfiguracaoFiscal = () => {
-  const { mOpen, abreFechaMenu } = useContext(AppContext);
+  const { mOpen, abreFechaMenu, user } = useContext(AppContext);
   const [activeTab, setActiveTab] = useState("emitente");
   const [activeMensagemTab, setActiveMensagemTab] = useState("conectar");
+  const isUsuarioMaster = !!user?.usuario_master;
   const {
     loading,
     saving,
@@ -87,13 +88,15 @@ export const ConfiguracaoFiscal = () => {
                     >
                       Parâmetros
                     </C.TabButton>
-                    <C.TabButton
-                      type="button"
-                      $active={activeTab === "responsavel"}
-                      onClick={() => setActiveTab("responsavel")}
-                    >
-                      Responsável técnico
-                    </C.TabButton>
+                    {isUsuarioMaster ? (
+                      <C.TabButton
+                        type="button"
+                        $active={activeTab === "responsavel"}
+                        onClick={() => setActiveTab("responsavel")}
+                      >
+                        Responsável técnico
+                      </C.TabButton>
+                    ) : null}
                     <C.TabButton
                       type="button"
                       $active={activeTab === "certificado"}
@@ -352,15 +355,17 @@ export const ConfiguracaoFiscal = () => {
                             onChange={handleSelectLogo}
                           />
                           <C.FieldHint>
-                            A logo não é enviada para a SEFAZ. Ela é usada apenas na impressão
-                            do DANFE e relatórios.
+                            Use PNG, JPG ou WEBP. Recomenda-se imagem horizontal com fundo
+                            transparente ou branco, proporção aproximada de 3:1 e pelo menos
+                            600x200 px. A logo não é enviada para a SEFAZ; ela é usada apenas
+                            na impressão do DANFE e relatórios.
                           </C.FieldHint>
                         </C.Field>
                       </C.FieldsGrid>
                     </C.SectionBody>
                   ) : null}
 
-                  {activeTab === "responsavel" ? (
+                  {isUsuarioMaster && activeTab === "responsavel" ? (
                     <C.SectionBody>
                       <C.CardHeader>
                         <C.CardTitle>Responsável técnico</C.CardTitle>

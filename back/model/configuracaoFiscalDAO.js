@@ -507,58 +507,66 @@ class ConfiguracaoFiscalDAO {
     const logoConteudoBase64 = normalizeText(logo.conteudo_base64, null, {
       label: "Conteúdo da logo",
     });
-    const responsavelTecnicoPayload = payload.responsavel_tecnico || {};
-    const responsavelTecnico = {
-      cnpj:
-        normalizeDigits(responsavelTecnicoPayload.cnpj) ||
-        DEFAULT_RESPONSAVEL_TECNICO.cnpj,
-      nome:
-        normalizeText(responsavelTecnicoPayload.nome, 150, {
-          label: "Nome do responsável técnico",
-        }) || DEFAULT_RESPONSAVEL_TECNICO.nome,
-      contato:
-        normalizeText(responsavelTecnicoPayload.contato, 120, {
-          label: "Contato do responsável técnico",
-        }) || DEFAULT_RESPONSAVEL_TECNICO.contato,
-      email:
-        normalizeText(responsavelTecnicoPayload.email, 150, {
-          label: "E-mail do responsável técnico",
-        }) || DEFAULT_RESPONSAVEL_TECNICO.email,
-      telefone:
-        normalizeDigits(responsavelTecnicoPayload.telefone) ||
-        DEFAULT_RESPONSAVEL_TECNICO.telefone,
-      logradouro:
-        normalizeText(responsavelTecnicoPayload.logradouro, 180, {
-          label: "Logradouro do responsável técnico",
-        }) || DEFAULT_RESPONSAVEL_TECNICO.logradouro,
-      numero:
-        normalizeText(responsavelTecnicoPayload.numero, 20, {
-          label: "Número do responsável técnico",
-        }) || DEFAULT_RESPONSAVEL_TECNICO.numero,
-      bairro:
-        normalizeText(responsavelTecnicoPayload.bairro, 100, {
-          label: "Bairro do responsável técnico",
-        }) || DEFAULT_RESPONSAVEL_TECNICO.bairro,
-      cidade:
-        normalizeText(responsavelTecnicoPayload.cidade, 100, {
-          label: "Cidade do responsável técnico",
-        }) || DEFAULT_RESPONSAVEL_TECNICO.cidade,
-      uf:
-        normalizeText(responsavelTecnicoPayload.uf, 2, {
-          label: "UF do responsável técnico",
-        }) || DEFAULT_RESPONSAVEL_TECNICO.uf,
-    };
+    const shouldUpdateResponsavelTecnico = Object.prototype.hasOwnProperty.call(
+      payload,
+      "responsavel_tecnico"
+    );
+    let responsavelTecnico = null;
 
-    if (!/^\d{14}$/.test(responsavelTecnico.cnpj)) {
-      throw new Error("CNPJ do responsável técnico inválido.");
-    }
+    if (shouldUpdateResponsavelTecnico) {
+      const responsavelTecnicoPayload = payload.responsavel_tecnico || {};
+      responsavelTecnico = {
+        cnpj:
+          normalizeDigits(responsavelTecnicoPayload.cnpj) ||
+          DEFAULT_RESPONSAVEL_TECNICO.cnpj,
+        nome:
+          normalizeText(responsavelTecnicoPayload.nome, 150, {
+            label: "Nome do responsável técnico",
+          }) || DEFAULT_RESPONSAVEL_TECNICO.nome,
+        contato:
+          normalizeText(responsavelTecnicoPayload.contato, 120, {
+            label: "Contato do responsável técnico",
+          }) || DEFAULT_RESPONSAVEL_TECNICO.contato,
+        email:
+          normalizeText(responsavelTecnicoPayload.email, 150, {
+            label: "E-mail do responsável técnico",
+          }) || DEFAULT_RESPONSAVEL_TECNICO.email,
+        telefone:
+          normalizeDigits(responsavelTecnicoPayload.telefone) ||
+          DEFAULT_RESPONSAVEL_TECNICO.telefone,
+        logradouro:
+          normalizeText(responsavelTecnicoPayload.logradouro, 180, {
+            label: "Logradouro do responsável técnico",
+          }) || DEFAULT_RESPONSAVEL_TECNICO.logradouro,
+        numero:
+          normalizeText(responsavelTecnicoPayload.numero, 20, {
+            label: "Número do responsável técnico",
+          }) || DEFAULT_RESPONSAVEL_TECNICO.numero,
+        bairro:
+          normalizeText(responsavelTecnicoPayload.bairro, 100, {
+            label: "Bairro do responsável técnico",
+          }) || DEFAULT_RESPONSAVEL_TECNICO.bairro,
+        cidade:
+          normalizeText(responsavelTecnicoPayload.cidade, 100, {
+            label: "Cidade do responsável técnico",
+          }) || DEFAULT_RESPONSAVEL_TECNICO.cidade,
+        uf:
+          normalizeText(responsavelTecnicoPayload.uf, 2, {
+            label: "UF do responsável técnico",
+          }) || DEFAULT_RESPONSAVEL_TECNICO.uf,
+      };
 
-    if (!responsavelTecnico.email.includes("@")) {
-      throw new Error("E-mail do responsável técnico inválido.");
-    }
+      if (!/^\d{14}$/.test(responsavelTecnico.cnpj)) {
+        throw new Error("CNPJ do responsável técnico inválido.");
+      }
 
-    if (responsavelTecnico.telefone.length < 10) {
-      throw new Error("Telefone do responsável técnico inválido.");
+      if (!responsavelTecnico.email.includes("@")) {
+        throw new Error("E-mail do responsável técnico inválido.");
+      }
+
+      if (responsavelTecnico.telefone.length < 10) {
+        throw new Error("Telefone do responsável técnico inválido.");
+      }
     }
 
     return {
@@ -584,6 +592,7 @@ class ConfiguracaoFiscalDAO {
         mime_type: logoMimeType,
         conteudo_base64: logoConteudoBase64,
       },
+      shouldUpdateResponsavelTecnico,
       responsavel_tecnico: responsavelTecnico,
     };
   }
@@ -727,60 +736,62 @@ class ConfiguracaoFiscalDAO {
         ]
       );
 
-      await client.query(
-        `
-          INSERT INTO tenant_responsavel_tecnico (
-            tenant_id,
-            cnpj,
-            nome,
-            contato,
-            email,
-            telefone,
-            logradouro,
-            numero,
-            bairro,
-            cidade,
-            uf
-          )
-          VALUES (
-            ${TENANT_CONTEXT_SQL},
-            $1,
-            $2,
-            $3,
-            $4,
-            $5,
-            $6,
-            $7,
-            $8,
-            $9,
-            $10
-          )
-          ON CONFLICT (tenant_id) DO UPDATE
-          SET
-            cnpj = EXCLUDED.cnpj,
-            nome = EXCLUDED.nome,
-            contato = EXCLUDED.contato,
-            email = EXCLUDED.email,
-            telefone = EXCLUDED.telefone,
-            logradouro = EXCLUDED.logradouro,
-            numero = EXCLUDED.numero,
-            bairro = EXCLUDED.bairro,
-            cidade = EXCLUDED.cidade,
-            uf = EXCLUDED.uf
-        `,
-        [
-          data.responsavel_tecnico.cnpj,
-          data.responsavel_tecnico.nome,
-          data.responsavel_tecnico.contato,
-          data.responsavel_tecnico.email,
-          data.responsavel_tecnico.telefone,
-          data.responsavel_tecnico.logradouro,
-          data.responsavel_tecnico.numero,
-          data.responsavel_tecnico.bairro,
-          data.responsavel_tecnico.cidade,
-          data.responsavel_tecnico.uf,
-        ]
-      );
+      if (data.shouldUpdateResponsavelTecnico) {
+        await client.query(
+          `
+            INSERT INTO tenant_responsavel_tecnico (
+              tenant_id,
+              cnpj,
+              nome,
+              contato,
+              email,
+              telefone,
+              logradouro,
+              numero,
+              bairro,
+              cidade,
+              uf
+            )
+            VALUES (
+              ${TENANT_CONTEXT_SQL},
+              $1,
+              $2,
+              $3,
+              $4,
+              $5,
+              $6,
+              $7,
+              $8,
+              $9,
+              $10
+            )
+            ON CONFLICT (tenant_id) DO UPDATE
+            SET
+              cnpj = EXCLUDED.cnpj,
+              nome = EXCLUDED.nome,
+              contato = EXCLUDED.contato,
+              email = EXCLUDED.email,
+              telefone = EXCLUDED.telefone,
+              logradouro = EXCLUDED.logradouro,
+              numero = EXCLUDED.numero,
+              bairro = EXCLUDED.bairro,
+              cidade = EXCLUDED.cidade,
+              uf = EXCLUDED.uf
+          `,
+          [
+            data.responsavel_tecnico.cnpj,
+            data.responsavel_tecnico.nome,
+            data.responsavel_tecnico.contato,
+            data.responsavel_tecnico.email,
+            data.responsavel_tecnico.telefone,
+            data.responsavel_tecnico.logradouro,
+            data.responsavel_tecnico.numero,
+            data.responsavel_tecnico.bairro,
+            data.responsavel_tecnico.cidade,
+            data.responsavel_tecnico.uf,
+          ]
+        );
+      }
 
       if (shouldUpdateCertificado) {
         if (

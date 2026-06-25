@@ -1,5 +1,6 @@
 import express from "express";
 import ConfiguracaoFiscalDAO from "../model/configuracaoFiscalDAO.js";
+import loginDAO from "../model/loginDAO.js";
 
 const router = express.Router();
 
@@ -42,7 +43,14 @@ router.get("/pessoas-select", async (req, res) => {
 
 router.put("/", async (req, res) => {
   try {
-    const data = await ConfiguracaoFiscalDAO.salvar(req.db, req.body || {});
+    const payload = { ...(req.body || {}) };
+    const usuario = await loginDAO.buscarUsuarioPorId(req.db, req.user.userId);
+
+    if (!usuario?.usuario_master) {
+      delete payload.responsavel_tecnico;
+    }
+
+    const data = await ConfiguracaoFiscalDAO.salvar(req.db, payload);
 
     return res.json({
       success: true,
