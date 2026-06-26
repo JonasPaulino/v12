@@ -1,6 +1,7 @@
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { AppContext } from "context";
 import { useSweetAlert } from "context/sweet_alert";
+import { reloadAfterTenantSwitch } from "utils";
 import { switchTenant } from "./api";
 
 export const useToggleOptions = () => {
@@ -54,6 +55,7 @@ export const useBusinessOptions = () => {
       setBusiness(response.tenant || null);
       setBusinesses(response.tenants || []);
       if (typeof closeMenu === "function") closeMenu(false);
+      reloadAfterTenantSwitch();
     } catch (error) {
       showAlert({
         title: "Falha ao trocar filial",

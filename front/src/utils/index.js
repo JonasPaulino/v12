@@ -21,3 +21,11 @@ export const formatTelefone = (value, fallback = "--") => {
 
   return value || fallback;
 };
+
+export const reloadAfterTenantSwitch = () => {
+  if (typeof window === "undefined") return;
+
+  window.setTimeout(() => {
+    window.location.reload();
+  }, 80);
+};
