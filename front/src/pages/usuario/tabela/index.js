@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from "react";
 import DropdownMenu from "components/dropDownMenu";
+import Paginacao from "components/paginacao";
 import { useTabelaUsuarios } from "./use";
 import * as C from "./style";
 
@@ -11,7 +12,6 @@ const Tabela = ({ search, refreshKey, onEditar, onDeleted }) => {
     totalPages,
     sort,
     toggleSort,
-    paginationItems,
     handleDelete,
     currentUserId,
   } = useTabelaUsuarios({
@@ -144,40 +144,7 @@ const Tabela = ({ search, refreshKey, onEditar, onDeleted }) => {
           Página {page} de {totalPages}
         </C.FooterInfo>
 
-        <C.Pagination>
-          <C.PaginationButton
-            type="button"
-            onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
-            disabled={page === 1}
-          >
-            Anterior
-          </C.PaginationButton>
-
-          {paginationItems.map((item) =>
-            item.type === "dots" ? (
-              <C.PaginationButton key={item.value} type="button" disabled>
-                ...
-              </C.PaginationButton>
-            ) : (
-              <C.PaginationButton
-                key={item.value}
-                type="button"
-                $active={item.value === page}
-                onClick={() => setPage(item.value)}
-              >
-                {item.value}
-              </C.PaginationButton>
-            )
-          )}
-
-          <C.PaginationButton
-            type="button"
-            onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
-            disabled={page === totalPages}
-          >
-            Próxima
-          </C.PaginationButton>
-        </C.Pagination>
+        <Paginacao page={page} totalPages={totalPages} onPageChange={setPage} />
       </C.Footer>
     </C.Container>
   );

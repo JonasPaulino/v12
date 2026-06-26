@@ -1,4 +1,4 @@
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { AppContext } from "context";
 import { useSweetAlert } from "context/sweet_alert";
 import { getFinanceiro, sendBoletoWhatsApp, sendPixWhatsApp } from "./api";
@@ -84,18 +84,6 @@ export const useTabelaFinanceiro = ({ search, tipo, status, refreshKey }) => {
     };
   }, [hideLoading, page, refreshKey, search, showAlert, showLoading, sort, status, tipo]);
 
-  const paginationItems = useMemo(() => {
-    const items = [];
-    for (let current = 1; current <= totalPages; current += 1) {
-      if (current === 1 || current === totalPages || Math.abs(current - page) <= 1) {
-        items.push({ type: "page", value: current });
-      } else if (items[items.length - 1]?.type !== "dots") {
-        items.push({ type: "dots", value: `dots-${current}` });
-      }
-    }
-    return items;
-  }, [page, totalPages]);
-
   const handleEnviarBoletoWhatsApp = async (financeiroTituloId) => {
     try {
       showLoading();
@@ -147,7 +135,6 @@ export const useTabelaFinanceiro = ({ search, tipo, status, refreshKey }) => {
     totalPages,
     sort,
     toggleSort,
-    paginationItems,
     handleEnviarBoletoWhatsApp,
     handleEnviarPixWhatsApp,
   };

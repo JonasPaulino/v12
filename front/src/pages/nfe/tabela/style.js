@@ -129,31 +129,6 @@ export const FooterInfo = styled.span`
   font-size: 0.92rem;
 `;
 
-export const Pagination = styled.div`
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-`;
-
-export const PaginationButton = styled.button`
-  min-width: 42px;
-  height: 42px;
-  padding: 0 12px;
-  border: 1px solid
-    ${({ theme, $active }) => ($active ? theme.colors.primary : theme.colors.border)};
-  border-radius: ${({ theme }) => theme.radius.pill};
-  background: ${({ theme, $active }) =>
-    $active ? "rgba(11, 95, 255, 0.12)" : theme.colors.surface};
-  color: ${({ theme, $active }) =>
-    $active ? theme.colors.primaryStrong : theme.colors.text};
-  font-weight: 700;
-  cursor: pointer;
-
-  &:disabled {
-    cursor: not-allowed;
-    opacity: 0.55;
-  }
-`;
 
 export const MenuButton = styled.button`
   width: 38px;

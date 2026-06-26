@@ -1,4 +1,4 @@
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { AppContext } from "context";
 import { useSweetAlert } from "context/sweet_alert";
 import { deleteVenda, generateBoletoVenda, getVendas } from "./api";
@@ -139,18 +139,6 @@ export const useTabelaVendas = ({ search, refreshKey, onDeleted }) => {
     }
   };
 
-  const paginationItems = useMemo(() => {
-    const items = [];
-    for (let current = 1; current <= totalPages; current += 1) {
-      if (current === 1 || current === totalPages || Math.abs(current - page) <= 1) {
-        items.push({ type: "page", value: current });
-      } else if (items[items.length - 1]?.type !== "dots") {
-        items.push({ type: "dots", value: `dots-${current}` });
-      }
-    }
-    return items;
-  }, [page, totalPages]);
-
   return {
     vendas,
     page,
@@ -158,7 +146,6 @@ export const useTabelaVendas = ({ search, refreshKey, onDeleted }) => {
     totalPages,
     sort,
     toggleSort,
-    paginationItems,
     handleDelete,
     handleDownloadBoletos,
   };

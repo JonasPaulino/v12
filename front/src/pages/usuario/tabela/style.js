@@ -143,26 +143,3 @@ export const FooterInfo = styled.span`
   color: ${({ theme }) => theme.colors.textSoft};
   font-size: 0.92rem;
 `;
-
-export const Pagination = styled.div`
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-`;
-
-export const PaginationButton = styled.button`
-  min-width: 42px;
-  height: 42px;
-  padding: 0 14px;
-  border-radius: ${({ theme }) => theme.radius.pill};
-  border: 1px solid
-    ${({ theme, $active }) => ($active ? theme.colors.primary : theme.colors.border)};
-  background: ${({ theme, $active }) =>
-    $active ? theme.colors.primary : theme.colors.surface};
-  color: ${({ theme, $active }) => ($active ? "#ffffff" : theme.colors.text)};
-  font-weight: 700;
-  cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
-  opacity: ${({ disabled }) => (disabled ? 0.5 : 1)};
-`;

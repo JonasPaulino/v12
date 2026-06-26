@@ -452,16 +452,9 @@ export const PaginationBar = styled.div`
   color: ${({ theme }) => theme.colors.textSoft};
 `;
 
-export const PaginationActions = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-
-  strong {
-    color: ${({ theme }) => theme.colors.text};
-    font-size: 0.9rem;
-  }
+export const PaginationInfo = styled.strong`
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 0.9rem;
 `;
 
 export const EmptyState = styled.div`

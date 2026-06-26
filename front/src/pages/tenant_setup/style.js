@@ -652,21 +652,6 @@ export const Pagination = styled.div`
   gap: 12px;
 `;
 
-export const PaginationActions = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-`;
-
-export const PageButton = styled.button`
-  padding: 12px 16px;
-  border-radius: ${({ theme }) => theme.radius.pill};
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  background: #fff;
-  color: ${({ theme, $active }) => ($active ? theme.colors.primaryStrong : theme.colors.text)};
-  font-weight: 700;
-`;
-
 export const ModalOverlay = styled.div`
   position: fixed;
   inset: 0;

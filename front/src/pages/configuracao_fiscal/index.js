@@ -3,6 +3,7 @@ import Header from "components/header";
 import Sidebar from "components/sidebar";
 import AsyncSearchSelect from "components/asyncSearchSelect";
 import DropdownMenu from "components/dropDownMenu";
+import Paginacao from "components/paginacao";
 import { AppContext } from "context";
 import { useConfiguracaoFiscalPage } from "./use";
 import * as C from "./style";
@@ -504,29 +505,14 @@ export const ConfiguracaoFiscal = () => {
                             {filteredRegrasFiscais.length === 1 ? "" : "s"} encontrada
                             {filteredRegrasFiscais.length === 1 ? "" : "s"}
                           </span>
-                          <C.PaginationActions>
-                            <C.SecondaryButton
-                              type="button"
-                              onClick={() => setFiscalPage((page) => Math.max(1, page - 1))}
-                              disabled={safeFiscalPage <= 1}
-                            >
-                              Anterior
-                            </C.SecondaryButton>
-                            <strong>
-                              Página {safeFiscalPage} de {fiscalTotalPages}
-                            </strong>
-                            <C.SecondaryButton
-                              type="button"
-                              onClick={() =>
-                                setFiscalPage((page) =>
-                                  Math.min(fiscalTotalPages, page + 1)
-                                )
-                              }
-                              disabled={safeFiscalPage >= fiscalTotalPages}
-                            >
-                              Próxima
-                            </C.SecondaryButton>
-                          </C.PaginationActions>
+                          <C.PaginationInfo>
+                            Página {safeFiscalPage} de {fiscalTotalPages}
+                          </C.PaginationInfo>
+                          <Paginacao
+                            page={safeFiscalPage}
+                            totalPages={fiscalTotalPages}
+                            onPageChange={setFiscalPage}
+                          />
                         </C.PaginationBar>
                       </C.TableCard>
 

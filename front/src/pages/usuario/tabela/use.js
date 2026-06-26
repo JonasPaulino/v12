@@ -1,4 +1,4 @@
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { AppContext } from "context";
 import { useSweetAlert } from "context/sweet_alert";
 import { deleteUsuario, getUsuarios } from "./api";
@@ -105,24 +105,6 @@ export const useTabelaUsuarios = ({ search, refreshKey, onDeleted }) => {
     }
   };
 
-  const paginationItems = useMemo(() => {
-    const items = [];
-
-    for (let current = 1; current <= totalPages; current += 1) {
-      if (
-        current === 1 ||
-        current === totalPages ||
-        Math.abs(current - page) <= 1
-      ) {
-        items.push({ type: "page", value: current });
-      } else if (items[items.length - 1]?.type !== "dots") {
-        items.push({ type: "dots", value: `dots-${current}` });
-      }
-    }
-
-    return items;
-  }, [page, totalPages]);
-
   return {
     usuarios,
     page,
@@ -130,7 +112,6 @@ export const useTabelaUsuarios = ({ search, refreshKey, onDeleted }) => {
     totalPages,
     sort,
     toggleSort,
-    paginationItems,
     handleDelete,
     currentUserId: user?.usuario_id || null,
   };

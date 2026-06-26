@@ -168,27 +168,3 @@ export const Footer = styled.div`
 export const FooterInfo = styled.span`
   color: ${({ theme }) => theme.colors.textSoft};
 `;
-
-export const Pagination = styled.div`
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-`;
-
-export const PaginationButton = styled.button`
-  min-width: 42px;
-  height: 42px;
-  padding: 0 14px;
-  border: 1px solid
-    ${({ $active, theme }) => ($active ? theme.colors.primary : theme.colors.border)};
-  border-radius: ${({ theme }) => theme.radius.pill};
-  background: ${({ $active }) => ($active ? "rgba(11, 95, 255, 0.1)" : "#ffffff")};
-  color: ${({ $active, theme }) => ($active ? theme.colors.primaryStrong : theme.colors.text)};
-  font-weight: 700;
-  cursor: pointer;
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;

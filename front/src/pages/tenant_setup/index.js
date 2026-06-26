@@ -1,6 +1,7 @@
 import React, { useContext } from "react";
 import Header from "components/header";
 import Sidebar from "components/sidebar";
+import Paginacao from "components/paginacao";
 import { AppContext } from "context";
 import { useTenantSetupPage } from "./use";
 import * as C from "./style";
@@ -575,17 +576,7 @@ export const TenantSetup = () => {
                 <C.CountText>
                   Página {page} de {totalPages}
                 </C.CountText>
-                <C.PaginationActions>
-                  <C.PageButton type="button" onClick={() => setPage((current) => Math.max(1, current - 1))}>
-                    Anterior
-                  </C.PageButton>
-                  <C.PageButton
-                    type="button"
-                    onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
-                  >
-                    Próxima
-                  </C.PageButton>
-                </C.PaginationActions>
+                <Paginacao page={page} totalPages={totalPages} onPageChange={setPage} />
               </C.Pagination>
             </C.ListCard>
           </C.PageGrid>

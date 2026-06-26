@@ -1,4 +1,4 @@
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { AppContext } from "context";
 import { useSweetAlert } from "context/sweet_alert";
 import {
@@ -136,18 +136,6 @@ export const useTabelaNfe = ({ search, status, refreshKey, onChanged }) => {
     window.open(`/reports/nfe/${nfe.nfe_id}/danfe`, "_blank", "noopener,noreferrer");
   };
 
-  const paginationItems = useMemo(() => {
-    const items = [];
-    for (let current = 1; current <= totalPages; current += 1) {
-      if (current === 1 || current === totalPages || Math.abs(current - page) <= 1) {
-        items.push({ type: "page", value: current });
-      } else if (items[items.length - 1]?.type !== "dots") {
-        items.push({ type: "dots", value: `dots-${current}` });
-      }
-    }
-    return items;
-  }, [page, totalPages]);
-
   return {
     nfes,
     page,
@@ -155,7 +143,6 @@ export const useTabelaNfe = ({ search, status, refreshKey, onChanged }) => {
     totalPages,
     sort,
     toggleSort,
-    paginationItems,
     handleProcessar,
     handleConsultarStatus,
     handleAbrirDanfe,
