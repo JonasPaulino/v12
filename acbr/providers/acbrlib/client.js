@@ -66,6 +66,17 @@ const safeReadJsonFile = async (filePath) => {
   }
 };
 
+const isPdfBase64 = (value) => {
+  const raw = String(value || "").trim();
+  if (!raw) return false;
+
+  try {
+    return Buffer.from(raw, "base64").subarray(0, 4).toString("utf8") === "%PDF";
+  } catch {
+    return false;
+  }
+};
+
 const runNfeEmissionWorker = async ({ tenantId, nfeId, context, certificadoSenha }) => {
   const workDir = await fs.mkdtemp(path.join(os.tmpdir(), `v12-nfe-${tenantId}-${nfeId}-`));
   const inputPath = path.join(workDir, "input.json");
@@ -182,7 +193,8 @@ const runDanfeWorker = async ({
 
     const result = await safeReadJsonFile(outputPath);
     if (!result?.ok || !result.pdfBase64) {
-      throw new AcbrLibIntegrationError(result?.lastReturn || result?.message || "Falha ao gerar DANFE com a ACBrLib.", {
+      const lastReturn = isPdfBase64(result?.lastReturn) ? "" : result?.lastReturn;
+      throw new AcbrLibIntegrationError(result?.message || lastReturn || "Falha ao gerar DANFE com a ACBrLib.", {
         nfeId,
         tenantId,
         workerResult: result,
@@ -197,13 +209,14 @@ const runDanfeWorker = async ({
     const result = await safeReadJsonFile(outputPath);
     const signal = error.signal ? ` (signal: ${error.signal})` : "";
     const stderr = String(error.stderr || "").trim();
+    const lastReturn = isPdfBase64(result?.lastReturn) ? "" : result?.lastReturn;
     const crashedNative =
       error.signal ||
       error.code === 139 ||
       /segmentation fault|core dumped|sigsegv/i.test(stderr);
     const message =
-      result?.lastReturn ||
       result?.message ||
+      lastReturn ||
       stderr ||
       (crashedNative
         ? `A ACBrLib falhou durante a geração do DANFE${signal}.`

@@ -28,8 +28,28 @@ const normalizeExtension = (mimeType = "", fileName = "") => {
   return "";
 };
 
+const pdfBufferFromBase64 = (value) => {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+
+  try {
+    const buffer = Buffer.from(raw, "base64");
+    return buffer.subarray(0, 4).toString("utf8") === "%PDF" ? buffer : null;
+  } catch {
+    return null;
+  }
+};
+
 const readGeneratedPdf = async ({ pdfPath, pdfDir }) => {
   const candidates = [];
+  const directPdf = pdfBufferFromBase64(pdfPath);
+
+  if (directPdf) {
+    return {
+      path: null,
+      buffer: directPdf,
+    };
+  }
 
   if (pdfPath) {
     candidates.push(pdfPath);
