@@ -21,6 +21,35 @@ const looksLikeBase64Image = (value) => {
   return /^[A-Za-z0-9+/=\r\n]+$/.test(normalized);
 };
 
+const summarizeValue = (value) => {
+  const normalized = String(value || "").trim();
+  if (!normalized) return { present: false, length: 0 };
+
+  return {
+    present: true,
+    length: normalized.length,
+    startsWith: normalized.slice(0, 32),
+    isDataImage: normalized.startsWith("data:image/"),
+    isUrl: /^https?:\/\//i.test(normalized),
+    looksLikeBase64Image: looksLikeBase64Image(normalized),
+  };
+};
+
+const summarizeEvolutionPayload = (payload = {}) => ({
+  keys: Object.keys(payload || {}),
+  state: normalizeState(payload),
+  instance: payload?.instance
+    ? {
+        keys: Object.keys(payload.instance || {}),
+        state: normalizeState(payload.instance),
+      }
+    : null,
+  qrcode: summarizeValue(payload?.qrcode || payload?.qrCode || payload?.qr),
+  code: summarizeValue(payload?.code),
+  image: summarizeValue(payload?.image || payload?.base64 || payload?.imageUrl || payload?.image_url),
+  pairingCode: summarizeValue(payload?.pairingCode || payload?.codePairing),
+});
+
 const normalizeState = (payload) => {
   const raw = String(
     pick(
@@ -117,7 +146,16 @@ router.post("/whatsapp/instance", async (req, res) => {
     };
 
     try {
+      console.log("[message:evolution] Criando instância", {
+        instanceName,
+        hasNumber: !!number,
+        baseURL: env.evolutionApiBaseUrl,
+      });
       const { data } = await evolutionClient.post("/instance/create", payload);
+      console.log("[message:evolution] Instância criada", {
+        instanceName,
+        response: summarizeEvolutionPayload(data?.data || data || {}),
+      });
 
       return res.json({
         success: true,
@@ -155,6 +193,11 @@ router.get("/whatsapp/instance/:instanceName/status", async (req, res) => {
     const { data } = await evolutionClient.get(
       `/instance/connectionState/${encode(req.params.instanceName)}`
     );
+    console.log("[message:evolution] Status da instância", {
+      instanceName: req.params.instanceName,
+      state: normalizeState(data),
+      rawKeys: Object.keys(data || {}),
+    });
 
     return res.json({
       success: true,
@@ -193,6 +236,10 @@ router.get("/whatsapp/instance/:instanceName/qrcode", async (req, res) => {
     );
 
     const payload = data?.data || data || {};
+    console.log("[message:evolution] Retorno connect/qrcode", {
+      instanceName: req.params.instanceName,
+      response: summarizeEvolutionPayload(payload),
+    });
     const rawCode = pick(
       payload.qrcode,
       payload.qrCode,

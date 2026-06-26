@@ -104,7 +104,7 @@ services:
       LANGUAGE: "pt"
       SERVER_TYPE: "http"
       SERVER_PORT: "8080"
-      SERVER_URL: ${EVOLUTION_SERVER_URL:-http://localhost:8090}
+      SERVER_URL: ${EVOLUTION_SERVER_URL:-http://evolution-api:8080}
       DATABASE_ENABLED: "true"
       DATABASE_PROVIDER: "postgresql"
       DATABASE_CONNECTION_URI: "postgresql://${POSTGRES_USER:-v12}:${POSTGRES_PASSWORD:-v12_password}@db:5432/${POSTGRES_DB:-db_v12}?schema=evolution_api"
@@ -133,7 +133,6 @@ services:
       LOG_BAILEYS: "info"
       CONFIG_SESSION_PHONE_CLIENT: "Evolution API"
       CONFIG_SESSION_PHONE_NAME: "Chrome"
-      CONFIG_SESSION_PHONE_VERSION: "2.3000.1030110621"
       QRCODE_LIMIT: "30"
       QRCODE_COLOR: "#175197"
     depends_on:
