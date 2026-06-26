@@ -142,13 +142,13 @@ router.post("/whatsapp/instance", async (req, res) => {
       instanceName,
       integration: "WHATSAPP-BAILEYS",
       qrcode: true,
-      number: number || undefined,
     };
 
     try {
       console.log("[message:evolution] Criando instância", {
         instanceName,
         hasNumber: !!number,
+        connectionMode: "qrcode",
         baseURL: env.evolutionApiBaseUrl,
       });
       const { data } = await evolutionClient.post("/instance/create", payload);
