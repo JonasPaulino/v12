@@ -17,6 +17,15 @@ const dateFormatter = (value) => {
   return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString("pt-BR");
 };
 
+const todayIso = () => new Date().toISOString().slice(0, 10);
+
+const resolveChargeDueDate = (value) => {
+  const dueDate = String(value || "").slice(0, 10);
+  const today = todayIso();
+
+  return dueDate && dueDate >= today ? dueDate : today;
+};
+
 const normalizePhoneNumber = (value) => {
   const digits = String(value || "").replace(/\D/g, "");
   return digits.length >= 10 ? digits : "";
@@ -37,6 +46,7 @@ const findExistingBoletoCharges = async (client, { tenantId, financeiroTituloId 
         AND financeiro_titulo_id = $2
         AND billing_type = 'BOLETO'
         AND settled = FALSE
+        AND due_date >= CURRENT_DATE
         AND LOWER(status) NOT IN ('deleted', 'cancelled', 'canceled')
       ORDER BY COALESCE(financeiro_titulo_parcela_id, 0), gateway_charge_id DESC
     `,
@@ -233,9 +243,10 @@ router.post("/:id/cobrancas/pix", async (req, res) => {
       },
       charge: {
         valor: contexto.cobranca.valor,
-        dueDate: contexto.cobranca.data_vencimento,
+        dueDate: resolveChargeDueDate(contexto.cobranca.data_vencimento),
         description: contexto.cobranca.descricao,
       },
+      forceNew: req.body?.force_new === true,
     });
 
     return res.status(201).json({
@@ -275,9 +286,10 @@ router.post("/:id/cobrancas/boleto", async (req, res) => {
       },
       charge: {
         valor: contexto.cobranca.valor,
-        dueDate: contexto.cobranca.data_vencimento,
+        dueDate: resolveChargeDueDate(contexto.cobranca.data_vencimento),
         description: contexto.cobranca.descricao,
       },
+      forceNew: req.body?.force_new === true,
     });
 
     return res.status(201).json({
@@ -372,11 +384,12 @@ router.post("/:id/enviar-whatsapp/boleto", async (req, res) => {
             },
             charge: {
               valor: Number(parcela.saldo || 0),
-              dueDate: String(parcela.data_vencimento || "").slice(0, 10),
+              dueDate: resolveChargeDueDate(parcela.data_vencimento),
               description:
                 detail.titulo.descricao ||
                 `Boleto do título financeiro #${detail.titulo.financeiro_titulo_id}`,
             },
+            forceNew: String(parcela.data_vencimento || "").slice(0, 10) < todayIso(),
           });
 
           boleto = {
@@ -537,11 +550,12 @@ router.post("/:id/enviar-whatsapp/pix", async (req, res) => {
       },
       charge: {
         valor: Number(parcela.saldo || 0),
-        dueDate: String(parcela.data_vencimento || "").slice(0, 10),
+        dueDate: resolveChargeDueDate(parcela.data_vencimento),
         description:
           detail.titulo.descricao ||
           `Cobrança PIX do título financeiro #${detail.titulo.financeiro_titulo_id}`,
       },
+      forceNew: String(parcela.data_vencimento || "").slice(0, 10) < todayIso(),
     });
 
     const pixPayload = response?.data?.pix?.payload || "";

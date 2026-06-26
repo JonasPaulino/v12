@@ -41,6 +41,7 @@ export const ModalBaixa = ({ isOpen, tituloId, onClose }) => {
     parcelasDisponiveis,
     isBoletoSelected,
     isPixSelected,
+    cobrancaVencida,
     boletoCharge,
     pixCharge,
     updateField,
@@ -546,14 +547,22 @@ export const ModalBaixa = ({ isOpen, tituloId, onClose }) => {
               ? "Ir para recebimentos"
               : submitting
               ? isPixSelected
-                ? "Gerando PIX..."
+                ? cobrancaVencida
+                  ? "Atualizando PIX..."
+                  : "Gerando PIX..."
                 : isBoletoSelected
-                ? "Gerando boleto..."
+                ? cobrancaVencida
+                  ? "Atualizando boleto..."
+                  : "Gerando boleto..."
                 : "Salvando..."
               : isPixSelected
-              ? "Gerar QR Code PIX"
+              ? cobrancaVencida
+                ? "Atualizar PIX"
+                : "Gerar QR Code PIX"
               : isBoletoSelected
-              ? "Gerar boleto"
+              ? cobrancaVencida
+                ? "Atualizar boleto"
+                : "Gerar boleto"
               : detail?.titulo?.tipo === "pagar"
               ? "Registrar pagamento"
               : "Registrar recebimento"}

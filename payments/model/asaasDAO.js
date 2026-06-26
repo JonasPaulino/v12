@@ -402,7 +402,9 @@ class AsaasDAO {
       await client.query("BEGIN");
 
       const gatewayConfig = await this.buscarGatewayConfig(client, payload.tenantId);
-      const currentOpenCharge = await this.buscarCobrancaAberta(client, payload, billingType);
+      const currentOpenCharge = payload.forceNew
+        ? null
+        : await this.buscarCobrancaAberta(client, payload, billingType);
 
       if (currentOpenCharge?.external_charge_id) {
         if (
@@ -863,6 +865,7 @@ class AsaasDAO {
           label: billingType === "BOLETO" ? "Descrição do boleto" : "Descrição da cobrança PIX",
         }),
       },
+      forceNew: payload?.forceNew === true,
     };
   }
 }

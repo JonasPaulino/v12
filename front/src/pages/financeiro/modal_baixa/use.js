@@ -13,6 +13,8 @@ const TODAY = new Date().toISOString().slice(0, 10);
 
 const currency = (value) => Number(Number(value || 0).toFixed(2));
 
+const dateOnly = (value) => String(value || "").slice(0, 10);
+
 const parseNumeric = (value) => {
   if (value === null || value === undefined || value === "") return 0;
 
@@ -151,6 +153,16 @@ export const useModalBaixa = ({ isOpen, tituloId, onClose }) => {
     [parcelaSelecionada]
   );
 
+  const vencimentoSelecionado = useMemo(
+    () => dateOnly(parcelaSelecionada?.data_vencimento || detail?.titulo?.data_vencimento),
+    [detail?.titulo?.data_vencimento, parcelaSelecionada]
+  );
+
+  const cobrancaVencida = useMemo(
+    () => !!vencimentoSelecionado && vencimentoSelecionado < TODAY,
+    [vencimentoSelecionado]
+  );
+
   const parcelasDisponiveis = useMemo(
     () =>
       (detail.parcelas || []).filter(
@@ -268,6 +280,7 @@ export const useModalBaixa = ({ isOpen, tituloId, onClose }) => {
         financeiro_forma_pagamento_id: Number(form.financeiro_forma_pagamento_id),
         valor_cobranca: valorBaixa,
         observacao: form.observacao,
+        force_new: cobrancaVencida,
       });
 
       setPixCharge(response?.data || null);
@@ -290,6 +303,7 @@ export const useModalBaixa = ({ isOpen, tituloId, onClose }) => {
     }
   }, [
     form,
+    cobrancaVencida,
     isPixSelected,
     parcelasDisponiveis.length,
     saldoSelecionado,
@@ -356,6 +370,7 @@ export const useModalBaixa = ({ isOpen, tituloId, onClose }) => {
         financeiro_forma_pagamento_id: Number(form.financeiro_forma_pagamento_id),
         valor_cobranca: valorBaixa,
         observacao: form.observacao,
+        force_new: cobrancaVencida,
       });
 
       setBoletoCharge(response?.data || null);
@@ -378,6 +393,7 @@ export const useModalBaixa = ({ isOpen, tituloId, onClose }) => {
     }
   }, [
     form,
+    cobrancaVencida,
     isBoletoSelected,
     parcelasDisponiveis.length,
     saldoSelecionado,
@@ -513,6 +529,7 @@ export const useModalBaixa = ({ isOpen, tituloId, onClose }) => {
     selectedFormaPagamento,
     isPixSelected,
     isBoletoSelected,
+    cobrancaVencida,
     pixCharge,
     boletoCharge,
     updateField,
