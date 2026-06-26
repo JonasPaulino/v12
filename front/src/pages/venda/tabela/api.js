@@ -22,3 +22,8 @@ export const generateBoletoVenda = async (vendaId) => {
   const { data } = await api.post(`/venda/${vendaId}/boletos`);
   return data;
 };
+
+export const sendBoletoWhatsAppVenda = async (financeiroTituloId) => {
+  const { data } = await api.post(`/financeiro/${financeiroTituloId}/enviar-whatsapp/boleto`);
+  return data;
+};

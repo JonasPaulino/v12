@@ -108,12 +108,18 @@ const asaasRequest = async (apiKey, ambiente, { method = "GET", path, body }) =>
   }
 
   if (!response.ok) {
-    const detailMessage =
+    let detailMessage =
       parsed?.errors?.[0]?.description ||
       parsed?.message ||
       parsed?.error ||
       rawText ||
       "Falha na integração com o Asaas.";
+
+    if (/chave de api.*ambiente|api key.*ambiente/i.test(detailMessage)) {
+      detailMessage = `${detailMessage} Ambiente configurado no V12: ${
+        ambiente === "production" ? "produção" : "sandbox"
+      }. Verifique se a chave informada no Asaas pertence ao mesmo ambiente.`;
+    }
 
     throw new Error(detailMessage);
   }

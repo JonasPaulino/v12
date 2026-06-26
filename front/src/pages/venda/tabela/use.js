@@ -1,7 +1,12 @@
 import { useContext, useEffect, useState } from "react";
 import { AppContext } from "context";
 import { useSweetAlert } from "context/sweet_alert";
-import { deleteVenda, generateBoletoVenda, getVendas } from "./api";
+import {
+  deleteVenda,
+  generateBoletoVenda,
+  getVendas,
+  sendBoletoWhatsAppVenda,
+} from "./api";
 
 export const useTabelaVendas = ({ search, refreshKey, onDeleted }) => {
   const { showLoading, hideLoading } = useContext(AppContext);
@@ -139,6 +144,38 @@ export const useTabelaVendas = ({ search, refreshKey, onDeleted }) => {
     }
   };
 
+  const handleEnviarBoletoWhatsApp = async (venda) => {
+    if (!venda?.financeiro_titulo_id) {
+      showAlert({
+        title: "Título financeiro não encontrado",
+        text: "Este pedido ainda não possui título financeiro para envio do boleto.",
+        icon: "warning",
+      });
+      return;
+    }
+
+    try {
+      showLoading("Enviando boleto por WhatsApp...");
+      const response = await sendBoletoWhatsAppVenda(venda.financeiro_titulo_id);
+      showAlert({
+        title: "Boleto enviado",
+        text: response?.message || "Boleto enviado por WhatsApp com sucesso.",
+        icon: "success",
+        timer: 1800,
+      });
+    } catch (error) {
+      showAlert({
+        title: "Falha ao enviar boleto",
+        text:
+          error?.response?.data?.message ||
+          "Não foi possível enviar o boleto por WhatsApp.",
+        icon: "error",
+      });
+    } finally {
+      hideLoading();
+    }
+  };
+
   return {
     vendas,
     page,
@@ -148,5 +185,6 @@ export const useTabelaVendas = ({ search, refreshKey, onDeleted }) => {
     toggleSort,
     handleDelete,
     handleDownloadBoletos,
+    handleEnviarBoletoWhatsApp,
   };
 };

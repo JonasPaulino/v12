@@ -34,6 +34,7 @@ const Tabela = ({ search, refreshKey, onEditar, onDeleted }) => {
     toggleSort,
     handleDelete,
     handleDownloadBoletos,
+    handleEnviarBoletoWhatsApp,
   } = useTabelaVendas({
     search,
     refreshKey,
@@ -166,6 +167,14 @@ const Tabela = ({ search, refreshKey, onEditar, onDeleted }) => {
                                 {
                                   label: "Baixar boletos",
                                   onClick: () => handleDownloadBoletos(venda),
+                                },
+                                {
+                                  label: "Enviar boleto no WhatsApp",
+                                  disabled: !venda.financeiro_titulo_id,
+                                  title: venda.financeiro_titulo_id
+                                    ? ""
+                                    : "Este pedido ainda não possui título financeiro.",
+                                  onClick: () => handleEnviarBoletoWhatsApp(venda),
                                 },
                               ]
                             : []),
