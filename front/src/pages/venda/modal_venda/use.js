@@ -22,6 +22,7 @@ const buildInitialForm = () => ({
   financeiro_condicao_pagamento_id: "",
   status: "aberto",
   data_emissao: todayDate(),
+  data_primeiro_vencimento: "",
   data_entrega: "",
   desconto: "0",
   acrescimo: "0",
@@ -83,14 +84,26 @@ const buildStatusParcela = (dataVencimento) => {
   return normalizedDataVencimento < todayDate() ? "vencida" : "aberta";
 };
 
-const buildParcelasPreview = ({ total, dataEmissao, condicao }) => {
+const buildFirstDueDate = ({ dataEmissao, condicao }) => {
+  if (!condicao) return normalizeDateInput(dataEmissao, todayDate());
+
+  return addDays(
+    normalizeDateInput(dataEmissao, todayDate()),
+    Number(condicao.dias_primeiro_vencimento || 0)
+  );
+};
+
+const buildParcelasPreview = ({ total, dataEmissao, primeiroVencimento, condicao }) => {
   if (!condicao) return [];
 
   const totalPedido = currency(total);
   const dataEmissaoBase = normalizeDateInput(dataEmissao, todayDate());
+  const dataPrimeiroVencimento = normalizeDateInput(
+    primeiroVencimento,
+    buildFirstDueDate({ dataEmissao: dataEmissaoBase, condicao })
+  );
   const percentualEntrada = Number(condicao.percentual_entrada || 0);
   const quantidadeParcelas = Number(condicao.quantidade_parcelas || 1);
-  const diasPrimeiroVencimento = Number(condicao.dias_primeiro_vencimento || 0);
   const intervaloDias = Number(condicao.intervalo_dias || 30);
   const parcelas = [];
 
@@ -118,10 +131,7 @@ const buildParcelasPreview = ({ total, dataEmissao, condicao }) => {
     const valorParcela = isLast ? currency(restante - acumulado) : valorBase;
     acumulado = currency(acumulado + valorParcela);
 
-    const dataVencimento = addDays(
-      dataEmissaoBase,
-      diasPrimeiroVencimento + intervaloDias * index
-    );
+    const dataVencimento = addDays(dataPrimeiroVencimento, intervaloDias * index);
 
     parcelas.push({
       numero_parcela: numeroParcela,
@@ -216,12 +226,22 @@ export const useModalVenda = ({ isOpen, vendaId, onClose }) => {
             )
           );
 
+          const dataEmissao = normalizeDateInput(data?.pedido?.data_emissao, todayDate());
+          const primeiraParcelaSemEntrada =
+            (data?.parcelas || []).find(
+              (parcela) => normalizeDateInput(parcela?.data_vencimento, "") !== dataEmissao
+            ) || data?.parcelas?.[0];
+
           setForm({
             pessoa_id: data?.pedido?.pessoa_id || "",
             financeiro_condicao_pagamento_id:
               data?.pedido?.financeiro_condicao_pagamento_id || "",
             status: data?.pedido?.status || "aberto",
-            data_emissao: normalizeDateInput(data?.pedido?.data_emissao, todayDate()),
+            data_emissao: dataEmissao,
+            data_primeiro_vencimento: normalizeDateInput(
+              primeiraParcelaSemEntrada?.data_vencimento || data?.titulo?.data_vencimento,
+              todayDate()
+            ),
             data_entrega: normalizeDateInput(data?.pedido?.data_entrega, ""),
             desconto: String(data?.pedido?.desconto ?? 0),
             acrescimo: String(data?.pedido?.acrescimo ?? 0),
@@ -236,10 +256,15 @@ export const useModalVenda = ({ isOpen, vendaId, onClose }) => {
               })) || [buildInitialItem()],
           });
         } else {
+          const defaultCondicao = support.condicaoPagamentoPadrao || null;
           setForm((prev) => ({
             ...prev,
             financeiro_condicao_pagamento_id:
-              support.condicaoPagamentoPadrao?.financeiro_condicao_pagamento_id || "",
+              defaultCondicao?.financeiro_condicao_pagamento_id || "",
+            data_primeiro_vencimento: buildFirstDueDate({
+              dataEmissao: prev.data_emissao,
+              condicao: defaultCondicao,
+            }),
           }));
         }
       } catch (error) {
@@ -325,14 +350,34 @@ export const useModalVenda = ({ isOpen, vendaId, onClose }) => {
       buildParcelasPreview({
         total: resumo.total,
         dataEmissao: form.data_emissao,
+        primeiroVencimento: form.data_primeiro_vencimento,
         condicao: condicaoAtual,
       }),
-    [condicaoAtual, form.data_emissao, resumo.total]
+    [condicaoAtual, form.data_emissao, form.data_primeiro_vencimento, resumo.total]
   );
 
   const updateField = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
+
+  const handleChangeCondicaoPagamento = useCallback(
+    (value) => {
+      const nextCondicao =
+        (supportData.condicoesPagamento || []).find(
+          (item) => Number(item.financeiro_condicao_pagamento_id) === Number(value)
+        ) || null;
+
+      setForm((prev) => ({
+        ...prev,
+        financeiro_condicao_pagamento_id: value,
+        data_primeiro_vencimento: buildFirstDueDate({
+          dataEmissao: prev.data_emissao,
+          condicao: nextCondicao,
+        }),
+      }));
+    },
+    [supportData.condicoesPagamento]
+  );
 
   const registerFieldRef = useCallback((field) => (element) => {
     if (element) {
@@ -474,6 +519,14 @@ export const useModalVenda = ({ isOpen, vendaId, onClose }) => {
       return { field: "data_emissao", label: "Data de emissão", tab: "dados" };
     }
 
+    if (!String(form.data_primeiro_vencimento || "").trim()) {
+      return {
+        field: "data_primeiro_vencimento",
+        label: "Primeiro vencimento",
+        tab: "dados",
+      };
+    }
+
     if (!form.items.length) {
       return { field: "item_produto_0", label: "Produto do item 1", tab: "itens" };
     }
@@ -572,6 +625,7 @@ export const useModalVenda = ({ isOpen, vendaId, onClose }) => {
     supportData,
     form,
     updateField,
+    handleChangeCondicaoPagamento,
     registerFieldRef,
     handleSelectPessoa,
     updateItemField,

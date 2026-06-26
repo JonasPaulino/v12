@@ -404,6 +404,10 @@ class VendaDAO {
       required: true,
       label: "Data de emissão",
     });
+    const dataPrimeiroVencimento = normalizeText(payload.data_primeiro_vencimento, 10, {
+      required: true,
+      label: "Primeiro vencimento",
+    });
     const dataEntrega = normalizeText(payload.data_entrega, 10);
     const observacao = normalizeText(payload.observacao, null);
     const desconto = parseNumeric(payload.desconto, {
@@ -434,6 +438,7 @@ class VendaDAO {
       financeiro_condicao_pagamento_id: condicaoPagamentoId,
       status: ["aberto", "faturado"].includes(status) ? status : "aberto",
       data_emissao: dataEmissao,
+      data_primeiro_vencimento: dataPrimeiroVencimento,
       data_entrega: dataEntrega,
       observacao,
       desconto,
@@ -517,12 +522,14 @@ class VendaDAO {
       : null;
   }
 
-  static gerarParcelas({ total, dataEmissao, condicao }) {
+  static gerarParcelas({ total, dataEmissao, primeiroVencimento, condicao }) {
     const totalPedido = roundCurrency(total);
     const percentualEntrada = Number(condicao.percentual_entrada || 0);
     const quantidadeParcelas = Number(condicao.quantidade_parcelas || 1);
     const diasPrimeiroVencimento = Number(condicao.dias_primeiro_vencimento || 0);
     const intervaloDias = Number(condicao.intervalo_dias || 30);
+    const dataPrimeiroVencimento =
+      normalizeDateValue(primeiroVencimento) || addDays(dataEmissao, diasPrimeiroVencimento);
     const parcelas = [];
 
     let restante = totalPedido;
@@ -553,8 +560,7 @@ class VendaDAO {
         : valorBase;
 
       acumulado = roundCurrency(acumulado + valorParcela);
-      const daysOffset = diasPrimeiroVencimento + intervaloDias * index;
-      const dataVencimento = addDays(dataEmissao, daysOffset);
+      const dataVencimento = addDays(dataPrimeiroVencimento, intervaloDias * index);
 
       parcelas.push({
         numero_parcela: numeroParcela,
@@ -635,6 +641,7 @@ class VendaDAO {
     pessoaId,
     condicao,
     dataEmissao,
+    primeiroVencimento,
     observacao,
     valorOriginal,
     desconto,
@@ -643,6 +650,7 @@ class VendaDAO {
     const parcelas = this.gerarParcelas({
       total: roundCurrency(valorOriginal - desconto + acrescimo),
       dataEmissao,
+      primeiroVencimento,
       condicao,
     });
 
@@ -1017,6 +1025,7 @@ class VendaDAO {
         pessoaId: data.pessoa_id,
         condicao,
         dataEmissao: data.data_emissao,
+        primeiroVencimento: data.data_primeiro_vencimento,
         observacao: data.observacao,
         valorOriginal: data.subtotal,
         desconto: data.desconto,
@@ -1164,6 +1173,7 @@ class VendaDAO {
         pessoaId: data.pessoa_id,
         condicao,
         dataEmissao: data.data_emissao,
+        primeiroVencimento: data.data_primeiro_vencimento,
         observacao: data.observacao,
         valorOriginal: data.subtotal,
         desconto: data.desconto,

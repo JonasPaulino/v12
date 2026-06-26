@@ -23,6 +23,7 @@ export const ModalVenda = ({ isOpen, vendaId, onClose }) => {
     supportData,
     form,
     updateField,
+    handleChangeCondicaoPagamento,
     registerFieldRef,
     handleSelectPessoa,
     updateItemField,
@@ -124,9 +125,7 @@ export const ModalVenda = ({ isOpen, vendaId, onClose }) => {
                     <C.Select
                       ref={registerFieldRef("financeiro_condicao_pagamento_id")}
                       value={form.financeiro_condicao_pagamento_id}
-                      onChange={(event) =>
-                        updateField("financeiro_condicao_pagamento_id", event.target.value)
-                      }
+                      onChange={(event) => handleChangeCondicaoPagamento(event.target.value)}
                     >
                       <option value="">Selecione</option>
                       {supportData.condicoesPagamento.map((condicao) => (
@@ -160,6 +159,18 @@ export const ModalVenda = ({ isOpen, vendaId, onClose }) => {
                       type="date"
                       value={form.data_emissao}
                       onChange={(event) => updateField("data_emissao", event.target.value)}
+                    />
+                  </C.Field>
+
+                  <C.Field>
+                    {renderRequiredLabel("Primeiro vencimento")}
+                    <C.Input
+                      ref={registerFieldRef("data_primeiro_vencimento")}
+                      type="date"
+                      value={form.data_primeiro_vencimento}
+                      onChange={(event) =>
+                        updateField("data_primeiro_vencimento", event.target.value)
+                      }
                     />
                   </C.Field>
 
