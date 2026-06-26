@@ -22,6 +22,52 @@ const normalizePhoneNumber = (value) => {
   return digits.length >= 10 ? digits : "";
 };
 
+const findExistingBoletoCharges = async (client, { tenantId, financeiroTituloId }) => {
+  const { rows } = await client.query(
+    `
+      SELECT DISTINCT ON (COALESCE(financeiro_titulo_parcela_id, 0))
+        gateway_charge_id,
+        financeiro_titulo_parcela_id,
+        valor,
+        due_date,
+        invoice_url,
+        payload
+      FROM payments.gateway_charge
+      WHERE tenant_id = $1
+        AND financeiro_titulo_id = $2
+        AND billing_type = 'BOLETO'
+        AND settled = FALSE
+        AND LOWER(status) NOT IN ('deleted', 'cancelled', 'canceled')
+      ORDER BY COALESCE(financeiro_titulo_parcela_id, 0), gateway_charge_id DESC
+    `,
+    [tenantId, financeiroTituloId]
+  );
+
+  const byParcela = new Map();
+  let tituloCharge = null;
+
+  rows.forEach((row) => {
+    const charge = {
+      gatewayChargeId: row.gateway_charge_id,
+      parcelaId: row.financeiro_titulo_parcela_id
+        ? Number(row.financeiro_titulo_parcela_id)
+        : null,
+      valor: Number(row.valor || 0),
+      vencimento: row.due_date,
+      linhaDigitavel: row.payload?.identificationField?.identificationField || "",
+      boletoUrl: row.invoice_url || "",
+    };
+
+    if (charge.parcelaId) {
+      byParcela.set(charge.parcelaId, charge);
+    } else {
+      tituloCharge = charge;
+    }
+  });
+
+  return { byParcela, tituloCharge };
+};
+
 router.get("/support-data", async (req, res) => {
   try {
     const data = await FinanceiroDAO.obterSupportData(req.db, {
@@ -295,36 +341,67 @@ router.post("/:id/enviar-whatsapp/boleto", async (req, res) => {
 
     const config = await MensagemDAO.buscarConfiguracaoAtivaWhatsApp(req.db);
     const boletos = [];
+    const tenantId = Number(req.user?.tenantId);
+    const existingBoletos = await findExistingBoletoCharges(req.db, {
+      tenantId,
+      financeiroTituloId,
+    });
 
     for (const parcela of openParcelas) {
-      const response = await criarCobrancaBoleto({
-        tenantId: Number(req.user?.tenantId),
-        financeiroTituloId,
-        financeiroTituloParcelaId: Number(parcela.financeiro_titulo_parcela_id),
-        financeiroFormaPagamentoId: null,
-        customer: {
-          pessoaId: Number(detail.titulo.pessoa_id),
-          nome: pessoa.pessoa_nome_razao,
-          documento: pessoa.pessoa_cpf_cnpj,
-          email: "",
-          telefone: pessoa.pessoa_telefone || "",
-          whatsapp: pessoa.pessoa_whatsapp || "",
-        },
-        charge: {
-          valor: Number(parcela.saldo || 0),
-          dueDate: String(parcela.data_vencimento || "").slice(0, 10),
-          description:
-            detail.titulo.descricao ||
-            `Boleto do título financeiro #${detail.titulo.financeiro_titulo_id}`,
-        },
-      });
+      const parcelaId = Number(parcela.financeiro_titulo_parcela_id);
+      let boleto = existingBoletos.byParcela.get(parcelaId);
+
+      if (!boleto && openParcelas.length === 1) {
+        boleto = existingBoletos.tituloCharge;
+      }
+
+      if (!boleto) {
+        try {
+          const response = await criarCobrancaBoleto({
+            tenantId,
+            financeiroTituloId,
+            financeiroTituloParcelaId: parcelaId,
+            financeiroFormaPagamentoId: null,
+            customer: {
+              pessoaId: Number(detail.titulo.pessoa_id),
+              nome: pessoa.pessoa_nome_razao,
+              documento: pessoa.pessoa_cpf_cnpj,
+              email: "",
+              telefone: pessoa.pessoa_telefone || "",
+              whatsapp: pessoa.pessoa_whatsapp || "",
+            },
+            charge: {
+              valor: Number(parcela.saldo || 0),
+              dueDate: String(parcela.data_vencimento || "").slice(0, 10),
+              description:
+                detail.titulo.descricao ||
+                `Boleto do título financeiro #${detail.titulo.financeiro_titulo_id}`,
+            },
+          });
+
+          boleto = {
+            valor: Number(parcela.saldo || 0),
+            vencimento: parcela.data_vencimento,
+            linhaDigitavel: response?.data?.boleto?.identificationField || "",
+            boletoUrl: response?.data?.boleto?.bankSlipUrl || response?.data?.invoiceUrl || "",
+          };
+        } catch (error) {
+          if (/integração de contas está inativa/i.test(String(error?.message || ""))) {
+            throw new Error(
+              "Não existe boleto gerado para este título. Gere o boleto primeiro ou ative a integração de contas para gerar automaticamente."
+            );
+          }
+
+          throw error;
+        }
+      }
 
       boletos.push({
         numeroParcela: Number(parcela.numero_parcela || 0),
-        valor: Number(parcela.saldo || 0),
-        vencimento: dateFormatter(parcela.data_vencimento),
-        linhaDigitavel: response?.data?.boleto?.identificationField || "",
-        boletoUrl: response?.data?.boleto?.bankSlipUrl || response?.data?.invoiceUrl || "",
+        valor: Number(boleto.valor || parcela.saldo || 0),
+        vencimento: dateFormatter(boleto.vencimento || parcela.data_vencimento),
+        linhaDigitavel: boleto.linhaDigitavel || "",
+        boletoUrl: boleto.boletoUrl || "",
       });
     }
 
