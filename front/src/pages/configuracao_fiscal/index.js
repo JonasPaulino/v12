@@ -1263,7 +1263,7 @@ export const ConfiguracaoFiscal = () => {
                                       ? "Processando..."
                                       : isWhatsAppConnected
                                       ? "Desconectar"
-                                      : "Conectar"}
+                                      : "Salvar e conectar"}
                                   </C.PrimaryInlineButton>
 
                                   {canRestartWhatsApp ? (

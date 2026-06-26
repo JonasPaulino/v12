@@ -11,6 +11,17 @@ import {
 
 const router = express.Router();
 
+const normalizeBoolean = (value, defaultValue = false) => {
+  if (value === undefined || value === null || value === "") return defaultValue;
+  if (typeof value === "boolean") return value;
+
+  const normalized = String(value).trim().toLowerCase();
+  if (["true", "1", "sim", "yes"].includes(normalized)) return true;
+  if (["false", "0", "nao", "não", "no"].includes(normalized)) return false;
+
+  return defaultValue;
+};
+
 const getTenantConfig = async (client, overrides = {}) => {
   const config = await MensagemDAO.buscarConfiguracaoWhatsApp(client);
   const instanceName = String(
@@ -29,6 +40,20 @@ const getTenantConfig = async (client, overrides = {}) => {
     instance_name: instanceName,
     remetente_numero: remetenteNumero,
   };
+};
+
+const persistWhatsAppConnectionConfig = async (
+  client,
+  { instanceName, remetenteNumero, whatsappAtivo }
+) => {
+  const current = await MensagemDAO.buscarConfiguracaoWhatsApp(client);
+
+  return MensagemDAO.salvarConfiguracaoWhatsApp(client, {
+    ...current,
+    whatsapp_ativo: whatsappAtivo,
+    instance_name: instanceName ?? current.instance_name,
+    remetente_numero: remetenteNumero ?? current.remetente_numero,
+  });
 };
 
 router.get("/whatsapp/status", async (req, res) => {
@@ -68,19 +93,46 @@ router.get("/whatsapp/qrcode", async (req, res) => {
 });
 
 router.post("/whatsapp/instance", async (req, res) => {
+  let config = null;
+
   try {
-    const config = await getTenantConfig(req.db, req.body || {});
+    config = await getTenantConfig(req.db, req.body || {});
+    const whatsappAtivo = normalizeBoolean(req.body?.whatsapp_ativo, true);
     const data = await criarInstanciaWhatsApp({
       instanceName: config.instance_name,
       number: config.remetente_numero,
+    });
+    const savedConfig = await persistWhatsAppConnectionConfig(req.db, {
+      instanceName: config.instance_name,
+      remetenteNumero: config.remetente_numero,
+      whatsappAtivo,
     });
 
     return res.json({
       success: true,
       message: data?.message || "Instância criada com sucesso.",
       data: data?.data || null,
+      config: savedConfig,
     });
   } catch (error) {
+    const message = String(error?.message || error?.response?.data?.message || "");
+
+    if (config && /exist/i.test(message)) {
+      const whatsappAtivo = normalizeBoolean(req.body?.whatsapp_ativo, true);
+      const savedConfig = await persistWhatsAppConnectionConfig(req.db, {
+        instanceName: config.instance_name,
+        remetenteNumero: config.remetente_numero,
+        whatsappAtivo,
+      });
+
+      return res.json({
+        success: true,
+        message: "Instância já existente.",
+        data: { instanceName: config.instance_name },
+        config: savedConfig,
+      });
+    }
+
     console.error("[mensagens] Falha ao criar instância do WhatsApp:", error);
     return res.status(400).json({
       success: false,
@@ -112,11 +164,17 @@ router.delete("/whatsapp/logout", async (req, res) => {
   try {
     const config = await getTenantConfig(req.db, req.body || req.query || {});
     const data = await desconectarInstanciaWhatsApp(config.instance_name);
+    const savedConfig = await persistWhatsAppConnectionConfig(req.db, {
+      instanceName: config.instance_name,
+      remetenteNumero: config.remetente_numero,
+      whatsappAtivo: false,
+    });
 
     return res.json({
       success: true,
       message: data?.message || "Instância desconectada com sucesso.",
       data: data?.data || null,
+      config: savedConfig,
     });
   } catch (error) {
     console.error("[mensagens] Falha ao desconectar instância do WhatsApp:", error);
@@ -131,11 +189,17 @@ router.delete("/whatsapp/instance", async (req, res) => {
   try {
     const config = await getTenantConfig(req.db, req.body || req.query || {});
     const data = await excluirInstanciaWhatsApp(config.instance_name);
+    const savedConfig = await persistWhatsAppConnectionConfig(req.db, {
+      instanceName: "",
+      remetenteNumero: config.remetente_numero,
+      whatsappAtivo: false,
+    });
 
     return res.json({
       success: true,
       message: data?.message || "Instância excluída com sucesso.",
       data: data?.data || null,
+      config: savedConfig,
     });
   } catch (error) {
     console.error("[mensagens] Falha ao excluir instância do WhatsApp:", error);

@@ -642,6 +642,30 @@ export const useConfiguracaoFiscalPage = () => {
     return nextState;
   }, []);
 
+  const applyWhatsAppConfig = useCallback((config = {}) => {
+    if (!config || typeof config !== "object") return;
+
+    setForm((prev) => ({
+      ...prev,
+      whatsapp_provider: config.provider || prev.whatsapp_provider,
+      whatsapp_ativo: !!config.whatsapp_ativo,
+      whatsapp_instance_name: config.instance_name || "",
+      whatsapp_remetente_numero: config.remetente_numero || "",
+      whatsapp_auto_enviar_boleto_venda:
+        config.auto_enviar_boleto_venda === undefined
+          ? prev.whatsapp_auto_enviar_boleto_venda
+          : !!config.auto_enviar_boleto_venda,
+      whatsapp_auto_enviar_pix_venda:
+        config.auto_enviar_pix_venda === undefined
+          ? prev.whatsapp_auto_enviar_pix_venda
+          : !!config.auto_enviar_pix_venda,
+      whatsapp_mensagem_boleto_padrao:
+        config.mensagem_boleto_padrao || prev.whatsapp_mensagem_boleto_padrao,
+      whatsapp_mensagem_pix_padrao:
+        config.mensagem_pix_padrao || prev.whatsapp_mensagem_pix_padrao,
+    }));
+  }, []);
+
   const fetchWhatsAppStatus = useCallback(
     async ({ silent = false } = {}) => {
       const instanceName = String(form.whatsapp_instance_name || "").trim();
@@ -716,6 +740,13 @@ export const useConfiguracaoFiscalPage = () => {
       });
 
       if (currentState === "open") {
+        const response = await createWhatsAppInstance({
+          instance_name: instanceName,
+          remetente_numero: form.whatsapp_remetente_numero,
+          whatsapp_ativo: true,
+        });
+        applyWhatsAppConfig(response?.config);
+
         showAlert({
           title: "WhatsApp conectado",
           text: "A instância já está conectada e pronta para uso.",
@@ -724,12 +755,12 @@ export const useConfiguracaoFiscalPage = () => {
         return;
       }
 
-      if (currentState === "not_found") {
-        await createWhatsAppInstance({
-          instance_name: instanceName,
-          remetente_numero: form.whatsapp_remetente_numero,
-        });
-      }
+      const response = await createWhatsAppInstance({
+        instance_name: instanceName,
+        remetente_numero: form.whatsapp_remetente_numero,
+        whatsapp_ativo: false,
+      });
+      applyWhatsAppConfig(response?.config);
 
       const qrResponse = await getWhatsAppQrCode(instanceName);
       const qrImage = qrResponse?.data?.image || "";
@@ -763,6 +794,13 @@ export const useConfiguracaoFiscalPage = () => {
               });
 
               if (nextState === "open") {
+                const response = await createWhatsAppInstance({
+                  instance_name: instanceName,
+                  remetente_numero: form.whatsapp_remetente_numero,
+                  whatsapp_ativo: true,
+                });
+                applyWhatsAppConfig(response?.config);
+
                 if (pollingId) {
                   window.clearInterval(pollingId);
                   pollingId = null;
@@ -797,6 +835,7 @@ export const useConfiguracaoFiscalPage = () => {
     }
   }, [
     applyWhatsAppConnection,
+    applyWhatsAppConfig,
     form.whatsapp_instance_name,
     form.whatsapp_remetente_numero,
     showAlert,
@@ -806,7 +845,8 @@ export const useConfiguracaoFiscalPage = () => {
     try {
       setWhatsAppState((prev) => ({ ...prev, loading: true }));
 
-      await logoutWhatsAppInstance(form.whatsapp_instance_name);
+      const response = await logoutWhatsAppInstance(form.whatsapp_instance_name);
+      applyWhatsAppConfig(response?.config);
       applyWhatsAppConnection({
         state: "close",
         image: "",
@@ -829,7 +869,12 @@ export const useConfiguracaoFiscalPage = () => {
     } finally {
       setWhatsAppState((prev) => ({ ...prev, loading: false }));
     }
-  }, [applyWhatsAppConnection, form.whatsapp_instance_name, showAlert]);
+  }, [
+    applyWhatsAppConfig,
+    applyWhatsAppConnection,
+    form.whatsapp_instance_name,
+    showAlert,
+  ]);
 
   const handleRestartWhatsApp = useCallback(async () => {
     try {
@@ -870,7 +915,8 @@ export const useConfiguracaoFiscalPage = () => {
     try {
       setWhatsAppState((prev) => ({ ...prev, loading: true }));
 
-      await deleteWhatsAppInstance(form.whatsapp_instance_name);
+      const response = await deleteWhatsAppInstance(form.whatsapp_instance_name);
+      applyWhatsAppConfig(response?.config);
       applyWhatsAppConnection({
         state: "not_found",
         image: "",
@@ -895,6 +941,7 @@ export const useConfiguracaoFiscalPage = () => {
       setWhatsAppState((prev) => ({ ...prev, loading: false }));
     }
   }, [
+    applyWhatsAppConfig,
     applyWhatsAppConnection,
     askYesNoQuestion,
     form.whatsapp_instance_name,
