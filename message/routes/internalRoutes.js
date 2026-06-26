@@ -50,6 +50,33 @@ const summarizeEvolutionPayload = (payload = {}) => ({
   pairingCode: summarizeValue(payload?.pairingCode || payload?.codePairing),
 });
 
+const flattenMessage = (value) => {
+  if (!value) return "";
+  if (Array.isArray(value)) return value.map(flattenMessage).filter(Boolean).join(" ");
+  if (typeof value === "object") {
+    return flattenMessage(
+      value.message ||
+        value.error ||
+        value.description ||
+        value.details ||
+        value.response ||
+        value.data
+    );
+  }
+
+  return String(value).trim();
+};
+
+const extractErrorMessage = (error, fallback) =>
+  flattenMessage(
+    error?.response?.data?.message ||
+      error?.response?.data?.error ||
+      error?.response?.data?.response ||
+      error?.response?.data
+  ) ||
+  error?.message ||
+  fallback;
+
 const normalizeState = (payload) => {
   const raw = String(
     pick(
@@ -101,6 +128,12 @@ router.post("/whatsapp/send-text", async (req, res) => {
       });
     }
 
+    console.log("[message:evolution] Enviando texto", {
+      instanceName,
+      toNumber,
+      textLength: text.length,
+    });
+
     const { data } = await evolutionClient.post(
       `/message/sendText/${encode(instanceName)}`,
       {
@@ -118,10 +151,7 @@ router.post("/whatsapp/send-text", async (req, res) => {
     console.error("[message] Falha ao enviar texto:", error?.response?.data || error?.message || error);
     return res.status(400).json({
       success: false,
-      message:
-        error?.response?.data?.message ||
-        error?.message ||
-        "Não foi possível enviar a mensagem no WhatsApp.",
+      message: extractErrorMessage(error, "Não foi possível enviar a mensagem no WhatsApp."),
     });
   }
 });
