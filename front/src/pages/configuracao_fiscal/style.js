@@ -354,60 +354,114 @@ export const ConnectionCard = styled.div`
   background: rgba(248, 251, 255, 0.72);
 `;
 
-export const RulePanel = styled.div`
-  display: grid;
-  grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.4fr);
-  gap: 18px;
-  align-items: start;
-
-  @media (max-width: 1080px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-export const RuleList = styled.div`
-  display: grid;
-  gap: 12px;
-`;
-
-export const RuleItem = styled.div`
+export const FiscalToolbar = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  padding: 16px 18px;
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: ${({ theme }) => theme.radius.md};
-  background: rgba(248, 251, 255, 0.92);
-
-  @media (max-width: 640px) {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-`;
-
-export const RuleMeta = styled.span`
-  display: block;
-  margin-top: 6px;
-  color: ${({ theme }) => theme.colors.textSoft};
-  font-size: 0.86rem;
-  line-height: 1.45;
-`;
-
-export const RuleActions = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
   flex-wrap: wrap;
 `;
 
-export const RuleFormBox = styled.div`
+export const SearchInput = styled(Input)`
+  max-width: 420px;
+  min-width: min(100%, 280px);
+`;
+
+export const TableCard = styled.div`
   display: grid;
-  gap: 18px;
-  padding: 18px;
+  gap: 14px;
   border: 1px solid ${({ theme }) => theme.colors.border};
   border-radius: ${({ theme }) => theme.radius.md};
-  background: rgba(255, 255, 255, 0.74);
+  background: rgba(255, 255, 255, 0.82);
+  overflow: hidden;
+`;
+
+export const TableScroll = styled.div`
+  width: 100%;
+  overflow-x: auto;
+`;
+
+export const FiscalTable = styled.table`
+  width: 100%;
+  min-width: 860px;
+  border-collapse: collapse;
+
+  th,
+  td {
+    padding: 14px 16px;
+    border-bottom: 1px solid ${({ theme }) => theme.colors.border};
+    text-align: left;
+    vertical-align: middle;
+  }
+
+  th {
+    color: ${({ theme }) => theme.colors.textSoft};
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    background: rgba(248, 251, 255, 0.92);
+  }
+
+  td {
+    color: ${({ theme }) => theme.colors.text};
+  }
+
+  td strong,
+  td span {
+    display: block;
+  }
+
+  td span {
+    margin-top: 4px;
+    color: ${({ theme }) => theme.colors.textSoft};
+    font-size: 0.86rem;
+    line-height: 1.4;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: 0;
+  }
+`;
+
+export const MenuButton = styled.button`
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: ${({ theme }) => theme.radius.pill};
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  background: ${({ theme }) => theme.colors.surface};
+  color: ${({ theme }) => theme.colors.textSoft};
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+
+  &:hover {
+    background: ${({ theme }) => theme.colors.surfaceAlt};
+  }
+`;
+
+export const PaginationBar = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 0 16px 16px;
+  color: ${({ theme }) => theme.colors.textSoft};
+`;
+
+export const PaginationActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+
+  strong {
+    color: ${({ theme }) => theme.colors.text};
+    font-size: 0.9rem;
+  }
 `;
 
 export const EmptyState = styled.div`
@@ -417,6 +471,72 @@ export const EmptyState = styled.div`
   background: rgba(248, 251, 255, 0.82);
   color: ${({ theme }) => theme.colors.textSoft};
   font-weight: 700;
+`;
+
+export const ModalOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(8, 17, 37, 0.54);
+  backdrop-filter: blur(4px);
+`;
+
+export const FiscalModal = styled.div`
+  width: min(980px, 100%);
+  max-height: min(92vh, 920px);
+  display: flex;
+  flex-direction: column;
+  border-radius: ${({ theme }) => theme.radius.lg};
+  background: ${({ theme }) => theme.colors.surface};
+  box-shadow: ${({ theme }) => theme.colors.shadow};
+  overflow: hidden;
+
+  @media (max-width: 640px) {
+    width: 100%;
+    max-height: 96vh;
+    border-radius: ${({ theme }) => theme.radius.md};
+  }
+`;
+
+export const ModalHeader = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px 26px 18px;
+  border-bottom: 1px solid ${({ theme }) => theme.colors.border};
+`;
+
+export const ModalCloseButton = styled.button`
+  width: 42px;
+  height: 42px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: 999px;
+  background: ${({ theme }) => theme.colors.surfaceAlt};
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 1.4rem;
+  cursor: pointer;
+`;
+
+export const ModalBody = styled.div`
+  display: grid;
+  gap: 18px;
+  padding: 22px 26px 26px;
+  overflow: auto;
+`;
+
+export const ModalFooter = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 18px 26px 24px;
+  border-top: 1px solid ${({ theme }) => theme.colors.border};
+  background: rgba(248, 251, 255, 0.72);
 `;
 
 export const ConnectionHeader = styled.div`

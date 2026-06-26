@@ -1,17 +1,24 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useMemo, useState } from "react";
 import Header from "components/header";
 import Sidebar from "components/sidebar";
 import AsyncSearchSelect from "components/asyncSearchSelect";
+import DropdownMenu from "components/dropDownMenu";
 import { AppContext } from "context";
 import { useConfiguracaoFiscalPage } from "./use";
 import * as C from "./style";
 
 const requiredTitle = "Este campo é obrigatório.";
+const FISCAL_PAGE_SIZE = 8;
 
 export const ConfiguracaoFiscal = () => {
   const { mOpen, abreFechaMenu, user } = useContext(AppContext);
   const [activeTab, setActiveTab] = useState("emitente");
   const [activeMensagemTab, setActiveMensagemTab] = useState("conectar");
+  const [fiscalSearch, setFiscalSearch] = useState("");
+  const [fiscalPage, setFiscalPage] = useState(1);
+  const [fiscalModalOpen, setFiscalModalOpen] = useState(false);
+  const [fiscalMenuOpenId, setFiscalMenuOpenId] = useState(null);
+  const [fiscalAnchorEl, setFiscalAnchorEl] = useState(null);
   const isUsuarioMaster = !!user?.usuario_master;
   const {
     loading,
@@ -36,7 +43,7 @@ export const ConfiguracaoFiscal = () => {
     resetRegraFiscalForm,
     handleEditRegraFiscal,
     handleSaveRegraFiscal,
-    handleDeleteRegraFiscal,
+    handleToggleRegraFiscal,
     loadEmitenteOptions,
     handleSelectEmitente,
     handleSelectCertificado,
@@ -46,6 +53,66 @@ export const ConfiguracaoFiscal = () => {
     handleDeleteWhatsApp,
     handleSubmit,
   } = useConfiguracaoFiscalPage();
+
+  const filteredRegrasFiscais = useMemo(() => {
+    const search = fiscalSearch.trim().toLowerCase();
+    if (!search) return regrasFiscais;
+
+    return regrasFiscais.filter((regra) =>
+      [
+        regra.descricao,
+        regra.cfop_venda_interna,
+        regra.cfop_venda_interestadual,
+        regra.icms_csosn,
+        regra.icms_cst,
+      ]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(search))
+    );
+  }, [fiscalSearch, regrasFiscais]);
+
+  const fiscalTotalPages = Math.max(
+    1,
+    Math.ceil(filteredRegrasFiscais.length / FISCAL_PAGE_SIZE)
+  );
+  const safeFiscalPage = Math.min(fiscalPage, fiscalTotalPages);
+  const paginatedRegrasFiscais = filteredRegrasFiscais.slice(
+    (safeFiscalPage - 1) * FISCAL_PAGE_SIZE,
+    safeFiscalPage * FISCAL_PAGE_SIZE
+  );
+
+  const openFiscalMenu = (regraId, element) => {
+    setFiscalMenuOpenId(regraId);
+    setFiscalAnchorEl(element);
+  };
+
+  const closeFiscalMenu = () => {
+    setFiscalMenuOpenId(null);
+    setFiscalAnchorEl(null);
+  };
+
+  const openNewFiscalRule = () => {
+    resetRegraFiscalForm();
+    setFiscalModalOpen(true);
+  };
+
+  const openEditFiscalRule = (regra) => {
+    handleEditRegraFiscal(regra);
+    setFiscalModalOpen(true);
+  };
+
+  const closeFiscalModal = () => {
+    setFiscalModalOpen(false);
+    resetRegraFiscalForm();
+  };
+
+  const saveFiscalRule = async () => {
+    const saved = await handleSaveRegraFiscal();
+    if (saved) {
+      setFiscalModalOpen(false);
+      setFiscalPage(1);
+    }
+  };
 
   return (
     <C.Shell>
@@ -322,333 +389,465 @@ export const ConfiguracaoFiscal = () => {
                         </C.CardText>
                       </C.CardHeader>
 
-                      <C.RulePanel>
-                        <C.RuleList>
-                          {regrasFiscais.length ? (
-                            regrasFiscais.map((regra) => (
-                              <C.RuleItem key={regra.regra_tributaria_id}>
-                                <div>
-                                  <C.InfoValue>{regra.descricao}</C.InfoValue>
-                                  <C.RuleMeta>
-                                    CRT {regra.crt_emitente || "--"} • CFOP{" "}
-                                    {regra.cfop_venda_interna || "--"}/
-                                    {regra.cfop_venda_interestadual || "--"} •{" "}
-                                    {regra.ativo ? "Ativa" : "Inativa"}
-                                  </C.RuleMeta>
-                                </div>
-                                <C.RuleActions>
-                                  <C.SecondaryButton
-                                    type="button"
-                                    onClick={() => handleEditRegraFiscal(regra)}
-                                  >
-                                    Editar
-                                  </C.SecondaryButton>
-                                  <C.IconButton
-                                    type="button"
-                                    title="Excluir regra fiscal"
-                                    aria-label="Excluir regra fiscal"
-                                    onClick={() => handleDeleteRegraFiscal(regra)}
-                                  >
-                                    ×
-                                  </C.IconButton>
-                                </C.RuleActions>
-                              </C.RuleItem>
-                            ))
-                          ) : (
-                            <C.EmptyState>Nenhuma regra fiscal cadastrada.</C.EmptyState>
-                          )}
-                        </C.RuleList>
-
-                        <C.RuleFormBox
-                          onKeyDown={(event) => {
-                            if (event.key === "Enter") {
-                              event.preventDefault();
-                            }
+                      <C.FiscalToolbar>
+                        <C.SearchInput
+                          value={fiscalSearch}
+                          onChange={(event) => {
+                            setFiscalSearch(event.target.value);
+                            setFiscalPage(1);
                           }}
-                        >
-                          <C.CardHeader>
-                            <C.CardTitle>
-                              {editingRegraFiscalId ? "Editar regra fiscal" : "Nova regra fiscal"}
-                            </C.CardTitle>
-                            <C.CardText>
-                              Use os dados validados pelo contador. As alíquotas podem ficar zeradas
-                              quando a operação fiscal exigir apenas CST/CSOSN.
-                            </C.CardText>
-                          </C.CardHeader>
+                          placeholder="Pesquisar por nome, CFOP, CST ou CSOSN"
+                        />
+                        <C.PrimaryInlineButton type="button" onClick={openNewFiscalRule}>
+                          Nova regra fiscal
+                        </C.PrimaryInlineButton>
+                      </C.FiscalToolbar>
 
-                          <C.FieldsGrid>
-                            <C.Field>
-                              <C.FieldSpan>
-                                Nome da regra
-                                <C.RequiredMark title={requiredTitle}>*</C.RequiredMark>
-                              </C.FieldSpan>
-                              <C.Input
-                                value={regraFiscalForm.descricao}
-                                onChange={(event) =>
-                                  updateRegraFiscalField("descricao", event.target.value)
-                                }
-                                placeholder="Ex.: Venda Simples Nacional"
-                              />
-                            </C.Field>
+                      <C.TableCard>
+                        <C.TableScroll>
+                          <C.FiscalTable>
+                            <thead>
+                              <tr>
+                                <th>Regra</th>
+                                <th>Regime</th>
+                                <th>CFOP</th>
+                                <th>ICMS</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {paginatedRegrasFiscais.length ? (
+                                paginatedRegrasFiscais.map((regra) => (
+                                  <tr key={regra.regra_tributaria_id}>
+                                    <td>
+                                      <strong>{regra.descricao}</strong>
+                                      {regra.observacao ? (
+                                        <span>{regra.observacao}</span>
+                                      ) : null}
+                                    </td>
+                                    <td>
+                                      CRT {regra.crt_emitente || "--"} •{" "}
+                                      {regra.regime_tributario || "--"}
+                                    </td>
+                                    <td>
+                                      {regra.cfop_venda_interna || "--"} /{" "}
+                                      {regra.cfop_venda_interestadual || "--"}
+                                    </td>
+                                    <td>
+                                      {regra.icms_csosn
+                                        ? `CSOSN ${regra.icms_csosn}`
+                                        : regra.icms_cst
+                                        ? `CST ${regra.icms_cst}`
+                                        : "--"}
+                                    </td>
+                                    <td>
+                                      <C.StatusBadge $ok={regra.ativo}>
+                                        {regra.ativo ? "Ativa" : "Inativa"}
+                                      </C.StatusBadge>
+                                    </td>
+                                    <td>
+                                      <C.MenuButton
+                                        type="button"
+                                        title="Ações"
+                                        aria-label="Ações"
+                                        onClick={(event) =>
+                                          openFiscalMenu(
+                                            regra.regra_tributaria_id,
+                                            event.currentTarget
+                                          )
+                                        }
+                                      >
+                                        ⋮
+                                      </C.MenuButton>
 
-                            <C.Field>
-                              <C.FieldSpan>Regime</C.FieldSpan>
-                              <C.Select
-                                value={regraFiscalForm.regime_tributario}
-                                onChange={(event) =>
-                                  updateRegraFiscalField("regime_tributario", event.target.value)
-                                }
-                              >
-                                <option value="simples_nacional">Simples nacional</option>
-                                <option value="regime_normal">Regime normal</option>
-                                <option value="mei">MEI</option>
-                              </C.Select>
-                            </C.Field>
+                                      {fiscalMenuOpenId === regra.regra_tributaria_id ? (
+                                        <DropdownMenu
+                                          open={!!fiscalMenuOpenId}
+                                          anchorEl={fiscalAnchorEl}
+                                          onClose={closeFiscalMenu}
+                                          minWidth={190}
+                                          items={[
+                                            {
+                                              label: "Editar cadastro",
+                                              onClick: () => openEditFiscalRule(regra),
+                                            },
+                                            {
+                                              label: regra.ativo
+                                                ? "Inativar regra"
+                                                : "Reativar regra",
+                                              danger: regra.ativo,
+                                              onClick: () => handleToggleRegraFiscal(regra),
+                                            },
+                                          ]}
+                                        />
+                                      ) : null}
+                                    </td>
+                                  </tr>
+                                ))
+                              ) : (
+                                <tr>
+                                  <td colSpan={6}>
+                                    <C.EmptyState>
+                                      Nenhuma regra fiscal encontrada.
+                                    </C.EmptyState>
+                                  </td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </C.FiscalTable>
+                        </C.TableScroll>
 
-                            <C.Field>
-                              <C.FieldSpan>CRT emitente</C.FieldSpan>
-                              <C.Select
-                                value={regraFiscalForm.crt_emitente}
-                                onChange={(event) =>
-                                  updateRegraFiscalField("crt_emitente", event.target.value)
-                                }
-                              >
-                                <option value="1">1 - Simples nacional</option>
-                                <option value="2">2 - Simples excesso sublimite</option>
-                                <option value="3">3 - Regime normal</option>
-                              </C.Select>
-                            </C.Field>
-
-                            <C.Field>
-                              <C.FieldSpan>Origem da mercadoria</C.FieldSpan>
-                              <C.Select
-                                value={regraFiscalForm.origem_mercadoria}
-                                onChange={(event) =>
-                                  updateRegraFiscalField("origem_mercadoria", event.target.value)
-                                }
-                              >
-                                <option value="0">0 - Nacional</option>
-                                <option value="1">1 - Estrangeira importação direta</option>
-                                <option value="2">2 - Estrangeira adquirida no mercado interno</option>
-                                <option value="3">3 - Nacional com conteúdo importado superior a 40%</option>
-                                <option value="4">4 - Nacional conforme processos produtivos básicos</option>
-                                <option value="5">5 - Nacional com conteúdo importado inferior ou igual a 40%</option>
-                                <option value="6">6 - Estrangeira importação direta sem similar nacional</option>
-                                <option value="7">7 - Estrangeira mercado interno sem similar nacional</option>
-                                <option value="8">8 - Nacional com conteúdo importado superior a 70%</option>
-                              </C.Select>
-                            </C.Field>
-
-                            <C.Field>
-                              <C.FieldSpan>
-                                CFOP venda dentro da UF
-                                <C.RequiredMark title={requiredTitle}>*</C.RequiredMark>
-                              </C.FieldSpan>
-                              <C.Input
-                                value={regraFiscalForm.cfop_venda_interna}
-                                onChange={(event) =>
-                                  updateRegraFiscalField("cfop_venda_interna", event.target.value)
-                                }
-                                inputMode="numeric"
-                                placeholder="5101"
-                              />
-                            </C.Field>
-
-                            <C.Field>
-                              <C.FieldSpan>
-                                CFOP venda fora da UF
-                                <C.RequiredMark title={requiredTitle}>*</C.RequiredMark>
-                              </C.FieldSpan>
-                              <C.Input
-                                value={regraFiscalForm.cfop_venda_interestadual}
-                                onChange={(event) =>
-                                  updateRegraFiscalField(
-                                    "cfop_venda_interestadual",
-                                    event.target.value
-                                  )
-                                }
-                                inputMode="numeric"
-                                placeholder="6101"
-                              />
-                            </C.Field>
-
-                            <C.Field>
-                              <C.FieldSpan>CSOSN ICMS</C.FieldSpan>
-                              <C.Input
-                                value={regraFiscalForm.icms_csosn}
-                                onChange={(event) =>
-                                  updateRegraFiscalField("icms_csosn", event.target.value)
-                                }
-                                placeholder="102"
-                              />
-                            </C.Field>
-
-                            <C.Field>
-                              <C.FieldSpan>CST ICMS</C.FieldSpan>
-                              <C.Input
-                                value={regraFiscalForm.icms_cst}
-                                onChange={(event) =>
-                                  updateRegraFiscalField("icms_cst", event.target.value)
-                                }
-                                placeholder="Opcional para regime normal"
-                              />
-                            </C.Field>
-
-                            <C.Field>
-                              <C.FieldSpan>Alíquota ICMS %</C.FieldSpan>
-                              <C.Input
-                                value={regraFiscalForm.icms_aliquota}
-                                onChange={(event) =>
-                                  updateRegraFiscalField("icms_aliquota", event.target.value)
-                                }
-                                inputMode="decimal"
-                                placeholder="0"
-                              />
-                            </C.Field>
-
-                            <C.Field>
-                              <C.FieldSpan>Redução BC ICMS %</C.FieldSpan>
-                              <C.Input
-                                value={regraFiscalForm.icms_reducao_base}
-                                onChange={(event) =>
-                                  updateRegraFiscalField("icms_reducao_base", event.target.value)
-                                }
-                                inputMode="decimal"
-                                placeholder="0"
-                              />
-                            </C.Field>
-
-                            <C.Field>
-                              <C.FieldSpan>CST PIS</C.FieldSpan>
-                              <C.Input
-                                value={regraFiscalForm.pis_cst}
-                                onChange={(event) =>
-                                  updateRegraFiscalField("pis_cst", event.target.value)
-                                }
-                                placeholder="99"
-                              />
-                            </C.Field>
-
-                            <C.Field>
-                              <C.FieldSpan>Alíquota PIS %</C.FieldSpan>
-                              <C.Input
-                                value={regraFiscalForm.pis_aliquota}
-                                onChange={(event) =>
-                                  updateRegraFiscalField("pis_aliquota", event.target.value)
-                                }
-                                inputMode="decimal"
-                                placeholder="0"
-                              />
-                            </C.Field>
-
-                            <C.Field>
-                              <C.FieldSpan>CST COFINS</C.FieldSpan>
-                              <C.Input
-                                value={regraFiscalForm.cofins_cst}
-                                onChange={(event) =>
-                                  updateRegraFiscalField("cofins_cst", event.target.value)
-                                }
-                                placeholder="99"
-                              />
-                            </C.Field>
-
-                            <C.Field>
-                              <C.FieldSpan>Alíquota COFINS %</C.FieldSpan>
-                              <C.Input
-                                value={regraFiscalForm.cofins_aliquota}
-                                onChange={(event) =>
-                                  updateRegraFiscalField("cofins_aliquota", event.target.value)
-                                }
-                                inputMode="decimal"
-                                placeholder="0"
-                              />
-                            </C.Field>
-
-                            <C.Field>
-                              <C.FieldSpan>CST IPI</C.FieldSpan>
-                              <C.Input
-                                value={regraFiscalForm.ipi_cst}
-                                onChange={(event) =>
-                                  updateRegraFiscalField("ipi_cst", event.target.value)
-                                }
-                                placeholder="Opcional"
-                              />
-                            </C.Field>
-
-                            <C.Field>
-                              <C.FieldSpan>Enquadramento IPI</C.FieldSpan>
-                              <C.Input
-                                value={regraFiscalForm.ipi_enquadramento}
-                                onChange={(event) =>
-                                  updateRegraFiscalField("ipi_enquadramento", event.target.value)
-                                }
-                                placeholder="Ex.: 999"
-                              />
-                            </C.Field>
-                          </C.FieldsGrid>
-
-                          <C.ToggleList>
-                            <C.ToggleRow>
-                              <C.Checkbox
-                                type="checkbox"
-                                checked={regraFiscalForm.consumidor_final}
-                                onChange={(event) =>
-                                  updateRegraFiscalField("consumidor_final", event.target.checked)
-                                }
-                              />
-                              <span>Consumidor final por padrão</span>
-                            </C.ToggleRow>
-
-                            <C.ToggleRow>
-                              <C.Checkbox
-                                type="checkbox"
-                                checked={regraFiscalForm.contribuinte_icms}
-                                onChange={(event) =>
-                                  updateRegraFiscalField("contribuinte_icms", event.target.checked)
-                                }
-                              />
-                              <span>Destinatário contribuinte ICMS por padrão</span>
-                            </C.ToggleRow>
-
-                            <C.ToggleRow>
-                              <C.Checkbox
-                                type="checkbox"
-                                checked={regraFiscalForm.ativo}
-                                onChange={(event) =>
-                                  updateRegraFiscalField("ativo", event.target.checked)
-                                }
-                              />
-                              <span>Regra ativa</span>
-                            </C.ToggleRow>
-                          </C.ToggleList>
-
-                          <C.Field>
-                            <C.FieldSpan>Observação interna</C.FieldSpan>
-                            <C.Textarea
-                              value={regraFiscalForm.observacao}
-                              onChange={(event) =>
-                                updateRegraFiscalField("observacao", event.target.value)
-                              }
-                              placeholder="Anote a orientação do contador ou exceções desta regra"
-                            />
-                          </C.Field>
-
-                          <C.ActionRow>
-                            {editingRegraFiscalId ? (
-                              <C.SecondaryButton type="button" onClick={resetRegraFiscalForm}>
-                                Cancelar edição
-                              </C.SecondaryButton>
-                            ) : null}
-                            <C.PrimaryInlineButton
+                        <C.PaginationBar>
+                          <span>
+                            {filteredRegrasFiscais.length} regra
+                            {filteredRegrasFiscais.length === 1 ? "" : "s"} encontrada
+                            {filteredRegrasFiscais.length === 1 ? "" : "s"}
+                          </span>
+                          <C.PaginationActions>
+                            <C.SecondaryButton
                               type="button"
-                              onClick={handleSaveRegraFiscal}
-                              disabled={regraFiscalSaving}
+                              onClick={() => setFiscalPage((page) => Math.max(1, page - 1))}
+                              disabled={safeFiscalPage <= 1}
                             >
-                              {regraFiscalSaving ? "Salvando..." : "Salvar regra"}
-                            </C.PrimaryInlineButton>
-                          </C.ActionRow>
-                        </C.RuleFormBox>
-                      </C.RulePanel>
+                              Anterior
+                            </C.SecondaryButton>
+                            <strong>
+                              Página {safeFiscalPage} de {fiscalTotalPages}
+                            </strong>
+                            <C.SecondaryButton
+                              type="button"
+                              onClick={() =>
+                                setFiscalPage((page) =>
+                                  Math.min(fiscalTotalPages, page + 1)
+                                )
+                              }
+                              disabled={safeFiscalPage >= fiscalTotalPages}
+                            >
+                              Próxima
+                            </C.SecondaryButton>
+                          </C.PaginationActions>
+                        </C.PaginationBar>
+                      </C.TableCard>
+
+                      {fiscalModalOpen ? (
+                        <C.ModalOverlay onMouseDown={closeFiscalModal}>
+                          <C.FiscalModal
+                            onMouseDown={(event) => event.stopPropagation()}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter") {
+                                event.preventDefault();
+                              }
+                            }}
+                          >
+                            <C.ModalHeader>
+                              <div>
+                                <C.CardTitle>
+                                  {editingRegraFiscalId
+                                    ? "Editar regra fiscal"
+                                    : "Nova regra fiscal"}
+                                </C.CardTitle>
+                                <C.CardText>
+                                  Informe os dados tributários definidos pelo contador.
+                                </C.CardText>
+                              </div>
+                              <C.ModalCloseButton type="button" onClick={closeFiscalModal}>
+                                ×
+                              </C.ModalCloseButton>
+                            </C.ModalHeader>
+
+                            <C.ModalBody>
+                              <C.FieldsGrid>
+                                <C.Field>
+                                  <C.FieldSpan>
+                                    Nome da regra
+                                    <C.RequiredMark title={requiredTitle}>*</C.RequiredMark>
+                                  </C.FieldSpan>
+                                  <C.Input
+                                    value={regraFiscalForm.descricao}
+                                    onChange={(event) =>
+                                      updateRegraFiscalField("descricao", event.target.value)
+                                    }
+                                    placeholder="Ex.: Venda Simples Nacional"
+                                  />
+                                </C.Field>
+
+                                <C.Field>
+                                  <C.FieldSpan>Regime</C.FieldSpan>
+                                  <C.Select
+                                    value={regraFiscalForm.regime_tributario}
+                                    onChange={(event) =>
+                                      updateRegraFiscalField(
+                                        "regime_tributario",
+                                        event.target.value
+                                      )
+                                    }
+                                  >
+                                    <option value="simples_nacional">Simples nacional</option>
+                                    <option value="regime_normal">Regime normal</option>
+                                    <option value="mei">MEI</option>
+                                  </C.Select>
+                                </C.Field>
+
+                                <C.Field>
+                                  <C.FieldSpan>CRT emitente</C.FieldSpan>
+                                  <C.Select
+                                    value={regraFiscalForm.crt_emitente}
+                                    onChange={(event) =>
+                                      updateRegraFiscalField("crt_emitente", event.target.value)
+                                    }
+                                  >
+                                    <option value="1">1 - Simples nacional</option>
+                                    <option value="2">2 - Simples excesso sublimite</option>
+                                    <option value="3">3 - Regime normal</option>
+                                  </C.Select>
+                                </C.Field>
+
+                                <C.Field>
+                                  <C.FieldSpan>Origem da mercadoria</C.FieldSpan>
+                                  <C.Select
+                                    value={regraFiscalForm.origem_mercadoria}
+                                    onChange={(event) =>
+                                      updateRegraFiscalField(
+                                        "origem_mercadoria",
+                                        event.target.value
+                                      )
+                                    }
+                                  >
+                                    <option value="0">0 - Nacional</option>
+                                    <option value="1">1 - Estrangeira importação direta</option>
+                                    <option value="2">2 - Estrangeira mercado interno</option>
+                                    <option value="3">3 - Nacional importado &gt; 40%</option>
+                                    <option value="4">4 - Nacional PPB</option>
+                                    <option value="5">5 - Nacional importado &lt;= 40%</option>
+                                    <option value="6">6 - Importação direta sem similar</option>
+                                    <option value="7">7 - Mercado interno sem similar</option>
+                                    <option value="8">8 - Nacional importado &gt; 70%</option>
+                                  </C.Select>
+                                </C.Field>
+
+                                <C.Field>
+                                  <C.FieldSpan>
+                                    CFOP venda dentro da UF
+                                    <C.RequiredMark title={requiredTitle}>*</C.RequiredMark>
+                                  </C.FieldSpan>
+                                  <C.Input
+                                    value={regraFiscalForm.cfop_venda_interna}
+                                    onChange={(event) =>
+                                      updateRegraFiscalField(
+                                        "cfop_venda_interna",
+                                        event.target.value
+                                      )
+                                    }
+                                    inputMode="numeric"
+                                    placeholder="5101"
+                                  />
+                                </C.Field>
+
+                                <C.Field>
+                                  <C.FieldSpan>
+                                    CFOP venda fora da UF
+                                    <C.RequiredMark title={requiredTitle}>*</C.RequiredMark>
+                                  </C.FieldSpan>
+                                  <C.Input
+                                    value={regraFiscalForm.cfop_venda_interestadual}
+                                    onChange={(event) =>
+                                      updateRegraFiscalField(
+                                        "cfop_venda_interestadual",
+                                        event.target.value
+                                      )
+                                    }
+                                    inputMode="numeric"
+                                    placeholder="6101"
+                                  />
+                                </C.Field>
+
+                                <C.Field>
+                                  <C.FieldSpan>CSOSN ICMS</C.FieldSpan>
+                                  <C.Input
+                                    value={regraFiscalForm.icms_csosn}
+                                    onChange={(event) =>
+                                      updateRegraFiscalField("icms_csosn", event.target.value)
+                                    }
+                                    placeholder="102"
+                                  />
+                                </C.Field>
+
+                                <C.Field>
+                                  <C.FieldSpan>CST ICMS</C.FieldSpan>
+                                  <C.Input
+                                    value={regraFiscalForm.icms_cst}
+                                    onChange={(event) =>
+                                      updateRegraFiscalField("icms_cst", event.target.value)
+                                    }
+                                    placeholder="Opcional"
+                                  />
+                                </C.Field>
+
+                                <C.Field>
+                                  <C.FieldSpan>Alíquota ICMS %</C.FieldSpan>
+                                  <C.Input
+                                    value={regraFiscalForm.icms_aliquota}
+                                    onChange={(event) =>
+                                      updateRegraFiscalField("icms_aliquota", event.target.value)
+                                    }
+                                    inputMode="decimal"
+                                  />
+                                </C.Field>
+
+                                <C.Field>
+                                  <C.FieldSpan>Redução BC ICMS %</C.FieldSpan>
+                                  <C.Input
+                                    value={regraFiscalForm.icms_reducao_base}
+                                    onChange={(event) =>
+                                      updateRegraFiscalField(
+                                        "icms_reducao_base",
+                                        event.target.value
+                                      )
+                                    }
+                                    inputMode="decimal"
+                                  />
+                                </C.Field>
+
+                                <C.Field>
+                                  <C.FieldSpan>CST PIS</C.FieldSpan>
+                                  <C.Input
+                                    value={regraFiscalForm.pis_cst}
+                                    onChange={(event) =>
+                                      updateRegraFiscalField("pis_cst", event.target.value)
+                                    }
+                                  />
+                                </C.Field>
+
+                                <C.Field>
+                                  <C.FieldSpan>Alíquota PIS %</C.FieldSpan>
+                                  <C.Input
+                                    value={regraFiscalForm.pis_aliquota}
+                                    onChange={(event) =>
+                                      updateRegraFiscalField("pis_aliquota", event.target.value)
+                                    }
+                                    inputMode="decimal"
+                                  />
+                                </C.Field>
+
+                                <C.Field>
+                                  <C.FieldSpan>CST COFINS</C.FieldSpan>
+                                  <C.Input
+                                    value={regraFiscalForm.cofins_cst}
+                                    onChange={(event) =>
+                                      updateRegraFiscalField("cofins_cst", event.target.value)
+                                    }
+                                  />
+                                </C.Field>
+
+                                <C.Field>
+                                  <C.FieldSpan>Alíquota COFINS %</C.FieldSpan>
+                                  <C.Input
+                                    value={regraFiscalForm.cofins_aliquota}
+                                    onChange={(event) =>
+                                      updateRegraFiscalField(
+                                        "cofins_aliquota",
+                                        event.target.value
+                                      )
+                                    }
+                                    inputMode="decimal"
+                                  />
+                                </C.Field>
+
+                                <C.Field>
+                                  <C.FieldSpan>CST IPI</C.FieldSpan>
+                                  <C.Input
+                                    value={regraFiscalForm.ipi_cst}
+                                    onChange={(event) =>
+                                      updateRegraFiscalField("ipi_cst", event.target.value)
+                                    }
+                                    placeholder="Opcional"
+                                  />
+                                </C.Field>
+
+                                <C.Field>
+                                  <C.FieldSpan>Enquadramento IPI</C.FieldSpan>
+                                  <C.Input
+                                    value={regraFiscalForm.ipi_enquadramento}
+                                    onChange={(event) =>
+                                      updateRegraFiscalField(
+                                        "ipi_enquadramento",
+                                        event.target.value
+                                      )
+                                    }
+                                    placeholder="Ex.: 999"
+                                  />
+                                </C.Field>
+                              </C.FieldsGrid>
+
+                              <C.ToggleList>
+                                <C.ToggleRow>
+                                  <C.Checkbox
+                                    type="checkbox"
+                                    checked={regraFiscalForm.consumidor_final}
+                                    onChange={(event) =>
+                                      updateRegraFiscalField(
+                                        "consumidor_final",
+                                        event.target.checked
+                                      )
+                                    }
+                                  />
+                                  <span>Consumidor final por padrão</span>
+                                </C.ToggleRow>
+
+                                <C.ToggleRow>
+                                  <C.Checkbox
+                                    type="checkbox"
+                                    checked={regraFiscalForm.contribuinte_icms}
+                                    onChange={(event) =>
+                                      updateRegraFiscalField(
+                                        "contribuinte_icms",
+                                        event.target.checked
+                                      )
+                                    }
+                                  />
+                                  <span>Destinatário contribuinte ICMS por padrão</span>
+                                </C.ToggleRow>
+
+                                <C.ToggleRow>
+                                  <C.Checkbox
+                                    type="checkbox"
+                                    checked={regraFiscalForm.ativo}
+                                    onChange={(event) =>
+                                      updateRegraFiscalField("ativo", event.target.checked)
+                                    }
+                                  />
+                                  <span>Regra ativa</span>
+                                </C.ToggleRow>
+                              </C.ToggleList>
+
+                              <C.Field>
+                                <C.FieldSpan>Observação interna</C.FieldSpan>
+                                <C.Textarea
+                                  value={regraFiscalForm.observacao}
+                                  onChange={(event) =>
+                                    updateRegraFiscalField("observacao", event.target.value)
+                                  }
+                                  placeholder="Anote a orientação do contador ou exceções desta regra"
+                                />
+                              </C.Field>
+                            </C.ModalBody>
+
+                            <C.ModalFooter>
+                              <C.SecondaryButton type="button" onClick={closeFiscalModal}>
+                                Cancelar
+                              </C.SecondaryButton>
+                              <C.PrimaryInlineButton
+                                type="button"
+                                onClick={saveFiscalRule}
+                                disabled={regraFiscalSaving}
+                              >
+                                {regraFiscalSaving ? "Salvando..." : "Salvar regra"}
+                              </C.PrimaryInlineButton>
+                            </C.ModalFooter>
+                          </C.FiscalModal>
+                        </C.ModalOverlay>
+                      ) : null}
                     </C.SectionBody>
                   ) : null}
 

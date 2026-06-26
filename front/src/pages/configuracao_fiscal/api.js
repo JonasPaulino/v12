@@ -36,10 +36,6 @@ export const updateRegraFiscal = async (regraId, payload = {}) => {
   return data;
 };
 
-export const deleteRegraFiscal = async (regraId) => {
-  const { data } = await api.delete(`/regra-fiscal/${regraId}`);
-  return data;
-};
 
 export const createWhatsAppInstance = async (payload = {}) => {
   const { data } = await api.post("/integracoes/mensagens/whatsapp/instance", payload);

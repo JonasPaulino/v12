@@ -5,7 +5,6 @@ import { useSweetAlert } from "context/sweet_alert";
 import {
   createRegraFiscal,
   createWhatsAppInstance,
-  deleteRegraFiscal,
   deleteWhatsAppInstance,
   getConfiguracaoFiscal,
   getPessoasEmitenteSelect,
@@ -438,7 +437,7 @@ export const useConfiguracaoFiscalPage = () => {
   }, []);
 
   const handleSaveRegraFiscal = useCallback(async () => {
-    if (regraFiscalSaving) return;
+    if (regraFiscalSaving) return false;
 
     if (!String(regraFiscalForm.descricao || "").trim()) {
       showAlert({
@@ -446,7 +445,7 @@ export const useConfiguracaoFiscalPage = () => {
         text: "Informe um nome para a regra fiscal.",
         icon: "warning",
       });
-      return;
+      return false;
     }
 
     try {
@@ -464,6 +463,8 @@ export const useConfiguracaoFiscalPage = () => {
         text: response.message || "Regra fiscal salva com sucesso.",
         icon: "success",
       });
+
+      return true;
     } catch (error) {
       showAlert({
         title: "Falha ao salvar regra",
@@ -472,6 +473,7 @@ export const useConfiguracaoFiscalPage = () => {
           "Não foi possível salvar a regra fiscal.",
         icon: "error",
       });
+      return false;
     } finally {
       setRegraFiscalSaving(false);
     }
@@ -484,17 +486,23 @@ export const useConfiguracaoFiscalPage = () => {
     showAlert,
   ]);
 
-  const handleDeleteRegraFiscal = useCallback(
+  const handleToggleRegraFiscal = useCallback(
     async (regra) => {
+      const nextAtivo = !regra?.ativo;
       const confirmed = await askYesNoQuestion(
-        "Excluir regra fiscal",
-        `Deseja realmente excluir a regra "${regra?.descricao || ""}"?`
+        nextAtivo ? "Reativar regra fiscal" : "Inativar regra fiscal",
+        `Deseja realmente ${nextAtivo ? "reativar" : "inativar"} a regra "${
+          regra?.descricao || ""
+        }"?`
       );
 
       if (!confirmed) return;
 
       try {
-        await deleteRegraFiscal(regra.regra_tributaria_id);
+        await updateRegraFiscal(regra.regra_tributaria_id, {
+          ...mapRegraFiscalToForm(regra),
+          ativo: nextAtivo,
+        });
         await reloadRegrasFiscais();
 
         if (editingRegraFiscalId === regra.regra_tributaria_id) {
@@ -502,17 +510,17 @@ export const useConfiguracaoFiscalPage = () => {
         }
 
         showAlert({
-          title: "Regra fiscal excluída",
-          text: "A regra fiscal foi removida com sucesso.",
+          title: nextAtivo ? "Regra fiscal reativada" : "Regra fiscal inativada",
+          text: "A regra fiscal foi atualizada com sucesso.",
           icon: "success",
           confirmButtonText: "OK",
         });
       } catch (error) {
         showAlert({
-          title: "Falha ao excluir regra",
+          title: "Falha ao atualizar regra",
           text:
             error?.response?.data?.message ||
-            "Não foi possível excluir a regra fiscal.",
+            "Não foi possível atualizar a regra fiscal.",
           icon: "error",
         });
       }
@@ -1039,7 +1047,7 @@ export const useConfiguracaoFiscalPage = () => {
     resetRegraFiscalForm,
     handleEditRegraFiscal,
     handleSaveRegraFiscal,
-    handleDeleteRegraFiscal,
+    handleToggleRegraFiscal,
     loadEmitenteOptions,
     handleSelectEmitente,
     handleSelectCertificado,
