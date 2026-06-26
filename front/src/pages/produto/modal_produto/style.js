@@ -190,6 +190,19 @@ export const Select = styled.select`
   outline: none;
 `;
 
+export const ReadOnlyBox = styled.div`
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  padding: 12px 14px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radius.md};
+  background: rgba(248, 251, 255, 0.92);
+  color: ${({ theme }) => theme.colors.textSoft};
+  font-weight: 700;
+  line-height: 1.45;
+`;
+
 export const CheckboxGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

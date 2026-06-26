@@ -213,6 +213,7 @@ class AcbrNfeIntegrationDAO {
           ni.valor_acrescimo,
           ni.valor_total,
           ni.origem_mercadoria,
+          ni.cbenef,
           nii.icms_cst,
           nii.icms_csosn,
           nii.icms_aliquota,
@@ -229,10 +230,20 @@ class AcbrNfeIntegrationDAO {
           nii.ipi_valor,
           pf.ncm AS produto_ncm,
           pf.cest AS produto_cest,
-          pf.cfop_venda_interna AS produto_cfop_venda_interna,
-          pf.cfop_venda_interestadual AS produto_cfop_venda_interestadual,
+          COALESCE(rt.cfop_venda_interna, pf.cfop_venda_interna) AS produto_cfop_venda_interna,
+          COALESCE(rt.cfop_venda_interestadual, pf.cfop_venda_interestadual) AS produto_cfop_venda_interestadual,
           pf.cfop_compra AS produto_cfop_compra,
-          pf.origem_mercadoria AS produto_origem_mercadoria,
+          COALESCE(rt.origem_mercadoria, pf.origem_mercadoria, '0') AS produto_origem_mercadoria,
+          icms.cst AS regra_icms_cst,
+          icms.csosn AS regra_icms_csosn,
+          icms.aliquota_icms AS regra_icms_aliquota,
+          icms.reducao_base AS regra_icms_reducao_base,
+          pis.cst AS regra_pis_cst,
+          pis.aliquota AS regra_pis_aliquota,
+          cofins.cst AS regra_cofins_cst,
+          cofins.aliquota AS regra_cofins_aliquota,
+          ipi.cst AS regra_ipi_cst,
+          ipi.aliquota AS regra_ipi_aliquota,
           um.sigla AS produto_unidade_sigla
         FROM fiscal.nfe_item ni
         LEFT JOIN fiscal.nfe_item_imposto nii
@@ -241,6 +252,19 @@ class AcbrNfeIntegrationDAO {
         LEFT JOIN produto_fiscal pf
           ON pf.produto_id = ni.produto_id
          AND pf.tenant_id = ni.tenant_id
+        LEFT JOIN regra_tributaria rt
+          ON rt.regra_tributaria_id = pf.regra_tributaria_id
+         AND rt.tenant_id = ni.tenant_id
+         AND rt.excluido = FALSE
+         AND rt.ativo = TRUE
+        LEFT JOIN regra_tributaria_icms icms
+          ON icms.regra_tributaria_id = rt.regra_tributaria_id
+        LEFT JOIN regra_tributaria_pis pis
+          ON pis.regra_tributaria_id = rt.regra_tributaria_id
+        LEFT JOIN regra_tributaria_cofins cofins
+          ON cofins.regra_tributaria_id = rt.regra_tributaria_id
+        LEFT JOIN regra_tributaria_ipi ipi
+          ON ipi.regra_tributaria_id = rt.regra_tributaria_id
         LEFT JOIN produto_unidade pu
           ON pu.produto_id = ni.produto_id
          AND pu.tenant_id = ni.tenant_id
@@ -354,20 +378,21 @@ class AcbrNfeIntegrationDAO {
         valor_acrescimo: Number(item.valor_acrescimo || 0),
         valor_total: Number(item.valor_total || 0),
         origem_mercadoria: item.origem_mercadoria || item.produto_origem_mercadoria || "0",
+        cbenef: item.cbenef || "",
         imposto: {
-          icms_cst: item.icms_cst || "",
-          icms_csosn: item.icms_csosn || "",
-          icms_aliquota: Number(item.icms_aliquota || 0),
+          icms_cst: item.icms_cst || item.regra_icms_cst || "",
+          icms_csosn: item.icms_csosn || item.regra_icms_csosn || "",
+          icms_aliquota: Number(item.icms_aliquota || item.regra_icms_aliquota || 0),
           icms_base: Number(item.icms_base || 0),
           icms_valor: Number(item.icms_valor || 0),
-          pis_cst: item.pis_cst || "",
-          pis_aliquota: Number(item.pis_aliquota || 0),
+          pis_cst: item.pis_cst || item.regra_pis_cst || "",
+          pis_aliquota: Number(item.pis_aliquota || item.regra_pis_aliquota || 0),
           pis_valor: Number(item.pis_valor || 0),
-          cofins_cst: item.cofins_cst || "",
-          cofins_aliquota: Number(item.cofins_aliquota || 0),
+          cofins_cst: item.cofins_cst || item.regra_cofins_cst || "",
+          cofins_aliquota: Number(item.cofins_aliquota || item.regra_cofins_aliquota || 0),
           cofins_valor: Number(item.cofins_valor || 0),
-          ipi_cst: item.ipi_cst || "",
-          ipi_aliquota: Number(item.ipi_aliquota || 0),
+          ipi_cst: item.ipi_cst || item.regra_ipi_cst || "",
+          ipi_aliquota: Number(item.ipi_aliquota || item.regra_ipi_aliquota || 0),
           ipi_valor: Number(item.ipi_valor || 0),
         },
       })),

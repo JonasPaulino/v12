@@ -19,6 +19,7 @@ const buildInitialForm = () => ({
   ncm: "",
   cest: "",
   extipi: "",
+  regra_tributaria_id: "",
   origem_mercadoria: "0",
   cbenef: "",
   fci: "",
@@ -54,24 +55,12 @@ const TIPO_PRODUTO_OPTIONS = [
   { value: "servico", label: "Serviço" },
 ];
 
-const ORIGEM_OPTIONS = [
-  { value: "0", label: "0 - Nacional" },
-  { value: "1", label: "1 - Estrangeira importação direta" },
-  { value: "2", label: "2 - Estrangeira adquirida no mercado interno" },
-  { value: "3", label: "3 - Nacional com conteúdo de importação > 40%" },
-  { value: "4", label: "4 - Nacional produção PPB" },
-  { value: "5", label: "5 - Nacional com conteúdo <= 40%" },
-  { value: "6", label: "6 - Estrangeira importação direta sem similar" },
-  { value: "7", label: "7 - Estrangeira mercado interno sem similar" },
-  { value: "8", label: "8 - Nacional com conteúdo > 70%" },
-];
-
 const REQUIRED_FIELDS = [
   { field: "tipo_produto", label: "Tipo de produto", tab: "dados" },
   { field: "descricao", label: "Descrição interna", tab: "dados" },
   { field: "descricao_fiscal", label: "Descrição fiscal / NF-e", tab: "dados" },
   { field: "ncm", label: "NCM", tab: "fiscal" },
-  { field: "origem_mercadoria", label: "Origem da mercadoria", tab: "fiscal" },
+  { field: "regra_tributaria_id", label: "Regra fiscal", tab: "fiscal" },
   { field: "unidade_comercial_id", label: "Unidade de medida", tab: "comercial" },
 ];
 
@@ -88,6 +77,7 @@ export const useModalProduto = ({ isOpen, produtoId, onClose }) => {
   const [submitting, setSubmitting] = useState(false);
   const [supportData, setSupportData] = useState({
     unidades: [],
+    regrasFiscais: [],
     tabelaPrecoPadrao: null,
     depositoPadrao: null,
   });
@@ -101,6 +91,7 @@ export const useModalProduto = ({ isOpen, produtoId, onClose }) => {
       setLoadingForm(false);
       setSupportData({
         unidades: [],
+        regrasFiscais: [],
         tabelaPrecoPadrao: null,
         depositoPadrao: null,
       });
@@ -118,6 +109,7 @@ export const useModalProduto = ({ isOpen, produtoId, onClose }) => {
 
         const support = supportResponse?.data || {
           unidades: [],
+          regrasFiscais: [],
           tabelaPrecoPadrao: null,
           depositoPadrao: null,
         };
@@ -141,6 +133,7 @@ export const useModalProduto = ({ isOpen, produtoId, onClose }) => {
             ncm: data.ncm || "",
             cest: data.cest || "",
             extipi: data.extipi || "",
+            regra_tributaria_id: data.regra_tributaria_id || "",
             origem_mercadoria: data.origem_mercadoria || "0",
             cbenef: data.cbenef || "",
             fci: data.fci || "",
@@ -168,6 +161,7 @@ export const useModalProduto = ({ isOpen, produtoId, onClose }) => {
             ...buildInitialForm(),
             unidade_comercial_id: support.unidades?.[0]?.unidade_medida_id || "",
             unidade_tributavel_id: support.unidades?.[0]?.unidade_medida_id || "",
+            regra_tributaria_id: support.regrasFiscais?.[0]?.regra_tributaria_id || "",
           }));
         }
       } catch (error) {
@@ -259,6 +253,7 @@ export const useModalProduto = ({ isOpen, produtoId, onClose }) => {
       ...form,
       unidade_comercial_id: Number(form.unidade_comercial_id) || "",
       unidade_tributavel_id: Number(form.unidade_comercial_id) || "",
+      regra_tributaria_id: Number(form.regra_tributaria_id) || "",
     }),
     [form]
   );
@@ -326,6 +321,5 @@ export const useModalProduto = ({ isOpen, produtoId, onClose }) => {
     registerFieldRef,
     handleSubmit,
     tipoProdutoOptions: TIPO_PRODUTO_OPTIONS,
-    origemOptions: ORIGEM_OPTIONS,
   };
 };

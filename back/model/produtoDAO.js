@@ -14,6 +14,8 @@ const mapRow = (row = {}) => ({
   ncm: row.ncm,
   cest: row.cest,
   origem_mercadoria: row.origem_mercadoria,
+  regra_tributaria_id: row.regra_tributaria_id,
+  regra_fiscal_descricao: row.regra_fiscal_descricao,
   unidade_comercial_sigla: row.unidade_comercial_sigla,
   unidade_tributavel_sigla: row.unidade_tributavel_sigla,
   preco_venda:
@@ -172,6 +174,8 @@ class ProdutoDAO {
         pf.ncm,
         pf.cest,
         pf.origem_mercadoria,
+        pf.regra_tributaria_id,
+        rt.descricao AS regra_fiscal_descricao,
         uc.sigla AS unidade_comercial_sigla,
         ut.sigla AS unidade_tributavel_sigla,
         pp.preco_venda,
@@ -181,6 +185,10 @@ class ProdutoDAO {
         pe.estoque_minimo
       FROM produto p
       LEFT JOIN produto_fiscal pf ON pf.produto_id = p.produto_id
+      LEFT JOIN regra_tributaria rt
+        ON rt.regra_tributaria_id = pf.regra_tributaria_id
+       AND rt.tenant_id = p.tenant_id
+       AND rt.excluido = FALSE
       LEFT JOIN produto_unidade pu ON pu.produto_id = p.produto_id
       LEFT JOIN unidade_medida uc ON uc.unidade_medida_id = pu.unidade_comercial_id
       LEFT JOIN unidade_medida ut ON ut.unidade_medida_id = pu.unidade_tributavel_id
@@ -210,6 +218,10 @@ class ProdutoDAO {
       SELECT COUNT(*)::int AS total
       FROM produto p
       LEFT JOIN produto_fiscal pf ON pf.produto_id = p.produto_id
+      LEFT JOIN regra_tributaria rt
+        ON rt.regra_tributaria_id = pf.regra_tributaria_id
+       AND rt.tenant_id = p.tenant_id
+       AND rt.excluido = FALSE
       ${where}
     `;
 
@@ -269,17 +281,40 @@ class ProdutoDAO {
     return rows[0] || null;
   }
 
+  static async listarRegrasFiscais(client) {
+    const { rows } = await client.query(
+      `
+        SELECT
+          regra_tributaria_id,
+          descricao,
+          cfop_venda_interna,
+          cfop_venda_interestadual,
+          origem_mercadoria,
+          ativo
+        FROM regra_tributaria
+        WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+          AND excluido = FALSE
+          AND ativo = TRUE
+        ORDER BY prioridade DESC, descricao ASC
+      `
+    );
+
+    return rows;
+  }
+
   static async obterSupportData(client) {
-    const [unidades, tabelaPrecoPadrao, depositoPadrao] = await Promise.all([
+    const [unidades, tabelaPrecoPadrao, depositoPadrao, regrasFiscais] = await Promise.all([
       this.listarUnidades(client),
       this.obterTabelaPrecoPadrao(client),
       this.obterDepositosPadrao(client),
+      this.listarRegrasFiscais(client),
     ]);
 
     return {
       unidades,
       tabelaPrecoPadrao,
       depositoPadrao,
+      regrasFiscais,
     };
   }
 
@@ -300,6 +335,8 @@ class ProdutoDAO {
           pf.ncm,
           pf.cest,
           pf.extipi,
+          pf.regra_tributaria_id,
+          rt.descricao AS regra_fiscal_descricao,
           pf.origem_mercadoria,
           pf.cbenef,
           pf.fci,
@@ -323,6 +360,10 @@ class ProdutoDAO {
           pe.estoque_reservado
         FROM produto p
         LEFT JOIN produto_fiscal pf ON pf.produto_id = p.produto_id
+        LEFT JOIN regra_tributaria rt
+          ON rt.regra_tributaria_id = pf.regra_tributaria_id
+         AND rt.tenant_id = p.tenant_id
+         AND rt.excluido = FALSE
         LEFT JOIN produto_unidade pu ON pu.produto_id = p.produto_id
         LEFT JOIN tabela_preco tp
           ON tp.tenant_id = p.tenant_id
@@ -365,6 +406,8 @@ class ProdutoDAO {
       ncm: row.ncm,
       cest: row.cest,
       extipi: row.extipi,
+      regra_tributaria_id: row.regra_tributaria_id,
+      regra_fiscal_descricao: row.regra_fiscal_descricao,
       origem_mercadoria: row.origem_mercadoria,
       cbenef: row.cbenef,
       fci: row.fci,
@@ -426,10 +469,13 @@ class ProdutoDAO {
         ncm: normalizeText(payload.ncm, 8, { required: true, label: "NCM" }),
         cest: normalizeText(payload.cest, 7),
         extipi: normalizeText(payload.extipi, 3),
-        origem_mercadoria: normalizeText(payload.origem_mercadoria, 1, {
-          required: true,
-          label: "Origem da mercadoria",
+        regra_tributaria_id: parseInteger(payload.regra_tributaria_id, {
+          allowNull: true,
+          label: "Regra fiscal",
         }),
+        origem_mercadoria: normalizeText(payload.origem_mercadoria, 1, {
+          label: "Origem da mercadoria",
+        }) || "0",
         cbenef: normalizeText(payload.cbenef, 10),
         fci: normalizeText(payload.fci, 36),
         cfop_venda_interna: normalizeText(payload.cfop_venda_interna, 4),
@@ -512,6 +558,27 @@ class ProdutoDAO {
     }
   }
 
+  static async validarRegraFiscal(client, regraTributariaId) {
+    if (!regraTributariaId) return;
+
+    const { rows } = await client.query(
+      `
+        SELECT regra_tributaria_id
+        FROM regra_tributaria
+        WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+          AND regra_tributaria_id = $1
+          AND ativo = TRUE
+          AND excluido = FALSE
+        LIMIT 1
+      `,
+      [regraTributariaId]
+    );
+
+    if (!rows[0]) {
+      throw new Error("Regra fiscal inválida ou inativa.");
+    }
+  }
+
   static async criar(client, payload) {
     const data = this.normalizePayload(payload);
     const supportData = await this.obterSupportData(client);
@@ -525,6 +592,7 @@ class ProdutoDAO {
       data.unidade.unidade_comercial_id,
       data.unidade.unidade_tributavel_id
     );
+    await this.validarRegraFiscal(client, data.fiscal.regra_tributaria_id);
 
     await client.query("BEGIN");
 
@@ -589,6 +657,7 @@ class ProdutoDAO {
             ncm,
             cest,
             extipi,
+            regra_tributaria_id,
             origem_mercadoria,
             cbenef,
             fci,
@@ -615,7 +684,8 @@ class ProdutoDAO {
             $11,
             $12,
             $13,
-            $14
+            $14,
+            $15
           )
         `,
         [
@@ -623,6 +693,7 @@ class ProdutoDAO {
           data.fiscal.ncm,
           data.fiscal.cest,
           data.fiscal.extipi,
+          data.fiscal.regra_tributaria_id,
           data.fiscal.origem_mercadoria,
           data.fiscal.cbenef,
           data.fiscal.fci,
@@ -753,6 +824,7 @@ class ProdutoDAO {
       data.unidade.unidade_comercial_id,
       data.unidade.unidade_tributavel_id
     );
+    await this.validarRegraFiscal(client, data.fiscal.regra_tributaria_id);
 
     await client.query("BEGIN");
 
@@ -795,6 +867,7 @@ class ProdutoDAO {
             ncm,
             cest,
             extipi,
+            regra_tributaria_id,
             origem_mercadoria,
             cbenef,
             fci,
@@ -821,13 +894,15 @@ class ProdutoDAO {
             $11,
             $12,
             $13,
-            $14
+            $14,
+            $15
           )
           ON CONFLICT (produto_id)
           DO UPDATE SET
             ncm = EXCLUDED.ncm,
             cest = EXCLUDED.cest,
             extipi = EXCLUDED.extipi,
+            regra_tributaria_id = EXCLUDED.regra_tributaria_id,
             origem_mercadoria = EXCLUDED.origem_mercadoria,
             cbenef = EXCLUDED.cbenef,
             fci = EXCLUDED.fci,
@@ -845,6 +920,7 @@ class ProdutoDAO {
           data.fiscal.ncm,
           data.fiscal.cest,
           data.fiscal.extipi,
+          data.fiscal.regra_tributaria_id,
           data.fiscal.origem_mercadoria,
           data.fiscal.cbenef,
           data.fiscal.fci,

@@ -14,7 +14,6 @@ export const ModalProduto = ({ isOpen, produtoId, onClose }) => {
     registerFieldRef,
     handleSubmit,
     tipoProdutoOptions,
-    origemOptions,
   } = useModalProduto({
     isOpen,
     produtoId,
@@ -208,118 +207,49 @@ export const ModalProduto = ({ isOpen, produtoId, onClose }) => {
 
                 <C.Grid>
                   <C.Field>
-                    {renderRequiredLabel("Origem da mercadoria")}
+                    {renderRequiredLabel("Regra fiscal")}
                     <C.Select
-                      ref={registerFieldRef("origem_mercadoria")}
-                      value={form.origem_mercadoria}
+                      ref={registerFieldRef("regra_tributaria_id")}
+                      value={form.regra_tributaria_id}
                       onChange={(event) =>
-                        updateField("origem_mercadoria", event.target.value)
+                        updateField("regra_tributaria_id", event.target.value)
                       }
                       required
                     >
-                      {origemOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
+                      <option value="">Selecione</option>
+                      {supportData.regrasFiscais.map((regra) => (
+                        <option
+                          key={regra.regra_tributaria_id}
+                          value={regra.regra_tributaria_id}
+                        >
+                          {regra.descricao}
                         </option>
                       ))}
                     </C.Select>
                   </C.Field>
 
                   <C.Field>
-                    <C.FieldSpan>Código de benefício fiscal</C.FieldSpan>
-                    <C.Input
-                      value={form.cbenef}
-                      onChange={(event) => updateField("cbenef", event.target.value)}
-                    />
+                    <C.FieldSpan>Resumo da regra</C.FieldSpan>
+                    <C.ReadOnlyBox>
+                      {supportData.regrasFiscais.find(
+                        (regra) =>
+                          Number(regra.regra_tributaria_id) ===
+                          Number(form.regra_tributaria_id)
+                      )
+                        ? (() => {
+                            const regra = supportData.regrasFiscais.find(
+                              (item) =>
+                                Number(item.regra_tributaria_id) ===
+                                Number(form.regra_tributaria_id)
+                            );
+                            return `CFOP ${regra.cfop_venda_interna || "--"} / ${
+                              regra.cfop_venda_interestadual || "--"
+                            } • Origem ${regra.origem_mercadoria || "0"}`;
+                          })()
+                        : "Cadastre uma regra fiscal em Configuração > Fiscal."}
+                    </C.ReadOnlyBox>
                   </C.Field>
                 </C.Grid>
-
-                <C.Grid>
-                  <C.Field>
-                    <C.FieldSpan>FCI</C.FieldSpan>
-                    <C.Input
-                      value={form.fci}
-                      onChange={(event) => updateField("fci", event.target.value)}
-                    />
-                  </C.Field>
-
-                  <C.Field>
-                    <C.FieldSpan>Indicador de escala</C.FieldSpan>
-                    <C.Select
-                      value={form.ind_escala}
-                      onChange={(event) => updateField("ind_escala", event.target.value)}
-                    >
-                      <option value="">Não informado</option>
-                      <option value="S">S - Produção relevante</option>
-                      <option value="N">N - Produção não relevante</option>
-                    </C.Select>
-                  </C.Field>
-                </C.Grid>
-
-                <C.GridThree>
-                  <C.Field>
-                    <C.FieldSpan>CFOP venda dentro da UF</C.FieldSpan>
-                    <C.Input
-                      value={form.cfop_venda_interna}
-                      onChange={(event) =>
-                        updateField("cfop_venda_interna", event.target.value)
-                      }
-                      maxLength={4}
-                    />
-                  </C.Field>
-                  <C.Field>
-                    <C.FieldSpan>CFOP venda fora da UF</C.FieldSpan>
-                    <C.Input
-                      value={form.cfop_venda_interestadual}
-                      onChange={(event) =>
-                        updateField("cfop_venda_interestadual", event.target.value)
-                      }
-                      maxLength={4}
-                    />
-                  </C.Field>
-                  <C.Field>
-                    <C.FieldSpan>CFOP compra</C.FieldSpan>
-                    <C.Input
-                      value={form.cfop_compra}
-                      onChange={(event) => updateField("cfop_compra", event.target.value)}
-                      maxLength={4}
-                    />
-                  </C.Field>
-                </C.GridThree>
-
-                <C.Grid>
-                  <C.Field>
-                    <C.FieldSpan>CNPJ do fabricante</C.FieldSpan>
-                    <C.Input
-                      value={form.cnpj_fabricante}
-                      onChange={(event) =>
-                        updateField("cnpj_fabricante", event.target.value)
-                      }
-                    />
-                  </C.Field>
-                </C.Grid>
-
-                <C.CheckboxGrid>
-                  <C.CheckboxLine>
-                    <input
-                      type="checkbox"
-                      checked={!!form.exige_lote}
-                      onChange={(event) => updateField("exige_lote", event.target.checked)}
-                    />
-                    Exige lote
-                  </C.CheckboxLine>
-
-                  <C.CheckboxLine>
-                    <input
-                      type="checkbox"
-                      checked={!!form.exige_validade}
-                      onChange={(event) =>
-                        updateField("exige_validade", event.target.checked)
-                      }
-                    />
-                    Exige validade
-                  </C.CheckboxLine>
-                </C.CheckboxGrid>
               </>
             ) : activeTab === "comercial" ? (
               <>

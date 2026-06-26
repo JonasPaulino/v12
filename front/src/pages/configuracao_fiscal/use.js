@@ -3,14 +3,18 @@ import Swal from "sweetalert2";
 import { AppContext } from "context";
 import { useSweetAlert } from "context/sweet_alert";
 import {
+  createRegraFiscal,
   createWhatsAppInstance,
+  deleteRegraFiscal,
   deleteWhatsAppInstance,
   getConfiguracaoFiscal,
   getPessoasEmitenteSelect,
   getWhatsAppQrCode,
   getWhatsAppStatus,
+  listRegrasFiscais,
   logoutWhatsAppInstance,
   restartWhatsAppInstance,
+  updateRegraFiscal,
   updateConfiguracaoFiscal,
 } from "./api";
 
@@ -53,6 +57,69 @@ const buildInitialForm = () => ({
   whatsapp_auto_enviar_pix_venda: false,
   whatsapp_mensagem_boleto_padrao: "",
   whatsapp_mensagem_pix_padrao: "",
+});
+
+const buildRegraFiscalForm = () => ({
+  descricao: "",
+  regime_tributario: "simples_nacional",
+  crt_emitente: "1",
+  tipo_operacao: "saida",
+  finalidade_nfe: "normal",
+  consumidor_final: true,
+  contribuinte_icms: false,
+  origem_mercadoria: "0",
+  cfop_venda_interna: "5101",
+  cfop_venda_interestadual: "6101",
+  cfop_compra: "",
+  cbenef: "",
+  observacao: "",
+  prioridade: "0",
+  ativo: true,
+  icms_cst: "",
+  icms_csosn: "102",
+  icms_aliquota: "0",
+  icms_reducao_base: "0",
+  icms_aliquota_fcp: "0",
+  icms_modalidade_bc: "3",
+  pis_cst: "99",
+  pis_aliquota: "0",
+  cofins_cst: "99",
+  cofins_aliquota: "0",
+  ipi_cst: "",
+  ipi_enquadramento: "",
+  ipi_aliquota: "0",
+});
+
+const mapRegraFiscalToForm = (regra = {}) => ({
+  ...buildRegraFiscalForm(),
+  descricao: regra.descricao || "",
+  regime_tributario: regra.regime_tributario || "simples_nacional",
+  crt_emitente: regra.crt_emitente || "1",
+  tipo_operacao: regra.tipo_operacao || "saida",
+  finalidade_nfe: regra.finalidade_nfe || "normal",
+  consumidor_final: regra.consumidor_final !== false,
+  contribuinte_icms: !!regra.contribuinte_icms,
+  origem_mercadoria: regra.origem_mercadoria || "0",
+  cfop_venda_interna: regra.cfop_venda_interna || "",
+  cfop_venda_interestadual: regra.cfop_venda_interestadual || "",
+  cfop_compra: regra.cfop_compra || "",
+  cbenef: regra.cbenef || "",
+  observacao: regra.observacao || "",
+  prioridade: String(regra.prioridade ?? 0),
+  ativo: regra.ativo !== false,
+  icms_cst: regra.icms_cst || "",
+  icms_csosn: regra.icms_csosn || "",
+  icms_aliquota: String(regra.icms_aliquota ?? 0),
+  icms_reducao_base: String(regra.icms_reducao_base ?? 0),
+  icms_aliquota_fcp: String(regra.icms_aliquota_fcp ?? 0),
+  icms_modalidade_bc: regra.icms_modalidade_bc || "3",
+  pis_cst: regra.pis_cst || "99",
+  pis_aliquota: String(regra.pis_aliquota ?? 0),
+  cofins_cst: regra.cofins_cst || "99",
+  cofins_aliquota: String(regra.cofins_aliquota ?? 0),
+  ipi_cst: regra.ipi_cst || "",
+  ipi_enquadramento: regra.ipi_enquadramento || "",
+  ipi_aliquota: String(regra.ipi_aliquota ?? 0),
 });
 
 const formatFileSize = (size) => {
@@ -229,6 +296,10 @@ export const useConfiguracaoFiscalPage = () => {
     loading: false,
   });
   const [certificadoFile, setCertificadoFile] = useState(null);
+  const [regrasFiscais, setRegrasFiscais] = useState([]);
+  const [regraFiscalForm, setRegraFiscalForm] = useState(buildRegraFiscalForm());
+  const [editingRegraFiscalId, setEditingRegraFiscalId] = useState(null);
+  const [regraFiscalSaving, setRegraFiscalSaving] = useState(false);
 
   const applyData = useCallback((payload) => {
     const data = payload || {};
@@ -311,10 +382,14 @@ export const useConfiguracaoFiscalPage = () => {
     const load = async () => {
       try {
         setLoading(true);
-        const response = await getConfiguracaoFiscal();
+        const [response, regrasResponse] = await Promise.all([
+          getConfiguracaoFiscal(),
+          listRegrasFiscais(),
+        ]);
 
         if (!mounted) return;
         applyData(response.data || null);
+        setRegrasFiscais(regrasResponse.data || []);
       } catch (error) {
         if (!mounted) return;
 
@@ -342,6 +417,114 @@ export const useConfiguracaoFiscalPage = () => {
   const updateField = useCallback((field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   }, []);
+
+  const updateRegraFiscalField = useCallback((field, value) => {
+    setRegraFiscalForm((prev) => ({ ...prev, [field]: value }));
+  }, []);
+
+  const reloadRegrasFiscais = useCallback(async () => {
+    const response = await listRegrasFiscais();
+    setRegrasFiscais(response.data || []);
+  }, []);
+
+  const resetRegraFiscalForm = useCallback(() => {
+    setEditingRegraFiscalId(null);
+    setRegraFiscalForm(buildRegraFiscalForm());
+  }, []);
+
+  const handleEditRegraFiscal = useCallback((regra) => {
+    setEditingRegraFiscalId(regra?.regra_tributaria_id || null);
+    setRegraFiscalForm(mapRegraFiscalToForm(regra));
+  }, []);
+
+  const handleSaveRegraFiscal = useCallback(async () => {
+    if (regraFiscalSaving) return;
+
+    if (!String(regraFiscalForm.descricao || "").trim()) {
+      showAlert({
+        title: "Nome obrigatório",
+        text: "Informe um nome para a regra fiscal.",
+        icon: "warning",
+      });
+      return;
+    }
+
+    try {
+      setRegraFiscalSaving(true);
+
+      const response = editingRegraFiscalId
+        ? await updateRegraFiscal(editingRegraFiscalId, regraFiscalForm)
+        : await createRegraFiscal(regraFiscalForm);
+
+      await reloadRegrasFiscais();
+      resetRegraFiscalForm();
+
+      showAlert({
+        title: "Regra fiscal salva",
+        text: response.message || "Regra fiscal salva com sucesso.",
+        icon: "success",
+      });
+    } catch (error) {
+      showAlert({
+        title: "Falha ao salvar regra",
+        text:
+          error?.response?.data?.message ||
+          "Não foi possível salvar a regra fiscal.",
+        icon: "error",
+      });
+    } finally {
+      setRegraFiscalSaving(false);
+    }
+  }, [
+    editingRegraFiscalId,
+    regraFiscalForm,
+    regraFiscalSaving,
+    reloadRegrasFiscais,
+    resetRegraFiscalForm,
+    showAlert,
+  ]);
+
+  const handleDeleteRegraFiscal = useCallback(
+    async (regra) => {
+      const confirmed = await askYesNoQuestion(
+        "Excluir regra fiscal",
+        `Deseja realmente excluir a regra "${regra?.descricao || ""}"?`
+      );
+
+      if (!confirmed) return;
+
+      try {
+        await deleteRegraFiscal(regra.regra_tributaria_id);
+        await reloadRegrasFiscais();
+
+        if (editingRegraFiscalId === regra.regra_tributaria_id) {
+          resetRegraFiscalForm();
+        }
+
+        showAlert({
+          title: "Regra fiscal excluída",
+          text: "A regra fiscal foi removida com sucesso.",
+          icon: "success",
+          confirmButtonText: "OK",
+        });
+      } catch (error) {
+        showAlert({
+          title: "Falha ao excluir regra",
+          text:
+            error?.response?.data?.message ||
+            "Não foi possível excluir a regra fiscal.",
+          icon: "error",
+        });
+      }
+    },
+    [
+      askYesNoQuestion,
+      editingRegraFiscalId,
+      reloadRegrasFiscais,
+      resetRegraFiscalForm,
+      showAlert,
+    ]
+  );
 
   const loadEmitenteOptions = useCallback(async (search) => {
     const response = await getPessoasEmitenteSelect(search);
@@ -844,10 +1027,19 @@ export const useConfiguracaoFiscalPage = () => {
     contasResumo,
     whatsappResumo,
     whatsAppState,
+    regrasFiscais,
+    regraFiscalForm,
+    editingRegraFiscalId,
+    regraFiscalSaving,
     isWhatsAppConnected,
     canRestartWhatsApp,
     canDeleteWhatsApp,
     updateField,
+    updateRegraFiscalField,
+    resetRegraFiscalForm,
+    handleEditRegraFiscal,
+    handleSaveRegraFiscal,
+    handleDeleteRegraFiscal,
     loadEmitenteOptions,
     handleSelectEmitente,
     handleSelectCertificado,

@@ -354,6 +354,71 @@ export const ConnectionCard = styled.div`
   background: rgba(248, 251, 255, 0.72);
 `;
 
+export const RulePanel = styled.div`
+  display: grid;
+  grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.4fr);
+  gap: 18px;
+  align-items: start;
+
+  @media (max-width: 1080px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+export const RuleList = styled.div`
+  display: grid;
+  gap: 12px;
+`;
+
+export const RuleItem = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px 18px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radius.md};
+  background: rgba(248, 251, 255, 0.92);
+
+  @media (max-width: 640px) {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+`;
+
+export const RuleMeta = styled.span`
+  display: block;
+  margin-top: 6px;
+  color: ${({ theme }) => theme.colors.textSoft};
+  font-size: 0.86rem;
+  line-height: 1.45;
+`;
+
+export const RuleActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+`;
+
+export const RuleFormBox = styled.div`
+  display: grid;
+  gap: 18px;
+  padding: 18px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radius.md};
+  background: rgba(255, 255, 255, 0.74);
+`;
+
+export const EmptyState = styled.div`
+  padding: 18px;
+  border: 1px dashed ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radius.md};
+  background: rgba(248, 251, 255, 0.82);
+  color: ${({ theme }) => theme.colors.textSoft};
+  font-weight: 700;
+`;
+
 export const ConnectionHeader = styled.div`
   display: flex;
   align-items: flex-start;

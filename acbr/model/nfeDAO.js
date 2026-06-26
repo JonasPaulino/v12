@@ -433,14 +433,39 @@ class NfeDAO {
           pvi.valor_total,
           pf.ncm,
           pf.cest,
-          pf.cfop_venda_interna AS cfop_padrao_venda_dentro_uf,
-          pf.cfop_venda_interestadual AS cfop_padrao_venda_fora_uf,
+          COALESCE(rt.cfop_venda_interna, pf.cfop_venda_interna) AS cfop_padrao_venda_dentro_uf,
+          COALESCE(rt.cfop_venda_interestadual, pf.cfop_venda_interestadual) AS cfop_padrao_venda_fora_uf,
           pf.cfop_compra,
-          pf.origem_mercadoria,
+          COALESCE(rt.origem_mercadoria, pf.origem_mercadoria, '0') AS origem_mercadoria,
+          COALESCE(rt.cbenef, pf.cbenef) AS cbenef,
+          icms.cst AS icms_cst,
+          icms.csosn AS icms_csosn,
+          icms.aliquota_icms AS icms_aliquota,
+          icms.reducao_base AS icms_reducao_base,
+          pis.cst AS pis_cst,
+          pis.aliquota AS pis_aliquota,
+          cofins.cst AS cofins_cst,
+          cofins.aliquota AS cofins_aliquota,
+          ipi.cst AS ipi_cst,
+          ipi.enquadramento_ipi AS ipi_enquadramento,
+          ipi.aliquota AS ipi_aliquota,
           um.sigla AS unidade_cadastro_sigla
         FROM pedido_venda_item pvi
         LEFT JOIN produto_fiscal pf ON pf.produto_id = pvi.produto_id
           AND pf.tenant_id = pvi.tenant_id
+        LEFT JOIN regra_tributaria rt
+          ON rt.regra_tributaria_id = pf.regra_tributaria_id
+         AND rt.tenant_id = pvi.tenant_id
+         AND rt.excluido = FALSE
+         AND rt.ativo = TRUE
+        LEFT JOIN regra_tributaria_icms icms
+          ON icms.regra_tributaria_id = rt.regra_tributaria_id
+        LEFT JOIN regra_tributaria_pis pis
+          ON pis.regra_tributaria_id = rt.regra_tributaria_id
+        LEFT JOIN regra_tributaria_cofins cofins
+          ON cofins.regra_tributaria_id = rt.regra_tributaria_id
+        LEFT JOIN regra_tributaria_ipi ipi
+          ON ipi.regra_tributaria_id = rt.regra_tributaria_id
         LEFT JOIN produto_unidade pu ON pu.produto_id = pvi.produto_id
           AND pu.tenant_id = pvi.tenant_id
         LEFT JOIN unidade_medida um ON um.unidade_medida_id = pu.unidade_comercial_id
@@ -605,7 +630,8 @@ class NfeDAO {
               valor_desconto,
               valor_acrescimo,
               valor_total,
-              origem_mercadoria
+              origem_mercadoria,
+              cbenef
             )
             VALUES (
               ${TENANT_CONTEXT_SQL},
@@ -623,7 +649,8 @@ class NfeDAO {
               $12,
               $13,
               $14,
-              $15
+              $15,
+              $16
             )
             RETURNING nfe_item_id
           `,
@@ -646,6 +673,7 @@ class NfeDAO {
             item.acrescimo || 0,
             item.valor_total || 0,
             item.origem_mercadoria || "0",
+            item.cbenef || null,
           ]
         );
 
@@ -654,15 +682,78 @@ class NfeDAO {
             INSERT INTO fiscal.nfe_item_imposto (
               tenant_id,
               nfe_id,
-              nfe_item_id
+              nfe_item_id,
+              icms_origem,
+              icms_cst,
+              icms_csosn,
+              icms_aliquota,
+              icms_base,
+              icms_valor,
+              icms_reducao_base,
+              pis_cst,
+              pis_base,
+              pis_aliquota,
+              pis_valor,
+              cofins_cst,
+              cofins_base,
+              cofins_aliquota,
+              cofins_valor,
+              ipi_cst,
+              ipi_base,
+              ipi_aliquota,
+              ipi_valor,
+              ipi_enquadramento
             )
             VALUES (
               ${TENANT_CONTEXT_SQL},
               $1,
-              $2
+              $2,
+              $3,
+              $4,
+              $5,
+              $6,
+              $7,
+              $8,
+              $9,
+              $10,
+              $11,
+              $12,
+              $13,
+              $14,
+              $15,
+              $16,
+              $17,
+              $18,
+              $19,
+              $20,
+              $21,
+              $22
             )
           `,
-          [nfe.nfe_id, itemResult.rows[0].nfe_item_id]
+          [
+            nfe.nfe_id,
+            itemResult.rows[0].nfe_item_id,
+            item.origem_mercadoria || "0",
+            item.icms_cst || null,
+            item.icms_csosn || null,
+            item.icms_aliquota || 0,
+            0,
+            0,
+            item.icms_reducao_base || 0,
+            item.pis_cst || "99",
+            0,
+            item.pis_aliquota || 0,
+            0,
+            item.cofins_cst || "99",
+            0,
+            item.cofins_aliquota || 0,
+            0,
+            item.ipi_cst || null,
+            0,
+            item.ipi_aliquota || 0,
+            0,
+            item.ipi_enquadramento || null,
+          ]
         );
       }
 

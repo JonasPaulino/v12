@@ -21,6 +21,26 @@ export const updateConfiguracaoFiscal = async (payload) => {
   return data;
 };
 
+export const listRegrasFiscais = async (params = {}) => {
+  const { data } = await api.get("/regra-fiscal", { params });
+  return data;
+};
+
+export const createRegraFiscal = async (payload = {}) => {
+  const { data } = await api.post("/regra-fiscal", payload);
+  return data;
+};
+
+export const updateRegraFiscal = async (regraId, payload = {}) => {
+  const { data } = await api.put(`/regra-fiscal/${regraId}`, payload);
+  return data;
+};
+
+export const deleteRegraFiscal = async (regraId) => {
+  const { data } = await api.delete(`/regra-fiscal/${regraId}`);
+  return data;
+};
+
 export const createWhatsAppInstance = async (payload = {}) => {
   const { data } = await api.post("/integracoes/mensagens/whatsapp/instance", payload);
   return data;
