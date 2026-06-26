@@ -28,7 +28,8 @@ const resolveChargeDueDate = (value) => {
 
 const normalizePhoneNumber = (value) => {
   const digits = String(value || "").replace(/\D/g, "");
-  return digits.length >= 10 ? digits : "";
+  if (digits.length === 10 || digits.length === 11) return `55${digits}`;
+  return digits.length >= 12 ? digits : "";
 };
 
 const findExistingBoletoCharges = async (client, { tenantId, financeiroTituloId }) => {

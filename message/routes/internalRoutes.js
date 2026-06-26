@@ -54,7 +54,7 @@ const flattenMessage = (value) => {
   if (!value) return "";
   if (Array.isArray(value)) return value.map(flattenMessage).filter(Boolean).join(" ");
   if (typeof value === "object") {
-    return flattenMessage(
+    const preferred = flattenMessage(
       value.message ||
         value.error ||
         value.description ||
@@ -62,6 +62,10 @@ const flattenMessage = (value) => {
         value.response ||
         value.data
     );
+
+    if (preferred) return preferred;
+
+    return Object.values(value).map(flattenMessage).filter(Boolean).join(" ");
   }
 
   return String(value).trim();
@@ -148,7 +152,10 @@ router.post("/whatsapp/send-text", async (req, res) => {
       data,
     });
   } catch (error) {
-    console.error("[message] Falha ao enviar texto:", error?.response?.data || error?.message || error);
+    console.error(
+      "[message] Falha ao enviar texto:",
+      JSON.stringify(error?.response?.data || error?.message || error, null, 2)
+    );
     return res.status(400).json({
       success: false,
       message: extractErrorMessage(error, "Não foi possível enviar a mensagem no WhatsApp."),
