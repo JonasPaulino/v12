@@ -1,56 +1,56 @@
 import express from "express";
-import NfeReportDAO from "../model/nfeReportDAO.js";
-import { buildDanfeHtml } from "../service/danfeHtmlService.js";
-import { renderHtmlToPdf } from "../service/pdfService.js";
 
 const router = express.Router();
 
+const acbrBaseUrl = () =>
+  String(process.env.ACBR_SERVICE_URL || "http://acbr:4100").replace(/\/+$/, "");
+
+const contentDispositionFileName = (value, fallback) => {
+  const match = String(value || "").match(/filename="?([^";]+)"?/i);
+  return match?.[1] || fallback;
+};
+
 router.get("/:id/danfe", async (req, res) => {
-  const format = String(req.query.format || "pdf").toLowerCase();
-
   try {
-    const dados = await NfeReportDAO.buscarDanfe(req.db, req.params.id);
-    if (!dados) {
-      return res.status(404).json({
+    const response = await fetch(`${acbrBaseUrl()}/nfe/${encodeURIComponent(req.params.id)}/danfe`, {
+      method: "GET",
+      headers: {
+        Cookie: req.headers.cookie || "",
+        Accept: "application/pdf, application/json",
+      },
+    });
+
+    const contentType = response.headers.get("content-type") || "";
+
+    if (!response.ok) {
+      const body = contentType.includes("application/json")
+        ? await response.json().catch(() => null)
+        : null;
+      const text = body ? "" : await response.text().catch(() => "");
+
+      return res.status(response.status).json({
         success: false,
-        message: "NF-e não encontrada.",
+        message: body?.message || text || "Não foi possível gerar o DANFE pela ACBrLib.",
       });
     }
 
-    if (String(dados.nfe.status || "").toLowerCase() !== "autorizada") {
-      return res.status(400).json({
-        success: false,
-        message: "DANFE disponível apenas para NF-e autorizada.",
-      });
-    }
-
-    if (!dados.nfe.xml_autorizado) {
-      return res.status(400).json({
-        success: false,
-        message: "A NF-e autorizada ainda não possui XML salvo.",
-      });
-    }
-
-    const html = buildDanfeHtml(dados);
-
-    if (format === "html") {
-      res.setHeader("Content-Type", "text/html; charset=utf-8");
-      return res.send(html);
-    }
-
-    const buffer = await renderHtmlToPdf(html);
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      `inline; filename="danfe-nfe-${dados.nfe.numero || dados.nfe.nfe_id}.pdf"`
+    const buffer = Buffer.from(await response.arrayBuffer());
+    const disposition = response.headers.get("content-disposition");
+    const filename = contentDispositionFileName(
+      disposition,
+      `danfe-nfe-${req.params.id}.pdf`
     );
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `inline; filename="${filename}"`);
+    res.setHeader("Content-Length", buffer.length);
     res.setHeader("X-Content-Type-Options", "nosniff");
     return res.end(buffer);
   } catch (error) {
-    console.error("[reports:nfe] Falha ao gerar DANFE:", error);
+    console.error("[reports:nfe] Falha ao buscar DANFE na ACBrLib:", error);
     return res.status(500).json({
       success: false,
-      message: "Não foi possível gerar o DANFE.",
+      message: "Não foi possível gerar o DANFE pela ACBrLib.",
     });
   }
 });

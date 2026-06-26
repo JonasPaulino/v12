@@ -551,6 +551,44 @@ class AcbrNfeIntegrationDAO {
       [safeNfeId, tipoXml, chaveAcesso, conteudoXml, sha256(conteudoXml)]
     );
   }
+
+  static async carregarDanfeAssets(client, nfeId) {
+    const safeNfeId = parseInteger(nfeId, { label: "NF-e" });
+
+    const xmlResult = await client.query(
+      `
+        SELECT tipo_xml, chave_acesso, conteudo_xml, criado_em
+        FROM fiscal.nfe_xml
+        WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+          AND nfe_id = $1
+          AND tipo_xml IN ('autorizado', 'retorno_autorizacao', 'importado')
+        ORDER BY
+          CASE tipo_xml
+            WHEN 'autorizado' THEN 1
+            WHEN 'retorno_autorizacao' THEN 2
+            ELSE 3
+          END,
+          criado_em DESC,
+          nfe_xml_id DESC
+        LIMIT 1
+      `,
+      [safeNfeId]
+    );
+
+    const logoResult = await client.query(
+      `
+        SELECT nome_arquivo, mime_type, conteudo
+        FROM tenant_logo
+        WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+        LIMIT 1
+      `
+    );
+
+    return {
+      xml: xmlResult.rows[0] || null,
+      logo: logoResult.rows[0] || null,
+    };
+  }
 }
 
 export default AcbrNfeIntegrationDAO;

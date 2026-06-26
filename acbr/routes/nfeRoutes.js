@@ -128,6 +128,42 @@ router.get("/:id", async (req, res) => {
   }
 });
 
+router.get("/:id/danfe", async (req, res) => {
+  try {
+    const data = await AcbrLibProvider.gerarDanfePdf({
+      client: req.db,
+      nfeId: Number(req.params.id),
+      tenantId: Number(req.user?.tenantId),
+    });
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `inline; filename="${data.filename}"`);
+    res.setHeader("Content-Length", data.buffer.length);
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    return res.end(data.buffer);
+  } catch (error) {
+    if (isProviderStubError(error)) {
+      if (error instanceof AcbrLibIntegrationError) {
+        console.error("[acbr:nfe] Falha ao gerar DANFE pela ACBrLib:", {
+          message: error.message,
+          details: error.details,
+        });
+      }
+
+      return res.status(error instanceof AcbrLibNotConfiguredError ? 501 : 400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    console.error("[acbr:nfe] Falha ao gerar DANFE:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Não foi possível gerar o DANFE pela ACBrLib.",
+    });
+  }
+});
+
 router.post("/emitir", async (req, res) => {
   try {
     const data = await NfeDAO.criarPorPedido(req.db, {

@@ -17,6 +17,7 @@ import {
 const execFileAsync = promisify(execFile);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const NFE_NATIVE_WORKER_PATH = path.join(__dirname, "nfeNativeWorker.js");
+const DANFE_NATIVE_WORKER_PATH = path.join(__dirname, "danfeNativeWorker.js");
 
 class AcbrLibNotConfiguredError extends Error {
   constructor(message = "ACBrLib não configurada neste ambiente.") {
@@ -123,6 +124,90 @@ const runNfeEmissionWorker = async ({ tenantId, nfeId, context, certificadoSenha
       result?.message ||
       stderr ||
       `A ACBrLib falhou durante a emissão da NF-e${signal}.`;
+
+    throw new AcbrLibIntegrationError(message, {
+      nfeId,
+      tenantId,
+      workerResult: result,
+      signal: error.signal || null,
+      stderr,
+    });
+  } finally {
+    await fs.rm(workDir, { recursive: true, force: true });
+  }
+};
+
+const runDanfeWorker = async ({
+  tenantId,
+  nfeId,
+  context,
+  certificadoSenha,
+  xmlAutorizado,
+  logo,
+}) => {
+  const workDir = await fs.mkdtemp(path.join(os.tmpdir(), `v12-danfe-${tenantId}-${nfeId}-`));
+  const inputPath = path.join(workDir, "input.json");
+  const outputPath = path.join(workDir, "output.json");
+  const certificadoBase64 = context.certificado?.conteudo_pfx
+    ? Buffer.from(context.certificado.conteudo_pfx).toString("base64")
+    : "";
+
+  await fs.writeFile(
+    inputPath,
+    JSON.stringify({
+      tenantId,
+      nfeId,
+      context: normalizeContextForWorker(context),
+      certificadoBase64,
+      certificadoSenha,
+      xmlAutorizado,
+      logoBase64: logo?.conteudo ? Buffer.from(logo.conteudo).toString("base64") : "",
+      logoMimeType: logo?.mime_type || "",
+      logoNomeArquivo: logo?.nome_arquivo || "",
+    }),
+    "utf8"
+  );
+
+  try {
+    const { stderr } = await execFileAsync(process.execPath, [DANFE_NATIVE_WORKER_PATH, inputPath, outputPath], {
+      cwd: process.cwd(),
+      env: process.env,
+      maxBuffer: 20 * 1024 * 1024,
+      timeout: 120000,
+    });
+
+    if (stderr) {
+      console.error(stderr.trim());
+    }
+
+    const result = await safeReadJsonFile(outputPath);
+    if (!result?.ok || !result.pdfBase64) {
+      throw new AcbrLibIntegrationError(result?.lastReturn || result?.message || "Falha ao gerar DANFE com a ACBrLib.", {
+        nfeId,
+        tenantId,
+        workerResult: result,
+      });
+    }
+
+    return {
+      ...result,
+      pdfBuffer: Buffer.from(result.pdfBase64, "base64"),
+    };
+  } catch (error) {
+    const result = await safeReadJsonFile(outputPath);
+    const signal = error.signal ? ` (signal: ${error.signal})` : "";
+    const stderr = String(error.stderr || "").trim();
+    const crashedNative =
+      error.signal ||
+      error.code === 139 ||
+      /segmentation fault|core dumped|sigsegv/i.test(stderr);
+    const message =
+      result?.lastReturn ||
+      result?.message ||
+      stderr ||
+      (crashedNative
+        ? `A ACBrLib falhou durante a geração do DANFE${signal}.`
+        : `A ACBrLib falhou durante a geração do DANFE${signal}.`);
 
     throw new AcbrLibIntegrationError(message, {
       nfeId,
@@ -350,6 +435,44 @@ class AcbrLibProvider {
         { nfeId, tenantId, workerResult, signal: error.details?.signal || null }
       );
     }
+  }
+
+  static async gerarDanfePdf({ client, nfeId, tenantId }) {
+    this.ensureConfigured();
+
+    const context = await AcbrNfeIntegrationDAO.carregarContexto(client, nfeId);
+
+    if (String(context.nfe.status || "").toLowerCase() !== "autorizada") {
+      throw new AcbrLibIntegrationError("DANFE disponível apenas para NF-e autorizada.", {
+        nfeId,
+        tenantId,
+      });
+    }
+
+    const assets = await AcbrNfeIntegrationDAO.carregarDanfeAssets(client, nfeId);
+    if (!assets.xml?.conteudo_xml) {
+      throw new AcbrLibIntegrationError("A NF-e autorizada ainda não possui XML salvo.", {
+        nfeId,
+        tenantId,
+      });
+    }
+
+    const workerResult = await runDanfeWorker({
+      tenantId,
+      nfeId,
+      context,
+      certificadoSenha: context.certificado?.senha_criptografada
+        ? decryptSecret(context.certificado.senha_criptografada)
+        : "",
+      xmlAutorizado: assets.xml.conteudo_xml,
+      logo: assets.logo,
+    });
+
+    return {
+      filename: `danfe-nfe-${context.nfe.numero || nfeId}.pdf`,
+      buffer: workerResult.pdfBuffer,
+      pdfPath: workerResult.pdfPath,
+    };
   }
 
   static async consultarStatus({ client, nfeId, tenantId, userId = null }) {
