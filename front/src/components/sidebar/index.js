@@ -149,13 +149,23 @@ const Sidebar = () => {
             </C.NavButton>
             <C.NavButton
               $open={mOpen}
-              $active={location.pathname === "/nfe"}
-              onClick={() => handleNavigate("/nfe", "NF-e")}
-              title="NF-e"
-              aria-label="NF-e"
+              $active={location.pathname === "/nfe/emitidas" || location.pathname === "/nfe"}
+              onClick={() => handleNavigate("/nfe/emitidas", "NF-e emitidas")}
+              title="NF-e emitidas"
+              aria-label="NF-e emitidas"
             >
               <HiOutlineDocumentText />
-              <C.NavText $open={mOpen}>NF-e</C.NavText>
+              <C.NavText $open={mOpen}>NF-e emitidas</C.NavText>
+            </C.NavButton>
+            <C.NavButton
+              $open={mOpen}
+              $active={location.pathname === "/nfe/recebidas"}
+              onClick={() => handleNavigate("/nfe/recebidas", "NF-e recebidas")}
+              title="NF-e recebidas"
+              aria-label="NF-e recebidas"
+            >
+              <HiOutlineDocumentText />
+              <C.NavText $open={mOpen}>NF-e recebidas</C.NavText>
             </C.NavButton>
           </C.NavList>
         </C.MenuContainer>

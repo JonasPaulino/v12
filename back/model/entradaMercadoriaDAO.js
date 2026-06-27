@@ -178,7 +178,7 @@ const buildOrderBy = (sort = {}) => {
 };
 
 class EntradaMercadoriaDAO {
-  static async listar(client, { page = 1, limit = 20, search = "", sort = {} }) {
+  static async listar(client, { page = 1, limit = 20, search = "", sort = {}, onlyNfe = false }) {
     const safePage = Number(page) > 0 ? Number(page) : 1;
     const safeLimit = Number(limit) > 0 ? Math.min(Number(limit), 100) : 20;
     const offset = (safePage - 1) * safeLimit;
@@ -189,6 +189,21 @@ class EntradaMercadoriaDAO {
       WHERE em.tenant_id = ${TENANT_CONTEXT_SQL}
         AND em.excluido = FALSE
     `;
+
+    if (onlyNfe) {
+      where += `
+        AND (
+          NULLIF(em.chave_acesso, '') IS NOT NULL
+          OR NULLIF(em.numero_nfe, '') IS NOT NULL
+          OR EXISTS (
+            SELECT 1
+            FROM entrada_xml_importado exi
+            WHERE exi.tenant_id = em.tenant_id
+              AND exi.entrada_mercadoria_id = em.entrada_mercadoria_id
+          )
+        )
+      `;
+    }
 
     if (normalizedSearch) {
       values.push(`%${normalizedSearch}%`);

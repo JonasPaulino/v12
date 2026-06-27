@@ -27,11 +27,12 @@ const formatNfeReference = (entrada) => {
   return { numero, chave };
 };
 
-const Tabela = ({ search, refreshKey, onViewDetails }) => {
+const Tabela = ({ search, refreshKey, onViewDetails, onlyNfe = false, emptyMessage }) => {
   const { entradas, page, setPage, totalPages, sort, toggleSort } =
     useTabelaEntradasMercadoria({
       search,
       refreshKey,
+      onlyNfe,
     });
   const [menuOpenId, setMenuOpenId] = useState(null);
   const [anchorEl, setAnchorEl] = useState(null);
@@ -178,7 +179,7 @@ const Tabela = ({ search, refreshKey, onViewDetails }) => {
             ) : (
               <C.Row>
                 <C.Cell colSpan={9}>
-                  <C.Empty>Nenhuma entrada de mercadoria encontrada.</C.Empty>
+                  <C.Empty>{emptyMessage || "Nenhuma entrada de mercadoria encontrada."}</C.Empty>
                 </C.Cell>
               </C.Row>
             )}

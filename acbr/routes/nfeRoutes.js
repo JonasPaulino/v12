@@ -54,6 +54,7 @@ router.get("/listar", async (req, res) => {
       search,
       status,
       sort,
+      emitidasOnly: true,
     });
 
     return res.json({

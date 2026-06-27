@@ -32,6 +32,7 @@ router.get("/", async (req, res) => {
       limit: Number(req.query.limit || 20),
       search: String(req.query.search || ""),
       sort: parseSort(req.query.sort),
+      onlyNfe: ["1", "true", "sim"].includes(String(req.query.onlyNfe || "").toLowerCase()),
     });
 
     return res.json({

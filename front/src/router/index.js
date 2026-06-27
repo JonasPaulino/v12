@@ -15,6 +15,7 @@ import { EntradaMercadoria } from "pages/entrada_mercadoria";
 import { Financeiro } from "pages/financeiro";
 import { ConfiguracaoFiscal } from "pages/configuracao_fiscal";
 import { Nfe } from "pages/nfe";
+import { NfeRecebidas } from "pages/nfe_recebidas";
 import { TenantSetup } from "pages/tenant_setup";
 import { NotFound } from "pages/404";
 
@@ -136,12 +137,23 @@ export const RouteApp = () => (
           </AuthMiddleware>
         }
       />
+      <Route path="/nfe" element={<Navigate to="/nfe/emitidas" replace />} />
       <Route
-        path="/nfe"
+        path="/nfe/emitidas"
         element={
           <AuthMiddleware>
-            <PageWrapper title="NF-e">
+            <PageWrapper title="NF-e emitidas">
               <Nfe />
+            </PageWrapper>
+          </AuthMiddleware>
+        }
+      />
+      <Route
+        path="/nfe/recebidas"
+        element={
+          <AuthMiddleware>
+            <PageWrapper title="NF-e recebidas">
+              <NfeRecebidas />
             </PageWrapper>
           </AuthMiddleware>
         }

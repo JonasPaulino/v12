@@ -1,12 +1,19 @@
 import { api } from "api/axiosConfig";
 
-export const getEntradasMercadoria = async (page = 1, limit = 12, search = "", sort = {}) => {
+export const getEntradasMercadoria = async (
+  page = 1,
+  limit = 12,
+  search = "",
+  sort = {},
+  options = {}
+) => {
   const { data } = await api.get("/entrada-mercadoria", {
     params: {
       page,
       limit,
       search,
       sort: JSON.stringify(sort || {}),
+      onlyNfe: options.onlyNfe ? "true" : undefined,
     },
   });
   return data;

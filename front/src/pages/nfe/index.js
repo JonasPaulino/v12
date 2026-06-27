@@ -35,7 +35,7 @@ export const Nfe = () => {
           <C.Toolbar>
             <C.ToolbarGroup>
               <C.CreateButton type="button" onClick={handleOpenNovo}>
-                Nova NF-e
+                Nova NF-e de saída
               </C.CreateButton>
 
               <C.SearchInput
@@ -54,7 +54,6 @@ export const Nfe = () => {
                 <option value="rejeitada">Rejeitada</option>
                 <option value="cancelamento_pendente">Cancelamento pendente</option>
                 <option value="cancelada">Cancelada</option>
-                <option value="importada">Importada</option>
                 <option value="erro_integracao">Erro de integração</option>
               </C.FilterSelect>
             </C.ToolbarGroup>

@@ -135,7 +135,14 @@ class NfeDAO {
     return rows;
   }
 
-  static async listar(client, { page = 1, limit = 20, search = "", status = "", sort = {} }) {
+  static async listar(client, {
+    page = 1,
+    limit = 20,
+    search = "",
+    status = "",
+    sort = {},
+    emitidasOnly = false,
+  }) {
     const safePage = Number(page) > 0 ? Number(page) : 1;
     const safeLimit = Number(limit) > 0 ? Math.min(Number(limit), 100) : 20;
     const offset = (safePage - 1) * safeLimit;
@@ -146,6 +153,12 @@ class NfeDAO {
     let where = `
       WHERE n.tenant_id = ${TENANT_CONTEXT_SQL}
     `;
+
+    if (emitidasOnly) {
+      where += `
+        AND n.status <> 'importada'
+      `;
+    }
 
     if (normalizedSearch) {
       values.push(`%${normalizedSearch}%`);

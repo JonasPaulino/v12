@@ -9,8 +9,29 @@ import { ModalImportarNota } from "./modal_importar_nota";
 import { useEntradaMercadoriaPage } from "./use";
 import * as C from "./style";
 
-export const EntradaMercadoria = () => {
+const PAGE_CONFIG = {
+  entrada: {
+    showManualEntry: true,
+    showImport: true,
+    createLabel: "Nova entrada",
+    importLabel: "Importar nota",
+    searchPlaceholder: "Pesquisar por entrada, pedido ou fornecedor",
+    onlyNfe: false,
+    emptyMessage: "Nenhuma entrada de mercadoria encontrada.",
+  },
+  nfeRecebidas: {
+    showManualEntry: false,
+    showImport: true,
+    importLabel: "Importar NF-e recebida",
+    searchPlaceholder: "Pesquisar por NF-e, chave, fornecedor ou entrada",
+    onlyNfe: true,
+    emptyMessage: "Nenhuma NF-e recebida encontrada.",
+  },
+};
+
+export const EntradaMercadoria = ({ mode = "entrada" }) => {
   const { mOpen, abreFechaMenu } = useContext(AppContext);
+  const config = PAGE_CONFIG[mode] || PAGE_CONFIG.entrada;
   const {
     search,
     setSearch,
@@ -38,19 +59,23 @@ export const EntradaMercadoria = () => {
         <C.Body>
           <C.Toolbar>
             <C.ToolbarGroup>
-              <C.CreateButton type="button" onClick={handleOpenNovo}>
-                Nova entrada
-              </C.CreateButton>
-              <C.CreateButton type="button" onClick={handleOpenImportModal}>
-                Importar nota
-              </C.CreateButton>
+              {config.showManualEntry && (
+                <C.CreateButton type="button" onClick={handleOpenNovo}>
+                  {config.createLabel}
+                </C.CreateButton>
+              )}
+              {config.showImport && (
+                <C.CreateButton type="button" onClick={handleOpenImportModal}>
+                  {config.importLabel}
+                </C.CreateButton>
+              )}
             </C.ToolbarGroup>
 
             <C.ToolbarGroup>
               <C.SearchInput
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Pesquisar por entrada, pedido ou fornecedor"
+                placeholder={config.searchPlaceholder}
               />
             </C.ToolbarGroup>
           </C.Toolbar>
@@ -60,6 +85,8 @@ export const EntradaMercadoria = () => {
               search={debouncedSearch}
               refreshKey={refreshKey}
               onViewDetails={handleOpenDetails}
+              onlyNfe={config.onlyNfe}
+              emptyMessage={config.emptyMessage}
             />
           </C.TableArea>
         </C.Body>

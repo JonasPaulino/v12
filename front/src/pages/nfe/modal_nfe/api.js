@@ -1,3 +1,3 @@
-import { emitirNfe, getPedidosEmitirSelect, importarXmlNfe } from "../api";
+import { emitirNfe, getPedidosEmitirSelect } from "../api";
 
-export { emitirNfe, getPedidosEmitirSelect, importarXmlNfe };
+export { emitirNfe, getPedidosEmitirSelect };

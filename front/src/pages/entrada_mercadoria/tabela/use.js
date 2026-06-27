@@ -3,7 +3,7 @@ import { AppContext } from "context";
 import { useSweetAlert } from "context/sweet_alert";
 import { getEntradasMercadoria } from "../api";
 
-export const useTabelaEntradasMercadoria = ({ search, refreshKey }) => {
+export const useTabelaEntradasMercadoria = ({ search, refreshKey, onlyNfe = false }) => {
   const { showLoading, hideLoading } = useContext(AppContext);
   const { showAlert } = useSweetAlert();
   const [entradas, setEntradas] = useState([]);
@@ -32,7 +32,7 @@ export const useTabelaEntradasMercadoria = ({ search, refreshKey }) => {
     const load = async () => {
       try {
         showLoading();
-        const response = await getEntradasMercadoria(page, 12, search, sort);
+        const response = await getEntradasMercadoria(page, 12, search, sort, { onlyNfe });
         if (!mounted) return;
         if ((response.totalPages || 1) < page) {
           setPage(response.totalPages || 1);
@@ -60,7 +60,7 @@ export const useTabelaEntradasMercadoria = ({ search, refreshKey }) => {
     return () => {
       mounted = false;
     };
-  }, [hideLoading, page, refreshKey, search, showAlert, showLoading, sort]);
+  }, [hideLoading, onlyNfe, page, refreshKey, search, showAlert, showLoading, sort]);
 
   return {
     entradas,
@@ -71,4 +71,3 @@ export const useTabelaEntradasMercadoria = ({ search, refreshKey }) => {
     toggleSort,
   };
 };
-
