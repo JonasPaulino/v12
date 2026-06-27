@@ -12,6 +12,11 @@ export const getEntradasMercadoria = async (page = 1, limit = 12, search = "", s
   return data;
 };
 
+export const getEntradaMercadoria = async (entradaMercadoriaId) => {
+  const { data } = await api.get(`/entrada-mercadoria/${entradaMercadoriaId}`);
+  return data;
+};
+
 export const searchPedidosCompraSelect = async (search = "", limit = 20) => {
   const { data } = await api.get("/entrada-mercadoria/pedidos-compra-select", {
     params: {

@@ -5,6 +5,7 @@ export const useEntradaMercadoriaPage = () => {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [openModal, setOpenModal] = useState(false);
   const [openImportModal, setOpenImportModal] = useState(false);
+  const [detailEntradaId, setDetailEntradaId] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
@@ -39,16 +40,27 @@ export const useEntradaMercadoriaPage = () => {
     }
   }, []);
 
+  const handleOpenDetails = useCallback((entradaMercadoriaId) => {
+    setDetailEntradaId(entradaMercadoriaId);
+  }, []);
+
+  const handleCloseDetails = useCallback(() => {
+    setDetailEntradaId(null);
+  }, []);
+
   return {
     search,
     setSearch,
     debouncedSearch,
     openModal,
     openImportModal,
+    detailEntradaId,
     refreshKey,
     handleOpenNovo,
     handleCloseModal,
     handleOpenImportModal,
     handleCloseImportModal,
+    handleOpenDetails,
+    handleCloseDetails,
   };
 };

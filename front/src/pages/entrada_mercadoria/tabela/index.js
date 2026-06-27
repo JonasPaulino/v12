@@ -1,5 +1,6 @@
-import React, { useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import Documento from "components/documento";
+import DropdownMenu from "components/dropDownMenu";
 import Paginacao from "components/paginacao";
 import { useTabelaEntradasMercadoria } from "./use";
 import * as C from "./style";
@@ -26,12 +27,25 @@ const formatNfeReference = (entrada) => {
   return { numero, chave };
 };
 
-const Tabela = ({ search, refreshKey }) => {
+const Tabela = ({ search, refreshKey, onViewDetails }) => {
   const { entradas, page, setPage, totalPages, sort, toggleSort } =
     useTabelaEntradasMercadoria({
       search,
       refreshKey,
     });
+  const [menuOpenId, setMenuOpenId] = useState(null);
+  const [anchorEl, setAnchorEl] = useState(null);
+
+  const openMenu = useCallback((entradaMercadoriaId, element) => {
+    setMenuOpenId(entradaMercadoriaId);
+    setAnchorEl(element);
+  }, []);
+
+  const closeMenu = useCallback(() => {
+    setMenuOpenId(null);
+    setAnchorEl(null);
+  }, []);
+
   const rows = useMemo(() => entradas || [], [entradas]);
 
   return (
@@ -94,6 +108,7 @@ const Tabela = ({ search, refreshKey }) => {
                   {sort.status === "ASC" ? "▲" : sort.status === "DESC" ? "▼" : "•"}
                 </C.SortFlag>
               </C.HeaderCell>
+              <C.HeaderCell>Ações</C.HeaderCell>
             </C.Row>
           </C.Head>
 
@@ -130,12 +145,39 @@ const Tabela = ({ search, refreshKey }) => {
                     <C.Cell>
                       <C.Status $tone="success">{entrada.status}</C.Status>
                     </C.Cell>
+                    <C.Cell>
+                      <C.MenuButton
+                        type="button"
+                        onClick={(event) =>
+                          openMenu(entrada.entrada_mercadoria_id, event.currentTarget)
+                        }
+                        title="Ações"
+                        aria-label="Ações"
+                      >
+                        <C.MenuIcon />
+                      </C.MenuButton>
+
+                      {menuOpenId === entrada.entrada_mercadoria_id && (
+                        <DropdownMenu
+                          open={!!menuOpenId}
+                          anchorEl={anchorEl}
+                          onClose={closeMenu}
+                          minWidth={170}
+                          items={[
+                            {
+                              label: "Ver detalhes",
+                              onClick: () => onViewDetails?.(entrada.entrada_mercadoria_id),
+                            },
+                          ]}
+                        />
+                      )}
+                    </C.Cell>
                   </C.Row>
                 );
               })
             ) : (
               <C.Row>
-                <C.Cell colSpan={8}>
+                <C.Cell colSpan={9}>
                   <C.Empty>Nenhuma entrada de mercadoria encontrada.</C.Empty>
                 </C.Cell>
               </C.Row>

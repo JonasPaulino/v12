@@ -4,6 +4,7 @@ import Sidebar from "components/sidebar";
 import { AppContext } from "context";
 import Tabela from "./tabela";
 import { ModalEntradaMercadoria } from "./modal_entrada";
+import { ModalDetalheEntradaMercadoria } from "./modal_detalhe";
 import { ModalImportarNota } from "./modal_importar_nota";
 import { useEntradaMercadoriaPage } from "./use";
 import * as C from "./style";
@@ -16,11 +17,14 @@ export const EntradaMercadoria = () => {
     debouncedSearch,
     openModal,
     openImportModal,
+    detailEntradaId,
     refreshKey,
     handleOpenNovo,
     handleCloseModal,
     handleOpenImportModal,
     handleCloseImportModal,
+    handleOpenDetails,
+    handleCloseDetails,
   } = useEntradaMercadoriaPage();
 
   return (
@@ -52,13 +56,21 @@ export const EntradaMercadoria = () => {
           </C.Toolbar>
 
           <C.TableArea>
-            <Tabela search={debouncedSearch} refreshKey={refreshKey} />
+            <Tabela
+              search={debouncedSearch}
+              refreshKey={refreshKey}
+              onViewDetails={handleOpenDetails}
+            />
           </C.TableArea>
         </C.Body>
       </C.Content>
 
       <ModalEntradaMercadoria isOpen={openModal} onClose={handleCloseModal} />
       <ModalImportarNota isOpen={openImportModal} onClose={handleCloseImportModal} />
+      <ModalDetalheEntradaMercadoria
+        entradaMercadoriaId={detailEntradaId}
+        onClose={handleCloseDetails}
+      />
     </C.Shell>
   );
 };
