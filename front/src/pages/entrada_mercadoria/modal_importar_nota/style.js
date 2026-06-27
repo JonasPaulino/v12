@@ -6,6 +6,7 @@ export const SearchRow = styled.div`
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 12px;
+  align-items: end;
 
   @media (max-width: 640px) {
     grid-template-columns: 1fr;
