@@ -15,6 +15,17 @@ const formatDate = (value) => {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString("pt-BR");
 };
 
+const formatNfeReference = (entrada) => {
+  if (!entrada?.numero_nfe && !entrada?.chave_acesso) return "--";
+
+  const numero = entrada.numero_nfe
+    ? `NF ${entrada.serie_nfe ? `${entrada.serie_nfe}/` : ""}${entrada.numero_nfe}`
+    : "NF-e XML";
+  const chave = entrada.chave_acesso ? `Chave ${entrada.chave_acesso}` : "";
+
+  return { numero, chave };
+};
+
 const Tabela = ({ search, refreshKey }) => {
   const { entradas, page, setPage, totalPages, sort, toggleSort } =
     useTabelaEntradasMercadoria({
@@ -49,6 +60,7 @@ const Tabela = ({ search, refreshKey }) => {
                     : "•"}
                 </C.SortFlag>
               </C.HeaderCell>
+              <C.HeaderCell>NF-e</C.HeaderCell>
               <C.HeaderCell $sortable onClick={() => toggleSort("pessoa_nome_razao")}>
                 Fornecedor
                 <C.SortFlag $active={!!sort.pessoa_nome_razao}>
@@ -87,29 +99,43 @@ const Tabela = ({ search, refreshKey }) => {
 
           <C.Body>
             {rows.length ? (
-              rows.map((entrada) => (
-                <C.Row key={entrada.entrada_mercadoria_id}>
-                  <C.Cell>#{entrada.entrada_mercadoria_id}</C.Cell>
-                  <C.Cell>
-                    {entrada.pedido_compra_id ? `#${entrada.pedido_compra_id}` : "--"}
-                  </C.Cell>
-                  <C.Cell $wrap>
-                    <C.MainText>{entrada.pessoa_nome_razao}</C.MainText>
-                    <C.MetaText>
-                      <Documento value={entrada.pessoa_cpf_cnpj} />
-                    </C.MetaText>
-                  </C.Cell>
-                  <C.Cell>{formatDate(entrada.data_entrada)}</C.Cell>
-                  <C.Cell>{entrada.total_itens || 0}</C.Cell>
-                  <C.Cell>{currencyFormatter.format(Number(entrada.total || 0))}</C.Cell>
-                  <C.Cell>
-                    <C.Status $tone="success">{entrada.status}</C.Status>
-                  </C.Cell>
-                </C.Row>
-              ))
+              rows.map((entrada) => {
+                const nfeReference = formatNfeReference(entrada);
+
+                return (
+                  <C.Row key={entrada.entrada_mercadoria_id}>
+                    <C.Cell>#{entrada.entrada_mercadoria_id}</C.Cell>
+                    <C.Cell>
+                      {entrada.pedido_compra_id ? `#${entrada.pedido_compra_id}` : "--"}
+                    </C.Cell>
+                    <C.Cell $wrap>
+                      {typeof nfeReference === "string" ? (
+                        nfeReference
+                      ) : (
+                        <>
+                          <C.MainText>{nfeReference.numero}</C.MainText>
+                          <C.MetaText>{nfeReference.chave}</C.MetaText>
+                        </>
+                      )}
+                    </C.Cell>
+                    <C.Cell $wrap>
+                      <C.MainText>{entrada.pessoa_nome_razao}</C.MainText>
+                      <C.MetaText>
+                        <Documento value={entrada.pessoa_cpf_cnpj} />
+                      </C.MetaText>
+                    </C.Cell>
+                    <C.Cell>{formatDate(entrada.data_entrada)}</C.Cell>
+                    <C.Cell>{entrada.total_itens || 0}</C.Cell>
+                    <C.Cell>{currencyFormatter.format(Number(entrada.total || 0))}</C.Cell>
+                    <C.Cell>
+                      <C.Status $tone="success">{entrada.status}</C.Status>
+                    </C.Cell>
+                  </C.Row>
+                );
+              })
             ) : (
               <C.Row>
-                <C.Cell colSpan={7}>
+                <C.Cell colSpan={8}>
                   <C.Empty>Nenhuma entrada de mercadoria encontrada.</C.Empty>
                 </C.Cell>
               </C.Row>
@@ -130,4 +156,3 @@ const Tabela = ({ search, refreshKey }) => {
 };
 
 export default Tabela;
-

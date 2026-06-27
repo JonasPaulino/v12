@@ -32,3 +32,14 @@ export const criarEntradaMercadoria = async (payload) => {
   return data;
 };
 
+export const importarXmlEntradaMercadoria = async (file) => {
+  const formData = new FormData();
+  formData.append("xml", file);
+
+  const { data } = await api.post("/entrada-mercadoria/xml", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+  return data;
+};

@@ -1,7 +1,21 @@
 import express from "express";
+import multer from "multer";
 import EntradaMercadoriaDAO from "../model/entradaMercadoriaDAO.js";
 
 const router = express.Router();
+const uploadXml = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 2 * 1024 * 1024,
+  },
+  fileFilter: (_req, file, cb) => {
+    const originalName = String(file.originalname || "").toLowerCase();
+    if (!originalName.endsWith(".xml")) {
+      return cb(new Error("Envie um arquivo XML válido."));
+    }
+    return cb(null, true);
+  },
+}).single("xml");
 
 const parseSort = (value) => {
   try {
@@ -109,6 +123,47 @@ router.post("/", async (req, res) => {
       message: error.message || "Não foi possível registrar a entrada de mercadoria.",
     });
   }
+});
+
+router.post("/xml", (req, res) => {
+  uploadXml(req, res, async (uploadError) => {
+    if (uploadError) {
+      return res.status(400).json({
+        success: false,
+        message:
+          uploadError instanceof multer.MulterError && uploadError.code === "LIMIT_FILE_SIZE"
+            ? "O XML excede o tamanho permitido."
+            : uploadError.message || "Não foi possível receber o XML.",
+      });
+    }
+
+    try {
+      if (!req.file?.buffer?.length) {
+        return res.status(400).json({
+          success: false,
+          message: "Arquivo XML obrigatório.",
+        });
+      }
+
+      const data = await EntradaMercadoriaDAO.importarXml(req.db, {
+        xmlContent: req.file.buffer.toString("utf8"),
+        nomeArquivo: req.file.originalname,
+        usuarioId: Number(req.user?.userId) || null,
+      });
+
+      return res.status(201).json({
+        success: true,
+        message: "XML importado e entrada registrada com sucesso.",
+        data,
+      });
+    } catch (error) {
+      console.error("[entrada-mercadoria] Falha ao importar XML:", error);
+      return res.status(400).json({
+        success: false,
+        message: error.message || "Não foi possível importar o XML.",
+      });
+    }
+  });
 });
 
 export default router;
