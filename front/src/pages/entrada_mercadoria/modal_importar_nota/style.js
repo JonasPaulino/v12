@@ -19,6 +19,20 @@ export const RequestTable = styled.div`
   overflow: hidden;
 `;
 
+export const RequestPanel = styled.section`
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radius.lg};
+  background: ${({ theme }) => theme.colors.surfaceAlt};
+`;
+
+export const RequestPanelHeader = styled.div`
+  display: grid;
+  gap: 4px;
+`;
+
 export const RequestHeader = styled.div`
   display: grid;
   grid-template-columns: 1.5fr 0.8fr 1.3fr 0.9fr;

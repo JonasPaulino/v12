@@ -102,72 +102,86 @@ export const ModalImportarNota = ({ isOpen, onClose }) => {
                 </C.PrimaryButton>
               </C.SearchRow>
 
-              <C.SearchRow>
-                <C.Field>
-                  <C.FieldSpan>Pesquisar solicitações</C.FieldSpan>
-                  <C.Input
-                    value={search}
-                    onChange={(event) => setSearch(event.target.value)}
-                    placeholder="Chave, status ou retorno da SEFAZ"
-                  />
-                </C.Field>
-                <C.SecondaryButton type="button" onClick={loadSolicitacoes} disabled={loading}>
-                  {loading ? "Carregando..." : "Pesquisar"}
-                </C.SecondaryButton>
-              </C.SearchRow>
+              <C.RequestPanel>
+                <C.RequestPanelHeader>
+                  <C.MainText>Solicitações de consulta</C.MainText>
+                  <C.MetaText>
+                    Acompanhe as chaves já consultadas e importe quando o XML completo estiver
+                    disponível.
+                  </C.MetaText>
+                </C.RequestPanelHeader>
 
-              <C.RequestTable>
-                <C.RequestHeader>
-                  <div>Chave</div>
-                  <div>Status</div>
-                  <div>Retorno</div>
-                  <div>Ações</div>
-                </C.RequestHeader>
+                <C.SearchRow>
+                  <C.Field>
+                    <C.FieldSpan>Pesquisar solicitações</C.FieldSpan>
+                    <C.Input
+                      value={search}
+                      onChange={(event) => setSearch(event.target.value)}
+                      placeholder="Chave, status ou retorno da SEFAZ"
+                    />
+                  </C.Field>
+                  <C.SecondaryButton type="button" onClick={loadSolicitacoes} disabled={loading}>
+                    {loading ? "Carregando..." : "Pesquisar"}
+                  </C.SecondaryButton>
+                </C.SearchRow>
 
-                {solicitacoes.length ? (
-                  solicitacoes.map((item) => (
-                    <C.RequestRow key={item.entrada_xml_solicitacao_id}>
-                      <div>
-                        <C.MainText>{shortKey(item.chave_acesso)}</C.MainText>
-                        <C.MetaText>{formatDateTime(item.atualizado_em)}</C.MetaText>
-                      </div>
-                      <div>
-                        <C.StatusChip $tone={statusTone(item.status)}>
-                          {STATUS_LABEL[item.status] || item.status}
-                        </C.StatusChip>
-                      </div>
-                      <div>
-                        <C.MainText>{item.cstat || "--"}</C.MainText>
-                        <C.MetaText>{item.xmotivo || "Sem retorno detalhado."}</C.MetaText>
-                      </div>
-                      <C.RequestActions>
-                        <C.SmallButton
-                          type="button"
-                          onClick={() => handleAtualizarSolicitacao(item.entrada_xml_solicitacao_id)}
-                          disabled={submitting || item.status === "importada"}
-                        >
-                          Atualizar
-                        </C.SmallButton>
-                        <C.SmallButton
-                          type="button"
-                          $primary
-                          onClick={() => handleImportarSolicitacao(item.entrada_xml_solicitacao_id)}
-                          disabled={submitting || item.status !== "xml_disponivel"}
-                        >
-                          Usar XML
-                        </C.SmallButton>
-                      </C.RequestActions>
+                <C.RequestTable>
+                  <C.RequestHeader>
+                    <div>Chave</div>
+                    <div>Status</div>
+                    <div>Retorno</div>
+                    <div>Ações</div>
+                  </C.RequestHeader>
+
+                  {solicitacoes.length ? (
+                    solicitacoes.map((item) => (
+                      <C.RequestRow key={item.entrada_xml_solicitacao_id}>
+                        <div>
+                          <C.MainText>{shortKey(item.chave_acesso)}</C.MainText>
+                          <C.MetaText>{formatDateTime(item.atualizado_em)}</C.MetaText>
+                        </div>
+                        <div>
+                          <C.StatusChip $tone={statusTone(item.status)}>
+                            {STATUS_LABEL[item.status] || item.status}
+                          </C.StatusChip>
+                        </div>
+                        <div>
+                          <C.MainText>{item.cstat || "--"}</C.MainText>
+                          <C.MetaText>{item.xmotivo || "Sem retorno detalhado."}</C.MetaText>
+                        </div>
+                        <C.RequestActions>
+                          <C.SmallButton
+                            type="button"
+                            onClick={() =>
+                              handleAtualizarSolicitacao(item.entrada_xml_solicitacao_id)
+                            }
+                            disabled={submitting || item.status === "importada"}
+                          >
+                            Atualizar
+                          </C.SmallButton>
+                          <C.SmallButton
+                            type="button"
+                            $primary
+                            onClick={() =>
+                              handleImportarSolicitacao(item.entrada_xml_solicitacao_id)
+                            }
+                            disabled={submitting || item.status !== "xml_disponivel"}
+                          >
+                            Usar XML
+                          </C.SmallButton>
+                        </C.RequestActions>
+                      </C.RequestRow>
+                    ))
+                  ) : (
+                    <C.RequestRow>
+                      <C.Hint>
+                        Nenhuma solicitação encontrada. Informe a chave de acesso para iniciar a
+                        consulta.
+                      </C.Hint>
                     </C.RequestRow>
-                  ))
-                ) : (
-                  <C.RequestRow>
-                    <C.Hint>
-                      Nenhuma solicitação encontrada. Informe a chave de acesso para iniciar a
-                      consulta.
-                    </C.Hint>
-                  </C.RequestRow>
-                )}
-              </C.RequestTable>
+                  )}
+                </C.RequestTable>
+              </C.RequestPanel>
             </>
           ) : (
             <>
