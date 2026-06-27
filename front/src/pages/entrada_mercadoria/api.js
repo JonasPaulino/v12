@@ -43,3 +43,34 @@ export const importarXmlEntradaMercadoria = async (file) => {
   });
   return data;
 };
+
+export const getSolicitacoesXmlEntrada = async (search = "", limit = 20) => {
+  const { data } = await api.get("/entrada-mercadoria/xml-solicitacoes", {
+    params: {
+      search,
+      limit,
+    },
+  });
+  return data;
+};
+
+export const solicitarXmlEntradaPorChave = async (chaveAcesso) => {
+  const { data } = await api.post("/entrada-mercadoria/xml-solicitacoes", {
+    chave_acesso: chaveAcesso,
+  });
+  return data;
+};
+
+export const atualizarSolicitacaoXmlEntrada = async (solicitacaoId) => {
+  const { data } = await api.post(
+    `/entrada-mercadoria/xml-solicitacoes/${solicitacaoId}/consultar`
+  );
+  return data;
+};
+
+export const importarSolicitacaoXmlEntrada = async (solicitacaoId) => {
+  const { data } = await api.post(
+    `/entrada-mercadoria/xml-solicitacoes/${solicitacaoId}/importar`
+  );
+  return data;
+};

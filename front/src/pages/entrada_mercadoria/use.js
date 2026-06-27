@@ -1,13 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { useSweetAlert } from "context/sweet_alert";
-import { importarXmlEntradaMercadoria } from "./api";
 
 export const useEntradaMercadoriaPage = () => {
-  const { showAlert } = useSweetAlert();
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [openModal, setOpenModal] = useState(false);
-  const [importingXml, setImportingXml] = useState(false);
+  const [openImportModal, setOpenImportModal] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
@@ -30,44 +27,28 @@ export const useEntradaMercadoriaPage = () => {
     }
   }, []);
 
-  const handleImportXml = useCallback(
-    async (file) => {
-      if (!file) return;
+  const handleOpenImportModal = useCallback(() => {
+    setOpenImportModal(true);
+  }, []);
 
-      try {
-        setImportingXml(true);
-        const response = await importarXmlEntradaMercadoria(file);
-        showAlert({
-          title: "XML importado",
-          text: response?.message || "Entrada registrada com sucesso.",
-          icon: "success",
-          timer: 1800,
-        });
-        setRefreshKey((prev) => prev + 1);
-      } catch (error) {
-        showAlert({
-          title: "Falha ao importar XML",
-          text:
-            error?.response?.data?.message ||
-            "Não foi possível importar o XML informado.",
-          icon: "error",
-        });
-      } finally {
-        setImportingXml(false);
-      }
-    },
-    [showAlert]
-  );
+  const handleCloseImportModal = useCallback((shouldRefresh = false) => {
+    setOpenImportModal(false);
+
+    if (shouldRefresh) {
+      setRefreshKey((prev) => prev + 1);
+    }
+  }, []);
 
   return {
     search,
     setSearch,
     debouncedSearch,
     openModal,
-    importingXml,
+    openImportModal,
     refreshKey,
     handleOpenNovo,
     handleCloseModal,
-    handleImportXml,
+    handleOpenImportModal,
+    handleCloseImportModal,
   };
 };

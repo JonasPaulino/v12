@@ -1,5 +1,6 @@
 import EstoqueDAO from "./estoqueDAO.js";
 import { TENANT_CONTEXT_SQL } from "../utils/sql.js";
+import { consultarXmlNfePorChaveAcbr } from "../utils/acbrSetup.js";
 
 const SORT_COLUMNS = {
   entrada_mercadoria_id: "em.entrada_mercadoria_id",
@@ -68,6 +69,7 @@ const normalizeDateValue = (value) => {
 const roundCurrency = (value) => Number(Number(value || 0).toFixed(2));
 
 const normalizeDigits = (value) => String(value || "").replace(/\D/g, "");
+const normalizeAccessKey = (value) => normalizeDigits(value).slice(0, 44);
 
 const decodeXmlEntities = (value) =>
   String(value || "")
@@ -258,6 +260,214 @@ class EntradaMercadoriaDAO {
       total,
       totalPages: Math.max(1, Math.ceil(total / safeLimit)),
     };
+  }
+
+  static async listarSolicitacoesXml(client, { search = "", limit = 20 } = {}) {
+    const values = [];
+    const safeLimit = Number(limit) > 0 ? Math.min(Number(limit), 50) : 20;
+    const normalizedSearch = String(search || "").trim();
+
+    let where = `
+      WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+    `;
+
+    if (normalizedSearch) {
+      values.push(`%${normalizedSearch}%`);
+      where += `
+        AND (
+          chave_acesso LIKE $${values.length}
+          OR LOWER(COALESCE(xmotivo, '')) LIKE LOWER($${values.length})
+          OR LOWER(status) LIKE LOWER($${values.length})
+        )
+      `;
+    }
+
+    values.push(safeLimit);
+
+    const { rows } = await client.query(
+      `
+        SELECT
+          entrada_xml_solicitacao_id,
+          chave_acesso,
+          status,
+          cstat,
+          xmotivo,
+          xml_disponivel IS NOT NULL AS tem_xml,
+          entrada_mercadoria_id,
+          solicitado_em,
+          consultado_em,
+          importado_em,
+          atualizado_em
+        FROM entrada_xml_solicitacao
+        ${where}
+        ORDER BY atualizado_em DESC, entrada_xml_solicitacao_id DESC
+        LIMIT $${values.length}
+      `,
+      values
+    );
+
+    return rows;
+  }
+
+  static mapSolicitacaoStatus(response = {}) {
+    if (response.xmlCompleto) return "xml_disponivel";
+    if (response.xml) return "resumo_disponivel";
+
+    const cStat = String(response.cStat || "").trim();
+    if (["137", "656"].includes(cStat)) return "aguardando_sefaz";
+    if (cStat === "138") return "aguardando_sefaz";
+    return cStat ? "aguardando_sefaz" : "erro";
+  }
+
+  static async atualizarSolicitacaoComConsulta(client, solicitacaoId, response = {}) {
+    const status = this.mapSolicitacaoStatus(response);
+
+    const { rows } = await client.query(
+      `
+        UPDATE entrada_xml_solicitacao
+        SET status = $2,
+            cstat = $3,
+            xmotivo = $4,
+            resposta_raw = $5,
+            xml_disponivel = CASE WHEN $6::text <> '' THEN $6 ELSE xml_disponivel END,
+            consultado_em = NOW()
+        WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+          AND entrada_xml_solicitacao_id = $1
+        RETURNING *
+      `,
+      [
+        solicitacaoId,
+        status,
+        response.cStat || null,
+        response.xMotivo || null,
+        response.raw || null,
+        response.xml || "",
+      ]
+    );
+
+    return rows[0] || null;
+  }
+
+  static async solicitarXmlPorChave(client, { chaveAcesso, usuarioId, token }) {
+    const chave = normalizeAccessKey(chaveAcesso);
+    if (!/^\d{44}$/.test(chave)) {
+      throw new Error("Chave de acesso da NF-e inválida.");
+    }
+
+    const { rows } = await client.query(
+      `
+        INSERT INTO entrada_xml_solicitacao (
+          tenant_id,
+          chave_acesso,
+          status,
+          usuario_id
+        )
+        VALUES (${TENANT_CONTEXT_SQL}, $1, 'solicitada', $2)
+        ON CONFLICT (tenant_id, chave_acesso)
+        DO UPDATE SET
+          status = CASE
+            WHEN entrada_xml_solicitacao.status = 'importada' THEN entrada_xml_solicitacao.status
+            ELSE 'solicitada'
+          END,
+          usuario_id = COALESCE($2, entrada_xml_solicitacao.usuario_id)
+        RETURNING *
+      `,
+      [chave, usuarioId || null]
+    );
+
+    const solicitacao = rows[0];
+    if (solicitacao.status === "importada") return solicitacao;
+
+    await client.query(
+      `
+        UPDATE entrada_xml_solicitacao
+        SET status = 'consultando'
+        WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+          AND entrada_xml_solicitacao_id = $1
+      `,
+      [solicitacao.entrada_xml_solicitacao_id]
+    );
+
+    try {
+      const response = await consultarXmlNfePorChaveAcbr({
+        token,
+        chaveAcesso: chave,
+      });
+
+      return this.atualizarSolicitacaoComConsulta(
+        client,
+        solicitacao.entrada_xml_solicitacao_id,
+        response
+      );
+    } catch (error) {
+      const { rows: errorRows } = await client.query(
+        `
+          UPDATE entrada_xml_solicitacao
+          SET status = 'erro',
+              xmotivo = $2,
+              consultado_em = NOW()
+          WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+            AND entrada_xml_solicitacao_id = $1
+          RETURNING *
+        `,
+        [solicitacao.entrada_xml_solicitacao_id, error.message || "Falha ao consultar chave."]
+      );
+
+      return errorRows[0];
+    }
+  }
+
+  static async consultarSolicitacaoXml(client, { solicitacaoId, token }) {
+    const safeSolicitacaoId = parseInteger(solicitacaoId, {
+      label: "Solicitação",
+    });
+    const { rows } = await client.query(
+      `
+        SELECT *
+        FROM entrada_xml_solicitacao
+        WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+          AND entrada_xml_solicitacao_id = $1
+        LIMIT 1
+      `,
+      [safeSolicitacaoId]
+    );
+    const solicitacao = rows[0];
+    if (!solicitacao) throw new Error("Solicitação de XML não encontrada.");
+    if (solicitacao.status === "importada") return solicitacao;
+
+    await client.query(
+      `
+        UPDATE entrada_xml_solicitacao
+        SET status = 'consultando'
+        WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+          AND entrada_xml_solicitacao_id = $1
+      `,
+      [safeSolicitacaoId]
+    );
+
+    try {
+      const response = await consultarXmlNfePorChaveAcbr({
+        token,
+        chaveAcesso: solicitacao.chave_acesso,
+      });
+
+      return this.atualizarSolicitacaoComConsulta(client, safeSolicitacaoId, response);
+    } catch (error) {
+      const { rows: errorRows } = await client.query(
+        `
+          UPDATE entrada_xml_solicitacao
+          SET status = 'erro',
+              xmotivo = $2,
+              consultado_em = NOW()
+          WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+            AND entrada_xml_solicitacao_id = $1
+          RETURNING *
+        `,
+        [safeSolicitacaoId, error.message || "Falha ao consultar chave."]
+      );
+
+      return errorRows[0];
+    }
   }
 
   static async listarPedidosCompraSelect(client, { search = "", limit = 20 } = {}) {
@@ -956,6 +1166,51 @@ class EntradaMercadoriaDAO {
       await client.query("ROLLBACK");
       throw error;
     }
+  }
+
+  static async importarSolicitacaoXml(client, { solicitacaoId, usuarioId }) {
+    const safeSolicitacaoId = parseInteger(solicitacaoId, {
+      label: "Solicitação",
+    });
+    const { rows } = await client.query(
+      `
+        SELECT *
+        FROM entrada_xml_solicitacao
+        WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+          AND entrada_xml_solicitacao_id = $1
+        LIMIT 1
+      `,
+      [safeSolicitacaoId]
+    );
+    const solicitacao = rows[0];
+
+    if (!solicitacao) throw new Error("Solicitação de XML não encontrada.");
+    if (!solicitacao.xml_disponivel) {
+      throw new Error("A solicitação ainda não possui XML disponível para importação.");
+    }
+    if (solicitacao.entrada_mercadoria_id) {
+      throw new Error("Esta solicitação já foi importada.");
+    }
+
+    const result = await this.importarXml(client, {
+      xmlContent: solicitacao.xml_disponivel,
+      nomeArquivo: `${solicitacao.chave_acesso}.xml`,
+      usuarioId,
+    });
+
+    await client.query(
+      `
+        UPDATE entrada_xml_solicitacao
+        SET status = 'importada',
+            entrada_mercadoria_id = $2,
+            importado_em = NOW()
+        WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+          AND entrada_xml_solicitacao_id = $1
+      `,
+      [safeSolicitacaoId, result?.entrada?.entrada_mercadoria_id || null]
+    );
+
+    return result;
   }
 
   static async buscarPorId(client, entradaMercadoriaId) {

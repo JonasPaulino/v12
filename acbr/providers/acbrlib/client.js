@@ -13,11 +13,13 @@ import {
   destroyAcbrSession,
   getAcbrRuntimeDiagnostics,
 } from "./runtime.js";
+import { getCufByUf } from "../../utils/ufCodes.js";
 
 const execFileAsync = promisify(execFile);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const NFE_NATIVE_WORKER_PATH = path.join(__dirname, "nfeNativeWorker.js");
 const DANFE_NATIVE_WORKER_PATH = path.join(__dirname, "danfeNativeWorker.js");
+const NFE_DISTRIBUICAO_WORKER_PATH = path.join(__dirname, "nfeDistribuicaoWorker.js");
 
 class AcbrLibNotConfiguredError extends Error {
   constructor(message = "ACBrLib não configurada neste ambiente.") {
@@ -234,6 +236,79 @@ const runDanfeWorker = async ({
   }
 };
 
+const runDistribuicaoWorker = async ({
+  tenantId,
+  chaveAcesso,
+  cufAutor,
+  cnpjCpfAutor,
+  uf,
+  ambiente,
+  certificadoBuffer,
+  certificadoSenha,
+}) => {
+  const workDir = await fs.mkdtemp(path.join(os.tmpdir(), `v12-dist-${tenantId}-`));
+  const inputPath = path.join(workDir, "input.json");
+  const outputPath = path.join(workDir, "output.json");
+
+  await fs.writeFile(
+    inputPath,
+    JSON.stringify({
+      tenantId,
+      chaveAcesso,
+      cufAutor,
+      cnpjCpfAutor,
+      uf,
+      ambiente,
+      certificadoBase64: Buffer.from(certificadoBuffer).toString("base64"),
+      certificadoSenha,
+    }),
+    "utf8"
+  );
+
+  try {
+    const { stderr } = await execFileAsync(process.execPath, [NFE_DISTRIBUICAO_WORKER_PATH, inputPath, outputPath], {
+      cwd: process.cwd(),
+      env: process.env,
+      maxBuffer: 20 * 1024 * 1024,
+      timeout: 120000,
+    });
+
+    if (stderr) {
+      console.error(stderr.trim());
+    }
+
+    const result = await safeReadJsonFile(outputPath);
+    if (!result?.ok) {
+      throw new AcbrLibIntegrationError(result?.message || "Falha ao consultar XML por chave na ACBrLib.", {
+        tenantId,
+        chaveAcesso,
+        workerResult: result,
+      });
+    }
+
+    return result;
+  } catch (error) {
+    const result = await safeReadJsonFile(outputPath);
+    const signal = error.signal ? ` (signal: ${error.signal})` : "";
+    const stderr = String(error.stderr || "").trim();
+    const message =
+      result?.lastReturn ||
+      result?.message ||
+      stderr ||
+      `A ACBrLib falhou durante a distribuição por chave${signal}.`;
+
+    throw new AcbrLibIntegrationError(message, {
+      tenantId,
+      chaveAcesso,
+      workerResult: result,
+      signal: error.signal || null,
+      stderr,
+    });
+  } finally {
+    await fs.rm(workDir, { recursive: true, force: true });
+  }
+};
+
 const buildResponseMetadata = (rawText, operation) => {
   const parsed = parseIniLikeResponse(rawText);
   const cStat = findIniValue(parsed, ["CStat", "cStat", "Status"], [
@@ -265,6 +340,34 @@ const buildResponseMetadata = (rawText, operation) => {
     numero: safeParseInteger(numero),
     mappedStatus: mapNfeReturnToStatus({ cStat, operation }),
   };
+};
+
+const extractDistributionMetadata = (rawText = "") => {
+  const parsed = parseIniLikeResponse(rawText);
+  const cStat = findIniValue(parsed, ["CStat", "cStat"], [
+    "DistribuicaoDFe",
+    "Retorno",
+    "DFe",
+    "Resposta",
+  ]);
+  const xMotivo = findIniValue(parsed, ["XMotivo", "xMotivo", "Motivo", "Msg"], [
+    "DistribuicaoDFe",
+    "Retorno",
+    "DFe",
+    "Resposta",
+  ]);
+
+  return {
+    raw: rawText,
+    parsed,
+    cStat: cStat || null,
+    xMotivo: xMotivo || null,
+  };
+};
+
+const hasCompleteNfeXml = (xml) => {
+  const text = String(xml || "");
+  return /<(procNFe|NFe)\b/i.test(text) && /<det\b/i.test(text);
 };
 
 const persistSuccess = async (client, { context, userId, metadata, preXml, postXml, eventType }) => {
@@ -485,6 +588,41 @@ class AcbrLibProvider {
       filename: `danfe-nfe-${context.nfe.numero || nfeId}.pdf`,
       buffer: workerResult.pdfBuffer,
       pdfPath: workerResult.pdfPath,
+    };
+  }
+
+  static async distribuirNfePorChave({ client, tenantId, chaveAcesso }) {
+    this.ensureConfigured();
+
+    const context = await AcbrNfeIntegrationDAO.carregarContextoDistribuicao(client);
+    const uf = String(context.uf || "").trim().toUpperCase();
+    const cufAutor = getCufByUf(uf);
+
+    if (!cufAutor) {
+      throw new AcbrLibIntegrationError("UF da filial inválida para consulta da NF-e por chave.", {
+        tenantId,
+        uf,
+      });
+    }
+
+    const workerResult = await runDistribuicaoWorker({
+      tenantId,
+      chaveAcesso,
+      cufAutor,
+      cnpjCpfAutor: context.cnpjCpf,
+      uf,
+      ambiente: context.ambiente,
+      certificadoBuffer: context.certificado.conteudo_pfx,
+      certificadoSenha: decryptSecret(context.certificado.senha_criptografada),
+    });
+    const metadata = extractDistributionMetadata(workerResult.rawResponse);
+    const xml = workerResult.xml || "";
+
+    return {
+      ...metadata,
+      xml,
+      xmlCompleto: hasCompleteNfeXml(xml),
+      paths: workerResult.paths || null,
     };
   }
 

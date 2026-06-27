@@ -64,6 +64,87 @@ router.get("/pedidos-compra-select", async (req, res) => {
   }
 });
 
+router.get("/xml-solicitacoes", async (req, res) => {
+  try {
+    const data = await EntradaMercadoriaDAO.listarSolicitacoesXml(req.db, {
+      search: String(req.query.search || ""),
+      limit: Number(req.query.limit || 20),
+    });
+
+    return res.json({ success: true, data });
+  } catch (error) {
+    console.error("[entrada-mercadoria] Falha ao listar solicitações XML:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Não foi possível listar as solicitações de XML.",
+    });
+  }
+});
+
+router.post("/xml-solicitacoes", async (req, res) => {
+  try {
+    const data = await EntradaMercadoriaDAO.solicitarXmlPorChave(req.db, {
+      chaveAcesso: req.body?.chave_acesso || req.body?.chave,
+      usuarioId: Number(req.user?.userId) || null,
+      token: req.cookies?.token,
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "Consulta da NF-e por chave registrada.",
+      data,
+    });
+  } catch (error) {
+    console.error("[entrada-mercadoria] Falha ao solicitar XML por chave:", error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Não foi possível consultar a chave informada.",
+    });
+  }
+});
+
+router.post("/xml-solicitacoes/:id/consultar", async (req, res) => {
+  try {
+    const data = await EntradaMercadoriaDAO.consultarSolicitacaoXml(req.db, {
+      solicitacaoId: Number(req.params.id),
+      token: req.cookies?.token,
+    });
+
+    return res.json({
+      success: true,
+      message: "Consulta da NF-e atualizada.",
+      data,
+    });
+  } catch (error) {
+    console.error("[entrada-mercadoria] Falha ao atualizar solicitação XML:", error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Não foi possível atualizar a consulta.",
+    });
+  }
+});
+
+router.post("/xml-solicitacoes/:id/importar", async (req, res) => {
+  try {
+    const data = await EntradaMercadoriaDAO.importarSolicitacaoXml(req.db, {
+      solicitacaoId: Number(req.params.id),
+      usuarioId: Number(req.user?.userId) || null,
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "XML disponível importado com sucesso.",
+      data,
+    });
+  } catch (error) {
+    console.error("[entrada-mercadoria] Falha ao importar solicitação XML:", error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Não foi possível importar o XML disponível.",
+    });
+  }
+});
+
 router.get("/pedido-compra/:id", async (req, res) => {
   try {
     const data = await EntradaMercadoriaDAO.buscarPedidoCompra(req.db, Number(req.params.id));

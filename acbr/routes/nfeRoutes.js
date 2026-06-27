@@ -32,6 +32,8 @@ const buildProcessarNfeMessage = (data = {}) => {
   return motivo || "Emissão processada pela ACBrLib.";
 };
 
+const normalizeAccessKey = (value) => String(value || "").replace(/\D/g, "");
+
 router.get("/listar", async (req, res) => {
   try {
     const page = Number(req.query.page || 1);
@@ -204,6 +206,50 @@ router.post("/importar-xml", async (req, res) => {
     return res.status(400).json({
       success: false,
       message: error.message || "Não foi possível importar o XML da NF-e.",
+    });
+  }
+});
+
+router.post("/distribuicao-chave", async (req, res) => {
+  try {
+    const chaveAcesso = normalizeAccessKey(req.body?.chave_acesso || req.body?.chave);
+
+    if (!/^\d{44}$/.test(chaveAcesso)) {
+      return res.status(400).json({
+        success: false,
+        message: "Chave de acesso da NF-e inválida.",
+      });
+    }
+
+    const data = await AcbrLibProvider.distribuirNfePorChave({
+      client: req.db,
+      tenantId: Number(req.user?.tenantId),
+      chaveAcesso,
+    });
+
+    return res.json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    if (isProviderStubError(error)) {
+      if (error instanceof AcbrLibIntegrationError) {
+        console.error("[acbr:nfe] Falha na distribuição por chave:", {
+          message: error.message,
+          details: error.details,
+        });
+      }
+
+      return res.status(error instanceof AcbrLibNotConfiguredError ? 501 : 400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    console.error("[acbr:nfe] Falha ao consultar distribuição por chave:", error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Não foi possível consultar a NF-e por chave.",
     });
   }
 });

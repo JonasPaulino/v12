@@ -389,6 +389,8 @@ export const configureAcbrLookupSession = async (session, { uf, ambiente = "2" }
   setConfigValue(acbr, "DFe", "UF", String(uf || "").trim().toUpperCase());
   setConfigValue(acbr, "DFe", "ArquivoPFX", session.certPath);
   setConfigValue(acbr, "DFe", "Senha", session.certificadoSenha);
+  setConfigValue(acbr, "Arquivos", "Salvar", "1", { optional: true });
+  setConfigValue(acbr, "Arquivos", "PathSalvar", session.xmlDir, { optional: true });
   setConfigValue(acbr, "Arquivos", "PathSchemas", session.schemaDir, { optional: true });
   setConfigValue(acbr, "Geral", "PathSchemas", session.schemaDir, { optional: true });
   setConfigValue(acbr, "Certificado", "ArquivoPFX", session.certPath, { optional: true });
@@ -396,6 +398,8 @@ export const configureAcbrLookupSession = async (session, { uf, ambiente = "2" }
   setConfigValue(acbr, "NFe", "Ambiente", mapAcbrNfeAmbiente(ambiente));
   setConfigValue(acbr, "NFe", "SSLType", sslConfig.sslType, { optional: true });
   setConfigValue(acbr, "NFe", "PathSchemas", session.schemaDir);
+  setConfigValue(acbr, "NFe", "PathSalvar", session.xmlDir, { optional: true });
+  setConfigValue(acbr, "NFe", "PathNFe", session.xmlDir, { optional: true });
   acbr.configGravar();
 };
 

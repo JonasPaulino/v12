@@ -33,6 +33,64 @@ const buildSetClause = (payload = {}) => {
 };
 
 class AcbrNfeIntegrationDAO {
+  static async carregarContextoDistribuicao(client) {
+    const { rows } = await client.query(
+      `
+        SELECT
+          t.tenant_id,
+          COALESCE(p.pessoa_cpf_cnpj, t.tenant_documento) AS documento,
+          pe.uf,
+          cfg.ambiente_nfe,
+          cert.conteudo_pfx,
+          cert.senha_criptografada
+        FROM tenant t
+        LEFT JOIN pessoa p ON p.pessoa_id = t.pessoa_id
+        LEFT JOIN LATERAL (
+          SELECT uf
+          FROM pessoa_endereco
+          WHERE pessoa_id = t.pessoa_id
+            AND tenant_id = t.tenant_id
+            AND endereco_tipo = 'principal'
+          ORDER BY atualizado_em DESC, criado_em DESC
+          LIMIT 1
+        ) pe ON TRUE
+        LEFT JOIN tenant_configuracao_fiscal cfg ON cfg.tenant_id = t.tenant_id
+        LEFT JOIN tenant_certificado_a1 cert ON cert.tenant_id = t.tenant_id
+        WHERE t.tenant_id = ${TENANT_CONTEXT_SQL}
+        LIMIT 1
+      `
+    );
+
+    const row = rows[0];
+    if (!row) {
+      throw new Error("Filial não encontrada para consulta da NF-e por chave.");
+    }
+
+    const cnpjCpf = onlyDigits(row.documento);
+    if (!cnpjCpf) {
+      throw new Error("CNPJ/CPF da filial não configurado para consulta da NF-e por chave.");
+    }
+
+    if (!row.uf) {
+      throw new Error("UF da filial não configurada para consulta da NF-e por chave.");
+    }
+
+    if (!row.conteudo_pfx || !row.senha_criptografada) {
+      throw new Error("Certificado A1 da filial não configurado para consulta da NF-e por chave.");
+    }
+
+    return {
+      tenantId: row.tenant_id,
+      cnpjCpf,
+      uf: row.uf,
+      ambiente: row.ambiente_nfe || "2",
+      certificado: {
+        conteudo_pfx: row.conteudo_pfx,
+        senha_criptografada: row.senha_criptografada,
+      },
+    };
+  }
+
   static async reservarNumero(client, nfeId) {
     const safeNfeId = parseInteger(nfeId, { label: "NF-e" });
 
