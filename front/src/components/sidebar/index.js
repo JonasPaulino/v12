@@ -1,5 +1,10 @@
 import React, { useContext } from "react";
-import { MdClose, MdOutlineReceiptLong, MdOutlineSettings } from "react-icons/md";
+import {
+  MdClose,
+  MdInventory2,
+  MdOutlineReceiptLong,
+  MdOutlineSettings,
+} from "react-icons/md";
 import {
   HiOutlineBanknotes,
   HiOutlineCube,
@@ -88,6 +93,16 @@ const Sidebar = () => {
             >
               <HiOutlineShoppingCart />
               <C.NavText $open={mOpen}>Vendas</C.NavText>
+            </C.NavButton>
+            <C.NavButton
+              $open={mOpen}
+              $active={location.pathname === "/estoque"}
+              onClick={() => handleNavigate("/estoque", "Estoque")}
+              title="Estoque"
+              aria-label="Estoque"
+            >
+              <MdInventory2 />
+              <C.NavText $open={mOpen}>Estoque</C.NavText>
             </C.NavButton>
             <C.NavButton
               $open={mOpen}

@@ -9,6 +9,7 @@ import { Usuario } from "pages/usuario";
 import { Produto } from "pages/produto";
 import { Pessoa } from "pages/pessoa";
 import { Venda } from "pages/venda";
+import { Estoque } from "pages/estoque";
 import { Financeiro } from "pages/financeiro";
 import { ConfiguracaoFiscal } from "pages/configuracao_fiscal";
 import { Nfe } from "pages/nfe";
@@ -76,6 +77,16 @@ export const RouteApp = () => (
           <AuthMiddleware>
             <PageWrapper title="Contas">
               <Financeiro />
+            </PageWrapper>
+          </AuthMiddleware>
+        }
+      />
+      <Route
+        path="/estoque"
+        element={
+          <AuthMiddleware>
+            <PageWrapper title="Estoque">
+              <Estoque />
             </PageWrapper>
           </AuthMiddleware>
         }
