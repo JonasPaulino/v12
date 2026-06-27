@@ -34,7 +34,7 @@ const Sidebar = () => {
       <C.MobileCloseButton type="button" onClick={abreFechaMenu} aria-label="Fechar menu">
         <MdClose />
       </C.MobileCloseButton>
-      <div>
+      <C.TopArea>
         <C.LogoContainer $open={mOpen}>
           <C.Logo $open={mOpen}>
             <C.Brand>V12</C.Brand>
@@ -150,7 +150,7 @@ const Sidebar = () => {
             </C.NavButton>
           </C.NavList>
         </C.MenuContainer>
-      </div>
+      </C.TopArea>
 
       <C.BottomArea>
         <ProfileOptions open={mOpen} />

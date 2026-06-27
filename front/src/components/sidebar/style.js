@@ -7,8 +7,7 @@ export const Container = styled.aside`
   min-height: 0;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  gap: 28px;
+  gap: 18px;
   padding: 24px 18px;
   overflow: hidden;
   background:
@@ -25,6 +24,13 @@ export const Container = styled.aside`
     transform: translateX(${({ $open }) => ($open ? "0" : "-100%")});
     box-shadow: 24px 0 60px rgba(3, 11, 31, 0.28);
   }
+`;
+
+export const TopArea = styled.div`
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 `;
 
 export const MobileCloseButton = styled.button`
@@ -80,7 +86,23 @@ export const MenuContainer = styled.div`
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 2px;
   scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.32) transparent;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.28);
+    border-radius: 999px;
+  }
 `;
 
 export const MenuLabel = styled.span`
