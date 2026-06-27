@@ -1,0 +1,2 @@
+export * from "../compra/style";
+

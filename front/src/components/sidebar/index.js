@@ -5,6 +5,7 @@ import {
   HiOutlineChartBarSquare,
   HiOutlineCog8Tooth,
   HiOutlineCube,
+  HiOutlineClipboardDocumentCheck,
   HiOutlineDocumentText,
   HiOutlineIdentification,
   HiOutlineArchiveBox,
@@ -102,6 +103,16 @@ const Sidebar = () => {
             >
               <HiOutlineShoppingBag />
               <C.NavText $open={mOpen}>Compras</C.NavText>
+            </C.NavButton>
+            <C.NavButton
+              $open={mOpen}
+              $active={location.pathname === "/entradas"}
+              onClick={() => handleNavigate("/entradas", "Entradas")}
+              title="Entradas"
+              aria-label="Entradas"
+            >
+              <HiOutlineClipboardDocumentCheck />
+              <C.NavText $open={mOpen}>Entradas</C.NavText>
             </C.NavButton>
             <C.NavButton
               $open={mOpen}
