@@ -1,19 +1,17 @@
 import React, { useContext } from "react";
-import {
-  MdClose,
-  MdInventory2,
-  MdOutlineReceiptLong,
-  MdOutlineSettings,
-} from "react-icons/md";
+import { MdClose } from "react-icons/md";
 import {
   HiOutlineBanknotes,
+  HiOutlineChartBarSquare,
+  HiOutlineCog8Tooth,
   HiOutlineCube,
+  HiOutlineDocumentText,
   HiOutlineIdentification,
+  HiOutlineArchiveBox,
   HiOutlineShoppingBag,
   HiOutlineShoppingCart,
   HiOutlineUsers,
 } from "react-icons/hi2";
-import { RxDashboard } from "react-icons/rx";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AppContext } from "context";
 import * as C from "./style";
@@ -52,7 +50,7 @@ const Sidebar = () => {
               title="Dashboard"
               aria-label="Dashboard"
             >
-              <RxDashboard />
+              <HiOutlineChartBarSquare />
               <C.NavText $open={mOpen}>Dashboard</C.NavText>
             </C.NavButton>
             <C.NavButton
@@ -112,7 +110,7 @@ const Sidebar = () => {
               title="Estoque"
               aria-label="Estoque"
             >
-              <MdInventory2 />
+              <HiOutlineArchiveBox />
               <C.NavText $open={mOpen}>Estoque</C.NavText>
             </C.NavButton>
             <C.NavButton
@@ -135,7 +133,7 @@ const Sidebar = () => {
               title="Configuração"
               aria-label="Configuração"
             >
-              <MdOutlineSettings />
+              <HiOutlineCog8Tooth />
               <C.NavText $open={mOpen}>Configuração</C.NavText>
             </C.NavButton>
             <C.NavButton
@@ -145,7 +143,7 @@ const Sidebar = () => {
               title="NF-e"
               aria-label="NF-e"
             >
-              <MdOutlineReceiptLong />
+              <HiOutlineDocumentText />
               <C.NavText $open={mOpen}>NF-e</C.NavText>
             </C.NavButton>
           </C.NavList>
