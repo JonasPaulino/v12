@@ -9,6 +9,7 @@ import { Usuario } from "pages/usuario";
 import { Produto } from "pages/produto";
 import { Pessoa } from "pages/pessoa";
 import { Venda } from "pages/venda";
+import { Compra } from "pages/compra";
 import { Estoque } from "pages/estoque";
 import { Financeiro } from "pages/financeiro";
 import { ConfiguracaoFiscal } from "pages/configuracao_fiscal";
@@ -67,6 +68,16 @@ export const RouteApp = () => (
           <AuthMiddleware>
             <PageWrapper title="Vendas">
               <Venda />
+            </PageWrapper>
+          </AuthMiddleware>
+        }
+      />
+      <Route
+        path="/compras"
+        element={
+          <AuthMiddleware>
+            <PageWrapper title="Compras">
+              <Compra />
             </PageWrapper>
           </AuthMiddleware>
         }

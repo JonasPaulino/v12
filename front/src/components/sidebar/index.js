@@ -9,6 +9,7 @@ import {
   HiOutlineBanknotes,
   HiOutlineCube,
   HiOutlineIdentification,
+  HiOutlineShoppingBag,
   HiOutlineShoppingCart,
   HiOutlineUsers,
 } from "react-icons/hi2";
@@ -93,6 +94,16 @@ const Sidebar = () => {
             >
               <HiOutlineShoppingCart />
               <C.NavText $open={mOpen}>Vendas</C.NavText>
+            </C.NavButton>
+            <C.NavButton
+              $open={mOpen}
+              $active={location.pathname === "/compras"}
+              onClick={() => handleNavigate("/compras", "Compras")}
+              title="Compras"
+              aria-label="Compras"
+            >
+              <HiOutlineShoppingBag />
+              <C.NavText $open={mOpen}>Compras</C.NavText>
             </C.NavButton>
             <C.NavButton
               $open={mOpen}
