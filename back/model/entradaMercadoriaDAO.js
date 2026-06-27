@@ -1,4 +1,5 @@
 import EstoqueDAO from "./estoqueDAO.js";
+import CompraDAO from "./compraDAO.js";
 import { TENANT_CONTEXT_SQL } from "../utils/sql.js";
 import { consultarXmlNfePorChaveAcbr } from "../utils/acbrSetup.js";
 
@@ -692,6 +693,194 @@ class EntradaMercadoriaDAO {
     return new Map(rows.map((row) => [String(row.codigo_interno), row]));
   }
 
+  static async buscarCondicaoPagamentoPadrao(client) {
+    const { rows } = await client.query(
+      `
+        SELECT
+          financeiro_condicao_pagamento_id,
+          descricao,
+          quantidade_parcelas,
+          dias_primeiro_vencimento,
+          intervalo_dias,
+          percentual_entrada
+        FROM financeiro_condicao_pagamento
+        WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+          AND ativo = TRUE
+          AND tipo IN ('pagar', 'ambos')
+        ORDER BY padrao DESC, descricao
+        LIMIT 1
+      `
+    );
+
+    return rows[0]
+      ? {
+          ...rows[0],
+          percentual_entrada: Number(rows[0].percentual_entrada || 0),
+        }
+      : null;
+  }
+
+  static async vincularFinanceiroPedidoEntrada(client, { pedidoCompraId, entradaMercadoriaId }) {
+    if (!pedidoCompraId || !entradaMercadoriaId) return null;
+
+    const { rows } = await client.query(
+      `
+        UPDATE financeiro_titulo
+        SET entrada_mercadoria_id = $2
+        WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+          AND pedido_compra_id = $1
+          AND tipo = 'pagar'
+          AND excluido = FALSE
+          AND entrada_mercadoria_id IS NULL
+        RETURNING financeiro_titulo_id
+      `,
+      [pedidoCompraId, entradaMercadoriaId]
+    );
+
+    return rows[0]?.financeiro_titulo_id || null;
+  }
+
+  static async criarFinanceiroEntradaXml(client, {
+    entradaMercadoriaId,
+    pessoaId,
+    total,
+    dataEmissao,
+    chaveAcesso,
+    numeroNfe,
+    serieNfe,
+  }) {
+    const valorOriginal = roundCurrency(total);
+    if (valorOriginal <= 0) return null;
+
+    const condicao = await this.buscarCondicaoPagamentoPadrao(client);
+    if (!condicao) {
+      throw new Error("Condição de pagamento para contas a pagar não encontrada.");
+    }
+
+    const parcelas = CompraDAO.gerarParcelas({
+      total: valorOriginal,
+      dataEmissao,
+      primeiroVencimento: null,
+      condicao,
+    });
+
+    const numeroDocumento = [serieNfe, numeroNfe].filter(Boolean).join("/") || chaveAcesso || String(entradaMercadoriaId);
+    const descricao = numeroNfe
+      ? `NF-e recebida ${numeroDocumento}`
+      : `Entrada de mercadoria #${entradaMercadoriaId}`;
+
+    const { rows } = await client.query(
+      `
+        INSERT INTO financeiro_titulo (
+          tenant_id,
+          entrada_mercadoria_id,
+          pessoa_id,
+          financeiro_condicao_pagamento_id,
+          numero_documento,
+          descricao,
+          tipo,
+          status,
+          valor_original,
+          desconto,
+          acrescimo,
+          data_emissao,
+          data_vencimento,
+          observacao,
+          excluido
+        )
+        VALUES (
+          ${TENANT_CONTEXT_SQL},
+          $1,
+          $2,
+          $3,
+          $4,
+          $5,
+          'pagar',
+          'aberto',
+          $6,
+          0,
+          0,
+          $7,
+          $8,
+          $9,
+          FALSE
+        )
+        ON CONFLICT (tenant_id, entrada_mercadoria_id)
+          WHERE entrada_mercadoria_id IS NOT NULL AND excluido = FALSE
+        DO UPDATE SET
+          pessoa_id = EXCLUDED.pessoa_id,
+          financeiro_condicao_pagamento_id = EXCLUDED.financeiro_condicao_pagamento_id,
+          numero_documento = EXCLUDED.numero_documento,
+          descricao = EXCLUDED.descricao,
+          status = 'aberto',
+          valor_original = EXCLUDED.valor_original,
+          desconto = 0,
+          acrescimo = 0,
+          data_emissao = EXCLUDED.data_emissao,
+          data_vencimento = EXCLUDED.data_vencimento,
+          observacao = EXCLUDED.observacao,
+          excluido = FALSE
+        RETURNING financeiro_titulo_id
+      `,
+      [
+        entradaMercadoriaId,
+        pessoaId,
+        condicao.financeiro_condicao_pagamento_id,
+        String(numeroDocumento).slice(0, 40),
+        descricao.slice(0, 180),
+        valorOriginal,
+        dataEmissao,
+        parcelas[0]?.data_vencimento || dataEmissao,
+        chaveAcesso ? `Chave NF-e: ${chaveAcesso}` : null,
+      ]
+    );
+
+    const financeiroTituloId = rows[0].financeiro_titulo_id;
+
+    await client.query(
+      `
+        DELETE FROM financeiro_titulo_parcela
+        WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+          AND financeiro_titulo_id = $1
+      `,
+      [financeiroTituloId]
+    );
+
+    for (const parcela of parcelas) {
+      await client.query(
+        `
+          INSERT INTO financeiro_titulo_parcela (
+            tenant_id,
+            financeiro_titulo_id,
+            numero_parcela,
+            valor_parcela,
+            valor_recebido,
+            data_vencimento,
+            status
+          )
+          VALUES (
+            ${TENANT_CONTEXT_SQL},
+            $1,
+            $2,
+            $3,
+            0,
+            $4,
+            $5
+          )
+        `,
+        [
+          financeiroTituloId,
+          parcela.numero_parcela,
+          parcela.valor_parcela,
+          parcela.data_vencimento,
+          parcela.status,
+        ]
+      );
+    }
+
+    return { financeiro_titulo_id: financeiroTituloId, parcelas };
+  }
+
   static async registrarMovimentoEntrada(client, {
     depositoId,
     entradaMercadoriaId,
@@ -959,6 +1148,11 @@ class EntradaMercadoriaDAO {
         [data.pedido_compra_id]
       );
 
+      await this.vincularFinanceiroPedidoEntrada(client, {
+        pedidoCompraId: data.pedido_compra_id,
+        entradaMercadoriaId,
+      });
+
       await client.query("COMMIT");
       return this.buscarPorId(client, entradaMercadoriaId);
     } catch (error) {
@@ -1160,6 +1354,16 @@ class EntradaMercadoriaDAO {
         ]
       );
 
+      await this.criarFinanceiroEntradaXml(client, {
+        entradaMercadoriaId,
+        pessoaId: pessoa.pessoa_id,
+        total,
+        dataEmissao: xmlData.data_emissao_nfe || dataEntrada,
+        chaveAcesso: xmlData.chave_acesso,
+        numeroNfe: xmlData.numero_nfe,
+        serieNfe: xmlData.serie_nfe,
+      });
+
       await client.query("COMMIT");
       return this.buscarPorId(client, entradaMercadoriaId);
     } catch (error) {
@@ -1233,25 +1437,103 @@ class EntradaMercadoriaDAO {
     const entrada = entradaResult.rows[0];
     if (!entrada) return null;
 
-    const itemsResult = await client.query(
-      `
-        SELECT
-          entrada_mercadoria_item_id,
-          pedido_compra_item_id,
-          produto_id,
-          codigo_interno,
-          descricao,
-          unidade_sigla,
-          quantidade,
-          valor_unitario,
-          valor_total
-        FROM entrada_mercadoria_item
-        WHERE tenant_id = ${TENANT_CONTEXT_SQL}
-          AND entrada_mercadoria_id = $1
-        ORDER BY entrada_mercadoria_item_id
-      `,
-      [entradaMercadoriaId]
-    );
+    const [itemsResult, tituloResult, parcelasResult] = await Promise.all([
+      client.query(
+        `
+          SELECT
+            entrada_mercadoria_item_id,
+            pedido_compra_item_id,
+            produto_id,
+            codigo_interno,
+            descricao,
+            unidade_sigla,
+            quantidade,
+            valor_unitario,
+            valor_total
+          FROM entrada_mercadoria_item
+          WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+            AND entrada_mercadoria_id = $1
+          ORDER BY entrada_mercadoria_item_id
+        `,
+        [entradaMercadoriaId]
+      ),
+      client.query(
+        `
+          SELECT
+            financeiro_titulo_id,
+            pedido_compra_id,
+            entrada_mercadoria_id,
+            status,
+            valor_original,
+            desconto,
+            acrescimo,
+            valor_final,
+            data_emissao,
+            data_vencimento,
+            observacao
+          FROM financeiro_titulo
+          WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+            AND tipo = 'pagar'
+            AND excluido = FALSE
+            AND (
+              entrada_mercadoria_id = $1
+              OR (
+                $2::integer IS NOT NULL
+                AND pedido_compra_id = $2
+              )
+            )
+          ORDER BY entrada_mercadoria_id NULLS LAST, financeiro_titulo_id DESC
+          LIMIT 1
+        `,
+        [entradaMercadoriaId, entrada.pedido_compra_id || null]
+      ),
+      client.query(
+        `
+          SELECT
+            ft.financeiro_titulo_id,
+            ftp.financeiro_titulo_parcela_id,
+            ftp.numero_parcela,
+            ftp.valor_parcela,
+            ftp.valor_recebido,
+            ftp.data_vencimento,
+            ftp.data_pagamento,
+            ftp.status
+          FROM financeiro_titulo_parcela ftp
+          JOIN financeiro_titulo ft
+            ON ft.financeiro_titulo_id = ftp.financeiro_titulo_id
+           AND ft.tenant_id = ftp.tenant_id
+          WHERE ft.tenant_id = ${TENANT_CONTEXT_SQL}
+            AND ft.tipo = 'pagar'
+            AND ft.excluido = FALSE
+            AND (
+              ft.entrada_mercadoria_id = $1
+              OR (
+                $2::integer IS NOT NULL
+                AND ft.pedido_compra_id = $2
+              )
+            )
+          ORDER BY ftp.numero_parcela
+        `,
+        [entradaMercadoriaId, entrada.pedido_compra_id || null]
+      ),
+    ]);
+
+    const titulo = tituloResult.rows[0] || null;
+
+    const parcelas = titulo
+      ? parcelasResult.rows
+          .filter(
+            (parcela) =>
+              Number(parcela.financeiro_titulo_id) === Number(titulo.financeiro_titulo_id)
+          )
+          .map((parcela) => ({
+            ...parcela,
+            valor_parcela: Number(parcela.valor_parcela || 0),
+            valor_recebido: Number(parcela.valor_recebido || 0),
+            data_vencimento: normalizeDateValue(parcela.data_vencimento),
+            data_pagamento: normalizeDateValue(parcela.data_pagamento),
+          }))
+      : [];
 
     return {
       entrada: {
@@ -1265,6 +1547,18 @@ class EntradaMercadoriaDAO {
         valor_unitario: Number(item.valor_unitario || 0),
         valor_total: Number(item.valor_total || 0),
       })),
+      titulo: titulo
+        ? {
+            ...titulo,
+            valor_original: Number(titulo.valor_original || 0),
+            desconto: Number(titulo.desconto || 0),
+            acrescimo: Number(titulo.acrescimo || 0),
+            valor_final: Number(titulo.valor_final || 0),
+            data_emissao: normalizeDateValue(titulo.data_emissao),
+            data_vencimento: normalizeDateValue(titulo.data_vencimento),
+          }
+        : null,
+      parcelas,
     };
   }
 }

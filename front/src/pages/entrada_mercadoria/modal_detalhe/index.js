@@ -32,6 +32,8 @@ export const ModalDetalheEntradaMercadoria = ({ entradaMercadoriaId, onClose }) 
   const { data } = useModalDetalheEntradaMercadoria({ entradaMercadoriaId });
   const entrada = data?.entrada || null;
   const items = data?.items || [];
+  const titulo = data?.titulo || null;
+  const parcelas = data?.parcelas || [];
 
   if (!isOpen) return null;
 
@@ -112,6 +114,45 @@ export const ModalDetalheEntradaMercadoria = ({ entradaMercadoriaId, onClose }) 
                   <C.Hint>{entrada.observacao}</C.Hint>
                 </C.Section>
               )}
+
+              <C.Section>
+                <C.SectionTitle>Contas a pagar</C.SectionTitle>
+                {titulo ? (
+                  <>
+                    <C.DetailsGrid>
+                      <C.DetailCard>
+                        <C.DetailLabel>Título</C.DetailLabel>
+                        <C.DetailValue>#{titulo.financeiro_titulo_id}</C.DetailValue>
+                      </C.DetailCard>
+
+                      <C.DetailCard>
+                        <C.DetailLabel>Status</C.DetailLabel>
+                        <C.DetailValue>{titulo.status || "--"}</C.DetailValue>
+                      </C.DetailCard>
+
+                      <C.DetailCard>
+                        <C.DetailLabel>Vencimento</C.DetailLabel>
+                        <C.DetailValue>{formatDate(titulo.data_vencimento)}</C.DetailValue>
+                      </C.DetailCard>
+
+                      <C.DetailCard>
+                        <C.DetailLabel>Valor</C.DetailLabel>
+                        <C.DetailValue>
+                          {currencyFormatter.format(Number(titulo.valor_final || 0))}
+                        </C.DetailValue>
+                      </C.DetailCard>
+                    </C.DetailsGrid>
+
+                    {parcelas.length > 1 && (
+                      <C.Hint>
+                        {parcelas.length} parcelas geradas para esta entrada.
+                      </C.Hint>
+                    )}
+                  </>
+                ) : (
+                  <C.Hint>Nenhum contas a pagar vinculado a esta entrada.</C.Hint>
+                )}
+              </C.Section>
 
               <C.Section>
                 <C.SectionTitle>Itens recebidos</C.SectionTitle>
