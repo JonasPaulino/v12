@@ -329,19 +329,6 @@ class OperacaoFiscalDAO {
     return this.buscarPorId(client, operacaoId);
   }
 
-  static async excluir(client, operacaoId) {
-    await client.query(
-      `
-        UPDATE operacao_fiscal
-        SET excluido = TRUE,
-            ativo = FALSE
-        WHERE tenant_id = ${TENANT_CONTEXT_SQL}
-          AND operacao_fiscal_id = $1
-          AND excluido = FALSE
-      `,
-      [operacaoId]
-    );
-  }
 }
 
 export default OperacaoFiscalDAO;

@@ -74,20 +74,4 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-router.delete("/:id", async (req, res) => {
-  try {
-    await OperacaoFiscalDAO.excluir(req.db, Number(req.params.id));
-    return res.json({
-      success: true,
-      message: "Operação fiscal removida com sucesso.",
-    });
-  } catch (error) {
-    console.error("[operacao-fiscal] Falha ao excluir operação fiscal:", error);
-    return res.status(400).json({
-      success: false,
-      message: error.message || "Não foi possível remover a operação fiscal.",
-    });
-  }
-});
-
 export default router;
