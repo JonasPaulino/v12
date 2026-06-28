@@ -1,18 +1,16 @@
 import styled, { css } from "styled-components";
 import { SlOptions } from "react-icons/sl";
+import {
+  StickyTableHeadBase,
+  TableContainerBase,
+  TableFooterBase,
+  TableFooterInfoBase,
+  TableScrollBase,
+} from "styles/tableShared";
 
-export const Container = styled.div`
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-`;
+export const Container = styled(TableContainerBase)``;
 
-export const Scroll = styled.div`
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-`;
+export const Scroll = styled(TableScrollBase)``;
 
 export const Table = styled.table`
   width: 100%;
@@ -20,12 +18,7 @@ export const Table = styled.table`
   border-collapse: collapse;
 `;
 
-export const Head = styled.thead`
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background: rgba(238, 244, 255, 0.96);
-`;
+export const Head = styled(StickyTableHeadBase)``;
 
 export const Body = styled.tbody``;
 
@@ -128,20 +121,6 @@ export const Empty = styled.div`
   color: ${({ theme }) => theme.colors.textSoft};
 `;
 
-export const Footer = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 14px;
-  padding: 16px 18px;
-  border-top: 1px solid ${({ theme }) => theme.colors.border};
+export const Footer = styled(TableFooterBase)``;
 
-  @media (max-width: 720px) {
-    flex-direction: column;
-    align-items: stretch;
-  }
-`;
-
-export const FooterInfo = styled.span`
-  color: ${({ theme }) => theme.colors.textSoft};
-`;
+export const FooterInfo = styled(TableFooterInfoBase)``;

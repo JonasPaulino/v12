@@ -2,6 +2,7 @@ import styled from "styled-components";
 
 export const Container = styled.div`
   min-height: 100vh;
+  min-height: 100dvh;
   display: grid;
   grid-template-columns: 1.1fr 0.9fr;
   background: linear-gradient(120deg, #06162d 0%, #0b5fff 100%);
@@ -102,6 +103,7 @@ export const FormArea = styled.section`
   display: flex;
   align-items: center;
   justify-content: center;
+  min-width: 0;
 
   @media (max-width: 640px) {
     padding: 20px;
@@ -154,6 +156,8 @@ export const Label = styled.label`
 
 export const Input = styled.input`
   width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   margin-bottom: 18px;
   padding: 15px 16px;
   border: 1px solid ${({ theme }) => theme.colors.border};
@@ -170,6 +174,10 @@ export const Actions = styled.div`
   display: flex;
   gap: 12px;
   margin-top: 24px;
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+  }
 `;
 
 export const Button = styled.button`
@@ -183,6 +191,10 @@ export const Button = styled.button`
   color: ${({ $secondary, theme }) =>
     $secondary ? theme.colors.text : "#fff"};
   font-weight: 800;
+
+  @media (max-width: 640px) {
+    width: 100%;
+  }
 `;
 
 export const PreviewCard = styled.div`

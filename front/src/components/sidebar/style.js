@@ -4,6 +4,7 @@ export const Container = styled.aside`
   width: ${({ $open }) => ($open ? "300px" : "108px")};
   height: 100vh;
   height: 100dvh;
+  min-width: 0;
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -84,9 +85,12 @@ export const BrandSub = styled.span`
 
 export const MenuContainer = styled.div`
   flex: 1;
+  min-width: 0;
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   padding-right: 2px;
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.32) transparent;

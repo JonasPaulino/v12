@@ -20,6 +20,7 @@ export const ButtonContainer = styled.div`
   align-items: center;
   gap: 16px;
   min-width: 0;
+  flex: 1;
 `;
 
 export const MenuButton = styled.button`
@@ -38,8 +39,10 @@ export const MenuButton = styled.button`
 
 export const PageTitle = styled.h1`
   margin: 0;
+  min-width: 0;
   font-family: ${({ theme }) => theme.fonts.heading};
   font-size: clamp(1.4rem, 2vw, 2rem);
+  overflow-wrap: anywhere;
 
   @media (max-width: 900px) {
     font-size: 1.8rem;
@@ -52,6 +55,7 @@ export const ProfileContainer = styled.div`
   align-items: center;
   justify-content: flex-end;
   gap: 12px;
+  min-width: 0;
 
   @media (max-width: 900px) {
     width: 100%;

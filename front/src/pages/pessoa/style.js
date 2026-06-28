@@ -1,52 +1,18 @@
 import styled from "styled-components";
+import {
+  PageBodyBase,
+  PageContent,
+  PageShell,
+  MobileOverlay,
+} from "styles/pageShell";
 
-export const Shell = styled.div`
-  height: 100vh;
-  height: 100dvh;
-  min-height: 0;
-  display: flex;
-  overflow: hidden;
-`;
+export const Shell = PageShell;
 
-export const Overlay = styled.div`
-  display: none;
+export const Overlay = MobileOverlay;
 
-  @media (max-width: 900px) {
-    display: block;
-    position: fixed;
-    inset: 0;
-    background: rgba(7, 16, 34, 0.34);
-    z-index: 20;
-    backdrop-filter: blur(2px);
-  }
-`;
+export const Content = PageContent;
 
-export const Content = styled.main`
-  flex: 1;
-  min-width: 0;
-  width: 100%;
-  height: 100%;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-`;
-
-export const Body = styled.section`
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow-x: hidden;
-  overflow-y: auto;
-  padding: 0 18px 18px;
-  scrollbar-gutter: stable;
-
-  @media (max-width: 640px) {
-    padding: 0 14px 22px;
-    scrollbar-gutter: auto;
-  }
-`;
+export const Body = styled(PageBodyBase)``;
 
 export const Toolbar = styled.div`
   display: flex;

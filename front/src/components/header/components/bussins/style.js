@@ -4,6 +4,7 @@ import { MdKeyboardArrowDown, MdKeyboardArrowUp } from "react-icons/md";
 export const Container = styled.div`
   position: relative;
   min-width: 280px;
+  max-width: 100%;
 
   @media (max-width: 900px) {
     min-width: 0;
@@ -13,6 +14,7 @@ export const Container = styled.div`
 
 export const ContainerBussins = styled.button`
   width: 100%;
+  min-width: 0;
   height: 56px;
   display: flex;
   align-items: center;
@@ -29,6 +31,7 @@ export const ContainerBussins = styled.button`
   @media (max-width: 900px) {
     height: auto;
     min-height: 56px;
+    padding: 12px 14px;
   }
 `;
 
