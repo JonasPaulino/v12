@@ -16,6 +16,7 @@ export default defineConfig({
       middleware: path.resolve(__dirname, "./src/middleware"),
       pages: path.resolve(__dirname, "./src/pages"),
       router: path.resolve(__dirname, "./src/router"),
+      styles: path.resolve(__dirname, "./src/styles"),
       utils: path.resolve(__dirname, "./src/utils"),
     },
   },

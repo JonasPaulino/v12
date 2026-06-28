@@ -16,6 +16,8 @@
       "pages/*": ["pages/*"],
       "router": ["router/index.js"],
       "router/*": ["router/*"],
+      "styles": ["styles"],
+      "styles/*": ["styles/*"],
       "utils": ["utils/index.js"],
       "utils/*": ["utils/*"]
     }
