@@ -22,9 +22,11 @@ const Sidebar = () => {
   const { mOpen, abreFechaMenu, selecionaPagina } = useContext(AppContext);
   const navigate = useNavigate();
   const location = useLocation();
+  const isNfePath =
+    location.pathname.startsWith("/nfe") || location.pathname === "/devolucoes";
   const [expandedGroups, setExpandedGroups] = useState({
     pedidos: ["/vendas", "/compras"].includes(location.pathname),
-    nfe: location.pathname.startsWith("/nfe"),
+    nfe: isNfePath,
   });
 
   const handleNavigate = (path, title) => {
@@ -46,7 +48,7 @@ const Sidebar = () => {
     if (["/vendas", "/compras"].includes(location.pathname)) {
       setExpandedGroups((prev) => ({ ...prev, pedidos: true }));
     }
-    if (location.pathname.startsWith("/nfe")) {
+    if (location.pathname.startsWith("/nfe") || location.pathname === "/devolucoes") {
       setExpandedGroups((prev) => ({ ...prev, nfe: true }));
     }
   }, [location.pathname]);
@@ -152,16 +154,6 @@ const Sidebar = () => {
             </C.NavButton>
             <C.NavButton
               $open={mOpen}
-              $active={location.pathname === "/devolucoes"}
-              onClick={() => handleNavigate("/devolucoes", "Devoluções")}
-              title="Devoluções de venda e compra com movimentação de estoque"
-              aria-label="Devoluções de venda e compra com movimentação de estoque"
-            >
-              <HiOutlineClipboardDocumentCheck />
-              <C.NavText $open={mOpen}>Devoluções</C.NavText>
-            </C.NavButton>
-            <C.NavButton
-              $open={mOpen}
               $active={location.pathname === "/estoque"}
               onClick={() => handleNavigate("/estoque", "Estoque")}
               title="Saldos, movimentações e ajustes de estoque"
@@ -184,10 +176,10 @@ const Sidebar = () => {
             <C.NavGroup>
               <C.GroupButton
                 $open={mOpen}
-                $active={location.pathname === "/nfe/emitidas" || location.pathname === "/nfe/recebidas" || location.pathname === "/nfe"}
+                $active={isNfePath}
                 onClick={() => toggleGroup("nfe")}
-                title="Notas fiscais eletrônicas emitidas e recebidas"
-                aria-label="Notas fiscais eletrônicas emitidas e recebidas"
+                title="Notas fiscais, devoluções e manifestação do destinatário"
+                aria-label="Notas fiscais, devoluções e manifestação do destinatário"
                 type="button"
               >
                 <C.GroupLabel>
@@ -218,6 +210,26 @@ const Sidebar = () => {
                 >
                   <HiOutlineDocumentText />
                   <C.NavText $open={mOpen}>Recebidas</C.NavText>
+                </C.SubNavButton>
+                <C.SubNavButton
+                  $open={mOpen}
+                  $active={location.pathname === "/devolucoes"}
+                  onClick={() => handleNavigate("/devolucoes", "Devoluções")}
+                  title="Devoluções de venda e compra com movimentação fiscal e estoque"
+                  aria-label="Devoluções de venda e compra com movimentação fiscal e estoque"
+                >
+                  <HiOutlineClipboardDocumentCheck />
+                  <C.NavText $open={mOpen}>Devoluções</C.NavText>
+                </C.SubNavButton>
+                <C.SubNavButton
+                  $open={mOpen}
+                  $active={location.pathname === "/nfe/manifestacoes"}
+                  onClick={() => handleNavigate("/nfe/manifestacoes", "Manifestação NF-e")}
+                  title="Manifestação do destinatário para notas recebidas"
+                  aria-label="Manifestação do destinatário para notas recebidas"
+                >
+                  <HiOutlineDocumentText />
+                  <C.NavText $open={mOpen}>Manifestação</C.NavText>
                 </C.SubNavButton>
               </C.SubNavList>
             </C.NavGroup>
