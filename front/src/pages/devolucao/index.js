@@ -4,6 +4,7 @@ import Sidebar from "components/sidebar";
 import { AppContext } from "context";
 import Tabela from "./tabela";
 import { ModalDevolucao } from "./modal_devolucao";
+import { ModalEditarDevolucao } from "./modal_editar_devolucao";
 import { useDevolucaoPage } from "./use";
 import * as C from "./style";
 
@@ -14,9 +15,13 @@ export const Devolucao = () => {
     setSearch,
     debouncedSearch,
     openModal,
+    selectedDevolucaoId,
     refreshKey,
     handleOpenNovo,
+    handleEditar,
     handleCloseModal,
+    handleCloseEditModal,
+    handleRefreshList,
   } = useDevolucaoPage();
 
   return (
@@ -45,12 +50,22 @@ export const Devolucao = () => {
           </C.Toolbar>
 
           <C.TableArea>
-            <Tabela search={debouncedSearch} refreshKey={refreshKey} />
+            <Tabela
+              search={debouncedSearch}
+              refreshKey={refreshKey}
+              onEditar={handleEditar}
+              onCanceled={handleRefreshList}
+            />
           </C.TableArea>
         </C.Body>
       </C.Content>
 
       <ModalDevolucao isOpen={openModal} onClose={handleCloseModal} />
+      <ModalEditarDevolucao
+        devolucaoId={selectedDevolucaoId}
+        isOpen={!!selectedDevolucaoId}
+        onClose={handleCloseEditModal}
+      />
     </C.Shell>
   );
 };

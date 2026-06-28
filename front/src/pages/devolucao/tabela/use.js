@@ -1,11 +1,12 @@
 import { useContext, useEffect, useState } from "react";
 import { AppContext } from "context";
 import { useSweetAlert } from "context/sweet_alert";
+import { cancelarDevolucao } from "../api";
 import { getDevolucoes } from "./api";
 
-export const useTabelaDevolucoes = ({ search, refreshKey }) => {
+export const useTabelaDevolucoes = ({ search, refreshKey, onCanceled }) => {
   const { showLoading, hideLoading } = useContext(AppContext);
-  const { showAlert } = useSweetAlert();
+  const { showAlert, askYesNoQuestion } = useSweetAlert();
   const [devolucoes, setDevolucoes] = useState([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -62,6 +63,46 @@ export const useTabelaDevolucoes = ({ search, refreshKey }) => {
     };
   }, [hideLoading, page, refreshKey, search, showAlert, showLoading, sort]);
 
+  const handleCancel = async (devolucao) => {
+    if (devolucao.status === "cancelada") {
+      showAlert({
+        title: "Devolução já cancelada",
+        text: "Essa devolução não pode ser cancelada novamente.",
+        icon: "info",
+      });
+      return;
+    }
+
+    const confirmed = await askYesNoQuestion(
+      "Cancelar devolução?",
+      "O estoque será estornado automaticamente. Deseja continuar?"
+    );
+
+    if (!confirmed) return;
+
+    try {
+      showLoading("Cancelando devolução...");
+      const response = await cancelarDevolucao(devolucao.devolucao_mercadoria_id);
+      showAlert({
+        title: "Devolução cancelada",
+        text: response?.message || "A devolução foi cancelada com sucesso.",
+        icon: "success",
+        timer: 1800,
+      });
+      onCanceled?.();
+    } catch (error) {
+      showAlert({
+        title: "Falha ao cancelar",
+        text:
+          error?.response?.data?.message ||
+          "Não foi possível cancelar a devolução selecionada.",
+        icon: "error",
+      });
+    } finally {
+      hideLoading();
+    }
+  };
+
   return {
     devolucoes,
     page,
@@ -69,5 +110,6 @@ export const useTabelaDevolucoes = ({ search, refreshKey }) => {
     totalPages,
     sort,
     toggleSort,
+    handleCancel,
   };
 };

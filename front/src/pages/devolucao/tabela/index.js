@@ -1,5 +1,6 @@
-import React, { useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import Documento from "components/documento";
+import DropdownMenu from "components/dropDownMenu";
 import Paginacao from "components/paginacao";
 import { useTabelaDevolucoes } from "./use";
 import * as C from "./style";
@@ -28,12 +29,25 @@ const mapStatusTone = (status) => {
 const sortFlag = (direction) =>
   direction === "ASC" ? "▲" : direction === "DESC" ? "▼" : "•";
 
-const Tabela = ({ search, refreshKey }) => {
-  const { devolucoes, page, setPage, totalPages, sort, toggleSort } =
+const Tabela = ({ search, refreshKey, onEditar, onCanceled }) => {
+  const { devolucoes, page, setPage, totalPages, sort, toggleSort, handleCancel } =
     useTabelaDevolucoes({
       search,
       refreshKey,
+      onCanceled,
     });
+  const [menuOpenId, setMenuOpenId] = useState(null);
+  const [anchorEl, setAnchorEl] = useState(null);
+
+  const openMenu = useCallback((devolucaoId, element) => {
+    setMenuOpenId(devolucaoId);
+    setAnchorEl(element);
+  }, []);
+
+  const closeMenu = useCallback(() => {
+    setMenuOpenId(null);
+    setAnchorEl(null);
+  }, []);
 
   const rows = useMemo(() => devolucoes || [], [devolucoes]);
 
@@ -75,6 +89,7 @@ const Tabela = ({ search, refreshKey }) => {
                 Status
                 <C.SortFlag $active={!!sort.status}>{sortFlag(sort.status)}</C.SortFlag>
               </C.HeaderCell>
+              <C.HeaderCell>Ações</C.HeaderCell>
             </C.Row>
           </C.Head>
 
@@ -103,11 +118,45 @@ const Tabela = ({ search, refreshKey }) => {
                       {devolucao.status}
                     </C.Status>
                   </C.Cell>
+                  <C.Cell>
+                    <C.MenuButton
+                      type="button"
+                      onClick={(event) =>
+                        openMenu(devolucao.devolucao_mercadoria_id, event.currentTarget)
+                      }
+                      title="Ações"
+                      aria-label="Ações"
+                    >
+                      <C.MenuIcon />
+                    </C.MenuButton>
+
+                    {menuOpenId === devolucao.devolucao_mercadoria_id && (
+                      <DropdownMenu
+                        open={!!menuOpenId}
+                        anchorEl={anchorEl}
+                        onClose={closeMenu}
+                        minWidth={170}
+                        items={[
+                          {
+                            label: "Editar",
+                            disabled: devolucao.status === "cancelada",
+                            onClick: () => onEditar?.(devolucao.devolucao_mercadoria_id),
+                          },
+                          {
+                            label: "Cancelar",
+                            danger: true,
+                            disabled: devolucao.status === "cancelada",
+                            onClick: () => handleCancel(devolucao),
+                          },
+                        ]}
+                      />
+                    )}
+                  </C.Cell>
                 </C.Row>
               ))
             ) : (
               <C.Row>
-                <C.Cell colSpan={8}>
+                <C.Cell colSpan={9}>
                   <C.Empty>Nenhuma devolução encontrada para a filial ativa.</C.Empty>
                 </C.Cell>
               </C.Row>

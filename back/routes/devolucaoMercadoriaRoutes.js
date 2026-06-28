@@ -117,4 +117,46 @@ router.post("/", async (req, res) => {
   }
 });
 
+router.put("/:id", async (req, res) => {
+  try {
+    const data = await DevolucaoMercadoriaDAO.atualizar(
+      req.db,
+      Number(req.params.id),
+      req.body || {}
+    );
+
+    return res.json({
+      success: true,
+      message: "Devolução atualizada com sucesso.",
+      data,
+    });
+  } catch (error) {
+    console.error("[devolucao] Falha ao atualizar devolução:", error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Não foi possível atualizar a devolução.",
+    });
+  }
+});
+
+router.post("/:id/cancelar", async (req, res) => {
+  try {
+    const data = await DevolucaoMercadoriaDAO.cancelar(req.db, Number(req.params.id), {
+      usuarioId: Number(req.user?.userId) || null,
+    });
+
+    return res.json({
+      success: true,
+      message: "Devolução cancelada com sucesso.",
+      data,
+    });
+  } catch (error) {
+    console.error("[devolucao] Falha ao cancelar devolução:", error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Não foi possível cancelar a devolução.",
+    });
+  }
+});
+
 export default router;

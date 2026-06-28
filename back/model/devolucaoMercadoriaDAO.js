@@ -139,6 +139,10 @@ class DevolucaoMercadoriaDAO {
 
   static async buscarTipoMovimento(client, tipo) {
     const codigo = tipo === "venda" ? "devolucao_entrada" : "devolucao_saida";
+    return this.buscarTipoMovimentoPorCodigo(client, codigo);
+  }
+
+  static async buscarTipoMovimentoPorCodigo(client, codigo) {
     const { rows } = await client.query(
       `
         SELECT estoque_tipo_movimento_id
@@ -602,6 +606,105 @@ class DevolucaoMercadoriaDAO {
     );
   }
 
+  static async registrarEstornoEstoque(client, {
+    devolucao,
+    depositoId,
+    tipoMovimentoId,
+    item,
+    usuarioId,
+  }) {
+    const saldoResult = await client.query(
+      `
+        SELECT produto_estoque_id, estoque_atual
+        FROM produto_estoque
+        WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+          AND produto_id = $1
+          AND deposito_id = $2
+        FOR UPDATE
+      `,
+      [item.produto_id, depositoId]
+    );
+
+    const saldoAnterior = Number(saldoResult.rows[0]?.estoque_atual || 0);
+    const quantidade = Number(item.quantidade || 0);
+    const quantidadeMovimento = devolucao.tipo === "venda" ? -quantidade : quantidade;
+    const saldoPosterior = saldoAnterior + quantidadeMovimento;
+
+    if (saldoPosterior < 0) {
+      throw new Error(`O cancelamento deixaria o estoque do item "${item.descricao}" negativo.`);
+    }
+
+    await client.query(
+      `
+        INSERT INTO produto_estoque (
+          tenant_id,
+          produto_id,
+          deposito_id,
+          estoque_atual,
+          estoque_minimo,
+          estoque_reservado
+        )
+        VALUES (${TENANT_CONTEXT_SQL}, $1, $2, $3, 0, 0)
+        ON CONFLICT (produto_id, deposito_id) DO UPDATE
+        SET estoque_atual = EXCLUDED.estoque_atual,
+            atualizado_em = NOW()
+      `,
+      [item.produto_id, depositoId, saldoPosterior]
+    );
+
+    await client.query(
+      `
+        INSERT INTO estoque_movimento (
+          tenant_id,
+          produto_id,
+          deposito_id,
+          estoque_tipo_movimento_id,
+          tipo_movimento,
+          quantidade,
+          valor_unitario,
+          origem,
+          documento_tipo,
+          documento_id,
+          saldo_anterior,
+          saldo_posterior,
+          usuario_id,
+          observacao
+        )
+        VALUES (
+          ${TENANT_CONTEXT_SQL},
+          $1,
+          $2,
+          $3,
+          $4,
+          $5,
+          $6,
+          'cancelamento_devolucao',
+          'devolucao_mercadoria',
+          $7,
+          $8,
+          $9,
+          $10,
+          $11
+        )
+      `,
+      [
+        item.produto_id,
+        depositoId,
+        tipoMovimentoId,
+        devolucao.tipo === "venda" ? "devolucao_saida" : "devolucao_entrada",
+        quantidadeMovimento,
+        item.valor_unitario,
+        devolucao.devolucao_mercadoria_id,
+        saldoAnterior,
+        saldoPosterior,
+        usuarioId || null,
+        devolucao.tipo === "venda"
+          ? "Cancelamento de devolução de venda"
+          : "Cancelamento de devolução de compra",
+      ]
+    );
+  }
+
   static async criar(client, { payload, usuarioId }) {
     const data = this.normalizePayload(payload);
     const origemData = await this.buscarOrigem(client, data.tipo, data.origem_id);
@@ -754,6 +857,132 @@ class DevolucaoMercadoriaDAO {
 
       await client.query("COMMIT");
       return this.buscarPorId(client, devolucaoId);
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    }
+  }
+
+  static async atualizar(client, devolucaoId, payload = {}) {
+    const id = parseInteger(devolucaoId, { label: "Devolução" });
+    const data = {
+      data_devolucao: normalizeDateValue(payload.data_devolucao),
+      motivo: normalizeText(payload.motivo, 180),
+      observacao: normalizeText(payload.observacao, null),
+    };
+
+    await client.query("BEGIN");
+
+    try {
+      const atualResult = await client.query(
+        `
+          SELECT devolucao_mercadoria_id, status
+          FROM devolucao_mercadoria
+          WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+            AND devolucao_mercadoria_id = $1
+            AND excluido = FALSE
+          FOR UPDATE
+        `,
+        [id]
+      );
+
+      const atual = atualResult.rows[0];
+      if (!atual) throw new Error("Devolução não encontrada.");
+      if (atual.status !== "registrada") {
+        throw new Error("Somente devoluções registradas podem ser editadas.");
+      }
+
+      await client.query(
+        `
+          UPDATE devolucao_mercadoria
+          SET data_devolucao = $2,
+              motivo = $3,
+              observacao = $4,
+              atualizado_em = NOW()
+          WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+            AND devolucao_mercadoria_id = $1
+        `,
+        [id, data.data_devolucao, data.motivo, data.observacao]
+      );
+
+      await client.query("COMMIT");
+      return this.buscarPorId(client, id);
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    }
+  }
+
+  static async cancelar(client, devolucaoId, { usuarioId } = {}) {
+    const id = parseInteger(devolucaoId, { label: "Devolução" });
+
+    await client.query("BEGIN");
+
+    try {
+      const devolucaoResult = await client.query(
+        `
+          SELECT *
+          FROM devolucao_mercadoria
+          WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+            AND devolucao_mercadoria_id = $1
+            AND excluido = FALSE
+          FOR UPDATE
+        `,
+        [id]
+      );
+
+      const devolucao = devolucaoResult.rows[0];
+      if (!devolucao) throw new Error("Devolução não encontrada.");
+      if (devolucao.status === "cancelada") {
+        throw new Error("Esta devolução já está cancelada.");
+      }
+
+      const itemsResult = await client.query(
+        `
+          SELECT *
+          FROM devolucao_mercadoria_item
+          WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+            AND devolucao_mercadoria_id = $1
+          ORDER BY devolucao_mercadoria_item_id
+        `,
+        [id]
+      );
+
+      const depositoId = await EstoqueDAO.obterDepositoPadrao(client);
+      const tipoMovimentoCodigo =
+        devolucao.tipo === "venda" ? "devolucao_saida" : "devolucao_entrada";
+      const tipoMovimentoId = await this.buscarTipoMovimentoPorCodigo(
+        client,
+        tipoMovimentoCodigo
+      );
+
+      if (!tipoMovimentoId) {
+        throw new Error("Tipo de movimento de estoque do cancelamento não encontrado.");
+      }
+
+      for (const item of itemsResult.rows) {
+        await this.registrarEstornoEstoque(client, {
+          devolucao,
+          depositoId,
+          tipoMovimentoId,
+          item,
+          usuarioId,
+        });
+      }
+
+      await client.query(
+        `
+          UPDATE devolucao_mercadoria
+          SET status = 'cancelada',
+              atualizado_em = NOW()
+          WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+            AND devolucao_mercadoria_id = $1
+        `,
+        [id]
+      );
+
+      await client.query("COMMIT");
+      return this.buscarPorId(client, id);
     } catch (error) {
       await client.query("ROLLBACK");
       throw error;
