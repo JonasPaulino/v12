@@ -171,13 +171,7 @@ export const RouteApp = () => (
       />
       <Route
         path="/nfe/manifestacoes"
-        element={
-          <AuthMiddleware>
-            <PageWrapper title="Manifestação NF-e">
-              <NfeRecebidas />
-            </PageWrapper>
-          </AuthMiddleware>
-        }
+        element={<Navigate to="/nfe/recebidas" replace />}
       />
       <Route
         path="/produtos"

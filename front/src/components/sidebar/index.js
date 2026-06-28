@@ -178,8 +178,8 @@ const Sidebar = () => {
                 $open={mOpen}
                 $active={isNfePath}
                 onClick={() => toggleGroup("nfe")}
-                title="Notas fiscais, devoluções e manifestação do destinatário"
-                aria-label="Notas fiscais, devoluções e manifestação do destinatário"
+                title="Notas fiscais emitidas, recebidas e devoluções"
+                aria-label="Notas fiscais emitidas, recebidas e devoluções"
                 type="button"
               >
                 <C.GroupLabel>
@@ -220,16 +220,6 @@ const Sidebar = () => {
                 >
                   <HiOutlineClipboardDocumentCheck />
                   <C.NavText $open={mOpen}>Devoluções</C.NavText>
-                </C.SubNavButton>
-                <C.SubNavButton
-                  $open={mOpen}
-                  $active={location.pathname === "/nfe/manifestacoes"}
-                  onClick={() => handleNavigate("/nfe/manifestacoes", "Manifestação NF-e")}
-                  title="Manifestação do destinatário para notas recebidas"
-                  aria-label="Manifestação do destinatário para notas recebidas"
-                >
-                  <HiOutlineDocumentText />
-                  <C.NavText $open={mOpen}>Manifestação</C.NavText>
                 </C.SubNavButton>
               </C.SubNavList>
             </C.NavGroup>
