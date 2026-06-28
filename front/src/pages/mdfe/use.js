@@ -6,6 +6,7 @@ import {
   deleteMotoristaMdfe,
   deleteSeguradoraMdfe,
   deleteVeiculoMdfe,
+  downloadDamdfeMdfe,
   getManifestoMdfe,
   consultarStatusServicoMdfe,
   listManifestosMdfe,
@@ -436,6 +437,24 @@ export const useMdfePage = () => {
     [askYesNoQuestion, showAlert]
   );
 
+  const openDamdfe = useCallback(
+    async (item) => {
+      try {
+        const blob = await downloadDamdfeMdfe(item.mdfe_id);
+        const url = window.URL.createObjectURL(new Blob([blob], { type: "application/pdf" }));
+        window.open(url, "_blank", "noopener,noreferrer");
+        window.setTimeout(() => window.URL.revokeObjectURL(url), 30000);
+      } catch (error) {
+        showAlert({
+          title: "Falha ao abrir DAMDFE",
+          text: normalizeError(error, "Não foi possível abrir o DAMDFE."),
+          icon: "error",
+        });
+      }
+    },
+    [showAlert]
+  );
+
   return {
     activeTab,
     setActiveTab,
@@ -470,5 +489,6 @@ export const useMdfePage = () => {
     deleteItem,
     checkMdfeStatusService,
     processManifesto,
+    openDamdfe,
   };
 };

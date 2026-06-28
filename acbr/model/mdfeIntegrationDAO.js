@@ -598,6 +598,56 @@ class MdfeIntegrationDAO {
       [safeMdfeId, tipoXml, conteudoXml, await sha256(conteudoXml)]
     );
   }
+
+  static async carregarDamdfeAssets(client, mdfeId) {
+    const safeMdfeId = parseInteger(mdfeId, { label: "MDF-e" });
+
+    const xmlResult = await client.query(
+      `
+        SELECT tipo_xml, conteudo_xml, criado_em
+        FROM fiscal.mdfe_xml
+        WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+          AND mdfe_id = $1
+          AND tipo_xml IN ('autorizado', 'retorno_autorizacao')
+        ORDER BY
+          CASE tipo_xml
+            WHEN 'autorizado' THEN 1
+            ELSE 2
+          END,
+          criado_em DESC,
+          mdfe_xml_id DESC
+        LIMIT 1
+      `,
+      [safeMdfeId]
+    );
+
+    if (xmlResult.rows[0]?.conteudo_xml) {
+      return {
+        xml: xmlResult.rows[0],
+      };
+    }
+
+    const mdfeResult = await client.query(
+      `
+        SELECT xml_autorizado
+        FROM fiscal.mdfe
+        WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+          AND mdfe_id = $1
+          AND excluido = FALSE
+        LIMIT 1
+      `,
+      [safeMdfeId]
+    );
+
+    return {
+      xml: mdfeResult.rows[0]?.xml_autorizado
+        ? {
+            tipo_xml: "autorizado",
+            conteudo_xml: mdfeResult.rows[0].xml_autorizado,
+          }
+        : null,
+    };
+  }
 }
 
 export default MdfeIntegrationDAO;

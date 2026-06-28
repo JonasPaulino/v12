@@ -48,11 +48,12 @@ const getStatusTone = (status) => {
 
 const canProcessMdfe = (item) => ["rascunho", "rejeitado", "validado"].includes(item.status);
 
-const ActionCell = ({ type, item, onEdit, onDelete, onProcess, processingId }) => {
+const ActionCell = ({ type, item, onEdit, onDelete, onProcess, onOpenDamdfe, processingId }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const processing = type === "manifestos" && processingId === item.mdfe_id;
   const processable = type === "manifestos" && canProcessMdfe(item);
+  const hasDamdfe = type === "manifestos" && item.status === "autorizado";
 
   return (
     <C.Cell>
@@ -82,6 +83,14 @@ const ActionCell = ({ type, item, onEdit, onDelete, onProcess, processingId }) =
                   },
                 ]
               : []),
+            ...(hasDamdfe
+              ? [
+                  {
+                    label: "Abrir DAMDFE",
+                    onClick: () => onOpenDamdfe(item),
+                  },
+                ]
+              : []),
             {
               label: "Editar",
               onClick: () => onEdit(type, item),
@@ -107,6 +116,7 @@ const TableContent = ({
   onEdit,
   onDelete,
   onProcess,
+  onOpenDamdfe,
   processingId,
 }) => {
   if (activeTab === "manifestos") {
@@ -160,6 +170,7 @@ const TableContent = ({
                       onEdit={onEdit}
                       onDelete={onDelete}
                       onProcess={onProcess}
+                      onOpenDamdfe={onOpenDamdfe}
                       processingId={processingId}
                     />
                   </C.Row>
@@ -285,6 +296,7 @@ const TableContent = ({
                     onEdit={onEdit}
                     onDelete={onDelete}
                     onProcess={onProcess}
+                    onOpenDamdfe={onOpenDamdfe}
                     processingId={processingId}
                   />
                 </C.Row>
@@ -345,6 +357,7 @@ export const Mdfe = () => {
     deleteItem,
     checkMdfeStatusService,
     processManifesto,
+    openDamdfe,
   } = useMdfePage();
 
   const modalTitle = {
@@ -408,6 +421,7 @@ export const Mdfe = () => {
               onEdit={openEdit}
               onDelete={deleteItem}
               onProcess={processManifesto}
+              onOpenDamdfe={openDamdfe}
               processingId={processingId}
             />
           </C.TableArea>

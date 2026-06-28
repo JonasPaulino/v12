@@ -111,3 +111,10 @@ export const processarManifestoMdfe = async (id) => {
   const { data } = await acbrApi.post(`/mdfe/${id}/processar`);
   return data;
 };
+
+export const downloadDamdfeMdfe = async (id) => {
+  const { data } = await acbrApi.get(`/mdfe/${id}/damdfe`, {
+    responseType: "blob",
+  });
+  return data;
+};

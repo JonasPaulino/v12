@@ -17,6 +17,7 @@ import {
 const execFileAsync = promisify(execFile);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const MDFE_NATIVE_WORKER_PATH = path.join(__dirname, "mdfeNativeWorker.js");
+const DAMDFE_NATIVE_WORKER_PATH = path.join(__dirname, "damdfeNativeWorker.js");
 
 class AcbrLibMdfeNotConfiguredError extends Error {
   constructor(message = "ACBrLibMDFe não configurada neste ambiente.") {
@@ -110,6 +111,86 @@ const runMdfeEmissionWorker = async ({ tenantId, mdfeId, context, certificadoSen
       (crashedNative
         ? `A ACBrLibMDFe falhou durante a emissão do MDF-e${signal}.`
         : `A ACBrLibMDFe falhou durante a emissão do MDF-e${signal}.`);
+
+    throw new AcbrLibMdfeIntegrationError(message, {
+      mdfeId,
+      tenantId,
+      workerResult: result,
+      signal: error.signal || null,
+      stderr,
+    });
+  } finally {
+    await fs.rm(workDir, { recursive: true, force: true });
+  }
+};
+
+const isPdfBase64 = (value) => {
+  const raw = String(value || "").trim();
+  if (!raw) return false;
+
+  try {
+    return Buffer.from(raw, "base64").subarray(0, 4).toString("utf8") === "%PDF";
+  } catch {
+    return false;
+  }
+};
+
+const runDamdfeWorker = async ({ tenantId, mdfeId, context, certificadoSenha, xmlAutorizado }) => {
+  const workDir = await fs.mkdtemp(path.join(os.tmpdir(), `v12-damdfe-${tenantId}-${mdfeId}-`));
+  const inputPath = path.join(workDir, "input.json");
+  const outputPath = path.join(workDir, "output.json");
+  const certificadoBase64 = context.certificado?.conteudo_pfx
+    ? Buffer.from(context.certificado.conteudo_pfx).toString("base64")
+    : "";
+
+  await fs.writeFile(
+    inputPath,
+    JSON.stringify({
+      tenantId,
+      mdfeId,
+      context: normalizeContextForWorker(context),
+      certificadoBase64,
+      certificadoSenha,
+      xmlAutorizado,
+    }),
+    "utf8"
+  );
+
+  try {
+    const { stderr } = await execFileAsync(process.execPath, [DAMDFE_NATIVE_WORKER_PATH, inputPath, outputPath], {
+      cwd: process.cwd(),
+      env: process.env,
+      maxBuffer: 20 * 1024 * 1024,
+      timeout: 120000,
+    });
+
+    if (stderr) {
+      console.error(stderr.trim());
+    }
+
+    const result = await safeReadJsonFile(outputPath);
+    if (!result?.ok || !result.pdfBase64) {
+      const lastReturn = isPdfBase64(result?.lastReturn) ? "" : result?.lastReturn;
+      throw new AcbrLibMdfeIntegrationError(
+        result?.message || lastReturn || "Falha ao gerar DAMDFE com a ACBrLibMDFe.",
+        { mdfeId, tenantId, workerResult: result }
+      );
+    }
+
+    return {
+      ...result,
+      pdfBuffer: Buffer.from(result.pdfBase64, "base64"),
+    };
+  } catch (error) {
+    const result = await safeReadJsonFile(outputPath);
+    const signal = error.signal ? ` (signal: ${error.signal})` : "";
+    const stderr = String(error.stderr || "").trim();
+    const lastReturn = isPdfBase64(result?.lastReturn) ? "" : result?.lastReturn;
+    const message =
+      result?.message ||
+      lastReturn ||
+      stderr ||
+      `A ACBrLibMDFe falhou durante a geração do DAMDFE${signal}.`;
 
     throw new AcbrLibMdfeIntegrationError(message, {
       mdfeId,
@@ -389,6 +470,43 @@ class AcbrLibMdfeProvider {
         { mdfeId, tenantId, workerResult, signal: error.details?.signal || null }
       );
     }
+  }
+
+  static async gerarDamdfePdf({ client, mdfeId, tenantId }) {
+    this.ensureConfigured();
+
+    const context = await MdfeIntegrationDAO.carregarContexto(client, mdfeId);
+
+    if (String(context.mdfe.status || "").toLowerCase() !== "autorizado") {
+      throw new AcbrLibMdfeIntegrationError("DAMDFE disponível apenas para MDF-e autorizado.", {
+        mdfeId,
+        tenantId,
+      });
+    }
+
+    const assets = await MdfeIntegrationDAO.carregarDamdfeAssets(client, mdfeId);
+    if (!assets.xml?.conteudo_xml) {
+      throw new AcbrLibMdfeIntegrationError("O MDF-e autorizado ainda não possui XML salvo.", {
+        mdfeId,
+        tenantId,
+      });
+    }
+
+    const workerResult = await runDamdfeWorker({
+      tenantId,
+      mdfeId,
+      context,
+      certificadoSenha: context.certificado?.senha_criptografada
+        ? decryptSecret(context.certificado.senha_criptografada)
+        : "",
+      xmlAutorizado: assets.xml.conteudo_xml,
+    });
+
+    return {
+      filename: `damdfe-mdfe-${context.mdfe.numero || mdfeId}.pdf`,
+      buffer: workerResult.pdfBuffer,
+      pdfPath: workerResult.pdfPath,
+    };
   }
 }
 

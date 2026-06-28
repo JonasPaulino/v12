@@ -4,7 +4,7 @@ import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 const koffi = require("koffi");
 
-const BUFFER_SIZE = 16 * 1024;
+const BUFFER_SIZE = 20 * 1024 * 1024;
 
 const createBuffer = () => {
   const buffer = Buffer.alloc(BUFFER_SIZE);
@@ -44,6 +44,7 @@ class AcbrLibMDFeMT {
         "string",
       ]),
       statusServico: this.lib.func("MDFE_StatusServico", "int", ["void *", "char*", "int*"]),
+      carregarXML: this.lib.func("MDFE_CarregarXML", "int", ["void *", "string"]),
       carregarINI: this.lib.func("MDFE_CarregarINI", "int", ["void *", "string"]),
       limparLista: this.lib.func("MDFE_LimparLista", "int", ["void *"]),
       assinar: this.lib.func("MDFE_Assinar", "int", ["void *"]),
@@ -141,6 +142,10 @@ class AcbrLibMDFeMT {
 
   limparLista() {
     return this.check(this.fn.limparLista(this.getHandle()));
+  }
+
+  carregarXML(xmlPath) {
+    return this.check(this.fn.carregarXML(this.getHandle(), xmlPath));
   }
 
   carregarINI(iniPath) {

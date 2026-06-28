@@ -74,6 +74,41 @@ router.post("/status-servico", async (req, res) => {
   }
 });
 
+router.get("/:id/damdfe", async (req, res) => {
+  try {
+    const data = await AcbrLibMdfeProvider.gerarDamdfePdf({
+      client: req.db,
+      mdfeId: Number(req.params.id),
+      tenantId: Number(req.user?.tenantId),
+    });
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `inline; filename="${data.filename}"`);
+    res.setHeader("Cache-Control", "no-store");
+    return res.send(data.buffer);
+  } catch (error) {
+    if (isProviderError(error)) {
+      if (error instanceof AcbrLibMdfeIntegrationError) {
+        console.error("[acbr:mdfe] Falha ao gerar DAMDFE:", {
+          message: error.message,
+          details: error.details,
+        });
+      }
+
+      return res.status(error instanceof AcbrLibMdfeNotConfiguredError ? 501 : 400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    console.error("[acbr:mdfe] Falha inesperada ao gerar DAMDFE:", error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Não foi possível gerar o DAMDFE.",
+    });
+  }
+});
+
 router.post("/:id/processar", async (req, res) => {
   try {
     const data = await AcbrLibMdfeProvider.emitirMdfe({
