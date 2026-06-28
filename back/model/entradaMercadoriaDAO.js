@@ -117,6 +117,7 @@ const parseNfeXml = (xmlContent) => {
   const chaveAcesso = infNfeMatch?.[1] || normalizeDigits(getTagValue(xml, "chNFe"));
   const ide = getFirstBlock(xml, "ide");
   const emit = getFirstBlock(xml, "emit");
+  const dest = getFirstBlock(xml, "dest");
   const total = getFirstBlock(xml, "ICMSTot");
   const detBlocks = getAllBlocks(xml, "det");
 
@@ -126,6 +127,11 @@ const parseNfeXml = (xmlContent) => {
 
   const emitenteDocumento = normalizeDigits(getTagValue(emit, "CNPJ") || getTagValue(emit, "CPF"));
   const emitenteNome = getTagValue(emit, "xNome");
+  const destinatarioDocumento = normalizeDigits(
+    getTagValue(dest, "CNPJ") || getTagValue(dest, "CPF")
+  );
+  const destinatarioNome = getTagValue(dest, "xNome");
+  const enderEmit = getFirstBlock(emit, "enderEmit");
 
   if (!emitenteDocumento) {
     throw new Error("Não foi possível identificar o fornecedor no XML.");
@@ -160,6 +166,24 @@ const parseNfeXml = (xmlContent) => {
     emitente: {
       documento: emitenteDocumento,
       nome: emitenteNome,
+      fantasia: getTagValue(emit, "xFant"),
+      inscricao_estadual: getTagValue(emit, "IE"),
+      telefone: normalizeDigits(getTagValue(enderEmit, "fone")),
+      endereco: {
+        cep: normalizeDigits(getTagValue(enderEmit, "CEP")),
+        logradouro: getTagValue(enderEmit, "xLgr"),
+        numero: getTagValue(enderEmit, "nro"),
+        complemento: getTagValue(enderEmit, "xCpl"),
+        bairro: getTagValue(enderEmit, "xBairro"),
+        cidade: getTagValue(enderEmit, "xMun"),
+        uf: getTagValue(enderEmit, "UF"),
+        codigo_ibge: getTagValue(enderEmit, "cMun"),
+        pais: getTagValue(enderEmit, "xPais") || "Brasil",
+      },
+    },
+    destinatario: {
+      documento: destinatarioDocumento,
+      nome: destinatarioNome,
     },
     items,
   };
@@ -346,7 +370,62 @@ class EntradaMercadoriaDAO {
     return cStat ? "aguardando_sefaz" : "erro";
   }
 
+  static async buscarDocumentoFilial(client) {
+    const { rows } = await client.query(
+      `
+        SELECT tenant_documento
+        FROM tenant
+        WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+        LIMIT 1
+      `
+    );
+
+    return normalizeDigits(rows[0]?.tenant_documento);
+  }
+
+  static validarDestinatarioResponse(response = {}, documentoFilial) {
+    const xml = String(response.xml || "").trim();
+    if (!xml || !documentoFilial) return;
+
+    let xmlData = null;
+    try {
+      xmlData = parseNfeXml(xml);
+    } catch {
+      return;
+    }
+
+    const destinatarioDocumento = normalizeDigits(xmlData?.destinatario?.documento);
+    if (!destinatarioDocumento) return;
+
+    if (destinatarioDocumento !== documentoFilial) {
+      throw new Error(
+        "A NF-e consultada não pertence à filial ativa. O destinatário da nota é diferente do CNPJ/CPF da filial."
+      );
+    }
+  }
+
+  static isErroDestinatarioDivergente(error) {
+    return /não pertence à filial ativa|destinatário da nota é diferente/i.test(
+      String(error?.message || "")
+    );
+  }
+
+  static async removerSolicitacaoXml(client, solicitacaoId) {
+    await client.query(
+      `
+        DELETE FROM entrada_xml_solicitacao
+        WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+          AND entrada_xml_solicitacao_id = $1
+          AND entrada_mercadoria_id IS NULL
+      `,
+      [solicitacaoId]
+    );
+  }
+
   static async atualizarSolicitacaoComConsulta(client, solicitacaoId, response = {}) {
+    const documentoFilial = await this.buscarDocumentoFilial(client);
+    this.validarDestinatarioResponse(response, documentoFilial);
+
     const status = this.mapSolicitacaoStatus(response);
 
     const { rows } = await client.query(
@@ -381,39 +460,19 @@ class EntradaMercadoriaDAO {
       throw new Error("Chave de acesso da NF-e inválida.");
     }
 
-    const { rows } = await client.query(
+    const existenteResult = await client.query(
       `
-        INSERT INTO entrada_xml_solicitacao (
-          tenant_id,
-          chave_acesso,
-          status,
-          usuario_id
-        )
-        VALUES (${TENANT_CONTEXT_SQL}, $1, 'solicitada', $2)
-        ON CONFLICT (tenant_id, chave_acesso)
-        DO UPDATE SET
-          status = CASE
-            WHEN entrada_xml_solicitacao.status = 'importada' THEN entrada_xml_solicitacao.status
-            ELSE 'solicitada'
-          END,
-          usuario_id = COALESCE($2, entrada_xml_solicitacao.usuario_id)
-        RETURNING *
-      `,
-      [chave, usuarioId || null]
-    );
-
-    const solicitacao = rows[0];
-    if (solicitacao.status === "importada") return solicitacao;
-
-    await client.query(
-      `
-        UPDATE entrada_xml_solicitacao
-        SET status = 'consultando'
+        SELECT *
+        FROM entrada_xml_solicitacao
         WHERE tenant_id = ${TENANT_CONTEXT_SQL}
-          AND entrada_xml_solicitacao_id = $1
+          AND chave_acesso = $1
+        LIMIT 1
       `,
-      [solicitacao.entrada_xml_solicitacao_id]
+      [chave]
     );
+
+    const existente = existenteResult.rows[0] || null;
+    if (existente?.status === "importada") return existente;
 
     try {
       const response = await consultarXmlNfePorChaveAcbr({
@@ -421,12 +480,48 @@ class EntradaMercadoriaDAO {
         chaveAcesso: chave,
       });
 
+      const documentoFilial = await this.buscarDocumentoFilial(client);
+      this.validarDestinatarioResponse(response, documentoFilial);
+
+      const { rows } = await client.query(
+        `
+          INSERT INTO entrada_xml_solicitacao (
+            tenant_id,
+            chave_acesso,
+            status,
+            usuario_id
+          )
+          VALUES (${TENANT_CONTEXT_SQL}, $1, 'consultando', $2)
+          ON CONFLICT (tenant_id, chave_acesso)
+          DO UPDATE SET
+            status = CASE
+              WHEN entrada_xml_solicitacao.status = 'importada' THEN entrada_xml_solicitacao.status
+              ELSE 'consultando'
+            END,
+            usuario_id = COALESCE($2, entrada_xml_solicitacao.usuario_id)
+          RETURNING *
+        `,
+        [chave, usuarioId || null]
+      );
+
+      const solicitacao = rows[0];
+      if (solicitacao.status === "importada") return solicitacao;
+
       return this.atualizarSolicitacaoComConsulta(
         client,
         solicitacao.entrada_xml_solicitacao_id,
         response
       );
     } catch (error) {
+      if (!existente) {
+        throw error;
+      }
+
+      if (this.isErroDestinatarioDivergente(error)) {
+        await this.removerSolicitacaoXml(client, existente.entrada_xml_solicitacao_id);
+        throw error;
+      }
+
       const { rows: errorRows } = await client.query(
         `
           UPDATE entrada_xml_solicitacao
@@ -437,7 +532,7 @@ class EntradaMercadoriaDAO {
             AND entrada_xml_solicitacao_id = $1
           RETURNING *
         `,
-        [solicitacao.entrada_xml_solicitacao_id, error.message || "Falha ao consultar chave."]
+        [existente.entrada_xml_solicitacao_id, error.message || "Falha ao consultar chave."]
       );
 
       return errorRows[0];
@@ -480,6 +575,11 @@ class EntradaMercadoriaDAO {
 
       return this.atualizarSolicitacaoComConsulta(client, safeSolicitacaoId, response);
     } catch (error) {
+      if (this.isErroDestinatarioDivergente(error)) {
+        await this.removerSolicitacaoXml(client, safeSolicitacaoId);
+        throw error;
+      }
+
       const { rows: errorRows } = await client.query(
         `
           UPDATE entrada_xml_solicitacao
@@ -703,6 +803,168 @@ class EntradaMercadoriaDAO {
     );
 
     return rows[0] || null;
+  }
+
+  static async obterOuCriarFornecedorXml(client, emitente = {}) {
+    const documento = normalizeDigits(emitente.documento);
+    if (!documento) {
+      throw new Error("Não foi possível identificar o fornecedor no XML.");
+    }
+
+    const pessoaVinculada = await this.buscarPessoaPorDocumento(client, documento);
+    if (pessoaVinculada) return pessoaVinculada;
+
+    const pessoaExistenteResult = await client.query(
+      `
+        SELECT pessoa_id
+        FROM pessoa
+        WHERE pessoa_excluido = FALSE
+          AND regexp_replace(COALESCE(pessoa_cpf_cnpj, ''), '\\D', '', 'g') = $1
+        LIMIT 1
+      `,
+      [documento]
+    );
+
+    let pessoaId = pessoaExistenteResult.rows[0]?.pessoa_id || null;
+    const endereco = emitente.endereco || {};
+
+    if (!pessoaId) {
+      const insertResult = await client.query(
+        `
+          INSERT INTO pessoa (
+            pessoa_tipo,
+            pessoa_nome_razao,
+            pessoa_nome_fantasia,
+            pessoa_cpf_cnpj,
+            pessoa_inscricao_estadual,
+            pessoa_telefone,
+            pessoa_whatsapp,
+            pessoa_observacao,
+            pessoa_ativo,
+            pessoa_excluido
+          )
+          VALUES (
+            'J',
+            $1,
+            $2,
+            $3,
+            $4,
+            $5,
+            $5,
+            $6,
+            TRUE,
+            FALSE
+          )
+          RETURNING pessoa_id
+        `,
+        [
+          normalizeText(emitente.nome, 180, {
+            required: true,
+            label: "Razão social do fornecedor",
+          }),
+          normalizeText(emitente.fantasia, 180),
+          documento,
+          normalizeText(emitente.inscricao_estadual, 20),
+          normalizeText(emitente.telefone, 20),
+          "Fornecedor cadastrado automaticamente pela importação de XML de NF-e.",
+        ]
+      );
+
+      pessoaId = insertResult.rows[0].pessoa_id;
+    } else {
+      await client.query(
+        `
+          UPDATE pessoa
+          SET pessoa_nome_razao = COALESCE(NULLIF(pessoa_nome_razao, ''), $2),
+              pessoa_nome_fantasia = COALESCE(NULLIF(pessoa_nome_fantasia, ''), $3),
+              pessoa_inscricao_estadual = COALESCE(NULLIF(pessoa_inscricao_estadual, ''), $4),
+              pessoa_telefone = COALESCE(NULLIF(pessoa_telefone, ''), $5),
+              pessoa_whatsapp = COALESCE(NULLIF(pessoa_whatsapp, ''), $5),
+              pessoa_ativo = TRUE
+          WHERE pessoa_id = $1
+        `,
+        [
+          pessoaId,
+          normalizeText(emitente.nome, 180),
+          normalizeText(emitente.fantasia, 180),
+          normalizeText(emitente.inscricao_estadual, 20),
+          normalizeText(emitente.telefone, 20),
+        ]
+      );
+    }
+
+    await client.query(
+      `
+        INSERT INTO pessoa_tenant (pessoa_id, tenant_id, principal, ativo)
+        VALUES ($1, ${TENANT_CONTEXT_SQL}, TRUE, TRUE)
+        ON CONFLICT (pessoa_id, tenant_id)
+        DO UPDATE SET principal = TRUE, ativo = TRUE
+      `,
+      [pessoaId]
+    );
+
+    if (
+      [
+        endereco.cep,
+        endereco.logradouro,
+        endereco.numero,
+        endereco.complemento,
+        endereco.bairro,
+        endereco.cidade,
+        endereco.uf,
+        endereco.codigo_ibge,
+      ].some((value) => String(value || "").trim())
+    ) {
+      await client.query(
+        `
+          INSERT INTO pessoa_endereco (
+            pessoa_id,
+            tenant_id,
+            endereco_tipo,
+            cep,
+            logradouro,
+            numero,
+            complemento,
+            bairro,
+            cidade,
+            uf,
+            codigo_ibge,
+            pais
+          )
+          VALUES ($1, ${TENANT_CONTEXT_SQL}, 'principal', $2, $3, $4, $5, $6, $7, $8, $9, $10)
+          ON CONFLICT (pessoa_id, tenant_id, endereco_tipo)
+          DO UPDATE SET
+            cep = EXCLUDED.cep,
+            logradouro = EXCLUDED.logradouro,
+            numero = EXCLUDED.numero,
+            complemento = EXCLUDED.complemento,
+            bairro = EXCLUDED.bairro,
+            cidade = EXCLUDED.cidade,
+            uf = EXCLUDED.uf,
+            codigo_ibge = EXCLUDED.codigo_ibge,
+            pais = EXCLUDED.pais
+        `,
+        [
+          pessoaId,
+          normalizeText(endereco.cep, 9),
+          normalizeText(endereco.logradouro, 180),
+          normalizeText(endereco.numero, 20),
+          normalizeText(endereco.complemento, 120),
+          normalizeText(endereco.bairro, 100),
+          normalizeText(endereco.cidade, 100),
+          normalizeText(endereco.uf, 2),
+          normalizeText(endereco.codigo_ibge, 10),
+          normalizeText(endereco.pais, 60) || "Brasil",
+        ]
+      );
+    }
+
+    const pessoa = await this.buscarPessoaPorDocumento(client, documento);
+    if (!pessoa) {
+      throw new Error("Não foi possível vincular o fornecedor do XML à filial ativa.");
+    }
+
+    return pessoa;
   }
 
   static async buscarProdutosPorCodigo(client, codigos = []) {
@@ -1409,11 +1671,16 @@ class EntradaMercadoriaDAO {
 
   static async importarXml(client, { xmlContent, nomeArquivo, usuarioId }) {
     const xmlData = parseNfeXml(xmlContent);
-    const pessoa = await this.buscarPessoaPorDocumento(client, xmlData.emitente.documento);
+    const documentoFilial = await this.buscarDocumentoFilial(client);
+    const destinatarioDocumento = normalizeDigits(xmlData.destinatario?.documento);
 
-    if (!pessoa) {
+    if (
+      documentoFilial &&
+      destinatarioDocumento &&
+      destinatarioDocumento !== documentoFilial
+    ) {
       throw new Error(
-        `Fornecedor do XML não encontrado na filial: ${xmlData.emitente.nome || xmlData.emitente.documento}.`
+        "A NF-e importada não pertence à filial ativa. O destinatário da nota é diferente do CNPJ/CPF da filial."
       );
     }
 
@@ -1476,6 +1743,7 @@ class EntradaMercadoriaDAO {
     await client.query("BEGIN");
 
     try {
+      const pessoa = await this.obterOuCriarFornecedorXml(client, xmlData.emitente);
       const entradaResult = await client.query(
         `
           INSERT INTO entrada_mercadoria (
