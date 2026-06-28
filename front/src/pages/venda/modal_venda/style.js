@@ -4,6 +4,7 @@ import {
   ModalTitleBase,
   ModalTitleBlockBase,
 } from "styles/modalHeading";
+import { TabPillButtonBase, TabPillGroupBase } from "styles/tabPill";
 
 export const Overlay = styled.div`
   position: fixed;
@@ -42,6 +43,11 @@ export const Header = styled.div`
   align-items: flex-start;
   padding: 24px 26px 18px;
   border-bottom: 1px solid ${({ theme }) => theme.colors.border};
+
+  @media (max-width: 640px) {
+    padding: 18px 16px 14px;
+    gap: 12px;
+  }
 `;
 
 export const TitleBlock = styled(ModalTitleBlockBase)``;
@@ -60,26 +66,15 @@ export const CloseButton = styled.button`
   cursor: pointer;
 `;
 
-export const Tabs = styled.div`
-  display: flex;
-  gap: 10px;
+export const Tabs = styled(TabPillGroupBase)`
   padding: 18px 26px 0;
-  flex-wrap: wrap;
+
+  @media (max-width: 640px) {
+    padding: 12px 16px 0;
+  }
 `;
 
-export const TabButton = styled.button`
-  height: 42px;
-  padding: 0 18px;
-  border-radius: ${({ theme }) => theme.radius.pill};
-  border: 1px solid
-    ${({ theme, $active }) => ($active ? theme.colors.primary : theme.colors.border)};
-  background: ${({ theme, $active }) =>
-    $active ? "rgba(11, 95, 255, 0.1)" : theme.colors.surface};
-  color: ${({ theme, $active }) =>
-    $active ? theme.colors.primaryStrong : theme.colors.textSoft};
-  font-weight: 700;
-  cursor: pointer;
-`;
+export const TabButton = styled(TabPillButtonBase)``;
 
 export const Form = styled.form`
   display: flex;
@@ -94,6 +89,11 @@ export const Body = styled.div`
   overflow: auto;
   display: grid;
   gap: 18px;
+
+  @media (max-width: 640px) {
+    padding: 18px 16px 20px;
+    gap: 14px;
+  }
 `;
 
 export const Grid = styled.div`
@@ -123,6 +123,7 @@ export const GridThree = styled.div`
 export const Field = styled.label`
   display: grid;
   gap: 8px;
+  min-width: 0;
 `;
 
 export const FieldSpan = styled.span`
@@ -138,6 +139,9 @@ export const RequiredMark = styled.span`
 `;
 
 export const Input = styled.input`
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   height: 48px;
   padding: 0 14px;
   border: 1px solid ${({ theme }) => theme.colors.border};
@@ -152,6 +156,9 @@ export const Input = styled.input`
 `;
 
 export const Textarea = styled.textarea`
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   min-height: 108px;
   padding: 12px 14px;
   border: 1px solid ${({ theme }) => theme.colors.border};
@@ -167,6 +174,9 @@ export const Textarea = styled.textarea`
 `;
 
 export const Select = styled.select`
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   height: 48px;
   padding: 0 14px;
   border: 1px solid ${({ theme }) => theme.colors.border};
@@ -202,19 +212,32 @@ export const AddItemButton = styled.button`
   color: ${({ theme }) => theme.colors.primaryStrong};
   font-weight: 700;
   cursor: pointer;
+
+  @media (max-width: 640px) {
+    width: 100%;
+    height: 40px;
+    padding: 0 14px;
+    font-size: 0.84rem;
+  }
 `;
 
 export const ItemsTable = styled.div`
   min-height: 360px;
   border: 1px solid ${({ theme }) => theme.colors.border};
   border-radius: ${({ theme }) => theme.radius.md};
-  overflow: visible;
+
+  @media (max-width: 640px) {
+    min-height: 0;
+    overflow: hidden;
+  }
 `;
 
 export const ItemsScroll = styled.div`
   min-height: 100%;
-  overflow: visible;
-  overflow-y: visible;
+
+  @media (max-width: 640px) {
+    min-height: 0;
+  }
 `;
 
 export const ItemsGrid = styled.div`
@@ -231,6 +254,10 @@ export const ItemsHeader = styled.div`
   color: ${({ theme }) => theme.colors.textSoft};
   text-transform: uppercase;
   letter-spacing: 0.08em;
+
+  @media (max-width: 640px) {
+    display: none;
+  }
 `;
 
 export const ItemsHeaderCell = styled.div`
@@ -248,6 +275,13 @@ export const ItemsRow = styled.div`
 
   &:not(:last-child) {
     border-top: 1px solid ${({ theme }) => theme.colors.border};
+  }
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 14px;
+    align-items: stretch;
   }
 `;
 
@@ -275,6 +309,12 @@ export const RemoveItemButton = styled.button`
   color: ${({ theme }) => theme.colors.danger};
   font-weight: 700;
   cursor: pointer;
+
+  @media (max-width: 640px) {
+    width: 100%;
+    height: 40px;
+    font-size: 0.84rem;
+  }
 `;
 
 export const SummaryGrid = styled.div`
@@ -372,6 +412,7 @@ export const Footer = styled.div`
 
   @media (max-width: 640px) {
     flex-direction: column-reverse;
+    padding: 0 16px 16px;
   }
 `;
 
@@ -383,6 +424,12 @@ export const SecondaryButton = styled.button`
   background: ${({ theme }) => theme.colors.surface};
   font-weight: 700;
   cursor: pointer;
+
+  @media (max-width: 640px) {
+    width: 100%;
+    height: 44px;
+    font-size: 0.86rem;
+  }
 `;
 
 export const PrimaryButton = styled.button`
@@ -394,4 +441,10 @@ export const PrimaryButton = styled.button`
   color: #ffffff;
   font-weight: 700;
   cursor: pointer;
+
+  @media (max-width: 640px) {
+    width: 100%;
+    height: 44px;
+    font-size: 0.86rem;
+  }
 `;

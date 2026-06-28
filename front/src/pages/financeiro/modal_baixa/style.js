@@ -4,6 +4,7 @@ import {
   ModalTitleBase,
   ModalTitleBlockBase,
 } from "styles/modalHeading";
+import { TabPillButtonBase, TabPillGroupBase } from "styles/tabPill";
 
 export const Overlay = styled.div`
   position: fixed;
@@ -69,26 +70,15 @@ export const Body = styled.div`
   gap: 18px;
 `;
 
-export const Tabs = styled.div`
-  display: flex;
-  gap: 10px;
+export const Tabs = styled(TabPillGroupBase)`
   padding: 18px 26px 0;
-  flex-wrap: wrap;
+
+  @media (max-width: 640px) {
+    padding: 12px 16px 0;
+  }
 `;
 
-export const TabButton = styled.button`
-  height: 42px;
-  padding: 0 18px;
-  border-radius: ${({ theme }) => theme.radius.pill};
-  border: 1px solid
-    ${({ theme, $active }) => ($active ? theme.colors.primary : theme.colors.border)};
-  background: ${({ theme, $active }) =>
-    $active ? "rgba(11, 95, 255, 0.1)" : theme.colors.surface};
-  color: ${({ theme, $active }) =>
-    $active ? theme.colors.primaryStrong : theme.colors.textSoft};
-  font-weight: 700;
-  cursor: pointer;
-`;
+export const TabButton = styled(TabPillButtonBase)``;
 
 export const Hint = styled.p`
   margin: 0;

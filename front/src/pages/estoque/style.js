@@ -5,6 +5,7 @@ import {
   PageShell,
   MobileOverlay,
 } from "styles/pageShell";
+import { TabPillButtonBase, TabPillGroupBase } from "styles/tabPill";
 
 export const Shell = PageShell;
 
@@ -70,23 +71,12 @@ export const SearchInput = styled.input`
   }
 `;
 
-export const Tabs = styled.div`
-  display: flex;
-  gap: 10px;
+export const Tabs = styled(TabPillGroupBase)`
   margin-bottom: 16px;
   overflow-x: auto;
 `;
 
-export const TabButton = styled.button`
-  height: 44px;
-  padding: 0 18px;
-  border: 1px solid
-    ${({ $active, theme }) => ($active ? theme.colors.primary : theme.colors.border)};
-  border-radius: ${({ theme }) => theme.radius.pill};
-  background: ${({ $active }) => ($active ? "rgba(11, 95, 255, 0.1)" : "#ffffff")};
-  color: ${({ $active, theme }) => ($active ? theme.colors.primaryStrong : theme.colors.text)};
-  font-weight: 700;
-  cursor: pointer;
+export const TabButton = styled(TabPillButtonBase)`
   white-space: nowrap;
 `;
 
