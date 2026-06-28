@@ -402,14 +402,14 @@ export const useModalCompra = ({ isOpen, compraId, onClose }) => {
     }));
   }, []);
 
-  const handleSelectFornecedor = useCallback((option) => {
+  const handleSelectFornecedor = useCallback((value, option) => {
     if (option) {
       setFornecedoresCache((prev) => mergeUniqueOptions(prev, [option], "pessoa_id"));
     }
-    updateField("pessoa_id", option?.pessoa_id || "");
+    updateField("pessoa_id", value || option?.pessoa_id || "");
   }, [updateField]);
 
-  const handleSelectProduto = useCallback((index, option) => {
+  const handleSelectProduto = useCallback((index, value, option) => {
     if (option) {
       setProdutosCache((prev) => mergeUniqueOptions(prev, [option], "produto_id"));
     }
@@ -420,7 +420,7 @@ export const useModalCompra = ({ isOpen, compraId, onClose }) => {
         itemIndex === index
           ? {
               ...item,
-              produto_id: option?.produto_id || "",
+              produto_id: value || option?.produto_id || "",
               valor_unitario:
                 option?.preco_compra !== undefined
                   ? String(option.preco_compra || 0)
@@ -602,4 +602,3 @@ export const useModalCompra = ({ isOpen, compraId, onClose }) => {
     getProdutoSelecionado,
   };
 };
-

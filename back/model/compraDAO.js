@@ -269,10 +269,19 @@ class CompraDAO {
           COALESCE(NULLIF(p.codigo_interno, ''), p.produto_id::varchar(60)) AS codigo_interno,
           p.descricao,
           COALESCE(um.sigla, '') AS unidade_sigla,
-          0::numeric AS preco_compra
+          COALESCE(pp.preco_custo, 0)::numeric AS preco_compra
         FROM produto p
         LEFT JOIN produto_unidade pu ON pu.produto_id = p.produto_id
         LEFT JOIN unidade_medida um ON um.unidade_medida_id = pu.unidade_comercial_id
+        LEFT JOIN tabela_preco tp
+          ON tp.tenant_id = p.tenant_id
+         AND tp.padrao = TRUE
+         AND tp.excluido = FALSE
+        LEFT JOIN produto_preco pp
+          ON pp.produto_id = p.produto_id
+         AND pp.tabela_preco_id = tp.tabela_preco_id
+         AND pp.ativo = TRUE
+         AND (pp.data_fim IS NULL OR pp.data_fim >= CURRENT_DATE)
         ${where}
         ORDER BY p.descricao
         LIMIT $${values.length}

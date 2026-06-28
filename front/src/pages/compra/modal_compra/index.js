@@ -269,7 +269,9 @@ export const ModalCompra = ({ isOpen, compraId, onClose }) => {
                               inputRef={registerFieldRef(`item_produto_${index}`)}
                               value={item.produto_id}
                               selectedOption={getProdutoSelecionado(item.produto_id)}
-                              onSelect={(produto) => handleSelectProduto(index, produto)}
+                              onSelect={(value, produto) =>
+                                handleSelectProduto(index, value, produto)
+                              }
                               loadOptions={loadProdutosOptions}
                               placeholder="Selecione um produto"
                               searchPlaceholder="Digite código ou descrição"
@@ -432,4 +434,3 @@ export const ModalCompra = ({ isOpen, compraId, onClose }) => {
     </C.Overlay>
   );
 };
-

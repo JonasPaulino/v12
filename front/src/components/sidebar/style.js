@@ -119,6 +119,11 @@ export const NavList = styled.div`
   gap: 8px;
 `;
 
+export const NavGroup = styled.div`
+  display: grid;
+  gap: 6px;
+`;
+
 export const NavButton = styled.button`
   width: 100%;
   display: flex;
@@ -141,6 +146,42 @@ export const NavButton = styled.button`
   svg {
     font-size: 1.25rem;
     flex-shrink: 0;
+  }
+`;
+
+export const GroupButton = styled(NavButton)`
+  justify-content: ${({ $open }) => ($open ? "space-between" : "center")};
+`;
+
+export const GroupLabel = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+`;
+
+export const GroupChevron = styled.span`
+  display: ${({ $open }) => ($open ? "inline-flex" : "none")};
+  align-items: center;
+  justify-content: center;
+  transform: rotate(${({ $expanded }) => ($expanded ? "180deg" : "0deg")});
+  transition: transform 0.2s ease;
+  color: rgba(255, 255, 255, 0.76);
+`;
+
+export const SubNavList = styled.div`
+  display: ${({ $expanded }) => ($expanded ? "grid" : "none")};
+  gap: 6px;
+  padding-left: ${({ $open }) => ($open ? "14px" : "0")};
+`;
+
+export const SubNavButton = styled(NavButton)`
+  padding: ${({ $open }) => ($open ? "12px 14px" : "12px 0")};
+  background: ${({ $active }) =>
+    $active ? "rgba(255, 255, 255, 0.16)" : "rgba(255, 255, 255, 0.04)"};
+
+  svg {
+    font-size: 1.12rem;
   }
 `;
 
