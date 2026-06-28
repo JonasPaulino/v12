@@ -116,6 +116,16 @@ const Sidebar = () => {
             </C.NavButton>
             <C.NavButton
               $open={mOpen}
+              $active={location.pathname === "/devolucoes"}
+              onClick={() => handleNavigate("/devolucoes", "Devoluções")}
+              title="Devoluções"
+              aria-label="Devoluções"
+            >
+              <HiOutlineClipboardDocumentCheck />
+              <C.NavText $open={mOpen}>Devoluções</C.NavText>
+            </C.NavButton>
+            <C.NavButton
+              $open={mOpen}
               $active={location.pathname === "/estoque"}
               onClick={() => handleNavigate("/estoque", "Estoque")}
               title="Estoque"

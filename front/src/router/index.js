@@ -12,6 +12,7 @@ import { Venda } from "pages/venda";
 import { Compra } from "pages/compra";
 import { Estoque } from "pages/estoque";
 import { EntradaMercadoria } from "pages/entrada_mercadoria";
+import { Devolucao } from "pages/devolucao";
 import { Financeiro } from "pages/financeiro";
 import { ConfiguracaoFiscal } from "pages/configuracao_fiscal";
 import { Nfe } from "pages/nfe";
@@ -90,6 +91,16 @@ export const RouteApp = () => (
           <AuthMiddleware>
             <PageWrapper title="Entradas">
               <EntradaMercadoria />
+            </PageWrapper>
+          </AuthMiddleware>
+        }
+      />
+      <Route
+        path="/devolucoes"
+        element={
+          <AuthMiddleware>
+            <PageWrapper title="Devoluções">
+              <Devolucao />
             </PageWrapper>
           </AuthMiddleware>
         }
