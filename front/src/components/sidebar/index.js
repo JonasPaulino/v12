@@ -23,7 +23,9 @@ const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isNfePath =
-    location.pathname.startsWith("/nfe") || location.pathname === "/devolucoes";
+    location.pathname.startsWith("/nfe") ||
+    location.pathname === "/devolucoes" ||
+    location.pathname === "/mdfe";
   const [expandedGroups, setExpandedGroups] = useState({
     pedidos: ["/vendas", "/compras"].includes(location.pathname),
     nfe: isNfePath,
@@ -48,10 +50,10 @@ const Sidebar = () => {
     if (["/vendas", "/compras"].includes(location.pathname)) {
       setExpandedGroups((prev) => ({ ...prev, pedidos: true }));
     }
-    if (location.pathname.startsWith("/nfe") || location.pathname === "/devolucoes") {
+    if (isNfePath) {
       setExpandedGroups((prev) => ({ ...prev, nfe: true }));
     }
-  }, [location.pathname]);
+  }, [isNfePath, location.pathname]);
 
   return (
     <C.Container $open={mOpen}>
@@ -178,13 +180,13 @@ const Sidebar = () => {
                 $open={mOpen}
                 $active={isNfePath}
                 onClick={() => toggleGroup("nfe")}
-                title="Notas fiscais emitidas, recebidas e devoluções"
-                aria-label="Notas fiscais emitidas, recebidas e devoluções"
+                title="Documentos fiscais, notas, devoluções e manifesto de carga"
+                aria-label="Documentos fiscais, notas, devoluções e manifesto de carga"
                 type="button"
               >
                 <C.GroupLabel>
                   <HiOutlineDocumentText />
-                  <C.NavText $open={mOpen}>NF-e</C.NavText>
+                  <C.NavText $open={mOpen}>Fiscal</C.NavText>
                 </C.GroupLabel>
                 <C.GroupChevron $open={mOpen} $expanded={expandedGroups.nfe}>
                   <MdKeyboardArrowDown />
@@ -220,6 +222,16 @@ const Sidebar = () => {
                 >
                   <HiOutlineClipboardDocumentCheck />
                   <C.NavText $open={mOpen}>Devoluções</C.NavText>
+                </C.SubNavButton>
+                <C.SubNavButton
+                  $open={mOpen}
+                  $active={location.pathname === "/mdfe"}
+                  onClick={() => handleNavigate("/mdfe", "MDF-e")}
+                  title="Manifesto eletrônico de documentos fiscais da carga"
+                  aria-label="Manifesto eletrônico de documentos fiscais da carga"
+                >
+                  <HiOutlineDocumentText />
+                  <C.NavText $open={mOpen}>MDF-e</C.NavText>
                 </C.SubNavButton>
               </C.SubNavList>
             </C.NavGroup>

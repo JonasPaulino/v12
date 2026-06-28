@@ -17,6 +17,7 @@ import { Financeiro } from "pages/financeiro";
 import { ConfiguracaoFiscal } from "pages/configuracao_fiscal";
 import { Nfe } from "pages/nfe";
 import { NfeRecebidas } from "pages/nfe_recebidas";
+import { Mdfe } from "pages/mdfe";
 import { TenantSetup } from "pages/tenant_setup";
 import { NotFound } from "pages/404";
 
@@ -165,6 +166,16 @@ export const RouteApp = () => (
           <AuthMiddleware>
             <PageWrapper title="NF-e recebidas">
               <NfeRecebidas />
+            </PageWrapper>
+          </AuthMiddleware>
+        }
+      />
+      <Route
+        path="/mdfe"
+        element={
+          <AuthMiddleware>
+            <PageWrapper title="MDF-e">
+              <Mdfe />
             </PageWrapper>
           </AuthMiddleware>
         }

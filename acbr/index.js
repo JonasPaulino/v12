@@ -8,8 +8,10 @@ import corsOptions from "./config/corsOptions.js";
 import verificarToken from "./middleware/authMiddleware.js";
 import { withTenantContext } from "./middleware/withTenantContext.js";
 import nfeRoutes from "./routes/nfeRoutes.js";
+import mdfeRoutes from "./routes/mdfeRoutes.js";
 import setupRoutes from "./routes/setupRoutes.js";
 import { getAcbrRuntimeDiagnostics } from "./providers/acbrlib/runtime.js";
+import { getMdfeRuntimeDiagnostics } from "./providers/acbrlib/mdfeRuntime.js";
 
 dotenv.config();
 
@@ -48,6 +50,7 @@ app.get("/healthz", (_req, res) => {
     status: "ok",
     service: "v12-acbr",
     acbrlib,
+    acbrlibMdfe: getMdfeRuntimeDiagnostics(),
   });
 });
 
@@ -56,6 +59,7 @@ privateRouter.use(verificarToken);
 privateRouter.use(withTenantContext);
 privateRouter.use("/setup", setupRoutes);
 privateRouter.use("/nfe", nfeRoutes);
+privateRouter.use("/mdfe", mdfeRoutes);
 
 app.use(privateRouter);
 
