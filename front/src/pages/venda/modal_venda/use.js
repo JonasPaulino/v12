@@ -83,6 +83,16 @@ const sanitizeItemsForSubmit = (items = []) => {
   return normalizedItems;
 };
 
+const findDuplicateItemIndex = (items = [], produtoId, currentIndex) => {
+  const normalizedProdutoId = String(produtoId || "").trim();
+  if (!normalizedProdutoId) return -1;
+
+  return items.findIndex(
+    (item, index) =>
+      index !== currentIndex && String(item?.produto_id || "").trim() === normalizedProdutoId
+  );
+};
+
 const addDays = (baseDate, days) => {
   const normalizedBaseDate = normalizeDateInput(baseDate, todayDate());
   const date = new Date(`${normalizedBaseDate}T12:00:00`);
@@ -431,8 +441,22 @@ export const useModalVenda = ({ isOpen, vendaId, onClose }) => {
     }));
   };
 
-  const handleSelectProduto = (index, produtoId) => {
+  const handleSelectProduto = async (index, produtoId) => {
     const produto = produtosMap.get(Number(produtoId));
+    const duplicateIndex = findDuplicateItemIndex(form.items, produtoId, index);
+
+    if (duplicateIndex >= 0) {
+      await showAlert({
+        title: "Item já adicionado ao pedido",
+        text: "Selecione outro produto para este item.",
+        icon: "warning",
+      });
+
+      window.setTimeout(() => {
+        focusField(`item_produto_${index}`);
+      }, 60);
+      return;
+    }
 
     setForm((prev) => ({
       ...prev,
@@ -568,6 +592,23 @@ export const useModalVenda = ({ isOpen, vendaId, onClose }) => {
           tab: "itens",
         };
       }
+    }
+
+    const seenProducts = new Map();
+    for (let index = 0; index < itemsToValidate.length; index += 1) {
+      const produtoId = String(itemsToValidate[index]?.produto_id || "").trim();
+      if (!produtoId) continue;
+
+      if (seenProducts.has(produtoId)) {
+        return {
+          field: `item_produto_${index}`,
+          label: `Produto do item ${index + 1}`,
+          tab: "itens",
+          customMessage: "Este produto já foi adicionado ao pedido.",
+        };
+      }
+
+      seenProducts.set(produtoId, index);
     }
 
     if (resumo.total <= 0) {
