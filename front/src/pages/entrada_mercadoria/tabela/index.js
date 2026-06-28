@@ -1,7 +1,9 @@
 import React, { useCallback, useMemo, useState } from "react";
+import Swal from "sweetalert2";
 import Documento from "components/documento";
 import DropdownMenu from "components/dropDownMenu";
 import Paginacao from "components/paginacao";
+import { registrarManifestacaoNfeRecebida } from "../api";
 import { useTabelaEntradasMercadoria } from "./use";
 import * as C from "./style";
 
@@ -27,11 +29,19 @@ const formatNfeReference = (entrada) => {
   return { numero, chave };
 };
 
+const MANIFESTACAO_LABELS = {
+  ciencia_operacao: "Ciência da operação",
+  confirmacao_operacao: "Confirmar operação",
+  desconhecimento_operacao: "Desconhecer operação",
+  operacao_nao_realizada: "Operação não realizada",
+};
+
 const Tabela = ({ search, refreshKey, onViewDetails, onlyNfe = false, emptyMessage }) => {
+  const [localRefreshKey, setLocalRefreshKey] = useState(0);
   const { entradas, page, setPage, totalPages, sort, toggleSort } =
     useTabelaEntradasMercadoria({
       search,
-      refreshKey,
+      refreshKey: `${refreshKey || 0}-${localRefreshKey}`,
       onlyNfe,
     });
   const [menuOpenId, setMenuOpenId] = useState(null);
@@ -48,6 +58,67 @@ const Tabela = ({ search, refreshKey, onViewDetails, onlyNfe = false, emptyMessa
   }, []);
 
   const rows = useMemo(() => entradas || [], [entradas]);
+
+  const handleManifestar = useCallback(
+    async (entrada, tipoEvento) => {
+      closeMenu();
+
+      let justificativa = "";
+      if (tipoEvento === "operacao_nao_realizada") {
+        const result = await Swal.fire({
+          title: "Operação não realizada",
+          input: "textarea",
+          inputLabel: "Justificativa",
+          inputPlaceholder: "Informe o motivo da operação não realizada",
+          showCancelButton: true,
+          confirmButtonText: "Registrar",
+          cancelButtonText: "Cancelar",
+          inputValidator: (value) =>
+            !value || value.trim().length < 15
+              ? "Informe uma justificativa com pelo menos 15 caracteres."
+              : undefined,
+        });
+
+        if (!result.isConfirmed) return;
+        justificativa = result.value;
+      } else {
+        const result = await Swal.fire({
+          title: MANIFESTACAO_LABELS[tipoEvento],
+          text: "Registrar esta manifestação para a NF-e recebida?",
+          icon: "question",
+          showCancelButton: true,
+          confirmButtonText: "Registrar",
+          cancelButtonText: "Cancelar",
+        });
+
+        if (!result.isConfirmed) return;
+      }
+
+      try {
+        await registrarManifestacaoNfeRecebida(entrada.entrada_mercadoria_id, {
+          tipo_evento: tipoEvento,
+          justificativa,
+        });
+        await Swal.fire({
+          title: "Manifestação registrada",
+          text: "O evento foi registrado na NF-e recebida.",
+          icon: "success",
+          timer: 1600,
+          showConfirmButton: false,
+        });
+        setLocalRefreshKey((prev) => prev + 1);
+      } catch (error) {
+        await Swal.fire({
+          title: "Falha ao registrar",
+          text:
+            error?.response?.data?.message ||
+            "Não foi possível registrar a manifestação da NF-e.",
+          icon: "error",
+        });
+      }
+    },
+    [closeMenu]
+  );
 
   return (
     <C.Container>
@@ -145,6 +216,12 @@ const Tabela = ({ search, refreshKey, onViewDetails, onlyNfe = false, emptyMessa
                     <C.Cell>{currencyFormatter.format(Number(entrada.total || 0))}</C.Cell>
                     <C.Cell>
                       <C.Status $tone="success">{entrada.status}</C.Status>
+                      {onlyNfe && entrada.manifestacao_tipo && (
+                        <C.MetaText>
+                          {MANIFESTACAO_LABELS[entrada.manifestacao_tipo] ||
+                            entrada.manifestacao_tipo}
+                        </C.MetaText>
+                      )}
                     </C.Cell>
                     <C.Cell>
                       <C.MenuButton
@@ -169,6 +246,30 @@ const Tabela = ({ search, refreshKey, onViewDetails, onlyNfe = false, emptyMessa
                               label: "Ver detalhes",
                               onClick: () => onViewDetails?.(entrada.entrada_mercadoria_id),
                             },
+                            ...(onlyNfe && entrada.chave_acesso
+                              ? [
+                                  {
+                                    label: "Ciência da operação",
+                                    onClick: () =>
+                                      handleManifestar(entrada, "ciencia_operacao"),
+                                  },
+                                  {
+                                    label: "Confirmar operação",
+                                    onClick: () =>
+                                      handleManifestar(entrada, "confirmacao_operacao"),
+                                  },
+                                  {
+                                    label: "Desconhecer operação",
+                                    onClick: () =>
+                                      handleManifestar(entrada, "desconhecimento_operacao"),
+                                  },
+                                  {
+                                    label: "Operação não realizada",
+                                    onClick: () =>
+                                      handleManifestar(entrada, "operacao_nao_realizada"),
+                                  },
+                                ]
+                              : []),
                           ]}
                         />
                       )}

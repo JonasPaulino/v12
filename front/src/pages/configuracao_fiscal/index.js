@@ -1316,6 +1316,160 @@ export const ConfiguracaoFiscal = () => {
                                 </C.Field>
                               </C.FieldsGrid>
 
+                              <C.CardText>
+                                Reforma tributária: preencha apenas quando o contador orientar.
+                                Estes campos deixam a regra pronta para CBS, IBS e Imposto Seletivo.
+                              </C.CardText>
+
+                              <C.FieldsGrid>
+                                <C.Field>
+                                  <C.FieldSpan>CST CBS</C.FieldSpan>
+                                  <C.Input
+                                    value={regraFiscalForm.cbs_cst}
+                                    onChange={(event) =>
+                                      updateRegraFiscalField("cbs_cst", event.target.value)
+                                    }
+                                    placeholder="Opcional"
+                                  />
+                                </C.Field>
+
+                                <C.Field>
+                                  <C.FieldSpan>cClassTrib CBS</C.FieldSpan>
+                                  <C.Input
+                                    value={regraFiscalForm.cbs_cclass_trib}
+                                    onChange={(event) =>
+                                      updateRegraFiscalField(
+                                        "cbs_cclass_trib",
+                                        event.target.value
+                                      )
+                                    }
+                                    placeholder="Opcional"
+                                  />
+                                </C.Field>
+
+                                <C.Field>
+                                  <C.FieldSpan>Alíquota CBS %</C.FieldSpan>
+                                  <C.Input
+                                    value={regraFiscalForm.cbs_aliquota}
+                                    onChange={(event) =>
+                                      updateRegraFiscalField("cbs_aliquota", event.target.value)
+                                    }
+                                    inputMode="decimal"
+                                  />
+                                </C.Field>
+
+                                <C.Field>
+                                  <C.FieldSpan>CST IBS UF</C.FieldSpan>
+                                  <C.Input
+                                    value={regraFiscalForm.ibs_uf_cst}
+                                    onChange={(event) =>
+                                      updateRegraFiscalField("ibs_uf_cst", event.target.value)
+                                    }
+                                    placeholder="Opcional"
+                                  />
+                                </C.Field>
+
+                                <C.Field>
+                                  <C.FieldSpan>cClassTrib IBS UF</C.FieldSpan>
+                                  <C.Input
+                                    value={regraFiscalForm.ibs_uf_cclass_trib}
+                                    onChange={(event) =>
+                                      updateRegraFiscalField(
+                                        "ibs_uf_cclass_trib",
+                                        event.target.value
+                                      )
+                                    }
+                                    placeholder="Opcional"
+                                  />
+                                </C.Field>
+
+                                <C.Field>
+                                  <C.FieldSpan>Alíquota IBS UF %</C.FieldSpan>
+                                  <C.Input
+                                    value={regraFiscalForm.ibs_uf_aliquota}
+                                    onChange={(event) =>
+                                      updateRegraFiscalField(
+                                        "ibs_uf_aliquota",
+                                        event.target.value
+                                      )
+                                    }
+                                    inputMode="decimal"
+                                  />
+                                </C.Field>
+
+                                <C.Field>
+                                  <C.FieldSpan>CST IBS município</C.FieldSpan>
+                                  <C.Input
+                                    value={regraFiscalForm.ibs_mun_cst}
+                                    onChange={(event) =>
+                                      updateRegraFiscalField("ibs_mun_cst", event.target.value)
+                                    }
+                                    placeholder="Opcional"
+                                  />
+                                </C.Field>
+
+                                <C.Field>
+                                  <C.FieldSpan>cClassTrib IBS município</C.FieldSpan>
+                                  <C.Input
+                                    value={regraFiscalForm.ibs_mun_cclass_trib}
+                                    onChange={(event) =>
+                                      updateRegraFiscalField(
+                                        "ibs_mun_cclass_trib",
+                                        event.target.value
+                                      )
+                                    }
+                                    placeholder="Opcional"
+                                  />
+                                </C.Field>
+
+                                <C.Field>
+                                  <C.FieldSpan>Alíquota IBS município %</C.FieldSpan>
+                                  <C.Input
+                                    value={regraFiscalForm.ibs_mun_aliquota}
+                                    onChange={(event) =>
+                                      updateRegraFiscalField(
+                                        "ibs_mun_aliquota",
+                                        event.target.value
+                                      )
+                                    }
+                                    inputMode="decimal"
+                                  />
+                                </C.Field>
+
+                                <C.Field>
+                                  <C.FieldSpan>CST IS</C.FieldSpan>
+                                  <C.Input
+                                    value={regraFiscalForm.is_cst}
+                                    onChange={(event) =>
+                                      updateRegraFiscalField("is_cst", event.target.value)
+                                    }
+                                    placeholder="Opcional"
+                                  />
+                                </C.Field>
+
+                                <C.Field>
+                                  <C.FieldSpan>cClassTrib IS</C.FieldSpan>
+                                  <C.Input
+                                    value={regraFiscalForm.is_cclass_trib}
+                                    onChange={(event) =>
+                                      updateRegraFiscalField("is_cclass_trib", event.target.value)
+                                    }
+                                    placeholder="Opcional"
+                                  />
+                                </C.Field>
+
+                                <C.Field>
+                                  <C.FieldSpan>Alíquota IS %</C.FieldSpan>
+                                  <C.Input
+                                    value={regraFiscalForm.is_aliquota}
+                                    onChange={(event) =>
+                                      updateRegraFiscalField("is_aliquota", event.target.value)
+                                    }
+                                    inputMode="decimal"
+                                  />
+                                </C.Field>
+                              </C.FieldsGrid>
+
                               <C.ToggleList>
                                 <C.ToggleRow>
                                   <C.Checkbox

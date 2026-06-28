@@ -230,6 +230,10 @@ class EntradaMercadoriaDAO {
         em.serie_nfe,
         em.data_entrada,
         em.status,
+        em.manifestacao_tipo,
+        em.manifestacao_status,
+        em.manifestacao_protocolo,
+        em.manifestacao_em,
         em.total,
         p.pessoa_nome_razao,
         p.pessoa_cpf_cnpj,
@@ -243,8 +247,15 @@ class EntradaMercadoriaDAO {
       GROUP BY
         em.entrada_mercadoria_id,
         em.pedido_compra_id,
+        em.chave_acesso,
+        em.numero_nfe,
+        em.serie_nfe,
         em.data_entrada,
         em.status,
+        em.manifestacao_tipo,
+        em.manifestacao_status,
+        em.manifestacao_protocolo,
+        em.manifestacao_em,
         em.total,
         p.pessoa_nome_razao,
         p.pessoa_cpf_cnpj
@@ -1534,6 +1545,26 @@ class EntradaMercadoriaDAO {
     ]);
 
     const titulo = tituloResult.rows[0] || null;
+    const manifestacoesResult = await client.query(
+      `
+        SELECT
+          nfe_recebida_manifestacao_id,
+          chave_acesso,
+          tipo_evento,
+          status,
+          protocolo,
+          justificativa,
+          resposta_raw,
+          evento_em,
+          enviado_em,
+          criado_em
+        FROM nfe_recebida_manifestacao
+        WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+          AND entrada_mercadoria_id = $1
+        ORDER BY criado_em DESC
+      `,
+      [entradaMercadoriaId]
+    );
 
     const parcelas = titulo
       ? parcelasResult.rows
@@ -1574,7 +1605,89 @@ class EntradaMercadoriaDAO {
           }
         : null,
       parcelas,
+      manifestacoes: manifestacoesResult.rows,
     };
+  }
+
+  static async registrarManifestacao(client, entradaMercadoriaId, payload = {}) {
+    const tipoEvento = String(payload.tipo_evento || "").trim();
+    const tiposPermitidos = new Set([
+      "ciencia_operacao",
+      "confirmacao_operacao",
+      "desconhecimento_operacao",
+      "operacao_nao_realizada",
+    ]);
+
+    if (!tiposPermitidos.has(tipoEvento)) {
+      throw new Error("Tipo de manifestação inválido.");
+    }
+
+    const justificativa = String(payload.justificativa || "").trim() || null;
+    if (tipoEvento === "operacao_nao_realizada" && (!justificativa || justificativa.length < 15)) {
+      throw new Error("Justificativa obrigatória para operação não realizada.");
+    }
+
+    await client.query("BEGIN");
+    try {
+      const entradaResult = await client.query(
+        `
+          SELECT entrada_mercadoria_id, chave_acesso
+          FROM entrada_mercadoria
+          WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+            AND excluido = FALSE
+            AND entrada_mercadoria_id = $1
+          FOR UPDATE
+        `,
+        [entradaMercadoriaId]
+      );
+
+      const entrada = entradaResult.rows[0];
+      if (!entrada) throw new Error("NF-e recebida não encontrada.");
+      if (!entrada.chave_acesso) throw new Error("A NF-e recebida não possui chave de acesso.");
+
+      const manifestacaoResult = await client.query(
+        `
+          INSERT INTO nfe_recebida_manifestacao (
+            tenant_id,
+            entrada_mercadoria_id,
+            chave_acesso,
+            tipo_evento,
+            status,
+            justificativa,
+            usuario_id
+          )
+          VALUES (${TENANT_CONTEXT_SQL}, $1, $2, $3, 'registrada', $4, $5)
+          RETURNING *
+        `,
+        [
+          entradaMercadoriaId,
+          entrada.chave_acesso,
+          tipoEvento,
+          justificativa,
+          payload.usuarioId || null,
+        ]
+      );
+
+      await client.query(
+        `
+          UPDATE entrada_mercadoria
+          SET manifestacao_tipo = $2,
+              manifestacao_status = 'registrada',
+              manifestacao_protocolo = NULL,
+              manifestacao_em = NOW(),
+              atualizado_em = NOW()
+          WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+            AND entrada_mercadoria_id = $1
+        `,
+        [entradaMercadoriaId, tipoEvento]
+      );
+
+      await client.query("COMMIT");
+      return manifestacaoResult.rows[0];
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    }
   }
 }
 

@@ -65,6 +65,22 @@ const mapRow = (row = {}) => ({
   ipi_cst: row.ipi_cst,
   ipi_enquadramento: row.ipi_enquadramento,
   ipi_aliquota: row.ipi_aliquota !== null && row.ipi_aliquota !== undefined ? Number(row.ipi_aliquota) : 0,
+  cbs_cst: row.cbs_cst,
+  cbs_cclass_trib: row.cbs_cclass_trib,
+  cbs_aliquota: row.cbs_aliquota !== null && row.cbs_aliquota !== undefined ? Number(row.cbs_aliquota) : 0,
+  ibs_uf_cst: row.ibs_uf_cst,
+  ibs_uf_cclass_trib: row.ibs_uf_cclass_trib,
+  ibs_uf_aliquota:
+    row.ibs_uf_aliquota !== null && row.ibs_uf_aliquota !== undefined ? Number(row.ibs_uf_aliquota) : 0,
+  ibs_mun_cst: row.ibs_mun_cst,
+  ibs_mun_cclass_trib: row.ibs_mun_cclass_trib,
+  ibs_mun_aliquota:
+    row.ibs_mun_aliquota !== null && row.ibs_mun_aliquota !== undefined
+      ? Number(row.ibs_mun_aliquota)
+      : 0,
+  is_cst: row.is_cst,
+  is_cclass_trib: row.is_cclass_trib,
+  is_aliquota: row.is_aliquota !== null && row.is_aliquota !== undefined ? Number(row.is_aliquota) : 0,
   criado_em: row.criado_em,
   atualizado_em: row.atualizado_em,
 });
@@ -101,7 +117,19 @@ const selectSql = `
     cofins.aliquota AS cofins_aliquota,
     ipi.cst AS ipi_cst,
     ipi.enquadramento_ipi AS ipi_enquadramento,
-    ipi.aliquota AS ipi_aliquota
+    ipi.aliquota AS ipi_aliquota,
+    cbs.cst AS cbs_cst,
+    cbs.cclass_trib AS cbs_cclass_trib,
+    cbs.aliquota AS cbs_aliquota,
+    ibs_uf.cst AS ibs_uf_cst,
+    ibs_uf.cclass_trib AS ibs_uf_cclass_trib,
+    ibs_uf.aliquota AS ibs_uf_aliquota,
+    ibs_mun.cst AS ibs_mun_cst,
+    ibs_mun.cclass_trib AS ibs_mun_cclass_trib,
+    ibs_mun.aliquota AS ibs_mun_aliquota,
+    is_trib.cst AS is_cst,
+    is_trib.cclass_trib AS is_cclass_trib,
+    is_trib.aliquota AS is_aliquota
   FROM regra_tributaria r
   LEFT JOIN regra_tributaria_icms icms
     ON icms.regra_tributaria_id = r.regra_tributaria_id
@@ -111,7 +139,25 @@ const selectSql = `
     ON cofins.regra_tributaria_id = r.regra_tributaria_id
   LEFT JOIN regra_tributaria_ipi ipi
     ON ipi.regra_tributaria_id = r.regra_tributaria_id
+  LEFT JOIN regra_tributaria_tributo cbs
+    ON cbs.regra_tributaria_id = r.regra_tributaria_id
+   AND cbs.tipo_tributo = 'CBS'
+  LEFT JOIN regra_tributaria_tributo ibs_uf
+    ON ibs_uf.regra_tributaria_id = r.regra_tributaria_id
+   AND ibs_uf.tipo_tributo = 'IBS_UF'
+  LEFT JOIN regra_tributaria_tributo ibs_mun
+    ON ibs_mun.regra_tributaria_id = r.regra_tributaria_id
+   AND ibs_mun.tipo_tributo = 'IBS_MUN'
+  LEFT JOIN regra_tributaria_tributo is_trib
+    ON is_trib.regra_tributaria_id = r.regra_tributaria_id
+   AND is_trib.tipo_tributo = 'IS'
 `;
+
+const normalizeReformaTributo = (payload, prefix) => ({
+  cst: normalizeText(payload[`${prefix}_cst`], 6),
+  cclass_trib: normalizeText(payload[`${prefix}_cclass_trib`], 12),
+  aliquota: parseNumeric(payload[`${prefix}_aliquota`], { defaultValue: 0 }),
+});
 
 class RegraFiscalDAO {
   static normalizePayload(payload = {}) {
@@ -163,6 +209,12 @@ class RegraFiscalDAO {
         cst: normalizeText(payload.ipi_cst, 2),
         enquadramento_ipi: normalizeText(payload.ipi_enquadramento, 3),
         aliquota: parseNumeric(payload.ipi_aliquota, { defaultValue: 0 }),
+      },
+      reforma_tributaria: {
+        CBS: normalizeReformaTributo(payload, "cbs"),
+        IBS_UF: normalizeReformaTributo(payload, "ibs_uf"),
+        IBS_MUN: normalizeReformaTributo(payload, "ibs_mun"),
+        IS: normalizeReformaTributo(payload, "is"),
       },
     };
   }
@@ -278,6 +330,31 @@ class RegraFiscalDAO {
       `,
       [regraId, data.ipi.cst, data.ipi.enquadramento_ipi, data.ipi.aliquota]
     );
+
+    for (const [tipoTributo, tributo] of Object.entries(data.reforma_tributaria || {})) {
+      await client.query(
+        `
+          INSERT INTO regra_tributaria_tributo (
+            tenant_id,
+            regra_tributaria_id,
+            tipo_tributo,
+            cst,
+            cclass_trib,
+            aliquota,
+            ativo
+          )
+          VALUES (${TENANT_CONTEXT_SQL}, $1, $2, $3, $4, $5, TRUE)
+          ON CONFLICT (regra_tributaria_id, tipo_tributo)
+          DO UPDATE SET
+            cst = EXCLUDED.cst,
+            cclass_trib = EXCLUDED.cclass_trib,
+            aliquota = EXCLUDED.aliquota,
+            ativo = TRUE,
+            atualizado_em = NOW()
+        `,
+        [regraId, tipoTributo, tributo.cst, tributo.cclass_trib, tributo.aliquota]
+      );
+    }
   }
 
   static async criar(client, payload) {

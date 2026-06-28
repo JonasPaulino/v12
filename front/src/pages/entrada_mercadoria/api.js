@@ -86,3 +86,11 @@ export const importarSolicitacaoXmlEntrada = async (solicitacaoId) => {
   );
   return data;
 };
+
+export const registrarManifestacaoNfeRecebida = async (entradaMercadoriaId, payload) => {
+  const { data } = await api.post(
+    `/entrada-mercadoria/${entradaMercadoriaId}/manifestacoes`,
+    payload
+  );
+  return data;
+};

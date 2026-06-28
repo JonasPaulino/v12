@@ -90,6 +90,18 @@ const buildRegraFiscalForm = () => ({
   ipi_cst: "",
   ipi_enquadramento: "",
   ipi_aliquota: "0",
+  cbs_cst: "",
+  cbs_cclass_trib: "",
+  cbs_aliquota: "0",
+  ibs_uf_cst: "",
+  ibs_uf_cclass_trib: "",
+  ibs_uf_aliquota: "0",
+  ibs_mun_cst: "",
+  ibs_mun_cclass_trib: "",
+  ibs_mun_aliquota: "0",
+  is_cst: "",
+  is_cclass_trib: "",
+  is_aliquota: "0",
 });
 
 const buildOperacaoFiscalForm = () => ({
@@ -140,6 +152,18 @@ const mapRegraFiscalToForm = (regra = {}) => ({
   ipi_cst: regra.ipi_cst || "",
   ipi_enquadramento: regra.ipi_enquadramento || "",
   ipi_aliquota: String(regra.ipi_aliquota ?? 0),
+  cbs_cst: regra.cbs_cst || "",
+  cbs_cclass_trib: regra.cbs_cclass_trib || "",
+  cbs_aliquota: String(regra.cbs_aliquota ?? 0),
+  ibs_uf_cst: regra.ibs_uf_cst || "",
+  ibs_uf_cclass_trib: regra.ibs_uf_cclass_trib || "",
+  ibs_uf_aliquota: String(regra.ibs_uf_aliquota ?? 0),
+  ibs_mun_cst: regra.ibs_mun_cst || "",
+  ibs_mun_cclass_trib: regra.ibs_mun_cclass_trib || "",
+  ibs_mun_aliquota: String(regra.ibs_mun_aliquota ?? 0),
+  is_cst: regra.is_cst || "",
+  is_cclass_trib: regra.is_cclass_trib || "",
+  is_aliquota: String(regra.is_aliquota ?? 0),
 });
 
 const mapOperacaoFiscalToForm = (operacao = {}) => ({

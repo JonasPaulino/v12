@@ -166,6 +166,32 @@ router.get("/pedido-compra/:id", async (req, res) => {
   }
 });
 
+router.post("/:id/manifestacoes", async (req, res) => {
+  try {
+    const data = await EntradaMercadoriaDAO.registrarManifestacao(
+      req.db,
+      Number(req.params.id),
+      {
+        tipo_evento: req.body?.tipo_evento,
+        justificativa: req.body?.justificativa,
+        usuarioId: Number(req.user?.userId) || null,
+      }
+    );
+
+    return res.status(201).json({
+      success: true,
+      message: "Manifestação registrada para a NF-e recebida.",
+      data,
+    });
+  } catch (error) {
+    console.error("[entrada-mercadoria] Falha ao registrar manifestação:", error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Não foi possível registrar a manifestação.",
+    });
+  }
+});
+
 router.get("/:id", async (req, res) => {
   try {
     const data = await EntradaMercadoriaDAO.buscarPorId(req.db, Number(req.params.id));
