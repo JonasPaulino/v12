@@ -96,7 +96,7 @@ export const ModalVenda = ({ isOpen, vendaId, onClose }) => {
         </C.Tabs>
 
         <C.Form onSubmit={handleSubmit} noValidate>
-          <C.Body>
+          <C.Body $itemsMode={activeTab === "itens"}>
             {loadingForm ? (
               <C.Hint>Carregando dados da venda...</C.Hint>
             ) : activeTab === "dados" ? (

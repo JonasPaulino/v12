@@ -85,6 +85,7 @@ export const Form = styled.form`
 export const Body = styled.div`
   flex: 1;
   min-height: 0;
+  min-width: 0;
   padding: 22px 26px 26px;
   overflow: ${({ $itemsMode }) => ($itemsMode ? "hidden" : "auto")};
   display: grid;
@@ -249,7 +250,9 @@ export const ItemsPane = styled.div`
   flex-direction: column;
   gap: 14px;
   min-height: 0;
+  min-width: 0;
   flex: 1;
+  overflow: hidden;
 `;
 
 export const ItemsTable = styled.div`
@@ -262,6 +265,7 @@ export const ItemsTable = styled.div`
   border: 1px solid ${({ theme }) => theme.colors.border};
   border-radius: ${({ theme }) => theme.radius.md};
   overflow: hidden;
+  background: ${({ theme }) => theme.colors.surface};
 
   @media (max-width: 640px) {
     min-height: 240px;
@@ -276,7 +280,7 @@ export const ItemsScroll = styled.div`
   overflow: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-gutter: stable both-edges;
-  overscroll-behavior-x: contain;
+  overscroll-behavior: contain;
 
   @media (max-width: 640px) {
     min-height: 0;
@@ -288,7 +292,7 @@ export const ItemsGrid = styled.div`
   min-width: 0;
 
   @media (max-width: 640px) {
-    min-width: 760px;
+    min-width: 0;
   }
 `;
 
@@ -309,6 +313,10 @@ export const ItemsHeader = styled.div`
   color: ${({ theme }) => theme.colors.textSoft};
   text-transform: uppercase;
   letter-spacing: 0.08em;
+
+  @media (max-width: 640px) {
+    display: none;
+  }
 `;
 
 export const ItemsHeaderCell = styled.div`
@@ -336,8 +344,10 @@ export const ItemsRow = styled.div`
   }
 
   @media (max-width: 640px) {
-    gap: 10px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 12px;
     padding: 12px;
+    align-items: stretch;
   }
 `;
 
@@ -345,12 +355,22 @@ export const InlineField = styled.label`
   display: grid;
   gap: 6px;
   min-width: 0;
+
+  @media (max-width: 640px) {
+    &:first-child {
+      grid-column: 1 / -1;
+    }
+  }
 `;
 
 export const InlineLabel = styled.span`
   font-size: 0.78rem;
   color: ${({ theme }) => theme.colors.textSoft};
   display: none;
+
+  @media (max-width: 640px) {
+    display: block;
+  }
 `;
 
 export const RemoveItemButton = styled.button`
@@ -363,6 +383,7 @@ export const RemoveItemButton = styled.button`
   cursor: pointer;
 
   @media (max-width: 640px) {
+    grid-column: 1 / -1;
     height: 40px;
     font-size: 0.84rem;
   }
@@ -373,6 +394,7 @@ export const ItemsTotals = styled.div`
   justify-content: flex-end;
   gap: 8px;
   flex-wrap: wrap;
+  flex-shrink: 0;
 
   @media (max-width: 640px) {
     display: grid;
