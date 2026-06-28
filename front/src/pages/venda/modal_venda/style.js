@@ -86,9 +86,16 @@ export const Body = styled.div`
   flex: 1;
   min-height: 0;
   padding: 22px 26px 26px;
-  overflow: auto;
+  overflow: ${({ $itemsMode }) => ($itemsMode ? "hidden" : "auto")};
   display: grid;
   gap: 18px;
+
+  ${({ $itemsMode }) =>
+    $itemsMode &&
+    `
+      display: flex;
+      flex-direction: column;
+    `}
 
   @media (max-width: 640px) {
     padding: 18px 16px 20px;
@@ -199,6 +206,10 @@ export const Hint = styled.p`
 
 export const ItemsHint = styled(Hint)`
   max-width: 420px;
+
+  @media (max-width: 640px) {
+    display: none;
+  }
 `;
 
 export const ItemsToolbar = styled.div`
@@ -225,37 +236,47 @@ export const AddItemButton = styled.button`
   cursor: pointer;
 
   @media (max-width: 640px) {
-    align-self: flex-end;
-    width: auto;
-    min-width: 132px;
-    height: 36px;
+    width: 100%;
+    min-width: 0;
+    height: 38px;
     padding: 0 12px;
-    font-size: 0.78rem;
+    font-size: 0.8rem;
   }
+`;
+
+export const ItemsPane = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+  flex: 1;
 `;
 
 export const ItemsTable = styled.div`
   min-height: 360px;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
   max-width: 100%;
   border: 1px solid ${({ theme }) => theme.colors.border};
   border-radius: ${({ theme }) => theme.radius.md};
   overflow: hidden;
 
   @media (max-width: 640px) {
-    min-height: 0;
-    overflow-x: auto;
-    overflow-y: hidden;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-x: contain;
+    min-height: 240px;
   }
 `;
 
 export const ItemsScroll = styled.div`
-  min-height: 100%;
-  overflow-x: auto;
-  overflow-y: visible;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-gutter: stable both-edges;
+  overscroll-behavior-x: contain;
 
   @media (max-width: 640px) {
     min-height: 0;
@@ -345,6 +366,47 @@ export const RemoveItemButton = styled.button`
     height: 40px;
     font-size: 0.84rem;
   }
+`;
+
+export const ItemsTotals = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+
+  @media (max-width: 640px) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+`;
+
+export const ItemsTotalCard = styled.div`
+  min-width: 132px;
+  padding: 9px 12px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radius.md};
+  background: rgba(248, 251, 255, 0.72);
+  display: grid;
+  gap: 2px;
+
+  @media (max-width: 640px) {
+    min-width: 0;
+    padding: 8px 10px;
+  }
+`;
+
+export const ItemsTotalLabel = styled.span`
+  color: ${({ theme }) => theme.colors.textSoft};
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+`;
+
+export const ItemsTotalValue = styled.strong`
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 0.92rem;
+  line-height: 1.1;
 `;
 
 export const SummaryGrid = styled.div`

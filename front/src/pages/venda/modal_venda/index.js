@@ -211,7 +211,7 @@ export const ModalVenda = ({ isOpen, vendaId, onClose }) => {
                 </C.Field>
               </>
             ) : activeTab === "itens" ? (
-              <>
+              <C.ItemsPane>
                 <C.ItemsToolbar>
                   <C.ItemsHint>
                     Os itens formam o subtotal e a base do financeiro. Deslize a grade
@@ -349,7 +349,20 @@ export const ModalVenda = ({ isOpen, vendaId, onClose }) => {
                     </C.ItemsGrid>
                   </C.ItemsScroll>
                 </C.ItemsTable>
-              </>
+
+                <C.ItemsTotals>
+                  <C.ItemsTotalCard>
+                    <C.ItemsTotalLabel>Subtotal</C.ItemsTotalLabel>
+                    <C.ItemsTotalValue>
+                      {currencyFormatter.format(resumo.subtotal)}
+                    </C.ItemsTotalValue>
+                  </C.ItemsTotalCard>
+                  <C.ItemsTotalCard>
+                    <C.ItemsTotalLabel>Total</C.ItemsTotalLabel>
+                    <C.ItemsTotalValue>{currencyFormatter.format(resumo.total)}</C.ItemsTotalValue>
+                  </C.ItemsTotalCard>
+                </C.ItemsTotals>
+              </C.ItemsPane>
             ) : (
               <>
                 <C.SummaryGrid>
