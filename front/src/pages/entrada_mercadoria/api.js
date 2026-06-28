@@ -44,6 +44,14 @@ export const criarEntradaMercadoria = async (payload) => {
   return data;
 };
 
+export const cancelarEntradaMercadoria = async (entradaMercadoriaId, payload = {}) => {
+  const { data } = await api.post(
+    `/entrada-mercadoria/${entradaMercadoriaId}/cancelar`,
+    payload
+  );
+  return data;
+};
+
 export const importarXmlEntradaMercadoria = async (file) => {
   const formData = new FormData();
   formData.append("xml", file);

@@ -3,7 +3,7 @@ import Swal from "sweetalert2";
 import Documento from "components/documento";
 import DropdownMenu from "components/dropDownMenu";
 import Paginacao from "components/paginacao";
-import { registrarManifestacaoNfeRecebida } from "../api";
+import { cancelarEntradaMercadoria, registrarManifestacaoNfeRecebida } from "../api";
 import { useTabelaEntradasMercadoria } from "./use";
 import * as C from "./style";
 
@@ -113,6 +113,56 @@ const Tabela = ({ search, refreshKey, onViewDetails, onlyNfe = false, emptyMessa
           text:
             error?.response?.data?.message ||
             "Não foi possível registrar a manifestação da NF-e.",
+          icon: "error",
+        });
+      }
+    },
+    [closeMenu]
+  );
+
+  const handleCancelar = useCallback(
+    async (entrada) => {
+      closeMenu();
+
+      const result = await Swal.fire({
+        title: "Cancelar entrada de mercadoria?",
+        html:
+          "O estoque será estornado e o título a pagar vinculado será cancelado.<br />" +
+          "Se o título já tiver baixa/pagamento, o cancelamento será bloqueado.",
+        input: "textarea",
+        inputLabel: "Motivo do cancelamento",
+        inputPlaceholder: "Informe o motivo para auditoria",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Cancelar entrada",
+        cancelButtonText: "Voltar",
+        confirmButtonColor: "#d44949",
+        inputValidator: (value) =>
+          !value || value.trim().length < 5
+            ? "Informe um motivo com pelo menos 5 caracteres."
+            : undefined,
+      });
+
+      if (!result.isConfirmed) return;
+
+      try {
+        await cancelarEntradaMercadoria(entrada.entrada_mercadoria_id, {
+          motivo: result.value,
+        });
+        await Swal.fire({
+          title: "Entrada cancelada",
+          text: "O estoque foi estornado e o financeiro vinculado foi cancelado.",
+          icon: "success",
+          timer: 1800,
+          showConfirmButton: false,
+        });
+        setLocalRefreshKey((prev) => prev + 1);
+      } catch (error) {
+        await Swal.fire({
+          title: "Falha ao cancelar",
+          text:
+            error?.response?.data?.message ||
+            "Não foi possível cancelar a entrada de mercadoria.",
           icon: "error",
         });
       }
@@ -245,6 +295,11 @@ const Tabela = ({ search, refreshKey, onViewDetails, onlyNfe = false, emptyMessa
                             {
                               label: "Ver detalhes",
                               onClick: () => onViewDetails?.(entrada.entrada_mercadoria_id),
+                            },
+                            {
+                              label: "Cancelar entrada",
+                              danger: true,
+                              onClick: () => handleCancelar(entrada),
                             },
                             ...(onlyNfe && entrada.chave_acesso
                               ? [

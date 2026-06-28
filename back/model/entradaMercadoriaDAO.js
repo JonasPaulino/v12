@@ -668,6 +668,20 @@ class EntradaMercadoriaDAO {
     return rows[0]?.estoque_tipo_movimento_id || null;
   }
 
+  static async buscarTipoMovimentoPorCodigo(client, codigo) {
+    const { rows } = await client.query(
+      `
+        SELECT estoque_tipo_movimento_id
+        FROM estoque_tipo_movimento
+        WHERE codigo = $1
+        LIMIT 1
+      `,
+      [codigo]
+    );
+
+    return rows[0]?.estoque_tipo_movimento_id || null;
+  }
+
   static async buscarPessoaPorDocumento(client, documento) {
     const { rows } = await client.query(
       `
@@ -1813,6 +1827,323 @@ class EntradaMercadoriaDAO {
       parcelas,
       manifestacoes: manifestacoesResult.rows,
     };
+  }
+
+  static async registrarEstornoEntrada(client, {
+    entradaMercadoriaId,
+    depositoId,
+    tipoMovimentoId,
+    item,
+    usuarioId,
+    motivo,
+  }) {
+    const quantidade = Number(item.quantidade || 0);
+    if (quantidade <= 0) return;
+
+    const saldoResult = await client.query(
+      `
+        SELECT produto_estoque_id, estoque_atual
+        FROM produto_estoque
+        WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+          AND produto_id = $1
+          AND deposito_id = $2
+        FOR UPDATE
+      `,
+      [item.produto_id, depositoId]
+    );
+
+    const saldoAnterior = Number(saldoResult.rows[0]?.estoque_atual || 0);
+    const quantidadeMovimento = -quantidade;
+    const saldoPosterior = saldoAnterior + quantidadeMovimento;
+
+    if (saldoPosterior < 0) {
+      throw new Error(
+        `O cancelamento deixaria o estoque do item "${item.descricao}" negativo.`
+      );
+    }
+
+    await client.query(
+      `
+        INSERT INTO produto_estoque (
+          tenant_id,
+          produto_id,
+          deposito_id,
+          estoque_atual,
+          estoque_minimo,
+          estoque_reservado
+        )
+        VALUES (${TENANT_CONTEXT_SQL}, $1, $2, $3, 0, 0)
+        ON CONFLICT (produto_id, deposito_id) DO UPDATE
+        SET estoque_atual = EXCLUDED.estoque_atual,
+            atualizado_em = NOW()
+      `,
+      [item.produto_id, depositoId, saldoPosterior]
+    );
+
+    await client.query(
+      `
+        INSERT INTO estoque_movimento (
+          tenant_id,
+          produto_id,
+          deposito_id,
+          estoque_tipo_movimento_id,
+          tipo_movimento,
+          quantidade,
+          valor_unitario,
+          origem,
+          documento_tipo,
+          documento_id,
+          saldo_anterior,
+          saldo_posterior,
+          usuario_id,
+          observacao
+        )
+        VALUES (
+          ${TENANT_CONTEXT_SQL},
+          $1,
+          $2,
+          $3,
+          'compra_estorno',
+          $4,
+          $5,
+          'cancelamento_entrada_mercadoria',
+          'entrada_mercadoria',
+          $6,
+          $7,
+          $8,
+          $9,
+          $10
+        )
+      `,
+      [
+        item.produto_id,
+        depositoId,
+        tipoMovimentoId,
+        quantidadeMovimento,
+        item.valor_unitario,
+        entradaMercadoriaId,
+        saldoAnterior,
+        saldoPosterior,
+        usuarioId || null,
+        motivo || "Cancelamento de entrada de mercadoria",
+      ]
+    );
+  }
+
+  static async cancelar(client, entradaMercadoriaId, { usuarioId, motivo } = {}) {
+    const id = parseInteger(entradaMercadoriaId, { label: "Entrada" });
+    const cancelamentoMotivo =
+      normalizeText(motivo, 500, { label: "Motivo" }) ||
+      "Cancelamento de entrada de mercadoria.";
+
+    await client.query("BEGIN");
+
+    try {
+      const entradaResult = await client.query(
+        `
+          SELECT *
+          FROM entrada_mercadoria
+          WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+            AND entrada_mercadoria_id = $1
+            AND excluido = FALSE
+          FOR UPDATE
+        `,
+        [id]
+      );
+
+      const entrada = entradaResult.rows[0];
+      if (!entrada) throw new Error("Entrada de mercadoria não encontrada.");
+      if (entrada.status === "cancelada") {
+        throw new Error("Esta entrada de mercadoria já está cancelada.");
+      }
+
+      const devolucaoResult = await client.query(
+        `
+          SELECT 1
+          FROM devolucao_mercadoria
+          WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+            AND entrada_mercadoria_id = $1
+            AND excluido = FALSE
+            AND status <> 'cancelada'
+          LIMIT 1
+        `,
+        [id]
+      );
+
+      if (devolucaoResult.rowCount) {
+        throw new Error(
+          "Esta entrada possui devolução vinculada. Cancele a devolução antes de cancelar a entrada."
+        );
+      }
+
+      const titulosResult = await client.query(
+        `
+          SELECT financeiro_titulo_id, status
+          FROM financeiro_titulo
+          WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+            AND tipo = 'pagar'
+            AND excluido = FALSE
+            AND (
+              entrada_mercadoria_id = $1
+              OR (
+                $2::integer IS NOT NULL
+                AND pedido_compra_id = $2
+              )
+            )
+          FOR UPDATE
+        `,
+        [id, entrada.pedido_compra_id || null]
+      );
+
+      const tituloIds = titulosResult.rows.map((row) => Number(row.financeiro_titulo_id));
+      if (tituloIds.length) {
+        const baixasResult = await client.query(
+          `
+            SELECT COUNT(*)::int AS total
+            FROM financeiro_titulo_baixa
+            WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+              AND excluido = FALSE
+              AND financeiro_titulo_id = ANY($1::int[])
+          `,
+          [tituloIds]
+        );
+
+        if (Number(baixasResult.rows[0]?.total || 0) > 0) {
+          throw new Error(
+            "A entrada possui título a pagar com baixa. Estorne/remova a baixa antes de cancelar a entrada."
+          );
+        }
+      }
+
+      const itemsResult = await client.query(
+        `
+          SELECT
+            entrada_mercadoria_item_id,
+            produto_id,
+            descricao,
+            quantidade,
+            valor_unitario
+          FROM entrada_mercadoria_item
+          WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+            AND entrada_mercadoria_id = $1
+          ORDER BY entrada_mercadoria_item_id
+        `,
+        [id]
+      );
+
+      const depositoId = await EstoqueDAO.obterDepositoPadrao(client);
+      const tipoMovimentoId = await this.buscarTipoMovimentoPorCodigo(
+        client,
+        "compra_estorno"
+      );
+
+      if (!tipoMovimentoId) {
+        throw new Error("Tipo de movimento de estoque para estorno de compra não encontrado.");
+      }
+
+      for (const item of itemsResult.rows) {
+        await this.registrarEstornoEntrada(client, {
+          entradaMercadoriaId: id,
+          depositoId,
+          tipoMovimentoId,
+          item,
+          usuarioId,
+          motivo: cancelamentoMotivo,
+        });
+      }
+
+      if (tituloIds.length) {
+        await client.query(
+          `
+            UPDATE financeiro_titulo
+            SET status = 'cancelado',
+                excluido = TRUE,
+                cancelado_por = $2,
+                cancelado_em = NOW(),
+                cancelamento_motivo = $3,
+                observacao = COALESCE(observacao, '') || $4
+            WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+              AND financeiro_titulo_id = ANY($1::int[])
+          `,
+          [
+            tituloIds,
+            usuarioId || null,
+            cancelamentoMotivo,
+            `\nCancelado pelo cancelamento da entrada de mercadoria #${id}.`,
+          ]
+        );
+
+        await client.query(
+          `
+            UPDATE financeiro_titulo_parcela
+            SET status = 'cancelada',
+                observacao = COALESCE(observacao, '') || $2
+            WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+              AND financeiro_titulo_id = ANY($1::int[])
+          `,
+          [tituloIds, `\nCancelada pelo cancelamento da entrada de mercadoria #${id}.`]
+        );
+      }
+
+      await client.query(
+        `
+          UPDATE entrada_xml_solicitacao
+          SET status = 'xml_disponivel',
+              entrada_mercadoria_id = NULL,
+              importado_em = NULL
+          WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+            AND entrada_mercadoria_id = $1
+            AND xml_disponivel IS NOT NULL
+        `,
+        [id]
+      );
+
+      await client.query(
+        `
+          UPDATE entrada_mercadoria
+          SET status = 'cancelada',
+              excluido = TRUE,
+              cancelado_por = $2,
+              cancelado_em = NOW(),
+              cancelamento_motivo = $3
+          WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+            AND entrada_mercadoria_id = $1
+        `,
+        [id, usuarioId || null, cancelamentoMotivo]
+      );
+
+      if (entrada.pedido_compra_id) {
+        await client.query(
+          `
+            UPDATE pedido_compra pc
+            SET status = 'aberto'
+            WHERE pc.tenant_id = ${TENANT_CONTEXT_SQL}
+              AND pc.pedido_compra_id = $1
+              AND pc.excluido = FALSE
+              AND NOT EXISTS (
+                SELECT 1
+                FROM entrada_mercadoria em
+                WHERE em.tenant_id = pc.tenant_id
+                  AND em.pedido_compra_id = pc.pedido_compra_id
+                  AND em.status <> 'cancelada'
+                  AND em.excluido = FALSE
+              )
+          `,
+          [entrada.pedido_compra_id]
+        );
+      }
+
+      await client.query("COMMIT");
+
+      return {
+        entrada_mercadoria_id: id,
+        pedido_compra_id: entrada.pedido_compra_id || null,
+        status: "cancelada",
+      };
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    }
   }
 
   static async registrarManifestacao(client, entradaMercadoriaId, payload = {}) {

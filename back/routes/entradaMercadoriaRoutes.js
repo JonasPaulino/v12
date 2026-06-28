@@ -233,6 +233,27 @@ router.post("/", async (req, res) => {
   }
 });
 
+router.post("/:id/cancelar", async (req, res) => {
+  try {
+    const data = await EntradaMercadoriaDAO.cancelar(req.db, Number(req.params.id), {
+      usuarioId: Number(req.user?.userId) || null,
+      motivo: req.body?.motivo,
+    });
+
+    return res.json({
+      success: true,
+      message: "Entrada de mercadoria cancelada com sucesso.",
+      data,
+    });
+  } catch (error) {
+    console.error("[entrada-mercadoria] Falha ao cancelar entrada:", error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Não foi possível cancelar a entrada de mercadoria.",
+    });
+  }
+});
+
 router.post("/xml", (req, res) => {
   uploadXml(req, res, async (uploadError) => {
     if (uploadError) {
