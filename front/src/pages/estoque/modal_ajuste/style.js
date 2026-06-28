@@ -1,4 +1,8 @@
 import styled, { css } from "styled-components";
+import {
+  ModalSubtitleBase,
+  ModalTitleBase,
+} from "styles/modalHeading";
 
 export const Overlay = styled.div`
   position: fixed;
@@ -32,15 +36,10 @@ export const Header = styled.header`
   border-bottom: 1px solid ${({ theme }) => theme.colors.border};
 `;
 
-export const Title = styled.h2`
-  margin: 0;
-  color: ${({ theme }) => theme.colors.text};
-  font-size: clamp(1.3rem, 2vw, 1.8rem);
-`;
+export const Title = styled(ModalTitleBase)``;
 
-export const Subtitle = styled.p`
-  margin: 6px 0 0;
-  color: ${({ theme }) => theme.colors.textSoft};
+export const Subtitle = styled(ModalSubtitleBase)`
+  margin-top: 2px;
 `;
 
 export const CloseButton = styled.button`
