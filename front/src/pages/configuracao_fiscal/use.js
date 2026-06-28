@@ -3,6 +3,7 @@ import Swal from "sweetalert2";
 import { AppContext } from "context";
 import { useSweetAlert } from "context/sweet_alert";
 import {
+  createOperacaoFiscal,
   createRegraFiscal,
   createWhatsAppInstance,
   deleteWhatsAppInstance,
@@ -10,9 +11,11 @@ import {
   getPessoasEmitenteSelect,
   getWhatsAppQrCode,
   getWhatsAppStatus,
+  listOperacoesFiscais,
   listRegrasFiscais,
   logoutWhatsAppInstance,
   restartWhatsAppInstance,
+  updateOperacaoFiscal,
   updateRegraFiscal,
   updateConfiguracaoFiscal,
 } from "./api";
@@ -89,6 +92,24 @@ const buildRegraFiscalForm = () => ({
   ipi_aliquota: "0",
 });
 
+const buildOperacaoFiscalForm = () => ({
+  codigo: "",
+  descricao: "",
+  tipo_operacao: "venda",
+  natureza_operacao: "Venda de mercadoria",
+  finalidade_nfe: "normal",
+  tipo_nfe: "saida",
+  emite_nfe: true,
+  movimenta_estoque: true,
+  tipo_movimento_estoque: "saida",
+  gera_financeiro: true,
+  tipo_financeiro: "receber",
+  atualiza_custo: false,
+  regra_tributaria_id: "",
+  observacao: "",
+  ativo: true,
+});
+
 const mapRegraFiscalToForm = (regra = {}) => ({
   ...buildRegraFiscalForm(),
   descricao: regra.descricao || "",
@@ -119,6 +140,27 @@ const mapRegraFiscalToForm = (regra = {}) => ({
   ipi_cst: regra.ipi_cst || "",
   ipi_enquadramento: regra.ipi_enquadramento || "",
   ipi_aliquota: String(regra.ipi_aliquota ?? 0),
+});
+
+const mapOperacaoFiscalToForm = (operacao = {}) => ({
+  ...buildOperacaoFiscalForm(),
+  codigo: operacao.codigo || "",
+  descricao: operacao.descricao || "",
+  tipo_operacao: operacao.tipo_operacao || "venda",
+  natureza_operacao: operacao.natureza_operacao || "",
+  finalidade_nfe: operacao.finalidade_nfe || "normal",
+  tipo_nfe: operacao.tipo_nfe || "saida",
+  emite_nfe: !!operacao.emite_nfe,
+  movimenta_estoque: operacao.movimenta_estoque !== false,
+  tipo_movimento_estoque: operacao.tipo_movimento_estoque || "saida",
+  gera_financeiro: operacao.gera_financeiro !== false,
+  tipo_financeiro: operacao.tipo_financeiro || "receber",
+  atualiza_custo: !!operacao.atualiza_custo,
+  regra_tributaria_id: operacao.regra_tributaria_id
+    ? String(operacao.regra_tributaria_id)
+    : "",
+  observacao: operacao.observacao || "",
+  ativo: operacao.ativo !== false,
 });
 
 const formatFileSize = (size) => {
@@ -299,6 +341,10 @@ export const useConfiguracaoFiscalPage = () => {
   const [regraFiscalForm, setRegraFiscalForm] = useState(buildRegraFiscalForm());
   const [editingRegraFiscalId, setEditingRegraFiscalId] = useState(null);
   const [regraFiscalSaving, setRegraFiscalSaving] = useState(false);
+  const [operacoesFiscais, setOperacoesFiscais] = useState([]);
+  const [operacaoFiscalForm, setOperacaoFiscalForm] = useState(buildOperacaoFiscalForm());
+  const [editingOperacaoFiscalId, setEditingOperacaoFiscalId] = useState(null);
+  const [operacaoFiscalSaving, setOperacaoFiscalSaving] = useState(false);
 
   const applyData = useCallback((payload) => {
     const data = payload || {};
@@ -381,14 +427,16 @@ export const useConfiguracaoFiscalPage = () => {
     const load = async () => {
       try {
         setLoading(true);
-        const [response, regrasResponse] = await Promise.all([
+        const [response, regrasResponse, operacoesResponse] = await Promise.all([
           getConfiguracaoFiscal(),
           listRegrasFiscais(),
+          listOperacoesFiscais(),
         ]);
 
         if (!mounted) return;
         applyData(response.data || null);
         setRegrasFiscais(regrasResponse.data || []);
+        setOperacoesFiscais(operacoesResponse.data || []);
       } catch (error) {
         if (!mounted) return;
 
@@ -421,9 +469,52 @@ export const useConfiguracaoFiscalPage = () => {
     setRegraFiscalForm((prev) => ({ ...prev, [field]: value }));
   }, []);
 
+  const updateOperacaoFiscalField = useCallback((field, value) => {
+    setOperacaoFiscalForm((prev) => {
+      const next = { ...prev, [field]: value };
+
+      if (field === "emite_nfe" && !value) {
+        next.tipo_nfe = "";
+      }
+
+      if (field === "movimenta_estoque" && !value) {
+        next.tipo_movimento_estoque = "nenhum";
+      }
+
+      if (field === "gera_financeiro" && !value) {
+        next.tipo_financeiro = "nenhum";
+      }
+
+      if (field === "tipo_operacao") {
+        if (value === "compra" || value === "bonificacao_entrada" || value === "devolucao_venda") {
+          next.tipo_nfe = "entrada";
+          next.tipo_movimento_estoque = "entrada";
+          next.tipo_financeiro = value === "compra" ? "pagar" : "nenhum";
+          next.gera_financeiro = value === "compra";
+          next.atualiza_custo = value === "compra";
+          next.emite_nfe = value === "devolucao_venda";
+        } else if (value === "devolucao_compra" || value === "bonificacao_saida" || value === "venda") {
+          next.tipo_nfe = "saida";
+          next.tipo_movimento_estoque = "saida";
+          next.tipo_financeiro = value === "venda" ? "receber" : "nenhum";
+          next.gera_financeiro = value === "venda";
+          next.atualiza_custo = false;
+          next.emite_nfe = value !== "compra";
+        }
+      }
+
+      return next;
+    });
+  }, []);
+
   const reloadRegrasFiscais = useCallback(async () => {
     const response = await listRegrasFiscais();
     setRegrasFiscais(response.data || []);
+  }, []);
+
+  const reloadOperacoesFiscais = useCallback(async () => {
+    const response = await listOperacoesFiscais();
+    setOperacoesFiscais(response.data || []);
   }, []);
 
   const resetRegraFiscalForm = useCallback(() => {
@@ -431,9 +522,19 @@ export const useConfiguracaoFiscalPage = () => {
     setRegraFiscalForm(buildRegraFiscalForm());
   }, []);
 
+  const resetOperacaoFiscalForm = useCallback(() => {
+    setEditingOperacaoFiscalId(null);
+    setOperacaoFiscalForm(buildOperacaoFiscalForm());
+  }, []);
+
   const handleEditRegraFiscal = useCallback((regra) => {
     setEditingRegraFiscalId(regra?.regra_tributaria_id || null);
     setRegraFiscalForm(mapRegraFiscalToForm(regra));
+  }, []);
+
+  const handleEditOperacaoFiscal = useCallback((operacao) => {
+    setEditingOperacaoFiscalId(operacao?.operacao_fiscal_id || null);
+    setOperacaoFiscalForm(mapOperacaoFiscalToForm(operacao));
   }, []);
 
   const handleSaveRegraFiscal = useCallback(async () => {
@@ -530,6 +631,115 @@ export const useConfiguracaoFiscalPage = () => {
       editingRegraFiscalId,
       reloadRegrasFiscais,
       resetRegraFiscalForm,
+      showAlert,
+    ]
+  );
+
+  const handleSaveOperacaoFiscal = useCallback(async () => {
+    if (operacaoFiscalSaving) return false;
+
+    if (!String(operacaoFiscalForm.codigo || "").trim()) {
+      showAlert({
+        title: "Código obrigatório",
+        text: "Informe um código para a operação fiscal.",
+        icon: "warning",
+      });
+      return false;
+    }
+
+    if (!String(operacaoFiscalForm.descricao || "").trim()) {
+      showAlert({
+        title: "Descrição obrigatória",
+        text: "Informe uma descrição para a operação fiscal.",
+        icon: "warning",
+      });
+      return false;
+    }
+
+    try {
+      setOperacaoFiscalSaving(true);
+
+      const response = editingOperacaoFiscalId
+        ? await updateOperacaoFiscal(editingOperacaoFiscalId, operacaoFiscalForm)
+        : await createOperacaoFiscal(operacaoFiscalForm);
+
+      await reloadOperacoesFiscais();
+      resetOperacaoFiscalForm();
+
+      showAlert({
+        title: "Operação fiscal salva",
+        text: response.message || "Operação fiscal salva com sucesso.",
+        icon: "success",
+      });
+
+      return true;
+    } catch (error) {
+      showAlert({
+        title: "Falha ao salvar operação",
+        text:
+          error?.response?.data?.message ||
+          "Não foi possível salvar a operação fiscal.",
+        icon: "error",
+      });
+      return false;
+    } finally {
+      setOperacaoFiscalSaving(false);
+    }
+  }, [
+    editingOperacaoFiscalId,
+    operacaoFiscalForm,
+    operacaoFiscalSaving,
+    reloadOperacoesFiscais,
+    resetOperacaoFiscalForm,
+    showAlert,
+  ]);
+
+  const handleToggleOperacaoFiscal = useCallback(
+    async (operacao) => {
+      const nextAtivo = !operacao?.ativo;
+      const confirmed = await askYesNoQuestion(
+        nextAtivo ? "Reativar operação fiscal" : "Inativar operação fiscal",
+        `Deseja realmente ${nextAtivo ? "reativar" : "inativar"} a operação "${
+          operacao?.descricao || ""
+        }"?`
+      );
+
+      if (!confirmed) return;
+
+      try {
+        await updateOperacaoFiscal(operacao.operacao_fiscal_id, {
+          ...mapOperacaoFiscalToForm(operacao),
+          ativo: nextAtivo,
+        });
+        await reloadOperacoesFiscais();
+
+        if (editingOperacaoFiscalId === operacao.operacao_fiscal_id) {
+          resetOperacaoFiscalForm();
+        }
+
+        showAlert({
+          title: nextAtivo
+            ? "Operação fiscal reativada"
+            : "Operação fiscal inativada",
+          text: "A operação fiscal foi atualizada com sucesso.",
+          icon: "success",
+          confirmButtonText: "OK",
+        });
+      } catch (error) {
+        showAlert({
+          title: "Falha ao atualizar operação",
+          text:
+            error?.response?.data?.message ||
+            "Não foi possível atualizar a operação fiscal.",
+          icon: "error",
+        });
+      }
+    },
+    [
+      askYesNoQuestion,
+      editingOperacaoFiscalId,
+      reloadOperacoesFiscais,
+      resetOperacaoFiscalForm,
       showAlert,
     ]
   );
@@ -1082,6 +1292,10 @@ export const useConfiguracaoFiscalPage = () => {
     contasResumo,
     whatsappResumo,
     whatsAppState,
+    operacoesFiscais,
+    operacaoFiscalForm,
+    editingOperacaoFiscalId,
+    operacaoFiscalSaving,
     regrasFiscais,
     regraFiscalForm,
     editingRegraFiscalId,
@@ -1090,10 +1304,15 @@ export const useConfiguracaoFiscalPage = () => {
     canRestartWhatsApp,
     canDeleteWhatsApp,
     updateField,
+    updateOperacaoFiscalField,
     updateRegraFiscalField,
+    resetOperacaoFiscalForm,
     resetRegraFiscalForm,
+    handleEditOperacaoFiscal,
     handleEditRegraFiscal,
+    handleSaveOperacaoFiscal,
     handleSaveRegraFiscal,
+    handleToggleOperacaoFiscal,
     handleToggleRegraFiscal,
     loadEmitenteOptions,
     handleSelectEmitente,

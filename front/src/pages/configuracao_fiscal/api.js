@@ -26,8 +26,18 @@ export const listRegrasFiscais = async (params = {}) => {
   return data;
 };
 
+export const listOperacoesFiscais = async (params = {}) => {
+  const { data } = await api.get("/operacao-fiscal", { params });
+  return data;
+};
+
 export const createRegraFiscal = async (payload = {}) => {
   const { data } = await api.post("/regra-fiscal", payload);
+  return data;
+};
+
+export const createOperacaoFiscal = async (payload = {}) => {
+  const { data } = await api.post("/operacao-fiscal", payload);
   return data;
 };
 
@@ -36,6 +46,10 @@ export const updateRegraFiscal = async (regraId, payload = {}) => {
   return data;
 };
 
+export const updateOperacaoFiscal = async (operacaoId, payload = {}) => {
+  const { data } = await api.put(`/operacao-fiscal/${operacaoId}`, payload);
+  return data;
+};
 
 export const createWhatsAppInstance = async (payload = {}) => {
   const { data } = await api.post("/integracoes/mensagens/whatsapp/instance", payload);

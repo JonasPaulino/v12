@@ -11,6 +11,30 @@ import * as C from "./style";
 const requiredTitle = "Este campo é obrigatório.";
 const FISCAL_PAGE_SIZE = 8;
 
+const tipoOperacaoLabels = {
+  venda: "Venda",
+  compra: "Compra",
+  devolucao_venda: "Devolução de venda",
+  devolucao_compra: "Devolução de compra",
+  bonificacao_entrada: "Bonificação recebida",
+  bonificacao_saida: "Bonificação enviada",
+  remessa: "Remessa",
+  retorno: "Retorno",
+  ajuste: "Ajuste",
+};
+
+const tipoMovimentoLabels = {
+  entrada: "Entrada",
+  saida: "Saída",
+  nenhum: "Não movimenta",
+};
+
+const tipoFinanceiroLabels = {
+  receber: "Receber",
+  pagar: "Pagar",
+  nenhum: "Não gera",
+};
+
 export const ConfiguracaoFiscal = () => {
   const { mOpen, abreFechaMenu, user } = useContext(AppContext);
   const [activeTab, setActiveTab] = useState("emitente");
@@ -20,6 +44,11 @@ export const ConfiguracaoFiscal = () => {
   const [fiscalModalOpen, setFiscalModalOpen] = useState(false);
   const [fiscalMenuOpenId, setFiscalMenuOpenId] = useState(null);
   const [fiscalAnchorEl, setFiscalAnchorEl] = useState(null);
+  const [operacaoSearch, setOperacaoSearch] = useState("");
+  const [operacaoPage, setOperacaoPage] = useState(1);
+  const [operacaoModalOpen, setOperacaoModalOpen] = useState(false);
+  const [operacaoMenuOpenId, setOperacaoMenuOpenId] = useState(null);
+  const [operacaoAnchorEl, setOperacaoAnchorEl] = useState(null);
   const isUsuarioMaster = !!user?.usuario_master;
   const {
     loading,
@@ -32,6 +61,10 @@ export const ConfiguracaoFiscal = () => {
     contasResumo,
     whatsappResumo,
     whatsAppState,
+    operacoesFiscais,
+    operacaoFiscalForm,
+    editingOperacaoFiscalId,
+    operacaoFiscalSaving,
     regrasFiscais,
     regraFiscalForm,
     editingRegraFiscalId,
@@ -40,10 +73,15 @@ export const ConfiguracaoFiscal = () => {
     canRestartWhatsApp,
     canDeleteWhatsApp,
     updateField,
+    updateOperacaoFiscalField,
     updateRegraFiscalField,
+    resetOperacaoFiscalForm,
     resetRegraFiscalForm,
+    handleEditOperacaoFiscal,
     handleEditRegraFiscal,
+    handleSaveOperacaoFiscal,
     handleSaveRegraFiscal,
+    handleToggleOperacaoFiscal,
     handleToggleRegraFiscal,
     loadEmitenteOptions,
     handleSelectEmitente,
@@ -54,6 +92,32 @@ export const ConfiguracaoFiscal = () => {
     handleDeleteWhatsApp,
     handleSubmit,
   } = useConfiguracaoFiscalPage();
+
+  const filteredOperacoesFiscais = useMemo(() => {
+    const search = operacaoSearch.trim().toLowerCase();
+    if (!search) return operacoesFiscais;
+
+    return operacoesFiscais.filter((operacao) =>
+      [
+        operacao.codigo,
+        operacao.descricao,
+        operacao.natureza_operacao,
+        operacao.regra_fiscal_descricao,
+      ]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(search))
+    );
+  }, [operacaoSearch, operacoesFiscais]);
+
+  const operacaoTotalPages = Math.max(
+    1,
+    Math.ceil(filteredOperacoesFiscais.length / FISCAL_PAGE_SIZE)
+  );
+  const safeOperacaoPage = Math.min(operacaoPage, operacaoTotalPages);
+  const paginatedOperacoesFiscais = filteredOperacoesFiscais.slice(
+    (safeOperacaoPage - 1) * FISCAL_PAGE_SIZE,
+    safeOperacaoPage * FISCAL_PAGE_SIZE
+  );
 
   const filteredRegrasFiscais = useMemo(() => {
     const search = fiscalSearch.trim().toLowerCase();
@@ -81,6 +145,39 @@ export const ConfiguracaoFiscal = () => {
     (safeFiscalPage - 1) * FISCAL_PAGE_SIZE,
     safeFiscalPage * FISCAL_PAGE_SIZE
   );
+
+  const openOperacaoMenu = (operacaoId, element) => {
+    setOperacaoMenuOpenId(operacaoId);
+    setOperacaoAnchorEl(element);
+  };
+
+  const closeOperacaoMenu = () => {
+    setOperacaoMenuOpenId(null);
+    setOperacaoAnchorEl(null);
+  };
+
+  const openNewOperacaoFiscal = () => {
+    resetOperacaoFiscalForm();
+    setOperacaoModalOpen(true);
+  };
+
+  const openEditOperacaoFiscal = (operacao) => {
+    handleEditOperacaoFiscal(operacao);
+    setOperacaoModalOpen(true);
+  };
+
+  const closeOperacaoModal = () => {
+    setOperacaoModalOpen(false);
+    resetOperacaoFiscalForm();
+  };
+
+  const saveOperacaoFiscal = async () => {
+    const saved = await handleSaveOperacaoFiscal();
+    if (saved) {
+      setOperacaoModalOpen(false);
+      setOperacaoPage(1);
+    }
+  };
 
   const openFiscalMenu = (regraId, element) => {
     setFiscalMenuOpenId(regraId);
@@ -381,6 +478,459 @@ export const ConfiguracaoFiscal = () => {
 
                   {activeTab === "fiscal" ? (
                     <C.SectionBody>
+                      <C.CardHeader>
+                        <C.CardTitle>Operações fiscais</C.CardTitle>
+                        <C.CardText>
+                          Defina o comportamento de cada operação: se movimenta estoque,
+                          gera financeiro, emite NF-e e qual regra fiscal será usada por
+                          padrão. Este cadastro será usado nos fluxos de venda, compra,
+                          devolução e bonificação.
+                        </C.CardText>
+                      </C.CardHeader>
+
+                      <C.FiscalToolbar>
+                        <C.SearchInput
+                          value={operacaoSearch}
+                          onChange={(event) => {
+                            setOperacaoSearch(event.target.value);
+                            setOperacaoPage(1);
+                          }}
+                          placeholder="Pesquisar por código, descrição ou natureza"
+                        />
+                        <C.PrimaryInlineButton type="button" onClick={openNewOperacaoFiscal}>
+                          Nova operação fiscal
+                        </C.PrimaryInlineButton>
+                      </C.FiscalToolbar>
+
+                      <C.TableCard>
+                        <C.TableScroll>
+                          <C.FiscalTable>
+                            <thead>
+                              <tr>
+                                <th>Operação</th>
+                                <th>Comportamento</th>
+                                <th>NF-e</th>
+                                <th>Financeiro</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {paginatedOperacoesFiscais.length ? (
+                                paginatedOperacoesFiscais.map((operacao) => (
+                                  <tr key={operacao.operacao_fiscal_id}>
+                                    <td>
+                                      <strong>{operacao.descricao}</strong>
+                                      <span>
+                                        {operacao.codigo} •{" "}
+                                        {tipoOperacaoLabels[operacao.tipo_operacao] ||
+                                          operacao.tipo_operacao}
+                                      </span>
+                                    </td>
+                                    <td>
+                                      {operacao.movimenta_estoque
+                                        ? tipoMovimentoLabels[
+                                            operacao.tipo_movimento_estoque
+                                          ] || operacao.tipo_movimento_estoque
+                                        : "Não movimenta"}
+                                      {operacao.atualiza_custo ? (
+                                        <span>Atualiza custo do produto</span>
+                                      ) : null}
+                                    </td>
+                                    <td>
+                                      {operacao.emite_nfe
+                                        ? `${operacao.tipo_nfe || "--"} • ${
+                                            operacao.finalidade_nfe || "normal"
+                                          }`
+                                        : "Não emite"}
+                                      <span>{operacao.natureza_operacao}</span>
+                                    </td>
+                                    <td>
+                                      {operacao.gera_financeiro
+                                        ? tipoFinanceiroLabels[operacao.tipo_financeiro] ||
+                                          operacao.tipo_financeiro
+                                        : "Não gera"}
+                                      {operacao.regra_fiscal_descricao ? (
+                                        <span>Regra: {operacao.regra_fiscal_descricao}</span>
+                                      ) : null}
+                                    </td>
+                                    <td>
+                                      <C.StatusBadge $ok={operacao.ativo}>
+                                        {operacao.ativo ? "Ativa" : "Inativa"}
+                                      </C.StatusBadge>
+                                    </td>
+                                    <td>
+                                      <C.MenuButton
+                                        type="button"
+                                        title="Ações"
+                                        aria-label="Ações"
+                                        onClick={(event) =>
+                                          openOperacaoMenu(
+                                            operacao.operacao_fiscal_id,
+                                            event.currentTarget
+                                          )
+                                        }
+                                      >
+                                        ⋮
+                                      </C.MenuButton>
+
+                                      {operacaoMenuOpenId ===
+                                      operacao.operacao_fiscal_id ? (
+                                        <DropdownMenu
+                                          open={!!operacaoMenuOpenId}
+                                          anchorEl={operacaoAnchorEl}
+                                          onClose={closeOperacaoMenu}
+                                          minWidth={210}
+                                          items={[
+                                            {
+                                              label: "Editar cadastro",
+                                              onClick: () => openEditOperacaoFiscal(operacao),
+                                            },
+                                            {
+                                              label: operacao.ativo
+                                                ? "Inativar operação"
+                                                : "Reativar operação",
+                                              danger: operacao.ativo,
+                                              onClick: () =>
+                                                handleToggleOperacaoFiscal(operacao),
+                                            },
+                                          ]}
+                                        />
+                                      ) : null}
+                                    </td>
+                                  </tr>
+                                ))
+                              ) : (
+                                <tr>
+                                  <td colSpan={6}>
+                                    <C.EmptyState>
+                                      Nenhuma operação fiscal encontrada.
+                                    </C.EmptyState>
+                                  </td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </C.FiscalTable>
+                        </C.TableScroll>
+
+                        <C.PaginationBar>
+                          <span>
+                            {filteredOperacoesFiscais.length}{" "}
+                            {filteredOperacoesFiscais.length === 1
+                              ? "operação fiscal encontrada"
+                              : "operações fiscais encontradas"}
+                          </span>
+                          <C.PaginationInfo>
+                            Página {safeOperacaoPage} de {operacaoTotalPages}
+                          </C.PaginationInfo>
+                          <Paginacao
+                            page={safeOperacaoPage}
+                            totalPages={operacaoTotalPages}
+                            onPageChange={setOperacaoPage}
+                          />
+                        </C.PaginationBar>
+                      </C.TableCard>
+
+                      {operacaoModalOpen ? (
+                        <C.ModalOverlay onMouseDown={closeOperacaoModal}>
+                          <C.FiscalModal
+                            onMouseDown={(event) => event.stopPropagation()}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter") {
+                                event.preventDefault();
+                              }
+                            }}
+                          >
+                            <C.ModalHeader>
+                              <div>
+                                <C.CardTitle>
+                                  {editingOperacaoFiscalId
+                                    ? "Editar operação fiscal"
+                                    : "Nova operação fiscal"}
+                                </C.CardTitle>
+                                <C.CardText>
+                                  Configure como o sistema deve tratar esta operação nos
+                                  módulos fiscal, financeiro e estoque.
+                                </C.CardText>
+                              </div>
+                              <C.ModalCloseButton
+                                type="button"
+                                onClick={closeOperacaoModal}
+                              >
+                                ×
+                              </C.ModalCloseButton>
+                            </C.ModalHeader>
+
+                            <C.ModalBody>
+                              <C.FieldsGrid>
+                                <C.Field>
+                                  <C.FieldSpan>
+                                    Código
+                                    <C.RequiredMark title={requiredTitle}>*</C.RequiredMark>
+                                  </C.FieldSpan>
+                                  <C.Input
+                                    value={operacaoFiscalForm.codigo}
+                                    onChange={(event) =>
+                                      updateOperacaoFiscalField(
+                                        "codigo",
+                                        event.target.value
+                                      )
+                                    }
+                                    placeholder="VENDA_MERCADORIA"
+                                  />
+                                </C.Field>
+
+                                <C.Field>
+                                  <C.FieldSpan>
+                                    Descrição
+                                    <C.RequiredMark title={requiredTitle}>*</C.RequiredMark>
+                                  </C.FieldSpan>
+                                  <C.Input
+                                    value={operacaoFiscalForm.descricao}
+                                    onChange={(event) =>
+                                      updateOperacaoFiscalField(
+                                        "descricao",
+                                        event.target.value
+                                      )
+                                    }
+                                    placeholder="Venda de mercadoria"
+                                  />
+                                </C.Field>
+
+                                <C.Field>
+                                  <C.FieldSpan>Tipo de operação</C.FieldSpan>
+                                  <C.Select
+                                    value={operacaoFiscalForm.tipo_operacao}
+                                    onChange={(event) =>
+                                      updateOperacaoFiscalField(
+                                        "tipo_operacao",
+                                        event.target.value
+                                      )
+                                    }
+                                  >
+                                    <option value="venda">Venda</option>
+                                    <option value="compra">Compra</option>
+                                    <option value="devolucao_venda">Devolução de venda</option>
+                                    <option value="devolucao_compra">Devolução de compra</option>
+                                    <option value="bonificacao_entrada">
+                                      Bonificação recebida
+                                    </option>
+                                    <option value="bonificacao_saida">Bonificação enviada</option>
+                                    <option value="remessa">Remessa</option>
+                                    <option value="retorno">Retorno</option>
+                                    <option value="ajuste">Ajuste</option>
+                                  </C.Select>
+                                </C.Field>
+
+                                <C.Field>
+                                  <C.FieldSpan>
+                                    Natureza da operação
+                                    <C.RequiredMark title={requiredTitle}>*</C.RequiredMark>
+                                  </C.FieldSpan>
+                                  <C.Input
+                                    value={operacaoFiscalForm.natureza_operacao}
+                                    onChange={(event) =>
+                                      updateOperacaoFiscalField(
+                                        "natureza_operacao",
+                                        event.target.value
+                                      )
+                                    }
+                                    placeholder="Venda de mercadoria"
+                                  />
+                                </C.Field>
+
+                                <C.Field>
+                                  <C.FieldSpan>Finalidade NF-e</C.FieldSpan>
+                                  <C.Select
+                                    value={operacaoFiscalForm.finalidade_nfe}
+                                    onChange={(event) =>
+                                      updateOperacaoFiscalField(
+                                        "finalidade_nfe",
+                                        event.target.value
+                                      )
+                                    }
+                                  >
+                                    <option value="normal">Normal</option>
+                                    <option value="complementar">Complementar</option>
+                                    <option value="ajuste">Ajuste</option>
+                                    <option value="devolucao">Devolução</option>
+                                  </C.Select>
+                                </C.Field>
+
+                                <C.Field>
+                                  <C.FieldSpan>Tipo NF-e</C.FieldSpan>
+                                  <C.Select
+                                    value={operacaoFiscalForm.tipo_nfe}
+                                    onChange={(event) =>
+                                      updateOperacaoFiscalField(
+                                        "tipo_nfe",
+                                        event.target.value
+                                      )
+                                    }
+                                  >
+                                    <option value="">Não se aplica</option>
+                                    <option value="entrada">Entrada</option>
+                                    <option value="saida">Saída</option>
+                                  </C.Select>
+                                </C.Field>
+
+                                <C.Field>
+                                  <C.FieldSpan>Movimento de estoque</C.FieldSpan>
+                                  <C.Select
+                                    value={operacaoFiscalForm.tipo_movimento_estoque}
+                                    onChange={(event) =>
+                                      updateOperacaoFiscalField(
+                                        "tipo_movimento_estoque",
+                                        event.target.value
+                                      )
+                                    }
+                                  >
+                                    <option value="entrada">Entrada</option>
+                                    <option value="saida">Saída</option>
+                                    <option value="nenhum">Não movimenta</option>
+                                  </C.Select>
+                                </C.Field>
+
+                                <C.Field>
+                                  <C.FieldSpan>Financeiro</C.FieldSpan>
+                                  <C.Select
+                                    value={operacaoFiscalForm.tipo_financeiro}
+                                    onChange={(event) =>
+                                      updateOperacaoFiscalField(
+                                        "tipo_financeiro",
+                                        event.target.value
+                                      )
+                                    }
+                                  >
+                                    <option value="receber">Contas a receber</option>
+                                    <option value="pagar">Contas a pagar</option>
+                                    <option value="nenhum">Não gera financeiro</option>
+                                  </C.Select>
+                                </C.Field>
+
+                                <C.Field>
+                                  <C.FieldSpan>Regra fiscal padrão</C.FieldSpan>
+                                  <C.Select
+                                    value={operacaoFiscalForm.regra_tributaria_id}
+                                    onChange={(event) =>
+                                      updateOperacaoFiscalField(
+                                        "regra_tributaria_id",
+                                        event.target.value
+                                      )
+                                    }
+                                  >
+                                    <option value="">Sem regra vinculada</option>
+                                    {regrasFiscais.map((regra) => (
+                                      <option
+                                        key={regra.regra_tributaria_id}
+                                        value={regra.regra_tributaria_id}
+                                      >
+                                        {regra.descricao}
+                                      </option>
+                                    ))}
+                                  </C.Select>
+                                </C.Field>
+                              </C.FieldsGrid>
+
+                              <C.ToggleList>
+                                <C.ToggleRow>
+                                  <C.Checkbox
+                                    type="checkbox"
+                                    checked={operacaoFiscalForm.emite_nfe}
+                                    onChange={(event) =>
+                                      updateOperacaoFiscalField(
+                                        "emite_nfe",
+                                        event.target.checked
+                                      )
+                                    }
+                                  />
+                                  <span>Emite NF-e</span>
+                                </C.ToggleRow>
+
+                                <C.ToggleRow>
+                                  <C.Checkbox
+                                    type="checkbox"
+                                    checked={operacaoFiscalForm.movimenta_estoque}
+                                    onChange={(event) =>
+                                      updateOperacaoFiscalField(
+                                        "movimenta_estoque",
+                                        event.target.checked
+                                      )
+                                    }
+                                  />
+                                  <span>Movimenta estoque</span>
+                                </C.ToggleRow>
+
+                                <C.ToggleRow>
+                                  <C.Checkbox
+                                    type="checkbox"
+                                    checked={operacaoFiscalForm.gera_financeiro}
+                                    onChange={(event) =>
+                                      updateOperacaoFiscalField(
+                                        "gera_financeiro",
+                                        event.target.checked
+                                      )
+                                    }
+                                  />
+                                  <span>Gera financeiro</span>
+                                </C.ToggleRow>
+
+                                <C.ToggleRow>
+                                  <C.Checkbox
+                                    type="checkbox"
+                                    checked={operacaoFiscalForm.atualiza_custo}
+                                    onChange={(event) =>
+                                      updateOperacaoFiscalField(
+                                        "atualiza_custo",
+                                        event.target.checked
+                                      )
+                                    }
+                                  />
+                                  <span>Atualiza custo do produto na entrada</span>
+                                </C.ToggleRow>
+
+                                <C.ToggleRow>
+                                  <C.Checkbox
+                                    type="checkbox"
+                                    checked={operacaoFiscalForm.ativo}
+                                    onChange={(event) =>
+                                      updateOperacaoFiscalField("ativo", event.target.checked)
+                                    }
+                                  />
+                                  <span>Operação ativa</span>
+                                </C.ToggleRow>
+                              </C.ToggleList>
+
+                              <C.Field>
+                                <C.FieldSpan>Observação interna</C.FieldSpan>
+                                <C.Textarea
+                                  value={operacaoFiscalForm.observacao}
+                                  onChange={(event) =>
+                                    updateOperacaoFiscalField("observacao", event.target.value)
+                                  }
+                                  placeholder="Use para orientar quando essa operação deve ser usada"
+                                />
+                              </C.Field>
+                            </C.ModalBody>
+
+                            <C.ModalFooter>
+                              <C.SecondaryButton type="button" onClick={closeOperacaoModal}>
+                                Cancelar
+                              </C.SecondaryButton>
+                              <C.PrimaryInlineButton
+                                type="button"
+                                onClick={saveOperacaoFiscal}
+                                disabled={operacaoFiscalSaving}
+                              >
+                                {operacaoFiscalSaving
+                                  ? "Salvando..."
+                                  : "Salvar operação"}
+                              </C.PrimaryInlineButton>
+                            </C.ModalFooter>
+                          </C.FiscalModal>
+                        </C.ModalOverlay>
+                      ) : null}
+
                       <C.CardHeader>
                         <C.CardTitle>Regras fiscais dos produtos</C.CardTitle>
                         <C.CardText>
