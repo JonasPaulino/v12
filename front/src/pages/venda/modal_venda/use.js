@@ -70,6 +70,19 @@ const parseNumeric = (value) => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
+const isItemLinked = (item) => String(item?.produto_id || "").trim().length > 0;
+
+const sanitizeItemsForSubmit = (items = []) => {
+  const normalizedItems = Array.isArray(items) ? items : [];
+  const linkedItems = normalizedItems.filter(isItemLinked);
+
+  if (linkedItems.length > 0) {
+    return linkedItems;
+  }
+
+  return normalizedItems;
+};
+
 const addDays = (baseDate, days) => {
   const normalizedBaseDate = normalizeDateInput(baseDate, todayDate());
   const date = new Date(`${normalizedBaseDate}T12:00:00`);
@@ -471,8 +484,12 @@ export const useModalVenda = ({ isOpen, vendaId, onClose }) => {
   const addItem = () => {
     setForm((prev) => ({
       ...prev,
-      items: [...prev.items, buildInitialItem()],
+      items: [buildInitialItem(), ...prev.items],
     }));
+
+    window.setTimeout(() => {
+      focusField("item_produto_0");
+    }, 60);
   };
 
   const removeItem = (index) => {
@@ -491,7 +508,7 @@ export const useModalVenda = ({ isOpen, vendaId, onClose }) => {
       financeiro_condicao_pagamento_id: Number(form.financeiro_condicao_pagamento_id) || "",
       subtotal: resumo.subtotal,
       total: resumo.total,
-      items: itemsCalculated.map((item) => ({
+      items: sanitizeItemsForSubmit(itemsCalculated).map((item) => ({
         produto_id: Number(item.produto_id) || "",
         quantidade: item.quantidade,
         valor_unitario: item.valor_unitario,
@@ -527,12 +544,14 @@ export const useModalVenda = ({ isOpen, vendaId, onClose }) => {
       };
     }
 
-    if (!form.items.length) {
+    const itemsToValidate = sanitizeItemsForSubmit(form.items);
+
+    if (!itemsToValidate.length) {
       return { field: "item_produto_0", label: "Produto do item 1", tab: "itens" };
     }
 
-    for (let index = 0; index < form.items.length; index += 1) {
-      const item = form.items[index];
+    for (let index = 0; index < itemsToValidate.length; index += 1) {
+      const item = itemsToValidate[index];
 
       if (!String(item.produto_id || "").trim()) {
         return {
@@ -566,6 +585,15 @@ export const useModalVenda = ({ isOpen, vendaId, onClose }) => {
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (submitting) return;
+
+    const sanitizedItems = sanitizeItemsForSubmit(form.items);
+
+    if (sanitizedItems.length !== form.items.length) {
+      setForm((prev) => ({
+        ...prev,
+        items: sanitizedItems.length ? sanitizedItems : [buildInitialItem()],
+      }));
+    }
 
     const missingField = validateBeforeSubmit();
     if (missingField) {
