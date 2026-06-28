@@ -189,6 +189,16 @@ export const Hint = styled.p`
   margin: 0;
   color: ${({ theme }) => theme.colors.textSoft};
   line-height: 1.5;
+  font-size: 0.9rem;
+
+  @media (max-width: 640px) {
+    font-size: 0.82rem;
+    line-height: 1.4;
+  }
+`;
+
+export const ItemsHint = styled(Hint)`
+  max-width: 420px;
 `;
 
 export const ItemsToolbar = styled.div`
@@ -200,6 +210,7 @@ export const ItemsToolbar = styled.div`
   @media (max-width: 640px) {
     flex-direction: column;
     align-items: stretch;
+    gap: 10px;
   }
 `;
 
@@ -214,39 +225,62 @@ export const AddItemButton = styled.button`
   cursor: pointer;
 
   @media (max-width: 640px) {
-    width: 100%;
-    height: 40px;
-    padding: 0 14px;
-    font-size: 0.84rem;
+    align-self: flex-end;
+    width: auto;
+    min-width: 132px;
+    height: 36px;
+    padding: 0 12px;
+    font-size: 0.78rem;
   }
 `;
 
 export const ItemsTable = styled.div`
   min-height: 360px;
+  max-width: 100%;
   border: 1px solid ${({ theme }) => theme.colors.border};
   border-radius: ${({ theme }) => theme.radius.md};
+  overflow: hidden;
 
   @media (max-width: 640px) {
     min-height: 0;
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
   }
 `;
 
 export const ItemsScroll = styled.div`
   min-height: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable both-edges;
 
   @media (max-width: 640px) {
     min-height: 0;
+    scrollbar-gutter: auto;
   }
 `;
 
 export const ItemsGrid = styled.div`
   min-width: 0;
+
+  @media (max-width: 640px) {
+    min-width: 760px;
+  }
 `;
 
 export const ItemsHeader = styled.div`
   display: grid;
-  grid-template-columns: 2.8fr 0.9fr 1fr 0.8fr 0.8fr 1fr 0.6fr;
+  grid-template-columns:
+    minmax(220px, 2.5fr)
+    minmax(72px, 0.85fr)
+    minmax(104px, 1fr)
+    minmax(96px, 0.9fr)
+    minmax(96px, 0.9fr)
+    minmax(112px, 1fr)
+    minmax(88px, 0.7fr);
   gap: 12px;
   padding: 16px;
   background: rgba(238, 244, 255, 0.86);
@@ -254,10 +288,6 @@ export const ItemsHeader = styled.div`
   color: ${({ theme }) => theme.colors.textSoft};
   text-transform: uppercase;
   letter-spacing: 0.08em;
-
-  @media (max-width: 640px) {
-    display: none;
-  }
 `;
 
 export const ItemsHeaderCell = styled.div`
@@ -268,7 +298,14 @@ export const ItemsHeaderCell = styled.div`
 
 export const ItemsRow = styled.div`
   display: grid;
-  grid-template-columns: 2.8fr 0.9fr 1fr 0.8fr 0.8fr 1fr 0.6fr;
+  grid-template-columns:
+    minmax(220px, 2.5fr)
+    minmax(72px, 0.85fr)
+    minmax(104px, 1fr)
+    minmax(96px, 0.9fr)
+    minmax(96px, 0.9fr)
+    minmax(112px, 1fr)
+    minmax(88px, 0.7fr);
   gap: 12px;
   padding: 16px;
   align-items: end;
@@ -278,10 +315,8 @@ export const ItemsRow = styled.div`
   }
 
   @media (max-width: 640px) {
-    grid-template-columns: 1fr;
-    gap: 12px;
-    padding: 14px;
-    align-items: stretch;
+    gap: 10px;
+    padding: 12px;
   }
 `;
 
@@ -295,10 +330,6 @@ export const InlineLabel = styled.span`
   font-size: 0.78rem;
   color: ${({ theme }) => theme.colors.textSoft};
   display: none;
-
-  @media (max-width: 640px) {
-    display: block;
-  }
 `;
 
 export const RemoveItemButton = styled.button`
@@ -311,7 +342,6 @@ export const RemoveItemButton = styled.button`
   cursor: pointer;
 
   @media (max-width: 640px) {
-    width: 100%;
     height: 40px;
     font-size: 0.84rem;
   }
@@ -411,7 +441,8 @@ export const Footer = styled.div`
   padding: 0 26px 24px;
 
   @media (max-width: 640px) {
-    flex-direction: column-reverse;
+    flex-direction: row;
+    justify-content: stretch;
     padding: 0 16px 16px;
   }
 `;
@@ -426,9 +457,11 @@ export const SecondaryButton = styled.button`
   cursor: pointer;
 
   @media (max-width: 640px) {
-    width: 100%;
-    height: 44px;
-    font-size: 0.86rem;
+    flex: 1;
+    min-width: 0;
+    height: 42px;
+    padding: 0 12px;
+    font-size: 0.82rem;
   }
 `;
 
@@ -443,8 +476,10 @@ export const PrimaryButton = styled.button`
   cursor: pointer;
 
   @media (max-width: 640px) {
-    width: 100%;
-    height: 44px;
-    font-size: 0.86rem;
+    flex: 1;
+    min-width: 0;
+    height: 42px;
+    padding: 0 12px;
+    font-size: 0.82rem;
   }
 `;

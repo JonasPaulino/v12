@@ -213,10 +213,10 @@ export const ModalVenda = ({ isOpen, vendaId, onClose }) => {
             ) : activeTab === "itens" ? (
               <>
                 <C.ItemsToolbar>
-                  <C.Hint>
-                    Os itens geram o subtotal do pedido e servem de base para o título
-                    financeiro.
-                  </C.Hint>
+                  <C.ItemsHint>
+                    Os itens formam o subtotal e a base do financeiro. Deslize a grade
+                    para ver os demais campos.
+                  </C.ItemsHint>
 
                   <C.AddItemButton type="button" onClick={addItem}>
                     Adicionar item
