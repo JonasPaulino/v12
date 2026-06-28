@@ -106,12 +106,12 @@ export const useModalEntradaMercadoria = ({ isOpen, onClose }) => {
   }, []);
 
   const handleSelectPedido = useCallback(
-    async (option) => {
+    async (value, option) => {
       if (option) {
         setPedidosCache((prev) => mergeUniqueOptions(prev, [option], "pedido_compra_id"));
       }
 
-      const pedidoCompraId = option?.pedido_compra_id || "";
+      const pedidoCompraId = value || option?.pedido_compra_id || "";
       setPedidoSelecionado(null);
       setForm((prev) => ({
         ...prev,
@@ -232,4 +232,3 @@ export const useModalEntradaMercadoria = ({ isOpen, onClose }) => {
     handleSubmit,
   };
 };
-
