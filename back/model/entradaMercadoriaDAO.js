@@ -746,24 +746,228 @@ class EntradaMercadoriaDAO {
       : null;
   }
 
-  static async vincularFinanceiroPedidoEntrada(client, { pedidoCompraId, entradaMercadoriaId }) {
+  static async vincularFinanceiroPedidoEntrada(client, {
+    pedidoCompraId,
+    entradaMercadoriaId,
+    total,
+    dataEntrada,
+  }) {
     if (!pedidoCompraId || !entradaMercadoriaId) return null;
+
+    const valorOriginal = roundCurrency(total);
+    if (valorOriginal <= 0) return null;
 
     const { rows } = await client.query(
       `
-        UPDATE financeiro_titulo
-        SET entrada_mercadoria_id = $2
-        WHERE tenant_id = ${TENANT_CONTEXT_SQL}
-          AND pedido_compra_id = $1
-          AND tipo = 'pagar'
-          AND excluido = FALSE
-          AND entrada_mercadoria_id IS NULL
-        RETURNING financeiro_titulo_id
+        SELECT
+          pc.pedido_compra_id,
+          pc.pessoa_id,
+          pc.data_emissao AS pedido_data_emissao,
+          COALESCE(
+            ft.financeiro_titulo_id,
+            0
+          ) AS financeiro_titulo_id,
+          COALESCE(
+            ft.financeiro_condicao_pagamento_id,
+            pc.financeiro_condicao_pagamento_id
+          ) AS financeiro_condicao_pagamento_id,
+          ft.data_vencimento AS primeiro_vencimento,
+          cp.descricao,
+          cp.quantidade_parcelas,
+          cp.dias_primeiro_vencimento,
+          cp.intervalo_dias,
+          cp.percentual_entrada
+        FROM pedido_compra pc
+        LEFT JOIN financeiro_titulo ft
+          ON ft.tenant_id = pc.tenant_id
+         AND ft.pedido_compra_id = pc.pedido_compra_id
+         AND ft.tipo = 'pagar'
+         AND ft.excluido = FALSE
+        LEFT JOIN financeiro_condicao_pagamento cp
+          ON cp.tenant_id = pc.tenant_id
+         AND cp.financeiro_condicao_pagamento_id = COALESCE(
+           ft.financeiro_condicao_pagamento_id,
+           pc.financeiro_condicao_pagamento_id
+         )
+        WHERE pc.tenant_id = ${TENANT_CONTEXT_SQL}
+          AND pc.pedido_compra_id = $1
+        LIMIT 1
       `,
-      [pedidoCompraId, entradaMercadoriaId]
+      [pedidoCompraId]
     );
 
-    return rows[0]?.financeiro_titulo_id || null;
+    const data = rows[0];
+    if (!data) return null;
+    if (!data.financeiro_condicao_pagamento_id) {
+      throw new Error("Condição de pagamento do pedido de compra não encontrada.");
+    }
+
+    const condicao = {
+      financeiro_condicao_pagamento_id: data.financeiro_condicao_pagamento_id,
+      quantidade_parcelas: Number(data.quantidade_parcelas || 1),
+      dias_primeiro_vencimento: Number(data.dias_primeiro_vencimento || 0),
+      intervalo_dias: Number(data.intervalo_dias || 30),
+      percentual_entrada: Number(data.percentual_entrada || 0),
+    };
+    const dataEmissao = normalizeDateValue(dataEntrada) || normalizeDateValue(data.pedido_data_emissao);
+    const primeiroVencimento = normalizeDateValue(data.primeiro_vencimento);
+    const parcelas = CompraDAO.gerarParcelas({
+      total: valorOriginal,
+      dataEmissao,
+      primeiroVencimento,
+      condicao,
+    });
+
+    let financeiroTituloId = Number(data.financeiro_titulo_id || 0) || null;
+
+    if (financeiroTituloId) {
+      const baixaResult = await client.query(
+        `
+          SELECT COUNT(*)::int AS total
+          FROM financeiro_titulo_baixa
+          WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+            AND financeiro_titulo_id = $1
+        `,
+        [financeiroTituloId]
+      );
+
+      if (Number(baixaResult.rows[0]?.total || 0) > 0) {
+        throw new Error(
+          "O título financeiro do pedido já possui baixa e não pode ser ajustado pela entrada."
+        );
+      }
+
+      await client.query(
+        `
+          UPDATE financeiro_titulo
+          SET entrada_mercadoria_id = $2,
+              pessoa_id = $3,
+              financeiro_condicao_pagamento_id = $4,
+              numero_documento = $5,
+              descricao = $6,
+              status = 'aberto',
+              valor_original = $7,
+              desconto = 0,
+              acrescimo = 0,
+              data_emissao = $8,
+              data_vencimento = $9,
+              observacao = $10
+          WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+            AND financeiro_titulo_id = $1
+        `,
+        [
+          financeiroTituloId,
+          entradaMercadoriaId,
+          data.pessoa_id,
+          condicao.financeiro_condicao_pagamento_id,
+          String(pedidoCompraId),
+          `Entrada de mercadoria #${entradaMercadoriaId} - Pedido de compra #${pedidoCompraId}`,
+          valorOriginal,
+          dataEmissao,
+          parcelas[0]?.data_vencimento || dataEmissao,
+          "Valor ajustado pela quantidade recebida na entrada de mercadoria.",
+        ]
+      );
+
+      await client.query(
+        `
+          DELETE FROM financeiro_titulo_parcela
+          WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+            AND financeiro_titulo_id = $1
+        `,
+        [financeiroTituloId]
+      );
+    } else {
+      const result = await client.query(
+        `
+          INSERT INTO financeiro_titulo (
+            tenant_id,
+            pedido_compra_id,
+            entrada_mercadoria_id,
+            pessoa_id,
+            financeiro_condicao_pagamento_id,
+            numero_documento,
+            descricao,
+            tipo,
+            status,
+            valor_original,
+            desconto,
+            acrescimo,
+            data_emissao,
+            data_vencimento,
+            observacao,
+            excluido
+          )
+          VALUES (
+            ${TENANT_CONTEXT_SQL},
+            $1,
+            $2,
+            $3,
+            $4,
+            $5,
+            $6,
+            'pagar',
+            'aberto',
+            $7,
+            0,
+            0,
+            $8,
+            $9,
+            $10,
+            FALSE
+          )
+          RETURNING financeiro_titulo_id
+        `,
+        [
+          pedidoCompraId,
+          entradaMercadoriaId,
+          data.pessoa_id,
+          condicao.financeiro_condicao_pagamento_id,
+          String(pedidoCompraId),
+          `Entrada de mercadoria #${entradaMercadoriaId} - Pedido de compra #${pedidoCompraId}`,
+          valorOriginal,
+          dataEmissao,
+          parcelas[0]?.data_vencimento || dataEmissao,
+          "Valor gerado pela quantidade recebida na entrada de mercadoria.",
+        ]
+      );
+
+      financeiroTituloId = Number(result.rows[0].financeiro_titulo_id);
+    }
+
+    for (const parcela of parcelas) {
+      await client.query(
+        `
+          INSERT INTO financeiro_titulo_parcela (
+            tenant_id,
+            financeiro_titulo_id,
+            numero_parcela,
+            valor_parcela,
+            valor_recebido,
+            data_vencimento,
+            status
+          )
+          VALUES (
+            ${TENANT_CONTEXT_SQL},
+            $1,
+            $2,
+            $3,
+            0,
+            $4,
+            $5
+          )
+        `,
+        [
+          financeiroTituloId,
+          parcela.numero_parcela,
+          parcela.valor_parcela,
+          parcela.data_vencimento,
+          parcela.status,
+        ]
+      );
+    }
+
+    return { financeiro_titulo_id: financeiroTituloId, parcelas };
   }
 
   static async criarFinanceiroEntradaXml(client, {
@@ -1177,6 +1381,8 @@ class EntradaMercadoriaDAO {
       await this.vincularFinanceiroPedidoEntrada(client, {
         pedidoCompraId: data.pedido_compra_id,
         entradaMercadoriaId,
+        total,
+        dataEntrada: data.data_entrada,
       });
 
       await client.query("COMMIT");

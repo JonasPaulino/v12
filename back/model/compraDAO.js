@@ -610,173 +610,6 @@ class CompraDAO {
     }
   }
 
-  static async substituirFinanceiroPedido(client, {
-    pedidoCompraId,
-    pessoaId,
-    condicao,
-    dataEmissao,
-    primeiroVencimento,
-    observacao,
-    valorOriginal,
-    desconto,
-    acrescimo,
-  }) {
-    const parcelas = this.gerarParcelas({
-      total: roundCurrency(valorOriginal - desconto + acrescimo),
-      dataEmissao,
-      primeiroVencimento,
-      condicao,
-    });
-
-    const tituloExistente = await client.query(
-      `
-        SELECT financeiro_titulo_id
-        FROM financeiro_titulo
-        WHERE tenant_id = ${TENANT_CONTEXT_SQL}
-          AND pedido_compra_id = $1
-          AND excluido = FALSE
-        LIMIT 1
-      `,
-      [pedidoCompraId]
-    );
-
-    let financeiroTituloId = tituloExistente.rows[0]?.financeiro_titulo_id || null;
-
-    if (!financeiroTituloId) {
-      const result = await client.query(
-        `
-          INSERT INTO financeiro_titulo (
-            tenant_id,
-            pedido_compra_id,
-            pessoa_id,
-            financeiro_condicao_pagamento_id,
-            numero_documento,
-            descricao,
-            tipo,
-            status,
-            valor_original,
-            desconto,
-            acrescimo,
-            data_emissao,
-            data_vencimento,
-            observacao,
-            excluido
-          )
-          VALUES (
-            ${TENANT_CONTEXT_SQL},
-            $1,
-            $2,
-            $3,
-            $4,
-            $5,
-            'pagar',
-            'aberto',
-            $6,
-            $7,
-            $8,
-            $9,
-            $10,
-            $11,
-            FALSE
-          )
-          RETURNING financeiro_titulo_id
-        `,
-        [
-          pedidoCompraId,
-          pessoaId,
-          condicao.financeiro_condicao_pagamento_id,
-          String(pedidoCompraId),
-          `Pedido de compra #${pedidoCompraId}`,
-          valorOriginal,
-          desconto,
-          acrescimo,
-          dataEmissao,
-          parcelas[0]?.data_vencimento || dataEmissao,
-          observacao,
-        ]
-      );
-
-      financeiroTituloId = result.rows[0].financeiro_titulo_id;
-    } else {
-      await client.query(
-        `
-          UPDATE financeiro_titulo
-          SET
-            pessoa_id = $2,
-            financeiro_condicao_pagamento_id = $3,
-            numero_documento = $4,
-            descricao = $5,
-            status = 'aberto',
-            valor_original = $6,
-            desconto = $7,
-            acrescimo = $8,
-            data_emissao = $9,
-            data_vencimento = $10,
-            observacao = $11,
-            excluido = FALSE
-          WHERE financeiro_titulo_id = $1
-            AND tenant_id = ${TENANT_CONTEXT_SQL}
-        `,
-        [
-          financeiroTituloId,
-          pessoaId,
-          condicao.financeiro_condicao_pagamento_id,
-          String(pedidoCompraId),
-          `Pedido de compra #${pedidoCompraId}`,
-          valorOriginal,
-          desconto,
-          acrescimo,
-          dataEmissao,
-          parcelas[0]?.data_vencimento || dataEmissao,
-          observacao,
-        ]
-      );
-
-      await client.query(
-        `
-          DELETE FROM financeiro_titulo_parcela
-          WHERE financeiro_titulo_id = $1
-            AND tenant_id = ${TENANT_CONTEXT_SQL}
-        `,
-        [financeiroTituloId]
-      );
-    }
-
-    for (const parcela of parcelas) {
-      await client.query(
-        `
-          INSERT INTO financeiro_titulo_parcela (
-            tenant_id,
-            financeiro_titulo_id,
-            numero_parcela,
-            valor_parcela,
-            valor_recebido,
-            data_vencimento,
-            status
-          )
-          VALUES (
-            ${TENANT_CONTEXT_SQL},
-            $1,
-            $2,
-            $3,
-            0,
-            $4,
-            $5
-          )
-        `,
-        [
-          financeiroTituloId,
-          parcela.numero_parcela,
-          parcela.valor_parcela,
-          parcela.data_vencimento,
-          parcela.status,
-        ]
-      );
-    }
-
-    return { financeiro_titulo_id: financeiroTituloId, parcelas };
-  }
-
   static async verificarTituloComBaixas(client, pedidoCompraId) {
     const { rowCount } = await client.query(
       `
@@ -927,12 +760,12 @@ class CompraDAO {
     const data = this.normalizePayload(payload);
     const produtoIds = [...new Set(data.items.map((item) => Number(item.produto_id)))];
     const produtosMap = await this.buscarProdutosMap(client, produtoIds);
-    const condicao = await this.buscarCondicaoPagamento(
+    const condicaoPagamento = await this.buscarCondicaoPagamento(
       client,
       data.financeiro_condicao_pagamento_id
     );
 
-    if (!condicao) {
+    if (!condicaoPagamento) {
       throw new Error("Condição de pagamento inválida para compras.");
     }
 
@@ -1046,17 +879,6 @@ class CompraDAO {
       }
 
       await this.substituirItensPedido(client, finalPedidoCompraId, data.items, produtosMap);
-      await this.substituirFinanceiroPedido(client, {
-        pedidoCompraId: finalPedidoCompraId,
-        pessoaId: data.pessoa_id,
-        condicao,
-        dataEmissao: data.data_emissao,
-        primeiroVencimento: data.data_primeiro_vencimento,
-        observacao: data.observacao,
-        valorOriginal: data.subtotal,
-        desconto: data.desconto,
-        acrescimo: data.acrescimo,
-      });
 
       await client.query("COMMIT");
       return this.buscarPorId(client, finalPedidoCompraId);

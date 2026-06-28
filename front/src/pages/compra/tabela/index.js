@@ -127,9 +127,13 @@ const Tabela = ({ search, refreshKey, onEditar, onDeleted }) => {
                   <C.Cell>{compra.condicao_pagamento_descricao || "--"}</C.Cell>
                   <C.Cell $wrap>
                     <C.Status $tone={mapStatusTone(compra.financeiro_status)}>
-                      {compra.financeiro_status || "aberto"}
+                      {compra.financeiro_status || "aguardando entrada"}
                     </C.Status>
-                    <C.MetaText>Venc. {formatDate(compra.financeiro_data_vencimento)}</C.MetaText>
+                    <C.MetaText>
+                      {compra.financeiro_data_vencimento
+                        ? `Venc. ${formatDate(compra.financeiro_data_vencimento)}`
+                        : "Gerado no recebimento"}
+                    </C.MetaText>
                   </C.Cell>
                   <C.Cell>
                     <C.Status $tone={mapStatusTone(compra.status)}>{compra.status}</C.Status>
@@ -189,4 +193,3 @@ const Tabela = ({ search, refreshKey, onEditar, onDeleted }) => {
 };
 
 export default Tabela;
-
