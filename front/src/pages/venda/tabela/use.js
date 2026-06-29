@@ -70,7 +70,7 @@ export const useTabelaVendas = ({ search, refreshKey, onDeleted }) => {
   const handleDelete = async (venda) => {
     const confirmed = await askYesNoQuestion(
       "Remover pedido?",
-      "Deseja remover esse pedido de venda? Os títulos financeiros vinculados também serão cancelados se não houver baixas."
+      "Deseja remover esse pedido de venda? O estoque será estornado e os títulos financeiros serão cancelados se não houver baixas, devolução ou NF-e ativa."
     );
 
     if (!confirmed) return;

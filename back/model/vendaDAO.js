@@ -1077,6 +1077,22 @@ class VendaDAO {
     return rowCount > 0;
   }
 
+  static async verificarNfeAtiva(client, pedidoVendaId) {
+    const { rowCount } = await client.query(
+      `
+        SELECT 1
+        FROM fiscal.nfe
+        WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+          AND pedido_venda_id = $1
+          AND status NOT IN ('cancelada', 'denegada')
+        LIMIT 1
+      `,
+      [pedidoVendaId]
+    );
+
+    return rowCount > 0;
+  }
+
   static async buscarPorId(client, pedidoVendaId) {
     const pedidoResult = await client.query(
       `
@@ -1379,6 +1395,11 @@ class VendaDAO {
       throw new Error("Este pedido possui devolução vinculada e não pode mais ser alterado.");
     }
 
+    const possuiNfe = await this.verificarNfeAtiva(client, pedidoVendaId);
+    if (possuiNfe) {
+      throw new Error("Este pedido possui NF-e ativa vinculada e não pode mais ser alterado.");
+    }
+
     const data = this.normalizePayload(payload);
     const produtoIds = [...new Set(data.items.map((item) => Number(item.produto_id)))];
     const produtosMap = await this.buscarProdutosMap(client, produtoIds);
@@ -1478,6 +1499,11 @@ class VendaDAO {
     const possuiDevolucao = await this.verificarDevolucaoAtiva(client, pedidoVendaId);
     if (possuiDevolucao) {
       throw new Error("Este pedido possui devolução vinculada. Cancele a devolução antes de remover a venda.");
+    }
+
+    const possuiNfe = await this.verificarNfeAtiva(client, pedidoVendaId);
+    if (possuiNfe) {
+      throw new Error("Este pedido possui NF-e ativa vinculada e não pode ser removido.");
     }
 
     await client.query("BEGIN");

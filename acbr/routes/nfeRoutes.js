@@ -177,8 +177,7 @@ router.post("/emitir", async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message:
-        "NF-e registrada no schema fiscal como rascunho. Falta integrar a chamada real ao ACBr.",
+      message: "NF-e criada como rascunho. Use a ação de processar emissão para enviar à SEFAZ.",
       data,
     });
   } catch (error) {
