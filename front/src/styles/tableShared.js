@@ -15,11 +15,6 @@ export const TableScrollBase = styled.div`
   overflow: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  scrollbar-gutter: stable;
-
-  @media (max-width: 640px) {
-    scrollbar-gutter: auto;
-  }
 `;
 
 export const StickyTableHeadBase = styled.thead`
