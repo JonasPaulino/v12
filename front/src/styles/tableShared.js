@@ -15,7 +15,7 @@ export const TableScrollBase = styled.div`
   overflow: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  scrollbar-gutter: stable both-edges;
+  scrollbar-gutter: stable;
 
   @media (max-width: 640px) {
     scrollbar-gutter: auto;
