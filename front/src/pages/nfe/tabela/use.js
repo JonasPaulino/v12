@@ -1,4 +1,5 @@
 import { useContext, useEffect, useState } from "react";
+import Swal from "sweetalert2";
 import { AppContext } from "context";
 import { useSweetAlert } from "context/sweet_alert";
 import {
@@ -117,16 +118,50 @@ export const useTabelaNfe = ({ search, status, refreshKey, onChanged }) => {
     );
 
   const handleCancelar = async (nfe) => {
-    const justificativa =
-      window.prompt(
-        `Informe a justificativa de cancelamento da NF-e #${nfe.nfe_id}:`,
-        ""
-      ) || "";
+    const result = await Swal.fire({
+      title: "Cancelar NF-e",
+      html: `
+        <div style="display:grid;gap:10px;text-align:left;">
+          <p style="margin:0;color:#5f6f8f;font-size:13px;">
+            Informe uma justificativa fiscal clara. A SEFAZ exige pelo menos 15 caracteres.
+          </p>
+          <textarea
+            id="nfe-cancel-justificativa"
+            class="swal2-textarea"
+            placeholder="Ex.: Erro na emissão da nota fiscal"
+            maxlength="255"
+            style="margin:0;min-height:110px;"
+          ></textarea>
+        </div>
+      `,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Enviar cancelamento",
+      cancelButtonText: "Voltar",
+      confirmButtonColor: "#d33",
+      focusConfirm: false,
+      preConfirm: () => {
+        const justificativa =
+          document.getElementById("nfe-cancel-justificativa")?.value?.trim() || "";
 
-    if (!justificativa.trim()) return;
+        if (justificativa.length < 15) {
+          Swal.showValidationMessage("A justificativa precisa ter pelo menos 15 caracteres.");
+          return false;
+        }
+
+        if (justificativa.length > 255) {
+          Swal.showValidationMessage("A justificativa precisa ter no máximo 255 caracteres.");
+          return false;
+        }
+
+        return justificativa;
+      },
+    });
+
+    if (!result.isConfirmed) return;
 
     await runAction(
-      () => cancelarNfe(nfe.nfe_id, justificativa.trim()),
+      () => cancelarNfe(nfe.nfe_id, result.value),
       "Cancelamento solicitado",
       "Solicitação de cancelamento enviada com sucesso.",
       "Solicitando cancelamento da NF-e..."
