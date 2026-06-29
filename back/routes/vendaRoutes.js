@@ -183,7 +183,9 @@ router.post("/:id/boletos", async (req, res) => {
 
 router.delete("/:id", async (req, res) => {
   try {
-    await VendaDAO.excluir(req.db, Number(req.params.id));
+    await VendaDAO.excluir(req.db, Number(req.params.id), {
+      usuarioId: Number(req.user?.userId) || null,
+    });
 
     return res.json({
       success: true,

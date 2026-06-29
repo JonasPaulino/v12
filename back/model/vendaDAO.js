@@ -1,5 +1,6 @@
 import { TENANT_CONTEXT_SQL } from "../utils/sql.js";
 import { criarCobrancaBoleto } from "../services/paymentsGatewayService.js";
+import EstoqueDAO from "./estoqueDAO.js";
 
 const SORT_COLUMNS = {
   pedido_venda_id: "pv.pedido_venda_id",
@@ -478,6 +479,7 @@ class VendaDAO {
           p.produto_id,
           p.codigo_interno,
           p.descricao,
+          p.controla_estoque,
           COALESCE(um.sigla, '') AS unidade_sigla
         FROM produto p
         LEFT JOIN produto_unidade pu ON pu.produto_id = p.produto_id
@@ -491,6 +493,241 @@ class VendaDAO {
     );
 
     return new Map(rows.map((row) => [Number(row.produto_id), row]));
+  }
+
+  static async buscarTipoMovimentoPorCodigo(client, codigo) {
+    const { rows } = await client.query(
+      `
+        SELECT estoque_tipo_movimento_id
+        FROM estoque_tipo_movimento
+        WHERE codigo = $1
+          AND ativo = TRUE
+        LIMIT 1
+      `,
+      [codigo]
+    );
+
+    return rows[0]?.estoque_tipo_movimento_id || null;
+  }
+
+  static consolidarItensEstoque(items = [], produtosMap = new Map()) {
+    const map = new Map();
+
+    for (const item of items) {
+      const produto = produtosMap.get(Number(item.produto_id));
+      if (!produto?.controla_estoque) continue;
+
+      const produtoId = Number(item.produto_id);
+      const current = map.get(produtoId) || {
+        produto_id: produtoId,
+        descricao: produto.descricao || item.descricao,
+        quantidade: 0,
+        valor_total: 0,
+      };
+
+      current.quantidade += Number(item.quantidade || 0);
+      current.valor_total += Number(item.valor_total || 0);
+      map.set(produtoId, current);
+    }
+
+    return [...map.values()].map((item) => ({
+      ...item,
+      quantidade: Number(item.quantidade.toFixed(4)),
+      valor_unitario: item.quantidade > 0 ? roundCurrency(item.valor_total / item.quantidade) : 0,
+    }));
+  }
+
+  static async registrarMovimentoEstoqueVenda(client, {
+    pedidoVendaId,
+    item,
+    depositoId,
+    tipoMovimentoId,
+    tipoMovimento,
+    quantidadeMovimento,
+    usuarioId,
+    observacao,
+    bloquearNegativo = true,
+  }) {
+    await client.query(
+      `
+        INSERT INTO produto_estoque (
+          tenant_id,
+          produto_id,
+          deposito_id,
+          estoque_atual,
+          estoque_minimo,
+          estoque_reservado
+        )
+        VALUES (${TENANT_CONTEXT_SQL}, $1, $2, 0, 0, 0)
+        ON CONFLICT (produto_id, deposito_id) DO NOTHING
+      `,
+      [item.produto_id, depositoId]
+    );
+
+    const saldoResult = await client.query(
+      `
+        SELECT produto_estoque_id, estoque_atual
+        FROM produto_estoque
+        WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+          AND produto_id = $1
+          AND deposito_id = $2
+        FOR UPDATE
+      `,
+      [item.produto_id, depositoId]
+    );
+
+    const saldoAnterior = Number(saldoResult.rows[0]?.estoque_atual || 0);
+    const saldoPosterior = Number((saldoAnterior + quantidadeMovimento).toFixed(4));
+
+    if (bloquearNegativo && saldoPosterior < 0) {
+      throw new Error(`Estoque insuficiente para o item "${item.descricao}".`);
+    }
+
+    await client.query(
+      `
+        UPDATE produto_estoque
+        SET estoque_atual = $3,
+            atualizado_em = NOW()
+        WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+          AND produto_id = $1
+          AND deposito_id = $2
+      `,
+      [item.produto_id, depositoId, saldoPosterior]
+    );
+
+    await client.query(
+      `
+        INSERT INTO estoque_movimento (
+          tenant_id,
+          produto_id,
+          deposito_id,
+          estoque_tipo_movimento_id,
+          tipo_movimento,
+          quantidade,
+          valor_unitario,
+          origem,
+          documento_tipo,
+          documento_id,
+          saldo_anterior,
+          saldo_posterior,
+          usuario_id,
+          observacao
+        )
+        VALUES (
+          ${TENANT_CONTEXT_SQL},
+          $1,
+          $2,
+          $3,
+          $4,
+          $5,
+          $6,
+          'pedido_venda',
+          'pedido_venda',
+          $7,
+          $8,
+          $9,
+          $10,
+          $11
+        )
+      `,
+      [
+        item.produto_id,
+        depositoId,
+        tipoMovimentoId,
+        tipoMovimento,
+        quantidadeMovimento,
+        item.valor_unitario,
+        pedidoVendaId,
+        saldoAnterior,
+        saldoPosterior,
+        usuarioId || null,
+        observacao,
+      ]
+    );
+  }
+
+  static async registrarSaidaEstoquePedido(client, {
+    pedidoVendaId,
+    items,
+    produtosMap,
+    usuarioId,
+  }) {
+    const itensEstoque = this.consolidarItensEstoque(items, produtosMap);
+    if (!itensEstoque.length) return;
+
+    const depositoId = await EstoqueDAO.obterDepositoPadrao(client);
+    const tipoMovimentoId = await this.buscarTipoMovimentoPorCodigo(client, "venda_saida");
+
+    if (!tipoMovimentoId) {
+      throw new Error("Tipo de movimento de estoque da venda não encontrado.");
+    }
+
+    for (const item of itensEstoque) {
+      await this.registrarMovimentoEstoqueVenda(client, {
+        pedidoVendaId,
+        item,
+        depositoId,
+        tipoMovimentoId,
+        tipoMovimento: "venda_saida",
+        quantidadeMovimento: -Number(item.quantidade || 0),
+        usuarioId,
+        observacao: `Saída por pedido de venda #${pedidoVendaId}`,
+      });
+    }
+  }
+
+  static async estornarSaidaEstoquePedido(client, { pedidoVendaId, usuarioId, observacao } = {}) {
+    const movimentoResult = await client.query(
+      `
+        SELECT
+          produto_id,
+          SUM(quantidade) AS quantidade,
+          MAX(valor_unitario) AS valor_unitario
+        FROM estoque_movimento
+        WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+          AND origem = 'pedido_venda'
+          AND documento_tipo = 'pedido_venda'
+          AND documento_id = $1
+          AND tipo_movimento IN ('venda_saida', 'devolucao_entrada')
+        GROUP BY produto_id
+        HAVING SUM(quantidade) < 0
+      `,
+      [pedidoVendaId]
+    );
+
+    if (!movimentoResult.rows.length) return;
+
+    const produtoIds = movimentoResult.rows.map((item) => Number(item.produto_id));
+    const produtosMap = await this.buscarProdutosMap(client, produtoIds);
+    const depositoId = await EstoqueDAO.obterDepositoPadrao(client);
+    const tipoMovimentoId = await this.buscarTipoMovimentoPorCodigo(client, "devolucao_entrada");
+
+    if (!tipoMovimentoId) {
+      throw new Error("Tipo de movimento de estoque para estorno da venda não encontrado.");
+    }
+
+    for (const movimento of movimentoResult.rows) {
+      const quantidadeSaida = Math.abs(Number(movimento.quantidade || 0));
+      if (quantidadeSaida <= 0) continue;
+
+      const produto = produtosMap.get(Number(movimento.produto_id));
+      await this.registrarMovimentoEstoqueVenda(client, {
+        pedidoVendaId,
+        item: {
+          produto_id: Number(movimento.produto_id),
+          descricao: produto?.descricao || `Produto #${movimento.produto_id}`,
+          quantidade: quantidadeSaida,
+          valor_unitario: Number(movimento.valor_unitario || 0),
+        },
+        depositoId,
+        tipoMovimentoId,
+        tipoMovimento: "devolucao_entrada",
+        quantidadeMovimento: quantidadeSaida,
+        usuarioId,
+        observacao: observacao || `Estorno da saída do pedido de venda #${pedidoVendaId}`,
+        bloquearNegativo: false,
+      });
+    }
   }
 
   static async buscarCondicaoPagamento(client, condicaoPagamentoId) {
@@ -823,6 +1060,23 @@ class VendaDAO {
     return rowCount > 0;
   }
 
+  static async verificarDevolucaoAtiva(client, pedidoVendaId) {
+    const { rowCount } = await client.query(
+      `
+        SELECT 1
+        FROM devolucao_mercadoria
+        WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+          AND pedido_venda_id = $1
+          AND excluido = FALSE
+          AND status <> 'cancelada'
+        LIMIT 1
+      `,
+      [pedidoVendaId]
+    );
+
+    return rowCount > 0;
+  }
+
   static async buscarPorId(client, pedidoVendaId) {
     const pedidoResult = await client.query(
       `
@@ -1020,6 +1274,12 @@ class VendaDAO {
       const pedidoVendaId = Number(pedidoResult.rows[0].pedido_venda_id);
 
       await this.substituirItensPedido(client, pedidoVendaId, data.items, produtosMap);
+      await this.registrarSaidaEstoquePedido(client, {
+        pedidoVendaId,
+        items: data.items,
+        produtosMap,
+        usuarioId,
+      });
       await this.substituirFinanceiroPedido(client, {
         pedidoVendaId,
         pessoaId: data.pessoa_id,
@@ -1114,6 +1374,11 @@ class VendaDAO {
       throw new Error("Este pedido possui baixas financeiras e não pode mais ser alterado.");
     }
 
+    const possuiDevolucao = await this.verificarDevolucaoAtiva(client, pedidoVendaId);
+    if (possuiDevolucao) {
+      throw new Error("Este pedido possui devolução vinculada e não pode mais ser alterado.");
+    }
+
     const data = this.normalizePayload(payload);
     const produtoIds = [...new Set(data.items.map((item) => Number(item.produto_id)))];
     const produtosMap = await this.buscarProdutosMap(client, produtoIds);
@@ -1167,7 +1432,18 @@ class VendaDAO {
         ]
       );
 
+      await this.estornarSaidaEstoquePedido(client, {
+        pedidoVendaId,
+        usuarioId,
+        observacao: `Estorno para atualização do pedido de venda #${pedidoVendaId}`,
+      });
       await this.substituirItensPedido(client, pedidoVendaId, data.items, produtosMap);
+      await this.registrarSaidaEstoquePedido(client, {
+        pedidoVendaId,
+        items: data.items,
+        produtosMap,
+        usuarioId,
+      });
       await this.substituirFinanceiroPedido(client, {
         pedidoVendaId,
         pessoaId: data.pessoa_id,
@@ -1188,7 +1464,7 @@ class VendaDAO {
     }
   }
 
-  static async excluir(client, pedidoVendaId) {
+  static async excluir(client, pedidoVendaId, { usuarioId = null } = {}) {
     const existing = await this.buscarPorId(client, pedidoVendaId);
     if (!existing) {
       throw new Error("Pedido de venda não encontrado.");
@@ -1197,6 +1473,11 @@ class VendaDAO {
     const possuiBaixas = await this.verificarTituloComBaixas(client, pedidoVendaId);
     if (possuiBaixas) {
       throw new Error("Este pedido possui baixas financeiras e não pode ser removido.");
+    }
+
+    const possuiDevolucao = await this.verificarDevolucaoAtiva(client, pedidoVendaId);
+    if (possuiDevolucao) {
+      throw new Error("Este pedido possui devolução vinculada. Cancele a devolução antes de remover a venda.");
     }
 
     await client.query("BEGIN");
@@ -1211,6 +1492,12 @@ class VendaDAO {
         `,
         [pedidoVendaId]
       );
+
+      await this.estornarSaidaEstoquePedido(client, {
+        pedidoVendaId,
+        usuarioId,
+        observacao: `Estorno pela remoção do pedido de venda #${pedidoVendaId}`,
+      });
 
       await client.query(
         `
