@@ -16,9 +16,23 @@ const isFiscalValidationError = (error) =>
     String(error?.message || "")
   );
 
+const extractXmlTag = (value, tagName) => {
+  const text = String(value || "");
+  const match = text.match(new RegExp(`<${tagName}[^>]*>([\\s\\S]*?)<\\/${tagName}>`, "i"));
+  return match?.[1]?.trim() || "";
+};
+
+const isXmlLike = (value) => /<\?xml|<[^>]+>/i.test(String(value || ""));
+
+const getFiscalMotivo = (data = {}) => {
+  const motivo = data.xMotivo || extractXmlTag(data.raw, "xMotivo");
+  if (motivo) return motivo;
+  return isXmlLike(data.raw) ? "" : String(data.raw || "").trim();
+};
+
 const buildProcessarNfeMessage = (data = {}) => {
   const status = String(data.mappedStatus || "").toLowerCase();
-  const motivo = data.xMotivo || data.raw || "";
+  const motivo = getFiscalMotivo(data);
 
   if (status === "autorizada") return "NF-e autorizada pela SEFAZ.";
   if (status === "processando") return "NF-e enviada para a SEFAZ e aguardando processamento.";
@@ -34,15 +48,17 @@ const buildProcessarNfeMessage = (data = {}) => {
 
 const buildCancelarNfeMessage = (data = {}) => {
   const status = String(data.mappedStatus || "").toLowerCase();
-  const motivo = data.xMotivo || data.raw || "";
+  const motivo = getFiscalMotivo(data);
 
-  if (status === "cancelada") return motivo || "NF-e cancelada pela SEFAZ.";
+  if (status === "cancelada") {
+    return motivo ? `NF-e cancelada pela SEFAZ: ${motivo}` : "NF-e cancelada pela SEFAZ.";
+  }
   return motivo ? `Cancelamento não autorizado pela SEFAZ: ${motivo}` : "Cancelamento não autorizado pela SEFAZ.";
 };
 
 const buildConsultarNfeMessage = (data = {}) => {
   const status = String(data.mappedStatus || "").toLowerCase();
-  const motivo = data.xMotivo || data.raw || "";
+  const motivo = getFiscalMotivo(data);
 
   if (status === "autorizada") return motivo || "NF-e autorizada na SEFAZ.";
   if (status === "cancelada") return motivo || "NF-e cancelada na SEFAZ.";

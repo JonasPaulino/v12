@@ -45,6 +45,12 @@ const safeParseInteger = (value) => {
   return Number.isInteger(parsed) ? parsed : null;
 };
 
+const extractXmlTag = (value, tagName) => {
+  const text = String(value || "");
+  const match = text.match(new RegExp(`<${tagName}[^>]*>([\\s\\S]*?)<\\/${tagName}>`, "i"));
+  return match?.[1]?.trim() || "";
+};
+
 const logAcbrStep = (step, details = {}) => {
   console.error("[acbr:nfe:step]", {
     step,
@@ -311,22 +317,26 @@ const runDistribuicaoWorker = async ({
 
 const buildResponseMetadata = (rawText, operation) => {
   const parsed = parseIniLikeResponse(rawText);
-  const cStat = findIniValue(parsed, ["CStat", "cStat", "Status"], [
-    "Retorno",
-    "ENVIO",
-    "CONSULTA",
-    "CANCELAMENTO",
-  ]);
-  const xMotivo = findIniValue(parsed, ["xMotivo", "Motivo", "Msg"], [
-    "Retorno",
-    "ENVIO",
-    "CONSULTA",
-    "CANCELAMENTO",
-  ]);
-  const recibo = findIniValue(parsed, ["Recibo", "nRec"]);
-  const protocolo = findIniValue(parsed, ["Protocolo", "nProt"]);
-  const chaveAcesso = findIniValue(parsed, ["chNFe", "Chave", "chDFe"]);
-  const numero = findIniValue(parsed, ["nNF", "Numero"]);
+  const cStat =
+    findIniValue(parsed, ["CStat", "cStat", "Status"], [
+      "Retorno",
+      "ENVIO",
+      "CONSULTA",
+      "CANCELAMENTO",
+    ]) || extractXmlTag(rawText, "cStat");
+  const xMotivo =
+    findIniValue(parsed, ["xMotivo", "Motivo", "Msg"], [
+      "Retorno",
+      "ENVIO",
+      "CONSULTA",
+      "CANCELAMENTO",
+    ]) || extractXmlTag(rawText, "xMotivo");
+  const recibo = findIniValue(parsed, ["Recibo", "nRec"]) || extractXmlTag(rawText, "nRec");
+  const protocolo =
+    findIniValue(parsed, ["Protocolo", "nProt"]) || extractXmlTag(rawText, "nProt");
+  const chaveAcesso =
+    findIniValue(parsed, ["chNFe", "Chave", "chDFe"]) || extractXmlTag(rawText, "chNFe");
+  const numero = findIniValue(parsed, ["nNF", "Numero"]) || extractXmlTag(rawText, "nNF");
 
   return {
     operation,
