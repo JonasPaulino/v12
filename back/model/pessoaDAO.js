@@ -293,20 +293,42 @@ class PessoaDAO {
 
     const params = [digits];
     let sql = `
-      SELECT pessoa_id
-      FROM pessoa
-      WHERE pessoa_excluido = FALSE
-        AND REGEXP_REPLACE(COALESCE(pessoa_cpf_cnpj, ''), '\\D', '', 'g') = $1
+      SELECT p.pessoa_id
+      FROM pessoa p
+      JOIN pessoa_tenant pt
+        ON pt.pessoa_id = p.pessoa_id
+       AND pt.tenant_id = ${TENANT_CONTEXT_SQL}
+       AND pt.ativo = TRUE
+      WHERE p.pessoa_excluido = FALSE
+        AND REGEXP_REPLACE(COALESCE(p.pessoa_cpf_cnpj, ''), '\\D', '', 'g') = $1
     `;
 
     if (pessoaId) {
       params.push(pessoaId);
-      sql += ` AND pessoa_id <> $2`;
+      sql += ` AND p.pessoa_id <> $2`;
     }
 
     sql += " LIMIT 1";
 
     const { rows } = await client.query(sql, params);
+    return rows[0] || null;
+  }
+
+  static async buscarPessoaGlobalPorCpfCnpj(client, cpfCnpj = "") {
+    const digits = normalizeDigits(cpfCnpj);
+    if (!digits) return null;
+
+    const { rows } = await client.query(
+      `
+        SELECT pessoa_id
+        FROM pessoa
+        WHERE pessoa_excluido = FALSE
+          AND REGEXP_REPLACE(COALESCE(pessoa_cpf_cnpj, ''), '\\D', '', 'g') = $1
+        LIMIT 1
+      `,
+      [digits]
+    );
+
     return rows[0] || null;
   }
 
@@ -352,45 +374,59 @@ class PessoaDAO {
     await client.query("BEGIN");
 
     try {
-      const insertPessoa = await client.query(
-        `
-          INSERT INTO pessoa (
-            pessoa_tipo,
-            pessoa_nome_razao,
-            pessoa_nome_fantasia,
-            pessoa_cpf_cnpj,
-            pessoa_inscricao_estadual,
-            pessoa_inscricao_municipal,
-            pessoa_rg,
-            pessoa_email,
-            pessoa_telefone,
-            pessoa_whatsapp,
-            pessoa_data_nascimento,
-            pessoa_observacao,
-            pessoa_ativo,
-            pessoa_excluido
-          )
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, FALSE)
-          RETURNING pessoa_id
-        `,
-        [
-          data.pessoa_tipo,
-          data.pessoa_nome_razao,
-          data.pessoa_nome_fantasia,
-          data.pessoa_cpf_cnpj,
-          data.pessoa_inscricao_estadual,
-          data.pessoa_inscricao_municipal,
-          data.pessoa_rg,
-          data.pessoa_email,
-          data.pessoa_telefone,
-          data.pessoa_whatsapp,
-          data.pessoa_data_nascimento,
-          data.pessoa_observacao,
-          data.pessoa_ativo,
-        ]
-      );
+      const pessoaGlobal = await this.buscarPessoaGlobalPorCpfCnpj(client, data.pessoa_cpf_cnpj);
+      let pessoaId = pessoaGlobal?.pessoa_id || null;
 
-      const pessoaId = insertPessoa.rows[0].pessoa_id;
+      if (!pessoaId) {
+        const insertPessoa = await client.query(
+          `
+            INSERT INTO pessoa (
+              pessoa_tipo,
+              pessoa_nome_razao,
+              pessoa_nome_fantasia,
+              pessoa_cpf_cnpj,
+              pessoa_inscricao_estadual,
+              pessoa_inscricao_municipal,
+              pessoa_rg,
+              pessoa_email,
+              pessoa_telefone,
+              pessoa_whatsapp,
+              pessoa_data_nascimento,
+              pessoa_observacao,
+              pessoa_ativo,
+              pessoa_excluido
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, FALSE)
+            RETURNING pessoa_id
+          `,
+          [
+            data.pessoa_tipo,
+            data.pessoa_nome_razao,
+            data.pessoa_nome_fantasia,
+            data.pessoa_cpf_cnpj,
+            data.pessoa_inscricao_estadual,
+            data.pessoa_inscricao_municipal,
+            data.pessoa_rg,
+            data.pessoa_email,
+            data.pessoa_telefone,
+            data.pessoa_whatsapp,
+            data.pessoa_data_nascimento,
+            data.pessoa_observacao,
+            data.pessoa_ativo,
+          ]
+        );
+
+        pessoaId = insertPessoa.rows[0].pessoa_id;
+      } else if (data.pessoa_ativo) {
+        await client.query(
+          `
+            UPDATE pessoa
+            SET pessoa_ativo = TRUE
+            WHERE pessoa_id = $1
+          `,
+          [pessoaId]
+        );
+      }
 
       await client.query(
         `
