@@ -108,14 +108,46 @@ class UsuarioDAO {
         ut.perfil
       FROM usuario_tenant ut
       JOIN tenant t ON t.tenant_id = ut.tenant_id
+      JOIN usuario u ON u.usuario_id = ut.usuario_id
       WHERE ut.usuario_id = $1
         AND ut.ativo = TRUE
         AND t.tenant_ativo = TRUE
+        AND (
+          u.usuario_master = TRUE
+          OR LOWER(COALESCE(ut.perfil, '')) = 'admin'
+        )
       ORDER BY t.tenant_nome
     `;
 
     const { rows } = await client.query(sql, [actorUserId]);
     return rows;
+  }
+
+  static async usuarioPodeAdministrarFilial(client, { actorUserId, currentTenantId }) {
+    const { rows } = await client.query(
+      `
+        SELECT 1
+        FROM usuario u
+        JOIN usuario_tenant ut
+          ON ut.usuario_id = u.usuario_id
+         AND ut.tenant_id = $2
+         AND ut.ativo = TRUE
+        JOIN tenant t
+          ON t.tenant_id = ut.tenant_id
+         AND t.tenant_ativo = TRUE
+        WHERE u.usuario_id = $1
+          AND u.usuario_ativo = TRUE
+          AND u.usuario_excluido = FALSE
+          AND (
+            u.usuario_master = TRUE
+            OR LOWER(COALESCE(ut.perfil, '')) = 'admin'
+          )
+        LIMIT 1
+      `,
+      [actorUserId, currentTenantId]
+    );
+
+    return !!rows[0];
   }
 
   static async buscarPorId(client, { usuarioId, currentTenantId, actorUserId }) {

@@ -21,10 +21,23 @@ import { Mdfe } from "pages/mdfe";
 import { TenantSetup } from "pages/tenant_setup";
 import { NotFound } from "pages/404";
 
+const canManageUsers = ({ user, business }) =>
+  !!user?.usuario_master || String(business?.perfil || "").toLowerCase() === "admin";
+
 const MasterOnly = ({ children }) => {
   const { user } = useContext(AppContext);
 
   if (!user?.usuario_master) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return children;
+};
+
+const AdminOnly = ({ children }) => {
+  const { user, business } = useContext(AppContext);
+
+  if (!canManageUsers({ user, business })) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -50,9 +63,11 @@ export const RouteApp = () => (
         path="/usuarios"
         element={
           <AuthMiddleware>
-            <PageWrapper title="Usuários">
-              <Usuario />
-            </PageWrapper>
+            <AdminOnly>
+              <PageWrapper title="Usuários">
+                <Usuario />
+              </PageWrapper>
+            </AdminOnly>
           </AuthMiddleware>
         }
       />
@@ -130,9 +145,11 @@ export const RouteApp = () => (
         path="/configuracao"
         element={
           <AuthMiddleware>
-            <PageWrapper title="Configuração">
-              <ConfiguracaoFiscal />
-            </PageWrapper>
+            <AdminOnly>
+              <PageWrapper title="Configuração">
+                <ConfiguracaoFiscal />
+              </PageWrapper>
+            </AdminOnly>
           </AuthMiddleware>
         }
       />

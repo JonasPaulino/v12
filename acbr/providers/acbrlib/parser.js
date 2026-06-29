@@ -56,6 +56,14 @@ export const mapNfeReturnToStatus = ({ cStat, operation = "emitir" }) => {
     return "erro_integracao";
   }
 
+  if (operation === "consultar") {
+    if (["100", "150"].includes(code)) return "autorizada";
+    if (["101", "135", "155"].includes(code)) return "cancelada";
+    if (["110", "301", "302"].includes(code)) return "denegada";
+    if (code) return "erro_integracao";
+    return "erro_integracao";
+  }
+
   if (["100", "150"].includes(code)) return "autorizada";
   if (["103", "104", "105", "106"].includes(code)) return "processando";
   if (code) return "rejeitada";

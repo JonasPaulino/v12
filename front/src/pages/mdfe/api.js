@@ -97,6 +97,13 @@ export const listSeguradorasMdfe = async (page, limit, search) => {
   return data;
 };
 
+export const listSeguradorasMdfeSelect = async (search = "", limit = 50) => {
+  const { data } = await api.get("/mdfe/seguradoras-select", {
+    params: { search, limit },
+  });
+  return data;
+};
+
 export const saveSeguradoraMdfe = async (payload, id = null) => {
   const { data } = id
     ? await api.put(`/mdfe/seguradoras/${id}`, payload)

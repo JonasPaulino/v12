@@ -48,7 +48,16 @@ const findExistingBoletoCharges = async (client, { tenantId, financeiroTituloId 
         AND billing_type = 'BOLETO'
         AND settled = FALSE
         AND due_date >= CURRENT_DATE
-        AND LOWER(status) NOT IN ('deleted', 'cancelled', 'canceled')
+        AND LOWER(status) NOT IN (
+          'deleted',
+          'cancelled',
+          'canceled',
+          'received',
+          'confirmed',
+          'received_in_cash',
+          'refunded',
+          'restored'
+        )
       ORDER BY COALESCE(financeiro_titulo_parcela_id, 0), gateway_charge_id DESC
     `,
     [tenantId, financeiroTituloId]

@@ -87,6 +87,9 @@ const parseBoolean = (value, defaultValue = true) => {
   return value === true || value === "true" || value === 1 || value === "1";
 };
 
+const uniqueNumbers = (values = []) =>
+  [...new Set(values.map((value) => Number(value)).filter((value) => Number.isInteger(value) && value > 0))];
+
 const normalizeIbgeCode = (value, label = "Código IBGE") => {
   const code = onlyDigits(value).slice(0, 7);
   if (code.length !== 7) throw new Error(`${label} deve conter 7 dígitos.`);
@@ -185,6 +188,91 @@ const normalizeDocumento = (documento = {}) => {
   };
 };
 
+const normalizeAverbacoes = (seguro = {}) => {
+  const source = Array.isArray(seguro.averbacoes)
+    ? seguro.averbacoes
+    : String(seguro.averbacoes_texto || "")
+        .split(/[\n,;]+/g)
+        .map((item) => item.trim());
+
+  return [...new Set(source.map((item) => normalizeText(item, 40)).filter(Boolean))];
+};
+
+const normalizeSeguro = (seguro = {}) => {
+  const hasData = [
+    seguro.seguradora_id,
+    seguro.cnpj_responsavel,
+    seguro.cpf_responsavel,
+    seguro.numero_apolice,
+    seguro.averbacoes_texto,
+    ...(Array.isArray(seguro.averbacoes) ? seguro.averbacoes : []),
+  ].some((value) => String(value ?? "").trim());
+
+  if (!hasData) return null;
+
+  const responsavelSeguro = normalizeText(seguro.responsavel_seguro || "1", 1, {
+    required: true,
+    label: "Responsável pelo seguro",
+  });
+  if (!["1", "2"].includes(responsavelSeguro)) {
+    throw new Error("Responsável pelo seguro inválido.");
+  }
+
+  const cpfResponsavel = onlyDigits(seguro.cpf_responsavel).slice(0, 11) || null;
+  const cnpjResponsavel = onlyDigits(seguro.cnpj_responsavel).slice(0, 14) || null;
+
+  if (cpfResponsavel && cpfResponsavel.length !== 11) {
+    throw new Error("CPF do responsável pelo seguro deve conter 11 dígitos.");
+  }
+
+  if (cnpjResponsavel && cnpjResponsavel.length !== 14) {
+    throw new Error("CNPJ do responsável pelo seguro deve conter 14 dígitos.");
+  }
+
+  if (responsavelSeguro === "2" && !cpfResponsavel && !cnpjResponsavel) {
+    throw new Error("Informe CPF ou CNPJ do responsável pelo seguro.");
+  }
+
+  const averbacoes = normalizeAverbacoes(seguro);
+  if (!averbacoes.length) {
+    throw new Error("Informe ao menos uma averbação para o seguro do MDF-e.");
+  }
+
+  return {
+    seguradora_id: parseInteger(seguro.seguradora_id, {
+      label: "Seguradora do MDF-e",
+    }),
+    responsavel_seguro: responsavelSeguro,
+    cnpj_responsavel: cnpjResponsavel,
+    cpf_responsavel: cpfResponsavel,
+    numero_apolice: normalizeText(seguro.numero_apolice, 40, {
+      required: true,
+      label: "Número da apólice",
+    }),
+    averbacoes,
+  };
+};
+
+const normalizeCiot = (ciot = {}) => {
+  const hasData = [ciot.ciot, ciot.cpf_cnpj_responsavel].some((value) =>
+    String(value ?? "").trim()
+  );
+  if (!hasData) return null;
+
+  const numeroCiot = onlyDigits(ciot.ciot).slice(0, 12);
+  if (numeroCiot.length !== 12) throw new Error("CIOT deve conter 12 dígitos.");
+
+  const responsavel = onlyDigits(ciot.cpf_cnpj_responsavel).slice(0, 14);
+  if (![11, 14].includes(responsavel.length)) {
+    throw new Error("CPF/CNPJ responsável pelo CIOT deve conter 11 ou 14 dígitos.");
+  }
+
+  return {
+    ciot: numeroCiot,
+    cpf_cnpj_responsavel: responsavel,
+  };
+};
+
 const normalizeManifestoPayload = (payload = {}) => {
   const documentos = Array.isArray(payload.documentos)
     ? payload.documentos.filter((item) => item?.chave_acesso).map(normalizeDocumento)
@@ -242,6 +330,14 @@ const normalizeManifestoPayload = (payload = {}) => {
 
   if (!descargas.length) throw new Error("Informe ao menos um município de descarga.");
 
+  const seguros = Array.isArray(payload.seguros)
+    ? payload.seguros.map(normalizeSeguro).filter(Boolean)
+    : [];
+
+  const ciot = Array.isArray(payload.ciot)
+    ? payload.ciot.map(normalizeCiot).filter(Boolean)
+    : [];
+
   return {
     emitente_pessoa_id: parseInteger(payload.emitente_pessoa_id, {
       allowNull: true,
@@ -276,6 +372,8 @@ const normalizeManifestoPayload = (payload = {}) => {
     reboques,
     percurso,
     descargas,
+    seguros,
+    ciot,
   };
 };
 
@@ -341,6 +439,11 @@ class MdfeDAO {
 
   static async listarMotoristasSelect(client, { search = "", limit = 20 } = {}) {
     const result = await this.listarEntidade(client, "motorista", { page: 1, limit, search });
+    return result.data.filter((item) => item.ativo);
+  }
+
+  static async listarSeguradorasSelect(client, { search = "", limit = 20 } = {}) {
+    const result = await this.listarEntidade(client, "seguradora", { page: 1, limit, search });
     return result.data.filter((item) => item.ativo);
   }
 
@@ -428,8 +531,189 @@ class MdfeDAO {
     };
   }
 
+  static async validarPessoaVinculada(client, pessoaId, label = "Pessoa") {
+    if (!pessoaId) return;
+
+    const { rows } = await client.query(
+      `
+        SELECT p.pessoa_id
+        FROM pessoa p
+        JOIN pessoa_tenant pt
+          ON pt.pessoa_id = p.pessoa_id
+         AND pt.tenant_id = ${TENANT_CONTEXT_SQL}
+         AND pt.ativo = TRUE
+        WHERE p.pessoa_id = $1
+          AND p.pessoa_ativo = TRUE
+          AND p.pessoa_excluido = FALSE
+        LIMIT 1
+      `,
+      [pessoaId]
+    );
+
+    if (!rows[0]) {
+      throw new Error(`${label} não encontrada ou não vinculada à filial atual.`);
+    }
+  }
+
+  static async validarIdsAtivos(client, { table, idColumn, ids = [], label }) {
+    const safeIds = uniqueNumbers(ids);
+    if (!safeIds.length) return;
+
+    const { rows } = await client.query(
+      `
+        SELECT ${idColumn} AS id
+        FROM ${table}
+        WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+          AND ${idColumn} = ANY($1::int[])
+          AND ativo = TRUE
+          AND excluido = FALSE
+      `,
+      [safeIds]
+    );
+
+    const found = new Set(rows.map((row) => Number(row.id)));
+    const missing = safeIds.find((id) => !found.has(id));
+
+    if (missing) {
+      throw new Error(`${label} não encontrado ou inativo para esta filial.`);
+    }
+  }
+
+  static async validarNfesVinculadas(client, documentos = []) {
+    const nfeDocs = documentos.filter((item) => item.tipo_documento === "nfe" && item.nfe_id);
+    const nfeIds = uniqueNumbers(nfeDocs.map((item) => item.nfe_id));
+    if (!nfeIds.length) return;
+
+    const { rows } = await client.query(
+      `
+        SELECT nfe_id, chave_acesso, status
+        FROM fiscal.nfe
+        WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+          AND nfe_id = ANY($1::int[])
+      `,
+      [nfeIds]
+    );
+
+    const nfes = new Map(rows.map((row) => [Number(row.nfe_id), row]));
+
+    for (const documento of nfeDocs) {
+      const nfe = nfes.get(Number(documento.nfe_id));
+
+      if (!nfe) {
+        throw new Error("NF-e vinculada ao MDF-e não pertence à filial atual.");
+      }
+
+      if (String(nfe.status || "").toLowerCase() !== "autorizada") {
+        throw new Error("Somente NF-e autorizada pode ser vinculada ao MDF-e.");
+      }
+
+      const chaveNfe = onlyDigits(nfe.chave_acesso);
+      if (chaveNfe && chaveNfe !== documento.chave_acesso) {
+        throw new Error("A chave de acesso informada não pertence à NF-e selecionada.");
+      }
+    }
+  }
+
+  static async validarVinculosManifesto(client, data) {
+    const reboqueIds = uniqueNumbers(data.reboques.map((item) => item.veiculo_id));
+
+    if (reboqueIds.includes(Number(data.veiculo_tracao_id))) {
+      throw new Error("O veículo de tração não pode ser informado também como reboque.");
+    }
+
+    await this.validarPessoaVinculada(client, data.emitente_pessoa_id, "Emitente");
+
+    await this.validarIdsAtivos(client, {
+      table: "fiscal.mdfe_veiculo",
+      idColumn: "mdfe_veiculo_id",
+      ids: [data.veiculo_tracao_id, ...reboqueIds],
+      label: "Veículo do MDF-e",
+    });
+
+    await this.validarIdsAtivos(client, {
+      table: "fiscal.mdfe_motorista",
+      idColumn: "mdfe_motorista_id",
+      ids: data.condutores.map((item) => item.motorista_id),
+      label: "Motorista do MDF-e",
+    });
+
+    await this.validarIdsAtivos(client, {
+      table: "fiscal.mdfe_seguradora",
+      idColumn: "mdfe_seguradora_id",
+      ids: data.seguros.map((item) => item.seguradora_id),
+      label: "Seguradora do MDF-e",
+    });
+
+    await this.validarNfesVinculadas(client, data.documentos);
+  }
+
+  static async validarEntidadeSemMdfeAtivo(client, type, id) {
+    const safeId = parseInteger(id, { label: "Cadastro" });
+    let query = null;
+
+    if (type === "veiculo") {
+      query = `
+        SELECT m.mdfe_id
+        FROM fiscal.mdfe m
+        WHERE m.tenant_id = ${TENANT_CONTEXT_SQL}
+          AND m.excluido = FALSE
+          AND m.status NOT IN ('cancelado', 'encerrado')
+          AND m.veiculo_tracao_id = $1
+        UNION
+        SELECT m.mdfe_id
+        FROM fiscal.mdfe_reboque r
+        JOIN fiscal.mdfe m
+          ON m.mdfe_id = r.mdfe_id
+         AND m.tenant_id = r.tenant_id
+        WHERE r.tenant_id = ${TENANT_CONTEXT_SQL}
+          AND r.veiculo_id = $1
+          AND m.excluido = FALSE
+          AND m.status NOT IN ('cancelado', 'encerrado')
+        LIMIT 1
+      `;
+    }
+
+    if (type === "motorista") {
+      query = `
+        SELECT m.mdfe_id
+        FROM fiscal.mdfe_condutor c
+        JOIN fiscal.mdfe m
+          ON m.mdfe_id = c.mdfe_id
+         AND m.tenant_id = c.tenant_id
+        WHERE c.tenant_id = ${TENANT_CONTEXT_SQL}
+          AND c.motorista_id = $1
+          AND m.excluido = FALSE
+          AND m.status NOT IN ('cancelado', 'encerrado')
+        LIMIT 1
+      `;
+    }
+
+    if (type === "seguradora") {
+      query = `
+        SELECT m.mdfe_id
+        FROM fiscal.mdfe_seguro s
+        JOIN fiscal.mdfe m
+          ON m.mdfe_id = s.mdfe_id
+         AND m.tenant_id = s.tenant_id
+        WHERE s.tenant_id = ${TENANT_CONTEXT_SQL}
+          AND s.seguradora_id = $1
+          AND m.excluido = FALSE
+          AND m.status NOT IN ('cancelado', 'encerrado')
+        LIMIT 1
+      `;
+    }
+
+    if (!query) return;
+
+    const { rows } = await client.query(query, [safeId]);
+    if (rows[0]) {
+      throw new Error("Cadastro vinculado a MDF-e ativo não pode ser inativado.");
+    }
+  }
+
   static async salvarVeiculo(client, { id = null, payload = {} } = {}) {
     const data = normalizeVeiculoPayload(payload);
+    await this.validarPessoaVinculada(client, data.proprietario_pessoa_id, "Proprietário do veículo");
 
     if (id) {
       const { rows } = await client.query(
@@ -537,6 +821,7 @@ class MdfeDAO {
 
   static async salvarSeguradora(client, { id = null, payload = {} } = {}) {
     const data = normalizeSeguradoraPayload(payload);
+    await this.validarPessoaVinculada(client, data.pessoa_id, "Pessoa da seguradora");
 
     if (id) {
       const { rows } = await client.query(
@@ -568,6 +853,7 @@ class MdfeDAO {
   static async excluirEntidade(client, type, id) {
     const config = ENTITY_TABLES[type];
     if (!config) throw new Error("Tipo de cadastro inválido.");
+    await this.validarEntidadeSemMdfeAtivo(client, type, id);
 
     const { rows } = await client.query(
       `
@@ -621,9 +907,15 @@ class MdfeDAO {
             COUNT(DISTINCT d.mdfe_documento_id)::int AS documentos_count,
             COUNT(DISTINCT c.mdfe_condutor_id)::int AS condutores_count
           FROM fiscal.mdfe m
-          LEFT JOIN fiscal.mdfe_veiculo v ON v.mdfe_veiculo_id = m.veiculo_tracao_id
-          LEFT JOIN fiscal.mdfe_documento d ON d.mdfe_id = m.mdfe_id
-          LEFT JOIN fiscal.mdfe_condutor c ON c.mdfe_id = m.mdfe_id
+          LEFT JOIN fiscal.mdfe_veiculo v
+            ON v.mdfe_veiculo_id = m.veiculo_tracao_id
+           AND v.tenant_id = m.tenant_id
+          LEFT JOIN fiscal.mdfe_documento d
+            ON d.mdfe_id = m.mdfe_id
+           AND d.tenant_id = m.tenant_id
+          LEFT JOIN fiscal.mdfe_condutor c
+            ON c.mdfe_id = m.mdfe_id
+           AND c.tenant_id = m.tenant_id
           ${where}
           GROUP BY m.mdfe_id, v.placa, v.uf
           ORDER BY ${orderBy}
@@ -636,7 +928,9 @@ class MdfeDAO {
         `
           SELECT COUNT(*)::int AS total
           FROM fiscal.mdfe m
-          LEFT JOIN fiscal.mdfe_veiculo v ON v.mdfe_veiculo_id = m.veiculo_tracao_id
+          LEFT JOIN fiscal.mdfe_veiculo v
+            ON v.mdfe_veiculo_id = m.veiculo_tracao_id
+           AND v.tenant_id = m.tenant_id
           ${where}
         `,
         values
@@ -659,7 +953,9 @@ class MdfeDAO {
           m.*,
           v.placa AS veiculo_placa
         FROM fiscal.mdfe m
-        LEFT JOIN fiscal.mdfe_veiculo v ON v.mdfe_veiculo_id = m.veiculo_tracao_id
+        LEFT JOIN fiscal.mdfe_veiculo v
+          ON v.mdfe_veiculo_id = m.veiculo_tracao_id
+         AND v.tenant_id = m.tenant_id
         WHERE m.mdfe_id = $1
           AND m.tenant_id = ${TENANT_CONTEXT_SQL}
           AND m.excluido = FALSE
@@ -670,13 +966,16 @@ class MdfeDAO {
     const manifesto = rows[0];
     if (!manifesto) return null;
 
-    const [condutores, reboques, percurso, descargas, documentos] = await Promise.all([
+    const [condutores, reboques, percurso, descargas, documentos, seguros, ciot] = await Promise.all([
       client.query(
         `
           SELECT c.*, mot.nome, mot.cpf
           FROM fiscal.mdfe_condutor c
-          JOIN fiscal.mdfe_motorista mot ON mot.mdfe_motorista_id = c.motorista_id
-          WHERE c.mdfe_id = $1
+          JOIN fiscal.mdfe_motorista mot
+            ON mot.mdfe_motorista_id = c.motorista_id
+           AND mot.tenant_id = c.tenant_id
+          WHERE c.tenant_id = ${TENANT_CONTEXT_SQL}
+            AND c.mdfe_id = $1
           ORDER BY c.ordem, c.mdfe_condutor_id
         `,
         [id]
@@ -685,8 +984,11 @@ class MdfeDAO {
         `
           SELECT r.*, v.placa, v.uf
           FROM fiscal.mdfe_reboque r
-          JOIN fiscal.mdfe_veiculo v ON v.mdfe_veiculo_id = r.veiculo_id
-          WHERE r.mdfe_id = $1
+          JOIN fiscal.mdfe_veiculo v
+            ON v.mdfe_veiculo_id = r.veiculo_id
+           AND v.tenant_id = r.tenant_id
+          WHERE r.tenant_id = ${TENANT_CONTEXT_SQL}
+            AND r.mdfe_id = $1
           ORDER BY r.ordem, r.mdfe_reboque_id
         `,
         [id]
@@ -695,7 +997,8 @@ class MdfeDAO {
         `
           SELECT *
           FROM fiscal.mdfe_percurso
-          WHERE mdfe_id = $1
+          WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+            AND mdfe_id = $1
           ORDER BY ordem, mdfe_percurso_id
         `,
         [id]
@@ -704,7 +1007,8 @@ class MdfeDAO {
         `
           SELECT *
           FROM fiscal.mdfe_descarga
-          WHERE mdfe_id = $1
+          WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+            AND mdfe_id = $1
           ORDER BY mdfe_descarga_id
         `,
         [id]
@@ -713,8 +1017,44 @@ class MdfeDAO {
         `
           SELECT *
           FROM fiscal.mdfe_documento
-          WHERE mdfe_id = $1
+          WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+            AND mdfe_id = $1
           ORDER BY mdfe_documento_id
+        `,
+        [id]
+      ),
+      client.query(
+        `
+          SELECT
+            s.*,
+            seg.nome AS seguradora_nome,
+            seg.cnpj AS seguradora_cnpj,
+            COALESCE(
+              jsonb_agg(a.numero_averbacao ORDER BY a.mdfe_seguro_averbacao_id)
+                FILTER (WHERE a.mdfe_seguro_averbacao_id IS NOT NULL),
+              '[]'::jsonb
+            ) AS averbacoes
+          FROM fiscal.mdfe_seguro s
+          JOIN fiscal.mdfe_seguradora seg
+            ON seg.mdfe_seguradora_id = s.seguradora_id
+           AND seg.tenant_id = s.tenant_id
+          LEFT JOIN fiscal.mdfe_seguro_averbacao a
+            ON a.mdfe_seguro_id = s.mdfe_seguro_id
+           AND a.tenant_id = s.tenant_id
+          WHERE s.tenant_id = ${TENANT_CONTEXT_SQL}
+            AND s.mdfe_id = $1
+          GROUP BY s.mdfe_seguro_id, seg.nome, seg.cnpj
+          ORDER BY s.mdfe_seguro_id
+        `,
+        [id]
+      ),
+      client.query(
+        `
+          SELECT *
+          FROM fiscal.mdfe_ciot
+          WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+            AND mdfe_id = $1
+          ORDER BY mdfe_ciot_id
         `,
         [id]
       ),
@@ -727,11 +1067,14 @@ class MdfeDAO {
       percurso: percurso.rows,
       descargas: descargas.rows,
       documentos: documentos.rows,
+      seguros: seguros.rows,
+      ciot: ciot.rows,
     };
   }
 
   static async salvarManifesto(client, { id = null, payload = {}, usuarioId = null } = {}) {
     const data = normalizeManifestoPayload(payload);
+    await this.validarVinculosManifesto(client, data);
     const valorTotalCarga = data.documentos.reduce(
       (total, item) => total + Number(item.valor_documento || 0),
       0
@@ -807,11 +1150,34 @@ class MdfeDAO {
         );
         manifesto = rows[0];
 
-        await client.query("DELETE FROM fiscal.mdfe_documento WHERE mdfe_id = $1", [id]);
-        await client.query("DELETE FROM fiscal.mdfe_condutor WHERE mdfe_id = $1", [id]);
-        await client.query("DELETE FROM fiscal.mdfe_reboque WHERE mdfe_id = $1", [id]);
-        await client.query("DELETE FROM fiscal.mdfe_percurso WHERE mdfe_id = $1", [id]);
-        await client.query("DELETE FROM fiscal.mdfe_descarga WHERE mdfe_id = $1", [id]);
+        await client.query(
+          `DELETE FROM fiscal.mdfe_documento WHERE tenant_id = ${TENANT_CONTEXT_SQL} AND mdfe_id = $1`,
+          [id]
+        );
+        await client.query(
+          `DELETE FROM fiscal.mdfe_condutor WHERE tenant_id = ${TENANT_CONTEXT_SQL} AND mdfe_id = $1`,
+          [id]
+        );
+        await client.query(
+          `DELETE FROM fiscal.mdfe_reboque WHERE tenant_id = ${TENANT_CONTEXT_SQL} AND mdfe_id = $1`,
+          [id]
+        );
+        await client.query(
+          `DELETE FROM fiscal.mdfe_percurso WHERE tenant_id = ${TENANT_CONTEXT_SQL} AND mdfe_id = $1`,
+          [id]
+        );
+        await client.query(
+          `DELETE FROM fiscal.mdfe_descarga WHERE tenant_id = ${TENANT_CONTEXT_SQL} AND mdfe_id = $1`,
+          [id]
+        );
+        await client.query(
+          `DELETE FROM fiscal.mdfe_seguro WHERE tenant_id = ${TENANT_CONTEXT_SQL} AND mdfe_id = $1`,
+          [id]
+        );
+        await client.query(
+          `DELETE FROM fiscal.mdfe_ciot WHERE tenant_id = ${TENANT_CONTEXT_SQL} AND mdfe_id = $1`,
+          [id]
+        );
       } else {
         const { rows } = await client.query(
           `
@@ -920,6 +1286,52 @@ class MdfeDAO {
             documento.municipio_descarga_codigo,
             documento.municipio_descarga_nome,
           ]
+        );
+      }
+
+      for (const seguro of data.seguros) {
+        const { rows } = await client.query(
+          `
+            INSERT INTO fiscal.mdfe_seguro (
+              tenant_id, mdfe_id, seguradora_id, responsavel_seguro,
+              cnpj_responsavel, cpf_responsavel, numero_apolice
+            )
+            VALUES (${TENANT_CONTEXT_SQL}, $1, $2, $3, $4, $5, $6)
+            RETURNING mdfe_seguro_id
+          `,
+          [
+            manifestoId,
+            seguro.seguradora_id,
+            seguro.responsavel_seguro,
+            seguro.cnpj_responsavel,
+            seguro.cpf_responsavel,
+            seguro.numero_apolice,
+          ]
+        );
+
+        const seguroId = rows[0].mdfe_seguro_id;
+        for (const numeroAverbacao of seguro.averbacoes) {
+          await client.query(
+            `
+              INSERT INTO fiscal.mdfe_seguro_averbacao (
+                tenant_id, mdfe_seguro_id, numero_averbacao
+              )
+              VALUES (${TENANT_CONTEXT_SQL}, $1, $2)
+            `,
+            [seguroId, numeroAverbacao]
+          );
+        }
+      }
+
+      for (const item of data.ciot) {
+        await client.query(
+          `
+            INSERT INTO fiscal.mdfe_ciot (
+              tenant_id, mdfe_id, ciot, cpf_cnpj_responsavel
+            )
+            VALUES (${TENANT_CONTEXT_SQL}, $1, $2, $3)
+          `,
+          [manifestoId, item.ciot, item.cpf_cnpj_responsavel]
         );
       }
 

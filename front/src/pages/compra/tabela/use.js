@@ -65,7 +65,7 @@ export const useTabelaCompras = ({ search, refreshKey, onDeleted }) => {
   const handleDelete = async (compra) => {
     const confirmed = await askYesNoQuestion(
       "Cancelar pedido?",
-      "Deseja cancelar esse pedido de compra? O contas a pagar vinculado também será cancelado se não houver baixas."
+      "Deseja cancelar esse pedido de compra? Só será permitido se não houver entrada de mercadoria ativa nem baixas financeiras."
     );
 
     if (!confirmed) return;
@@ -106,4 +106,3 @@ export const useTabelaCompras = ({ search, refreshKey, onDeleted }) => {
     handleDelete,
   };
 };
-

@@ -388,6 +388,7 @@ export const Mdfe = () => {
     manifestoForm,
     veiculoOptions,
     motoristaOptions,
+    seguradoraOptions,
     selectedMotoristaPessoa,
     pessoaModalOpen,
     openNew,
@@ -707,6 +708,20 @@ export const Mdfe = () => {
                       </C.Select>
                     </C.Field>
                     <C.Field>
+                      <C.FieldSpan>Tipo transportador</C.FieldSpan>
+                      <C.Select
+                        value={manifestoForm.tipo_transportador}
+                        onChange={(event) =>
+                          updateManifestoField("tipo_transportador", event.target.value)
+                        }
+                      >
+                        <option value="">Não informar</option>
+                        <option value="1">ETC</option>
+                        <option value="2">TAC</option>
+                        <option value="3">CTC</option>
+                      </C.Select>
+                    </C.Field>
+                    <C.Field>
                       <C.FieldSpan>Série</C.FieldSpan>
                       <C.Input
                         value={manifestoForm.serie}
@@ -905,6 +920,7 @@ export const Mdfe = () => {
                         type="button"
                         onClick={() =>
                           addManifestoArrayItem("documentos", {
+                            nfe_id: "",
                             tipo_documento: "nfe",
                             chave_acesso: "",
                             valor_documento: "0",
@@ -985,6 +1001,196 @@ export const Mdfe = () => {
                             onClick={() => removeManifestoArrayItem("documentos", index)}
                           >
                             Remover documento
+                          </C.MiniButton>
+                        </C.ArrayGrid>
+                      </C.ArrayCard>
+                    ))}
+                  </C.Section>
+
+                  <C.Section>
+                    <C.SectionHeader>
+                      <C.SectionTitle>Seguro, averbações e CIOT</C.SectionTitle>
+                      <C.ArrayGrid>
+                        <C.MiniButton
+                          type="button"
+                          onClick={() =>
+                            addManifestoArrayItem("seguros", {
+                              seguradora_id: "",
+                              responsavel_seguro: "",
+                              cnpj_responsavel: "",
+                              cpf_responsavel: "",
+                              numero_apolice: "",
+                              averbacoes_texto: "",
+                            })
+                          }
+                        >
+                          Adicionar seguro
+                        </C.MiniButton>
+                        <C.MiniButton
+                          type="button"
+                          onClick={() =>
+                            addManifestoArrayItem("ciot", {
+                              ciot: "",
+                              cpf_cnpj_responsavel: "",
+                            })
+                          }
+                        >
+                          Adicionar CIOT
+                        </C.MiniButton>
+                      </C.ArrayGrid>
+                    </C.SectionHeader>
+
+                    {manifestoForm.seguros.map((item, index) => (
+                      <C.ArrayCard key={`seguro-${index}`}>
+                        <C.ArrayGrid $columns={3}>
+                          <C.Field>
+                            <C.FieldSpan>Seguradora</C.FieldSpan>
+                            <C.Select
+                              value={item.seguradora_id}
+                              onChange={(event) =>
+                                updateManifestoArrayItem(
+                                  "seguros",
+                                  index,
+                                  "seguradora_id",
+                                  event.target.value
+                                )
+                              }
+                            >
+                              <option value="">Selecione</option>
+                              {seguradoraOptions.map((seguradora) => (
+                                <option
+                                  key={seguradora.mdfe_seguradora_id}
+                                  value={seguradora.mdfe_seguradora_id}
+                                >
+                                  {seguradora.nome} - {seguradora.cnpj}
+                                </option>
+                              ))}
+                            </C.Select>
+                          </C.Field>
+                          <C.Field>
+                            <C.FieldSpan>Responsável</C.FieldSpan>
+                            <C.Select
+                              value={item.responsavel_seguro}
+                              onChange={(event) =>
+                                updateManifestoArrayItem(
+                                  "seguros",
+                                  index,
+                                  "responsavel_seguro",
+                                  event.target.value
+                                )
+                              }
+                            >
+                              <option value="">Selecione</option>
+                              <option value="1">Emitente</option>
+                              <option value="2">Contratante</option>
+                            </C.Select>
+                          </C.Field>
+                          <C.Field>
+                            <C.FieldSpan>Apólice</C.FieldSpan>
+                            <C.Input
+                              value={item.numero_apolice}
+                              onChange={(event) =>
+                                updateManifestoArrayItem(
+                                  "seguros",
+                                  index,
+                                  "numero_apolice",
+                                  event.target.value
+                                )
+                              }
+                            />
+                          </C.Field>
+                          <C.Field>
+                            <C.FieldSpan>CNPJ responsável</C.FieldSpan>
+                            <C.Input
+                              value={item.cnpj_responsavel}
+                              onChange={(event) =>
+                                updateManifestoArrayItem(
+                                  "seguros",
+                                  index,
+                                  "cnpj_responsavel",
+                                  event.target.value
+                                )
+                              }
+                              placeholder="Obrigatório se contratante PJ"
+                            />
+                          </C.Field>
+                          <C.Field>
+                            <C.FieldSpan>CPF responsável</C.FieldSpan>
+                            <C.Input
+                              value={item.cpf_responsavel}
+                              onChange={(event) =>
+                                updateManifestoArrayItem(
+                                  "seguros",
+                                  index,
+                                  "cpf_responsavel",
+                                  event.target.value
+                                )
+                              }
+                              placeholder="Obrigatório se contratante PF"
+                            />
+                          </C.Field>
+                          <C.FieldFull>
+                            <C.FieldSpan>Averbações</C.FieldSpan>
+                            <C.Textarea
+                              value={item.averbacoes_texto}
+                              onChange={(event) =>
+                                updateManifestoArrayItem(
+                                  "seguros",
+                                  index,
+                                  "averbacoes_texto",
+                                  event.target.value
+                                )
+                              }
+                              placeholder="Uma averbação por linha"
+                            />
+                          </C.FieldFull>
+                          <C.MiniButton
+                            type="button"
+                            onClick={() => removeManifestoArrayItem("seguros", index)}
+                          >
+                            Remover seguro
+                          </C.MiniButton>
+                        </C.ArrayGrid>
+                      </C.ArrayCard>
+                    ))}
+
+                    {manifestoForm.ciot.map((item, index) => (
+                      <C.ArrayCard key={`ciot-${index}`}>
+                        <C.ArrayGrid $columns={3}>
+                          <C.Field>
+                            <C.FieldSpan>CIOT</C.FieldSpan>
+                            <C.Input
+                              value={item.ciot}
+                              onChange={(event) =>
+                                updateManifestoArrayItem(
+                                  "ciot",
+                                  index,
+                                  "ciot",
+                                  event.target.value
+                                )
+                              }
+                              placeholder="12 dígitos"
+                            />
+                          </C.Field>
+                          <C.Field>
+                            <C.FieldSpan>CPF/CNPJ responsável</C.FieldSpan>
+                            <C.Input
+                              value={item.cpf_cnpj_responsavel}
+                              onChange={(event) =>
+                                updateManifestoArrayItem(
+                                  "ciot",
+                                  index,
+                                  "cpf_cnpj_responsavel",
+                                  event.target.value
+                                )
+                              }
+                            />
+                          </C.Field>
+                          <C.MiniButton
+                            type="button"
+                            onClick={() => removeManifestoArrayItem("ciot", index)}
+                          >
+                            Remover CIOT
                           </C.MiniButton>
                         </C.ArrayGrid>
                       </C.ArrayCard>

@@ -27,6 +27,16 @@ const verificarToken = async (req, res, next) => {
       return res.status(401).json({ message: "Acesso à filial inválido" });
     }
 
+    const activeUser = await LoginDAO.buscarUsuarioAtivo(pool, decoded.userId);
+    if (!activeUser) {
+      return res.status(403).json({ message: "Usuário inativo." });
+    }
+
+    const activeTenant = await LoginDAO.buscarTenantAtivo(pool, decoded.tenantId);
+    if (!activeTenant) {
+      return res.status(403).json({ message: "Filial inativa." });
+    }
+
     req.user = decoded;
     res.set("Cache-Control", "no-store");
     return next();

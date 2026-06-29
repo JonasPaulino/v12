@@ -630,6 +630,23 @@ class CompraDAO {
     return rowCount > 0;
   }
 
+  static async verificarEntradaAtiva(client, pedidoCompraId) {
+    const { rowCount } = await client.query(
+      `
+        SELECT 1
+        FROM entrada_mercadoria
+        WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+          AND pedido_compra_id = $1
+          AND excluido = FALSE
+          AND status <> 'cancelada'
+        LIMIT 1
+      `,
+      [pedidoCompraId]
+    );
+
+    return rowCount > 0;
+  }
+
   static async buscarPorId(client, pedidoCompraId) {
     const pedidoResult = await client.query(
       `
@@ -783,6 +800,11 @@ class CompraDAO {
       if (possuiBaixas) {
         throw new Error("Este pedido possui baixas financeiras e não pode mais ser alterado.");
       }
+
+      const possuiEntrada = await this.verificarEntradaAtiva(client, pedidoCompraId);
+      if (possuiEntrada) {
+        throw new Error("Este pedido possui entrada de mercadoria vinculada e não pode mais ser alterado.");
+      }
     }
 
     await client.query("BEGIN");
@@ -897,6 +919,11 @@ class CompraDAO {
     const possuiBaixas = await this.verificarTituloComBaixas(client, pedidoCompraId);
     if (possuiBaixas) {
       throw new Error("Este pedido possui baixas financeiras e não pode ser cancelado.");
+    }
+
+    const possuiEntrada = await this.verificarEntradaAtiva(client, pedidoCompraId);
+    if (possuiEntrada) {
+      throw new Error("Este pedido possui entrada de mercadoria vinculada. Cancele a entrada antes de cancelar o pedido.");
     }
 
     await client.query("BEGIN");

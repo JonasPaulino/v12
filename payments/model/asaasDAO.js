@@ -1,7 +1,19 @@
 import crypto from "crypto";
 import { pool } from "../config/conexao.js";
 
-const TERMINAL_STATUSES = new Set(["RECEIVED", "REFUNDED", "DELETED", "RESTORED"]);
+const TERMINAL_STATUSES = new Set([
+  "RECEIVED",
+  "CONFIRMED",
+  "RECEIVED_IN_CASH",
+  "REFUNDED",
+  "DELETED",
+  "RESTORED",
+  "CANCELLED",
+  "CANCELED",
+]);
+
+const SETTLED_EVENTS = new Set(["PAYMENT_RECEIVED", "PAYMENT_CONFIRMED"]);
+const SETTLED_STATUSES = new Set(["RECEIVED", "CONFIRMED", "RECEIVED_IN_CASH"]);
 
 const normalizeDigits = (value) => String(value || "").replace(/\D/g, "");
 
@@ -87,6 +99,10 @@ const decryptSecret = (payload) => {
 
 const asaasBaseUrl = (ambiente) =>
   ambiente === "production" ? "https://api.asaas.com" : "https://api-sandbox.asaas.com";
+
+const isSettledPaymentWebhook = (eventName, payment) =>
+  SETTLED_EVENTS.has(String(eventName || "").toUpperCase()) ||
+  SETTLED_STATUSES.has(String(payment?.status || "").toUpperCase());
 
 const asaasRequest = async (apiKey, ambiente, { method = "GET", path, body }) => {
   const response = await fetch(`${asaasBaseUrl(ambiente)}${path}`, {
@@ -667,6 +683,18 @@ class AsaasDAO {
 
       const charge = chargeResult.rows[0];
 
+      if (!charge) {
+        await client.query("COMMIT");
+        return { processed: true, ignored: true };
+      }
+
+      const gatewayConfig = await this.buscarGatewayConfig(client, Number(charge.tenant_id));
+      const receivedWebhookToken = String(headers["asaas-access-token"] || "").trim();
+
+      if (!receivedWebhookToken || receivedWebhookToken !== String(gatewayConfig.webhookToken || "")) {
+        throw new Error("Webhook do Asaas recusado por token inválido.");
+      }
+
       await client.query(
         `
           INSERT INTO payments.gateway_event (
@@ -679,20 +707,8 @@ class AsaasDAO {
           )
           VALUES ($1, 'asaas', $2, $3, $4, $5)
         `,
-        [charge?.tenant_id || null, externalEventId, externalChargeId, eventName, JSON.stringify(body)]
+        [charge.tenant_id, externalEventId, externalChargeId, eventName, JSON.stringify(body)]
       );
-
-      if (!charge) {
-        await client.query("COMMIT");
-        return { processed: true, ignored: true };
-      }
-
-      const gatewayConfig = await this.buscarGatewayConfig(client, Number(charge.tenant_id));
-      const receivedWebhookToken = String(headers["asaas-access-token"] || "").trim();
-
-      if (!receivedWebhookToken || receivedWebhookToken !== String(gatewayConfig.webhookToken || "")) {
-        throw new Error("Webhook do Asaas recusado por token inválido.");
-      }
 
       await client.query(
         `
@@ -717,7 +733,7 @@ class AsaasDAO {
           ? gatewayConfig.baixaAutomaticaBoleto
           : false;
 
-      if (eventName === "PAYMENT_RECEIVED" && !charge.settled && deveBaixarAutomaticamente) {
+      if (isSettledPaymentWebhook(eventName, payment) && !charge.settled && deveBaixarAutomaticamente) {
         const callbackResponse = await fetch(
           `${String(process.env.BACKEND_URL || "").replace(/\/$/, "")}/integracoes/pagamentos/asaas/baixa-automatica`,
           {

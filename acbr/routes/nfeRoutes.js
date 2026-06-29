@@ -32,6 +32,29 @@ const buildProcessarNfeMessage = (data = {}) => {
   return motivo || "Emissão processada pela ACBrLib.";
 };
 
+const buildCancelarNfeMessage = (data = {}) => {
+  const status = String(data.mappedStatus || "").toLowerCase();
+  const motivo = data.xMotivo || data.raw || "";
+
+  if (status === "cancelada") return motivo || "NF-e cancelada pela SEFAZ.";
+  return motivo ? `Cancelamento não autorizado pela SEFAZ: ${motivo}` : "Cancelamento não autorizado pela SEFAZ.";
+};
+
+const buildConsultarNfeMessage = (data = {}) => {
+  const status = String(data.mappedStatus || "").toLowerCase();
+  const motivo = data.xMotivo || data.raw || "";
+
+  if (status === "autorizada") return motivo || "NF-e autorizada na SEFAZ.";
+  if (status === "cancelada") return motivo || "NF-e cancelada na SEFAZ.";
+  if (status === "denegada") return motivo || "NF-e denegada na SEFAZ.";
+  return motivo ? `Consulta sem confirmação fiscal: ${motivo}` : "Consulta sem confirmação fiscal.";
+};
+
+const isConsultaFiscalConclusiva = (data = {}) =>
+  ["autorizada", "cancelada", "denegada"].includes(
+    String(data.mappedStatus || "").toLowerCase()
+  );
+
 const normalizeAccessKey = (value) => String(value || "").replace(/\D/g, "");
 
 router.get("/listar", async (req, res) => {
@@ -335,8 +358,8 @@ router.post("/:id/consultar-status", async (req, res) => {
       });
 
       return res.json({
-        success: true,
-        message: "Consulta de status enviada para a integração fiscal.",
+        success: isConsultaFiscalConclusiva(response),
+        message: buildConsultarNfeMessage(response),
         data,
         response,
       });
@@ -379,9 +402,11 @@ router.post("/:id/cancelar", async (req, res) => {
         userId: Number(req.user?.userId) || null,
       });
 
+      const cancelada = String(response?.mappedStatus || "").toLowerCase() === "cancelada";
+
       return res.json({
-        success: true,
-        message: "Solicitação de cancelamento enviada para a integração fiscal.",
+        success: cancelada,
+        message: buildCancelarNfeMessage(response),
         data,
         response,
       });

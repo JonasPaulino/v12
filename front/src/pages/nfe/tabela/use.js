@@ -72,7 +72,9 @@ export const useTabelaNfe = ({ search, status, refreshKey, onChanged }) => {
       showLoading(loadingMessage);
       const response = await action();
       const businessFailure = response?.success === false;
-      const mappedStatus = String(response?.data?.mappedStatus || "").toLowerCase();
+      const mappedStatus = String(
+        response?.data?.mappedStatus || response?.response?.mappedStatus || ""
+      ).toLowerCase();
       showAlert({
         title:
           businessFailure && mappedStatus === "rejeitada"

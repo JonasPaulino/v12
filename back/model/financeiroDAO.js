@@ -1455,6 +1455,42 @@ class FinanceiroDAO {
     await client.query("BEGIN");
 
     try {
+      const lockedParcelaResult = await client.query(
+        `
+          SELECT
+            valor_parcela,
+            valor_recebido,
+            status
+          FROM financeiro_titulo_parcela
+          WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+            AND financeiro_titulo_id = $1
+            AND financeiro_titulo_parcela_id = $2
+          FOR UPDATE
+        `,
+        [financeiroTituloId, parcelaId]
+      );
+      const lockedParcela = lockedParcelaResult.rows[0];
+
+      if (!lockedParcela) {
+        throw new Error("Parcela inválida para este título.");
+      }
+
+      if (lockedParcela.status === "cancelada") {
+        throw new Error("Parcela cancelada não pode receber baixa.");
+      }
+
+      const saldoAtualParcela = roundCurrency(
+        Number(lockedParcela.valor_parcela || 0) - Number(lockedParcela.valor_recebido || 0)
+      );
+
+      if (saldoAtualParcela <= 0) {
+        throw new Error("A parcela selecionada já está quitada.");
+      }
+
+      if (valorBaixa > saldoAtualParcela) {
+        throw new Error("O valor informado é maior que o saldo da parcela.");
+      }
+
       await client.query(
         `
           INSERT INTO financeiro_titulo_baixa (

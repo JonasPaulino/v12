@@ -4,6 +4,30 @@ import usuarioDAO from "../model/usuarioDAO.js";
 
 const router = express.Router();
 
+router.use(async (req, res, next) => {
+  try {
+    const allowed = await usuarioDAO.usuarioPodeAdministrarFilial(pool, {
+      actorUserId: Number(req.user.userId),
+      currentTenantId: Number(req.user.tenantId),
+    });
+
+    if (!allowed) {
+      return res.status(403).json({
+        success: false,
+        message: "Acesso restrito a administradores da filial.",
+      });
+    }
+
+    return next();
+  } catch (error) {
+    console.error("[usuario] Falha ao validar permissao:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Não foi possível validar a permissão do usuário.",
+    });
+  }
+});
+
 router.get("/listar", async (req, res) => {
   const page = Number(req.query.page || 1);
   const limit = Number(req.query.limit || 20);

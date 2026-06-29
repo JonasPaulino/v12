@@ -32,6 +32,37 @@ const usuarioPossuiTenant = async (usuarioId, tenantId) => {
   return !!rows[0];
 };
 
+const buscarUsuarioAtivo = async (usuarioId) => {
+  const { rows } = await pool.query(
+    `
+      SELECT usuario_id
+      FROM usuario
+      WHERE usuario_id = $1
+        AND usuario_ativo = TRUE
+        AND usuario_excluido = FALSE
+      LIMIT 1
+    `,
+    [usuarioId]
+  );
+
+  return rows[0] || null;
+};
+
+const buscarTenantAtivo = async (tenantId) => {
+  const { rows } = await pool.query(
+    `
+      SELECT tenant_id
+      FROM tenant
+      WHERE tenant_id = $1
+        AND tenant_ativo = TRUE
+      LIMIT 1
+    `,
+    [tenantId]
+  );
+
+  return rows[0] || null;
+};
+
 const verificarToken = async (req, res, next) => {
   const token = req.cookies?.token;
 
@@ -51,6 +82,16 @@ const verificarToken = async (req, res, next) => {
 
     if (!tenantAllowed) {
       return res.status(401).json({ message: "Acesso à filial inválido" });
+    }
+
+    const activeUser = await buscarUsuarioAtivo(decoded.userId);
+    if (!activeUser) {
+      return res.status(403).json({ message: "Usuário inativo." });
+    }
+
+    const activeTenant = await buscarTenantAtivo(decoded.tenantId);
+    if (!activeTenant) {
+      return res.status(403).json({ message: "Filial inativa." });
     }
 
     req.user = decoded;

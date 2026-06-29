@@ -17,6 +17,7 @@ import {
   listMotoristasMdfeSelect,
   listPessoasMdfeSelect,
   listSeguradorasMdfe,
+  listSeguradorasMdfeSelect,
   listVeiculosMdfe,
   listVeiculosMdfeSelect,
   processarManifestoMdfe,
@@ -76,6 +77,7 @@ const initialManifestoForm = () => ({
   descargas: [{ municipio_codigo: "", municipio_nome: "", uf: "" }],
   documentos: [
     {
+      nfe_id: "",
       tipo_documento: "nfe",
       chave_acesso: "",
       valor_documento: "0",
@@ -84,6 +86,8 @@ const initialManifestoForm = () => ({
       municipio_descarga_nome: "",
     },
   ],
+  seguros: [],
+  ciot: [],
 });
 
 const mapManifestoToForm = (manifesto = {}) => ({
@@ -119,6 +123,7 @@ const mapManifestoToForm = (manifesto = {}) => ({
     : [{ municipio_codigo: "", municipio_nome: "", uf: "" }],
   documentos: (manifesto.documentos || []).length
     ? manifesto.documentos.map((item) => ({
+        nfe_id: item.nfe_id ? String(item.nfe_id) : "",
         tipo_documento: item.tipo_documento || "nfe",
         chave_acesso: item.chave_acesso || "",
         valor_documento: String(item.valor_documento ?? "0"),
@@ -127,6 +132,20 @@ const mapManifestoToForm = (manifesto = {}) => ({
         municipio_descarga_nome: item.municipio_descarga_nome || "",
       }))
     : initialManifestoForm().documentos,
+  seguros: (manifesto.seguros || []).map((item) => ({
+    seguradora_id: item.seguradora_id ? String(item.seguradora_id) : "",
+    responsavel_seguro: item.responsavel_seguro || "1",
+    cnpj_responsavel: item.cnpj_responsavel || "",
+    cpf_responsavel: item.cpf_responsavel || "",
+    numero_apolice: item.numero_apolice || "",
+    averbacoes_texto: Array.isArray(item.averbacoes)
+      ? item.averbacoes.join("\n")
+      : "",
+  })),
+  ciot: (manifesto.ciot || []).map((item) => ({
+    ciot: item.ciot || "",
+    cpf_cnpj_responsavel: item.cpf_cnpj_responsavel || "",
+  })),
 });
 
 const normalizeError = (error, fallback) =>
@@ -176,6 +195,7 @@ export const useMdfePage = () => {
   const [manifestoForm, setManifestoForm] = useState(initialManifestoForm);
   const [veiculoOptions, setVeiculoOptions] = useState([]);
   const [motoristaOptions, setMotoristaOptions] = useState([]);
+  const [seguradoraOptions, setSeguradoraOptions] = useState([]);
   const [pessoasOptions, setPessoasOptions] = useState([]);
   const [pessoaModalOpen, setPessoaModalOpen] = useState(false);
 
@@ -251,13 +271,15 @@ export const useMdfePage = () => {
   ]);
 
   const loadSelectData = useCallback(async () => {
-    const [veiculos, motoristas] = await Promise.all([
+    const [veiculos, motoristas, seguradoras] = await Promise.all([
       listVeiculosMdfeSelect("", 80),
       listMotoristasMdfeSelect("", 80),
+      listSeguradorasMdfeSelect("", 80),
     ]);
 
     setVeiculoOptions(veiculos.data || []);
     setMotoristaOptions(motoristas.data || []);
+    setSeguradoraOptions(seguradoras.data || []);
   }, []);
 
   const openNew = useCallback(
@@ -702,6 +724,7 @@ export const useMdfePage = () => {
     manifestoForm,
     veiculoOptions,
     motoristaOptions,
+    seguradoraOptions,
     selectedMotoristaPessoa,
     pessoaModalOpen,
     openNew,

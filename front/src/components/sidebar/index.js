@@ -19,9 +19,11 @@ import * as C from "./style";
 import ProfileOptions from "./components/profile";
 
 const Sidebar = () => {
-  const { mOpen, abreFechaMenu, selecionaPagina } = useContext(AppContext);
+  const { mOpen, abreFechaMenu, selecionaPagina, user, business } = useContext(AppContext);
   const navigate = useNavigate();
   const location = useLocation();
+  const canManageUsers =
+    !!user?.usuario_master || String(business?.perfil || "").toLowerCase() === "admin";
   const isNfePath =
     location.pathname.startsWith("/nfe") ||
     location.pathname === "/devolucoes" ||
@@ -236,30 +238,34 @@ const Sidebar = () => {
               </C.SubNavList>
             </C.NavGroup>
 
-            <C.NavButton
-              $open={mOpen}
-              $active={location.pathname === "/usuarios"}
-              onClick={() => handleNavigate("/usuarios", "Usuários")}
-              title="Controle de usuários e permissões de acesso"
-              aria-label="Controle de usuários e permissões de acesso"
-            >
-              <HiOutlineUsers />
-              <C.NavText $open={mOpen}>Usuários</C.NavText>
-            </C.NavButton>
+            {canManageUsers && (
+              <C.NavButton
+                $open={mOpen}
+                $active={location.pathname === "/usuarios"}
+                onClick={() => handleNavigate("/usuarios", "Usuários")}
+                title="Controle de usuários e permissões de acesso"
+                aria-label="Controle de usuários e permissões de acesso"
+              >
+                <HiOutlineUsers />
+                <C.NavText $open={mOpen}>Usuários</C.NavText>
+              </C.NavButton>
+            )}
 
-            <C.NavButton
-              $open={mOpen}
-              $active={
-                location.pathname === "/configuracao" ||
-                location.pathname === "/configuracao-fiscal"
-              }
-              onClick={() => handleNavigate("/configuracao", "Configuração")}
-              title="Configurações fiscais, integrações e parâmetros do sistema"
-              aria-label="Configurações fiscais, integrações e parâmetros do sistema"
-            >
-              <HiOutlineCog8Tooth />
-              <C.NavText $open={mOpen}>Configuração</C.NavText>
-            </C.NavButton>
+            {canManageUsers && (
+              <C.NavButton
+                $open={mOpen}
+                $active={
+                  location.pathname === "/configuracao" ||
+                  location.pathname === "/configuracao-fiscal"
+                }
+                onClick={() => handleNavigate("/configuracao", "Configuração")}
+                title="Configurações fiscais, integrações e parâmetros do sistema"
+                aria-label="Configurações fiscais, integrações e parâmetros do sistema"
+              >
+                <HiOutlineCog8Tooth />
+                <C.NavText $open={mOpen}>Configuração</C.NavText>
+              </C.NavButton>
+            )}
           </C.NavList>
         </C.MenuContainer>
       </C.TopArea>

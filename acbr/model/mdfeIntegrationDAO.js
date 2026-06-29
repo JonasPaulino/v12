@@ -520,6 +520,10 @@ class MdfeIntegrationDAO {
       throw new Error("Informe a UF do veículo de tração antes de emitir o MDF-e.");
     }
 
+    if (context.mdfe.tipo_transportador && onlyDigits(context.veiculoTracao.rntrc).length !== 8) {
+      throw new Error("Informe RNTRC com 8 dígitos no veículo de tração para o tipo de transportador selecionado.");
+    }
+
     if (!context.condutores.length) {
       throw new Error("Informe ao menos um motorista para emitir o MDF-e.");
     }
@@ -547,6 +551,33 @@ class MdfeIntegrationDAO {
     );
     if (documentoInvalido) {
       throw new Error("Todos os documentos vinculados precisam ter chave de acesso com 44 dígitos.");
+    }
+
+    const seguroInvalido = context.seguros.find((item) => {
+      const responsavel = String(item.responsavel_seguro || "").trim();
+      const responsavelDoc = onlyDigits(item.cnpj_responsavel || item.cpf_responsavel);
+      return (
+        !["1", "2"].includes(responsavel) ||
+        !String(item.seguradora_nome || "").trim() ||
+        onlyDigits(item.seguradora_cnpj).length !== 14 ||
+        !String(item.numero_apolice || "").trim() ||
+        !item.averbacoes.length ||
+        (responsavel === "2" && ![11, 14].includes(responsavelDoc.length))
+      );
+    });
+
+    if (seguroInvalido) {
+      throw new Error("Seguro do MDF-e incompleto. Informe seguradora, responsável, apólice e averbação.");
+    }
+
+    const ciotInvalido = context.ciot.find(
+      (item) =>
+        onlyDigits(item.ciot).length !== 12 ||
+        ![11, 14].includes(onlyDigits(item.cpf_cnpj_responsavel).length)
+    );
+
+    if (ciotInvalido) {
+      throw new Error("CIOT do MDF-e incompleto. Informe CIOT com 12 dígitos e CPF/CNPJ responsável.");
     }
   }
 

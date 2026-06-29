@@ -182,6 +182,20 @@ router.get("/seguradoras", async (req, res) => {
   }
 });
 
+router.get("/seguradoras-select", async (req, res) => {
+  try {
+    const data = await MdfeDAO.listarSeguradorasSelect(req.db, {
+      search: String(req.query.search || ""),
+      limit: Number(req.query.limit || 20),
+    });
+
+    return res.json({ success: true, data });
+  } catch (error) {
+    console.error("[mdfe] Falha ao pesquisar seguradoras:", error);
+    return handleError(res, error, "Não foi possível pesquisar seguradoras.", 500);
+  }
+});
+
 router.post("/seguradoras", async (req, res) => {
   try {
     const data = await MdfeDAO.salvarSeguradora(req.db, { payload: req.body || {} });

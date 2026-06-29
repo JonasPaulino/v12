@@ -1,8 +1,33 @@
 import express from "express";
 import ConfiguracaoFiscalDAO from "../model/configuracaoFiscalDAO.js";
 import loginDAO from "../model/loginDAO.js";
+import usuarioDAO from "../model/usuarioDAO.js";
 
 const router = express.Router();
+
+router.use(async (req, res, next) => {
+  try {
+    const allowed = await usuarioDAO.usuarioPodeAdministrarFilial(req.db, {
+      actorUserId: Number(req.user.userId),
+      currentTenantId: Number(req.user.tenantId),
+    });
+
+    if (!allowed) {
+      return res.status(403).json({
+        success: false,
+        message: "Acesso restrito a administradores da filial.",
+      });
+    }
+
+    return next();
+  } catch (error) {
+    console.error("[configuracao-fiscal] Falha ao validar permissao:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Não foi possível validar a permissão do usuário.",
+    });
+  }
+});
 
 router.get("/", async (req, res) => {
   try {

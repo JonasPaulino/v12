@@ -370,12 +370,38 @@ const hasCompleteNfeXml = (xml) => {
   return /<(procNFe|NFe)\b/i.test(text) && /<det\b/i.test(text);
 };
 
+const shouldPersistMappedStatus = ({ operation, mappedStatus }) => {
+  if (operation === "cancelar") {
+    return mappedStatus === "cancelada";
+  }
+
+  if (operation === "consultar") {
+    return ["autorizada", "cancelada", "denegada"].includes(mappedStatus);
+  }
+
+  return true;
+};
+
+const shouldSetIntegrationErrorStatus = ({ eventType, currentStatus }) => {
+  if (eventType !== "emissao_retorno") return false;
+  return !["autorizada", "cancelada", "denegada"].includes(
+    String(currentStatus || "").toLowerCase()
+  );
+};
+
 const persistSuccess = async (client, { context, userId, metadata, preXml, postXml, eventType }) => {
   await client.query("BEGIN");
 
   try {
+    const nextStatus = shouldPersistMappedStatus({
+      operation: metadata.operation,
+      mappedStatus: metadata.mappedStatus,
+    })
+      ? metadata.mappedStatus
+      : context.nfe.status;
+
     await AcbrNfeIntegrationDAO.atualizarNfe(client, context.nfe.nfe_id, {
-      status: metadata.mappedStatus,
+      status: nextStatus,
       status_sefaz: metadata.cStat,
       recibo: metadata.recibo,
       protocolo: metadata.protocolo,
@@ -422,10 +448,17 @@ const persistFailure = async (client, { context, userId, eventType, error, respo
   await client.query("BEGIN");
 
   try {
-    await AcbrNfeIntegrationDAO.atualizarNfe(client, context.nfe.nfe_id, {
-      status: "erro_integracao",
-      status_sefaz: null,
-    });
+    if (
+      shouldSetIntegrationErrorStatus({
+        eventType,
+        currentStatus: context.nfe.status,
+      })
+    ) {
+      await AcbrNfeIntegrationDAO.atualizarNfe(client, context.nfe.nfe_id, {
+        status: "erro_integracao",
+        status_sefaz: null,
+      });
+    }
 
     await AcbrNfeIntegrationDAO.registrarEvento(client, {
       nfeId: context.nfe.nfe_id,
