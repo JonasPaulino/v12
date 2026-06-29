@@ -19,6 +19,7 @@ const execFileAsync = promisify(execFile);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const NFE_NATIVE_WORKER_PATH = path.join(__dirname, "nfeNativeWorker.js");
 const DANFE_NATIVE_WORKER_PATH = path.join(__dirname, "danfeNativeWorker.js");
+const NFE_PREVIA_DANFE_WORKER_PATH = path.join(__dirname, "nfePreviaDanfeWorker.js");
 const NFE_DISTRIBUICAO_WORKER_PATH = path.join(__dirname, "nfeDistribuicaoWorker.js");
 
 class AcbrLibNotConfiguredError extends Error {
@@ -229,6 +230,87 @@ const runDanfeWorker = async ({
       (crashedNative
         ? `A ACBrLib falhou durante a geração do DANFE${signal}.`
         : `A ACBrLib falhou durante a geração do DANFE${signal}.`);
+
+    throw new AcbrLibIntegrationError(message, {
+      nfeId,
+      tenantId,
+      workerResult: result,
+      signal: error.signal || null,
+      stderr,
+    });
+  } finally {
+    await fs.rm(workDir, { recursive: true, force: true });
+  }
+};
+
+const runPreviaDanfeWorker = async ({
+  tenantId,
+  nfeId,
+  context,
+  certificadoSenha,
+  logo,
+}) => {
+  const workDir = await fs.mkdtemp(path.join(os.tmpdir(), `v12-nfe-previa-${tenantId}-${nfeId}-`));
+  const inputPath = path.join(workDir, "input.json");
+  const outputPath = path.join(workDir, "output.json");
+  const certificadoBase64 = context.certificado?.conteudo_pfx
+    ? Buffer.from(context.certificado.conteudo_pfx).toString("base64")
+    : "";
+
+  await fs.writeFile(
+    inputPath,
+    JSON.stringify({
+      tenantId,
+      nfeId,
+      context: normalizeContextForWorker(context),
+      certificadoBase64,
+      certificadoSenha,
+      logoBase64: logo?.conteudo ? Buffer.from(logo.conteudo).toString("base64") : "",
+      logoMimeType: logo?.mime_type || "",
+      logoNomeArquivo: logo?.nome_arquivo || "",
+    }),
+    "utf8"
+  );
+
+  try {
+    const { stderr } = await execFileAsync(process.execPath, [NFE_PREVIA_DANFE_WORKER_PATH, inputPath, outputPath], {
+      cwd: process.cwd(),
+      env: process.env,
+      maxBuffer: 20 * 1024 * 1024,
+      timeout: 120000,
+    });
+
+    if (stderr) {
+      console.error(stderr.trim());
+    }
+
+    const result = await safeReadJsonFile(outputPath);
+    if (!result?.ok || !result.pdfBase64) {
+      const lastReturn = isPdfBase64(result?.lastReturn) ? "" : result?.lastReturn;
+      throw new AcbrLibIntegrationError(
+        result?.message || lastReturn || "Falha ao gerar prévia da NF-e com a ACBrLib.",
+        {
+          nfeId,
+          tenantId,
+          workerResult: result,
+        }
+      );
+    }
+
+    return {
+      ...result,
+      pdfBuffer: Buffer.from(result.pdfBase64, "base64"),
+    };
+  } catch (error) {
+    const result = await safeReadJsonFile(outputPath);
+    const signal = error.signal ? ` (signal: ${error.signal})` : "";
+    const stderr = String(error.stderr || "").trim();
+    const lastReturn = isPdfBase64(result?.lastReturn) ? "" : result?.lastReturn;
+    const message =
+      result?.message ||
+      lastReturn ||
+      stderr ||
+      `A ACBrLib falhou durante a geração da prévia da NF-e${signal}.`;
 
     throw new AcbrLibIntegrationError(message, {
       nfeId,
@@ -629,6 +711,46 @@ class AcbrLibProvider {
 
     return {
       filename: `danfe-nfe-${context.nfe.numero || nfeId}.pdf`,
+      buffer: workerResult.pdfBuffer,
+      pdfPath: workerResult.pdfPath,
+    };
+  }
+
+  static async gerarPreviaDanfePdf({ client, nfeId, tenantId }) {
+    this.ensureConfigured();
+
+    const context = await AcbrNfeIntegrationDAO.carregarContexto(client, nfeId);
+    const numeroPrevia = context.nfe.numero || (await AcbrNfeIntegrationDAO.carregarNumeroPrevia(client));
+    const previewContext = {
+      ...context,
+      nfe: {
+        ...context.nfe,
+        numero: numeroPrevia,
+      },
+    };
+    AcbrNfeIntegrationDAO.validarContexto(previewContext);
+
+    const status = String(previewContext.nfe.status || "").toLowerCase();
+    if (status === "autorizada") {
+      throw new AcbrLibIntegrationError("Use o DANFE oficial para NF-e autorizada.", {
+        nfeId,
+        tenantId,
+      });
+    }
+
+    const assets = await AcbrNfeIntegrationDAO.carregarDanfeAssets(client, nfeId);
+    const workerResult = await runPreviaDanfeWorker({
+      tenantId,
+      nfeId,
+      context: previewContext,
+      certificadoSenha: context.certificado?.senha_criptografada
+        ? decryptSecret(context.certificado.senha_criptografada)
+        : "",
+      logo: assets.logo,
+    });
+
+    return {
+      filename: `previa-nfe-${previewContext.nfe.numero || nfeId}.pdf`,
       buffer: workerResult.pdfBuffer,
       pdfPath: workerResult.pdfPath,
     };

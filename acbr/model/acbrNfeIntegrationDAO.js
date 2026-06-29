@@ -194,6 +194,27 @@ class AcbrNfeIntegrationDAO {
     return numero;
   }
 
+  static async carregarNumeroPrevia(client) {
+    const { rows } = await client.query(
+      `
+        SELECT COALESCE(proximo_numero_nfe, 1) AS proximo_numero_nfe
+        FROM tenant_configuracao_fiscal
+        WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+        LIMIT 1
+      `
+    );
+
+    const row = rows[0];
+    if (!row) {
+      throw new Error("Configuração fiscal da filial não encontrada.");
+    }
+
+    return parseInteger(row.proximo_numero_nfe, {
+      label: "Próximo número da NF-e",
+      max: 999999999,
+    });
+  }
+
   static async carregarContexto(client, nfeId) {
     const safeNfeId = parseInteger(nfeId, { label: "NF-e" });
 

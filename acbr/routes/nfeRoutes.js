@@ -206,6 +206,42 @@ router.get("/:id/danfe", async (req, res) => {
   }
 });
 
+router.get("/:id/previa", async (req, res) => {
+  try {
+    const data = await AcbrLibProvider.gerarPreviaDanfePdf({
+      client: req.db,
+      nfeId: Number(req.params.id),
+      tenantId: Number(req.user?.tenantId),
+    });
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `inline; filename="${data.filename}"`);
+    res.setHeader("Content-Length", data.buffer.length);
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    return res.end(data.buffer);
+  } catch (error) {
+    if (isProviderStubError(error)) {
+      if (error instanceof AcbrLibIntegrationError) {
+        console.error("[acbr:nfe] Falha ao gerar prévia pela ACBrLib:", {
+          message: error.message,
+          details: error.details,
+        });
+      }
+
+      return res.status(error instanceof AcbrLibNotConfiguredError ? 501 : 400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    console.error("[acbr:nfe] Falha ao gerar prévia:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Não foi possível gerar a prévia da NF-e pela ACBrLib.",
+    });
+  }
+});
+
 router.post("/emitir", async (req, res) => {
   try {
     const data = await NfeDAO.criarPorPedido(req.db, {
