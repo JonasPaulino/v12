@@ -48,12 +48,28 @@ const getStatusTone = (status) => {
 
 const canProcessMdfe = (item) => ["rascunho", "rejeitado", "validado"].includes(item.status);
 
-const ActionCell = ({ type, item, onEdit, onDelete, onProcess, onOpenDamdfe, processingId }) => {
+const ActionCell = ({
+  type,
+  item,
+  onEdit,
+  onDelete,
+  onProcess,
+  onOpenDamdfe,
+  onCloseMdfe,
+  onCancelMdfe,
+  processingId,
+  closingId,
+  cancelingId,
+}) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const processing = type === "manifestos" && processingId === item.mdfe_id;
+  const closing = type === "manifestos" && closingId === item.mdfe_id;
+  const canceling = type === "manifestos" && cancelingId === item.mdfe_id;
   const processable = type === "manifestos" && canProcessMdfe(item);
-  const hasDamdfe = type === "manifestos" && item.status === "autorizado";
+  const closable = type === "manifestos" && item.status === "autorizado";
+  const hasDamdfe =
+    type === "manifestos" && ["autorizado", "encerrado"].includes(item.status);
 
   return (
     <C.Cell>
@@ -80,6 +96,19 @@ const ActionCell = ({ type, item, onEdit, onDelete, onProcess, onOpenDamdfe, pro
                   {
                     label: processing ? "Emitindo..." : "Emitir MDF-e",
                     onClick: () => !processing && onProcess(item),
+                  },
+                ]
+              : []),
+            ...(closable
+              ? [
+                  {
+                    label: closing ? "Encerrando..." : "Encerrar MDF-e",
+                    onClick: () => !closing && onCloseMdfe(item),
+                  },
+                  {
+                    label: canceling ? "Cancelando..." : "Cancelar MDF-e",
+                    danger: true,
+                    onClick: () => !canceling && onCancelMdfe(item),
                   },
                 ]
               : []),
@@ -117,7 +146,11 @@ const TableContent = ({
   onDelete,
   onProcess,
   onOpenDamdfe,
+  onCloseMdfe,
+  onCancelMdfe,
   processingId,
+  closingId,
+  cancelingId,
 }) => {
   if (activeTab === "manifestos") {
     return (
@@ -171,7 +204,11 @@ const TableContent = ({
                       onDelete={onDelete}
                       onProcess={onProcess}
                       onOpenDamdfe={onOpenDamdfe}
+                      onCloseMdfe={onCloseMdfe}
+                      onCancelMdfe={onCancelMdfe}
                       processingId={processingId}
+                      closingId={closingId}
+                      cancelingId={cancelingId}
                     />
                   </C.Row>
                 ))
@@ -297,7 +334,11 @@ const TableContent = ({
                     onDelete={onDelete}
                     onProcess={onProcess}
                     onOpenDamdfe={onOpenDamdfe}
+                    onCloseMdfe={onCloseMdfe}
+                    onCancelMdfe={onCancelMdfe}
                     processingId={processingId}
+                    closingId={closingId}
+                    cancelingId={cancelingId}
                   />
                 </C.Row>
               ))
@@ -337,6 +378,8 @@ export const Mdfe = () => {
     saving,
     checkingStatus,
     processingId,
+    closingId,
+    cancelingId,
     veiculoForm,
     motoristaForm,
     seguradoraForm,
@@ -358,6 +401,8 @@ export const Mdfe = () => {
     checkMdfeStatusService,
     processManifesto,
     openDamdfe,
+    closeManifesto,
+    cancelManifesto,
   } = useMdfePage();
 
   const modalTitle = {
@@ -422,7 +467,11 @@ export const Mdfe = () => {
               onDelete={deleteItem}
               onProcess={processManifesto}
               onOpenDamdfe={openDamdfe}
+              onCloseMdfe={closeManifesto}
+              onCancelMdfe={cancelManifesto}
               processingId={processingId}
+              closingId={closingId}
+              cancelingId={cancelingId}
             />
           </C.TableArea>
         </C.Body>

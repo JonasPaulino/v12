@@ -1,12 +1,15 @@
 import { useCallback, useContext, useEffect, useState } from "react";
+import Swal from "sweetalert2";
 import { AppContext } from "context";
 import { useSweetAlert } from "context/sweet_alert";
 import {
+  cancelarManifestoMdfe,
   deleteManifestoMdfe,
   deleteMotoristaMdfe,
   deleteSeguradoraMdfe,
   deleteVeiculoMdfe,
   downloadDamdfeMdfe,
+  encerrarManifestoMdfe,
   getManifestoMdfe,
   consultarStatusServicoMdfe,
   listManifestosMdfe,
@@ -142,6 +145,8 @@ export const useMdfePage = () => {
   const [saving, setSaving] = useState(false);
   const [checkingStatus, setCheckingStatus] = useState(false);
   const [processingId, setProcessingId] = useState(null);
+  const [closingId, setClosingId] = useState(null);
+  const [cancelingId, setCancelingId] = useState(null);
   const [veiculoForm, setVeiculoForm] = useState(initialVeiculoForm);
   const [motoristaForm, setMotoristaForm] = useState(initialMotoristaForm);
   const [seguradoraForm, setSeguradoraForm] = useState(initialSeguradoraForm);
@@ -455,6 +460,146 @@ export const useMdfePage = () => {
     [showAlert]
   );
 
+  const askEncerramentoData = useCallback(async (item) => {
+    const result = await Swal.fire({
+      title: "Encerrar MDF-e",
+      html: `
+        <div style="display:grid;gap:10px;text-align:left;">
+          <p style="margin:0;color:#5f6f8f;font-size:13px;">
+            Informe o município onde a viagem foi encerrada.
+          </p>
+          <input id="mdfe-enc-codigo" class="swal2-input" placeholder="Código IBGE" maxlength="7" style="margin:0;" />
+          <input id="mdfe-enc-nome" class="swal2-input" placeholder="Município" style="margin:0;" />
+          <input id="mdfe-enc-uf" class="swal2-input" placeholder="UF" maxlength="2" style="margin:0;text-transform:uppercase;" value="${item.uf_fim || ""}" />
+        </div>
+      `,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Encerrar",
+      cancelButtonText: "Cancelar",
+      confirmButtonColor: "#0b5fff",
+      focusConfirm: false,
+      preConfirm: () => {
+        const municipio_codigo =
+          document.getElementById("mdfe-enc-codigo")?.value?.replace(/\D/g, "") || "";
+        const municipio_nome = document.getElementById("mdfe-enc-nome")?.value?.trim() || "";
+        const uf =
+          document.getElementById("mdfe-enc-uf")?.value?.trim().toUpperCase() || "";
+
+        if (municipio_codigo.length !== 7) {
+          Swal.showValidationMessage("Código IBGE precisa ter 7 dígitos.");
+          return false;
+        }
+
+        if (!municipio_nome) {
+          Swal.showValidationMessage("Informe o município de encerramento.");
+          return false;
+        }
+
+        if (uf.length !== 2) {
+          Swal.showValidationMessage("UF precisa ter 2 letras.");
+          return false;
+        }
+
+        return { municipio_codigo, municipio_nome, uf };
+      },
+    });
+
+    return result.isConfirmed ? result.value : null;
+  }, []);
+
+  const closeManifesto = useCallback(
+    async (item) => {
+      const payload = await askEncerramentoData(item);
+      if (!payload) return;
+
+      try {
+        setClosingId(item.mdfe_id);
+        const response = await encerrarManifestoMdfe(item.mdfe_id, payload);
+        showAlert({
+          title: response.success ? "MDF-e encerrado" : "Retorno MDF-e",
+          text: response.message || "Encerramento concluído.",
+          icon: response.success ? "success" : "warning",
+        });
+        setRefreshKey((prev) => prev + 1);
+      } catch (error) {
+        showAlert({
+          title: "Falha ao encerrar",
+          text: normalizeError(error, "Não foi possível encerrar o MDF-e."),
+          icon: "error",
+        });
+      } finally {
+        setClosingId(null);
+      }
+    },
+    [askEncerramentoData, showAlert]
+  );
+
+  const askCancelamentoData = useCallback(async () => {
+    const result = await Swal.fire({
+      title: "Cancelar MDF-e",
+      html: `
+        <div style="display:grid;gap:10px;text-align:left;">
+          <p style="margin:0;color:#5f6f8f;font-size:13px;">
+            Informe uma justificativa fiscal clara. A SEFAZ exige pelo menos 15 caracteres.
+          </p>
+          <textarea id="mdfe-cancel-justificativa" class="swal2-textarea" placeholder="Justificativa" style="margin:0;min-height:110px;"></textarea>
+        </div>
+      `,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Cancelar MDF-e",
+      cancelButtonText: "Voltar",
+      confirmButtonColor: "#d33",
+      focusConfirm: false,
+      preConfirm: () => {
+        const justificativa =
+          document.getElementById("mdfe-cancel-justificativa")?.value?.trim() || "";
+
+        if (justificativa.length < 15) {
+          Swal.showValidationMessage("A justificativa precisa ter pelo menos 15 caracteres.");
+          return false;
+        }
+
+        if (justificativa.length > 255) {
+          Swal.showValidationMessage("A justificativa precisa ter no máximo 255 caracteres.");
+          return false;
+        }
+
+        return { justificativa };
+      },
+    });
+
+    return result.isConfirmed ? result.value : null;
+  }, []);
+
+  const cancelManifesto = useCallback(
+    async (item) => {
+      const payload = await askCancelamentoData();
+      if (!payload) return;
+
+      try {
+        setCancelingId(item.mdfe_id);
+        const response = await cancelarManifestoMdfe(item.mdfe_id, payload);
+        showAlert({
+          title: response.success ? "MDF-e cancelado" : "Retorno MDF-e",
+          text: response.message || "Cancelamento concluído.",
+          icon: response.success ? "success" : "warning",
+        });
+        setRefreshKey((prev) => prev + 1);
+      } catch (error) {
+        showAlert({
+          title: "Falha ao cancelar",
+          text: normalizeError(error, "Não foi possível cancelar o MDF-e."),
+          icon: "error",
+        });
+      } finally {
+        setCancelingId(null);
+      }
+    },
+    [askCancelamentoData, showAlert]
+  );
+
   return {
     activeTab,
     setActiveTab,
@@ -469,6 +614,8 @@ export const useMdfePage = () => {
     saving,
     checkingStatus,
     processingId,
+    closingId,
+    cancelingId,
     veiculoForm,
     motoristaForm,
     seguradoraForm,
@@ -490,5 +637,7 @@ export const useMdfePage = () => {
     checkMdfeStatusService,
     processManifesto,
     openDamdfe,
+    closeManifesto,
+    cancelManifesto,
   };
 };

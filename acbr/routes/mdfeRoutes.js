@@ -146,4 +146,80 @@ router.post("/:id/processar", async (req, res) => {
   }
 });
 
+router.post("/:id/encerrar", async (req, res) => {
+  try {
+    const data = await AcbrLibMdfeProvider.encerrarMdfe({
+      client: req.db,
+      mdfeId: Number(req.params.id),
+      tenantId: Number(req.user?.tenantId),
+      userId: Number(req.user?.userId) || null,
+      payload: req.body || {},
+    });
+
+    return res.json({
+      success: !!data.success,
+      message: data.xMotivo || (data.success ? "MDF-e encerrado." : "Encerramento rejeitado."),
+      data,
+    });
+  } catch (error) {
+    if (isProviderError(error)) {
+      if (error instanceof AcbrLibMdfeIntegrationError) {
+        console.error("[acbr:mdfe] Falha ao encerrar MDF-e:", {
+          message: error.message,
+          details: error.details,
+        });
+      }
+
+      return res.status(error instanceof AcbrLibMdfeNotConfiguredError ? 501 : 400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    console.error("[acbr:mdfe] Falha inesperada ao encerrar MDF-e:", error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Não foi possível encerrar o MDF-e.",
+    });
+  }
+});
+
+router.post("/:id/cancelar", async (req, res) => {
+  try {
+    const data = await AcbrLibMdfeProvider.cancelarMdfe({
+      client: req.db,
+      mdfeId: Number(req.params.id),
+      tenantId: Number(req.user?.tenantId),
+      userId: Number(req.user?.userId) || null,
+      payload: req.body || {},
+    });
+
+    return res.json({
+      success: !!data.success,
+      message: data.xMotivo || (data.success ? "MDF-e cancelado." : "Cancelamento rejeitado."),
+      data,
+    });
+  } catch (error) {
+    if (isProviderError(error)) {
+      if (error instanceof AcbrLibMdfeIntegrationError) {
+        console.error("[acbr:mdfe] Falha ao cancelar MDF-e:", {
+          message: error.message,
+          details: error.details,
+        });
+      }
+
+      return res.status(error instanceof AcbrLibMdfeNotConfiguredError ? 501 : 400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    console.error("[acbr:mdfe] Falha inesperada ao cancelar MDF-e:", error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Não foi possível cancelar o MDF-e.",
+    });
+  }
+});
+
 export default router;

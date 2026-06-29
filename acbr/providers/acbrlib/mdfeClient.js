@@ -8,7 +8,9 @@ import MdfeIntegrationDAO from "../../model/mdfeIntegrationDAO.js";
 import { decryptSecret } from "../../utils/secret.js";
 import { findIniValue, parseIniLikeResponse } from "./parser.js";
 import {
+  configureMdfeEmissionSession,
   configureMdfeStatusSession,
+  createMdfeEmissionSession,
   createMdfeStatusSession,
   destroyMdfeSession,
   getMdfeRuntimeDiagnostics,
@@ -257,6 +259,56 @@ const buildMdfeResponseMetadata = (rawText) => {
   };
 };
 
+const buildMdfeEventMetadata = (rawText, operation) => {
+  const parsed = parseIniLikeResponse(rawText);
+  const cStat = findIniValue(parsed, ["CStat", "cStat", "Status"], [
+    "Encerramento",
+    "Cancelamento",
+    "Evento001",
+    "Evento",
+  ]);
+  const xMotivo = findIniValue(parsed, ["XMotivo", "xMotivo", "Motivo", "Msg"], [
+    "Encerramento",
+    "Cancelamento",
+    "Evento001",
+    "Evento",
+  ]);
+  const protocolo = findIniValue(parsed, ["NProt", "nProt", "Protocolo"], [
+    "Encerramento",
+    "Cancelamento",
+    "Evento001",
+  ]);
+  const chaveAcesso = findIniValue(parsed, ["ChMDFe", "chMDFe", "ChaveDFe", "chDFe"], [
+    "Encerramento",
+    "Cancelamento",
+    "Evento001",
+  ]);
+  const tipoEvento = findIniValue(parsed, ["TpEvento", "tpEvento"], [
+    "Encerramento",
+    "Cancelamento",
+    "Evento001",
+  ]);
+  const xml = findIniValue(parsed, ["XML", "Xml"], ["Encerramento", "Cancelamento", "Evento001"]);
+
+  return {
+    operation,
+    raw: rawText,
+    parsed,
+    cStat: cStat || null,
+    xMotivo: xMotivo || null,
+    protocolo: protocolo || null,
+    chaveAcesso: chaveAcesso || null,
+    tipoEvento: tipoEvento || null,
+    xml: xml || null,
+    success: ["135", "136", "155"].includes(String(cStat || "").trim()),
+  };
+};
+
+const formatDateBr = (date = new Date()) => {
+  const pad = (value) => String(value).padStart(2, "0");
+  return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()}`;
+};
+
 const persistMdfeSuccess = async (client, { context, userId, metadata, preXml, postXml }) => {
   await client.query("BEGIN");
 
@@ -477,8 +529,8 @@ class AcbrLibMdfeProvider {
 
     const context = await MdfeIntegrationDAO.carregarContexto(client, mdfeId);
 
-    if (String(context.mdfe.status || "").toLowerCase() !== "autorizado") {
-      throw new AcbrLibMdfeIntegrationError("DAMDFE disponível apenas para MDF-e autorizado.", {
+    if (!["autorizado", "encerrado"].includes(String(context.mdfe.status || "").toLowerCase())) {
+      throw new AcbrLibMdfeIntegrationError("DAMDFE disponível apenas para MDF-e autorizado ou encerrado.", {
         mdfeId,
         tenantId,
       });
@@ -507,6 +559,131 @@ class AcbrLibMdfeProvider {
       buffer: workerResult.pdfBuffer,
       pdfPath: workerResult.pdfPath,
     };
+  }
+
+  static async encerrarMdfe({ client, mdfeId, tenantId, userId = null, payload = {} }) {
+    this.ensureConfigured();
+
+    const context = await MdfeIntegrationDAO.carregarContexto(client, mdfeId);
+    const encerramento = MdfeIntegrationDAO.validarContextoEncerramento(context, payload);
+    const session = await createMdfeEmissionSession({
+      tenantId,
+      mdfeId,
+      certificadoBuffer: context.certificado.conteudo_pfx,
+      certificadoSenha: decryptSecret(context.certificado.senha_criptografada),
+    });
+
+    try {
+      await configureMdfeEmissionSession(session, context);
+      const rawResponse = session.acbr.encerrarMdfe(
+        context.mdfe.chave_acesso,
+        formatDateBr(),
+        encerramento.municipio_codigo,
+        context.emitente.cpf_cnpj.replace(/\D/g, ""),
+        context.mdfe.protocolo
+      );
+      const metadata = buildMdfeEventMetadata(rawResponse, "encerrar");
+
+      await client.query("BEGIN");
+      try {
+        if (metadata.success) {
+          await MdfeIntegrationDAO.marcarEncerrado(client, mdfeId, encerramento);
+        }
+
+        await MdfeIntegrationDAO.registrarEvento(client, {
+          mdfeId,
+          usuarioId: userId,
+          tipoEvento: "encerramento_retorno",
+          status: metadata.success ? "sucesso" : "falha",
+          mensagem: metadata.xMotivo || "Retorno do encerramento do MDF-e.",
+          payloadJson: encerramento,
+          respostaJson: metadata,
+        });
+
+        await MdfeIntegrationDAO.salvarXml(client, {
+          mdfeId,
+          tipoXml: "encerramento",
+          conteudoXml: metadata.xml,
+        });
+
+        await client.query("COMMIT");
+      } catch (error) {
+        await client.query("ROLLBACK");
+        throw error;
+      }
+
+      return metadata;
+    } catch (error) {
+      const lastReturn = session.acbr?.ultimoRetorno?.() || null;
+      throw new AcbrLibMdfeIntegrationError(
+        lastReturn || error.message || "Falha ao encerrar MDF-e com a ACBrLibMDFe.",
+        { mdfeId, tenantId }
+      );
+    } finally {
+      await destroyMdfeSession(session);
+    }
+  }
+
+  static async cancelarMdfe({ client, mdfeId, tenantId, userId = null, payload = {} }) {
+    this.ensureConfigured();
+
+    const context = await MdfeIntegrationDAO.carregarContexto(client, mdfeId);
+    const cancelamento = MdfeIntegrationDAO.validarContextoCancelamento(context, payload);
+    const session = await createMdfeEmissionSession({
+      tenantId,
+      mdfeId,
+      certificadoBuffer: context.certificado.conteudo_pfx,
+      certificadoSenha: decryptSecret(context.certificado.senha_criptografada),
+    });
+
+    try {
+      await configureMdfeEmissionSession(session, context);
+      const rawResponse = session.acbr.cancelar(
+        context.mdfe.chave_acesso,
+        cancelamento.justificativa,
+        context.emitente.cpf_cnpj.replace(/\D/g, ""),
+        1
+      );
+      const metadata = buildMdfeEventMetadata(rawResponse, "cancelar");
+
+      await client.query("BEGIN");
+      try {
+        if (metadata.success) {
+          await MdfeIntegrationDAO.marcarCancelado(client, mdfeId);
+        }
+
+        await MdfeIntegrationDAO.registrarEvento(client, {
+          mdfeId,
+          usuarioId: userId,
+          tipoEvento: "cancelamento_retorno",
+          status: metadata.success ? "sucesso" : "falha",
+          mensagem: metadata.xMotivo || "Retorno do cancelamento do MDF-e.",
+          payloadJson: cancelamento,
+          respostaJson: metadata,
+        });
+
+        await MdfeIntegrationDAO.salvarXml(client, {
+          mdfeId,
+          tipoXml: "cancelamento",
+          conteudoXml: metadata.xml,
+        });
+
+        await client.query("COMMIT");
+      } catch (error) {
+        await client.query("ROLLBACK");
+        throw error;
+      }
+
+      return metadata;
+    } catch (error) {
+      const lastReturn = session.acbr?.ultimoRetorno?.() || null;
+      throw new AcbrLibMdfeIntegrationError(
+        lastReturn || error.message || "Falha ao cancelar MDF-e com a ACBrLibMDFe.",
+        { mdfeId, tenantId }
+      );
+    } finally {
+      await destroyMdfeSession(session);
+    }
   }
 }
 

@@ -57,6 +57,25 @@ class AcbrLibMDFeMT {
         "char*",
         "int*",
       ]),
+      cancelar: this.lib.func("MDFE_Cancelar", "int", [
+        "void *",
+        "string",
+        "string",
+        "string",
+        "int",
+        "char*",
+        "int*",
+      ]),
+      encerrarMdfe: this.lib.func("MDFE_EncerrarMDFe", "int", [
+        "void *",
+        "string",
+        "string",
+        "string",
+        "string",
+        "string",
+        "char*",
+        "int*",
+      ]),
       obterXml: this.lib.func("MDFE_ObterXml", "int", ["void *", "int", "char*", "int*"]),
       salvarPDF: this.lib.func("MDFE_SalvarPDF", "int", ["void *", "char*", "int*"]),
       imprimirPDF: this.lib.func("MDFE_ImprimirPDF", "int", ["void *"]),
@@ -164,6 +183,39 @@ class AcbrLibMDFeMT {
     const data = createBuffer();
     this.check(
       this.fn.enviar(this.getHandle(), lote, imprimir, sincrono, data.buffer, data.size)
+    );
+    return readBuffer(data);
+  }
+
+  cancelar(chaveOuXml, justificativa, cnpj, lote = 1) {
+    const data = createBuffer();
+    this.check(
+      this.fn.cancelar(
+        this.getHandle(),
+        String(chaveOuXml || ""),
+        String(justificativa || ""),
+        String(cnpj || ""),
+        Number(lote) || 1,
+        data.buffer,
+        data.size
+      )
+    );
+    return readBuffer(data);
+  }
+
+  encerrarMdfe(chaveOuXml, dataEncerramento, municipioDescargaCodigo, cnpj = "", protocolo = "") {
+    const data = createBuffer();
+    this.check(
+      this.fn.encerrarMdfe(
+        this.getHandle(),
+        String(chaveOuXml || ""),
+        String(dataEncerramento || ""),
+        String(municipioDescargaCodigo || ""),
+        String(cnpj || ""),
+        String(protocolo || ""),
+        data.buffer,
+        data.size
+      )
     );
     return readBuffer(data);
   }

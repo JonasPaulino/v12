@@ -1,6 +1,7 @@
 import { TENANT_CONTEXT_SQL } from "../utils/sql.js";
 
 const onlyDigits = (value) => String(value || "").replace(/\D/g, "");
+const normalizeUpper = (value) => String(value || "").trim().toUpperCase();
 const parseInteger = (value, { label = "Campo", min = 1 } = {}) => {
   const parsed = Number(value);
   if (!Number.isInteger(parsed) || parsed < min) {
@@ -23,6 +24,43 @@ const buildSetClause = (payload = {}) => {
 };
 
 const hasValidIbgeCode = (value) => /^\d{7}$/.test(onlyDigits(value));
+
+const normalizeEncerramentoPayload = (payload = {}) => {
+  const municipioCodigo = onlyDigits(payload.municipio_codigo);
+  if (!hasValidIbgeCode(municipioCodigo)) {
+    throw new Error("Código IBGE de encerramento deve conter 7 dígitos.");
+  }
+
+  const municipioNome = String(payload.municipio_nome || "").trim();
+  if (!municipioNome) {
+    throw new Error("Município de encerramento obrigatório.");
+  }
+
+  const uf = normalizeUpper(payload.uf);
+  if (uf.length !== 2) {
+    throw new Error("UF de encerramento deve conter 2 letras.");
+  }
+
+  return {
+    municipio_codigo: municipioCodigo,
+    municipio_nome: municipioNome.slice(0, 100),
+    uf,
+  };
+};
+
+const normalizeCancelamentoPayload = (payload = {}) => {
+  const justificativa = String(payload.justificativa || "").trim().replace(/\s+/g, " ");
+
+  if (justificativa.length < 15) {
+    throw new Error("Justificativa de cancelamento deve conter ao menos 15 caracteres.");
+  }
+
+  if (justificativa.length > 255) {
+    throw new Error("Justificativa de cancelamento deve conter no máximo 255 caracteres.");
+  }
+
+  return { justificativa };
+};
 
 const sha256 = async (value) => {
   const crypto = await import("crypto");
@@ -512,6 +550,50 @@ class MdfeIntegrationDAO {
     }
   }
 
+  static validarContextoEncerramento(context, payload = {}) {
+    if (String(context.mdfe.status || "").toLowerCase() !== "autorizado") {
+      throw new Error("Somente MDF-e autorizado pode ser encerrado.");
+    }
+
+    if (!context.mdfe.chave_acesso) {
+      throw new Error("MDF-e autorizado sem chave de acesso para encerramento.");
+    }
+
+    if (!context.mdfe.protocolo) {
+      throw new Error("MDF-e autorizado sem protocolo para encerramento.");
+    }
+
+    if (!context.certificado.conteudo_pfx || !context.certificado.senha_criptografada) {
+      throw new Error("Certificado A1 da filial não configurado para encerramento do MDF-e.");
+    }
+
+    if (!onlyDigits(context.emitente.cpf_cnpj)) {
+      throw new Error("Emitente sem CNPJ válido para encerramento do MDF-e.");
+    }
+
+    return normalizeEncerramentoPayload(payload);
+  }
+
+  static validarContextoCancelamento(context, payload = {}) {
+    if (String(context.mdfe.status || "").toLowerCase() !== "autorizado") {
+      throw new Error("Somente MDF-e autorizado pode ser cancelado.");
+    }
+
+    if (!context.mdfe.chave_acesso) {
+      throw new Error("MDF-e autorizado sem chave de acesso para cancelamento.");
+    }
+
+    if (!context.certificado.conteudo_pfx || !context.certificado.senha_criptografada) {
+      throw new Error("Certificado A1 da filial não configurado para cancelamento do MDF-e.");
+    }
+
+    if (!onlyDigits(context.emitente.cpf_cnpj)) {
+      throw new Error("Emitente sem CNPJ válido para cancelamento do MDF-e.");
+    }
+
+    return normalizeCancelamentoPayload(payload);
+  }
+
   static async atualizarMdfe(client, mdfeId, payload = {}) {
     const safeMdfeId = parseInteger(mdfeId, { label: "MDF-e" });
     const { setClause, values } = buildSetClause(payload);
@@ -596,6 +678,44 @@ class MdfeIntegrationDAO {
         )
       `,
       [safeMdfeId, tipoXml, conteudoXml, await sha256(conteudoXml)]
+    );
+  }
+
+  static async marcarEncerrado(client, mdfeId, encerramento = {}) {
+    const safeMdfeId = parseInteger(mdfeId, { label: "MDF-e" });
+
+    await client.query(
+      `
+        UPDATE fiscal.mdfe
+        SET
+          status = 'encerrado',
+          data_encerramento = NOW(),
+          municipio_encerramento_codigo = $2,
+          municipio_encerramento_nome = $3,
+          uf_encerramento = $4
+        WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+          AND mdfe_id = $1
+      `,
+      [
+        safeMdfeId,
+        encerramento.municipio_codigo,
+        encerramento.municipio_nome,
+        encerramento.uf,
+      ]
+    );
+  }
+
+  static async marcarCancelado(client, mdfeId) {
+    const safeMdfeId = parseInteger(mdfeId, { label: "MDF-e" });
+
+    await client.query(
+      `
+        UPDATE fiscal.mdfe
+        SET status = 'cancelado'
+        WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+          AND mdfe_id = $1
+      `,
+      [safeMdfeId]
     );
   }
 

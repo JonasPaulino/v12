@@ -112,6 +112,16 @@ export const processarManifestoMdfe = async (id) => {
   return data;
 };
 
+export const encerrarManifestoMdfe = async (id, payload) => {
+  const { data } = await acbrApi.post(`/mdfe/${id}/encerrar`, payload);
+  return data;
+};
+
+export const cancelarManifestoMdfe = async (id, payload) => {
+  const { data } = await acbrApi.post(`/mdfe/${id}/cancelar`, payload);
+  return data;
+};
+
 export const downloadDamdfeMdfe = async (id) => {
   const { data } = await acbrApi.get(`/mdfe/${id}/damdfe`, {
     responseType: "blob",
