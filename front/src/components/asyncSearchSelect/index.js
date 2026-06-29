@@ -19,6 +19,8 @@ const AsyncSearchSelect = ({
   getOptionValue = defaultGetOptionValue,
   getOptionLabel = defaultGetOptionLabel,
   getOptionMeta,
+  getOptionDisabled,
+  onDisabledSelect,
 }) => {
   const {
     containerRef,
@@ -66,12 +68,18 @@ const AsyncSearchSelect = ({
               ) : (
                 options.map((option) => {
                   const optionValue = getOptionValue(option);
+                  const optionDisabled = !!getOptionDisabled?.(option);
                   return (
                     <C.OptionButton
                       key={optionValue}
                       type="button"
                       $active={String(optionValue) === String(value || "")}
+                      $disabled={optionDisabled}
                       onClick={() => {
+                        if (optionDisabled) {
+                          onDisabledSelect?.(option);
+                          return;
+                        }
                         onSelect(optionValue, option);
                         close();
                       }}

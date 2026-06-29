@@ -72,6 +72,9 @@ const parseNumeric = (value) => {
 
 const isItemLinked = (item) => String(item?.produto_id || "").trim().length > 0;
 
+const produtoSemEstoqueDisponivel = (produto) =>
+  !!produto?.controla_estoque && Number(produto?.estoque_atual || 0) <= 0;
+
 const sanitizeItemsForSubmit = (items = []) => {
   const normalizedItems = Array.isArray(items) ? items : [];
   const linkedItems = normalizedItems.filter(isItemLinked);
@@ -441,9 +444,22 @@ export const useModalVenda = ({ isOpen, vendaId, onClose }) => {
     }));
   };
 
-  const handleSelectProduto = async (index, produtoId) => {
-    const produto = produtosMap.get(Number(produtoId));
+  const handleSelectProduto = async (index, produtoId, selectedProduto = null) => {
+    const produto = selectedProduto || produtosMap.get(Number(produtoId));
     const duplicateIndex = findDuplicateItemIndex(form.items, produtoId, index);
+
+    if (produtoSemEstoqueDisponivel(produto)) {
+      await showAlert({
+        title: "Produto sem estoque",
+        text: "Esse produto não pode ser selecionado pois controla estoque e está zerado.",
+        icon: "warning",
+      });
+
+      window.setTimeout(() => {
+        focusField(`item_produto_${index}`);
+      }, 60);
+      return;
+    }
 
     if (duplicateIndex >= 0) {
       await showAlert({
@@ -598,6 +614,16 @@ export const useModalVenda = ({ isOpen, vendaId, onClose }) => {
     for (let index = 0; index < itemsToValidate.length; index += 1) {
       const produtoId = String(itemsToValidate[index]?.produto_id || "").trim();
       if (!produtoId) continue;
+      const produto = produtosMap.get(Number(produtoId));
+
+      if (produtoSemEstoqueDisponivel(produto)) {
+        return {
+          field: `item_produto_${index}`,
+          label: `Produto do item ${index + 1}`,
+          tab: "itens",
+          customMessage: "Esse produto não pode ser selecionado pois controla estoque e está zerado.",
+        };
+      }
 
       if (seenProducts.has(produtoId)) {
         return {
@@ -710,5 +736,6 @@ export const useModalVenda = ({ isOpen, vendaId, onClose }) => {
     selectedPessoa:
       pessoasMap.get(Number(form.pessoa_id)) || null,
     getProdutoSelecionado: (produtoId) => produtosMap.get(Number(produtoId)) || null,
+    isProdutoSemEstoque: produtoSemEstoqueDisponivel,
   };
 };

@@ -249,9 +249,10 @@ class VendaDAO {
   }
 
   static async listarProdutosSelect(client, { search = "", limit = 20 } = {}) {
-    const values = [];
     const safeLimit = Number(limit) > 0 ? Math.min(Number(limit), 50) : 20;
     const normalizedSearch = String(search || "").trim();
+    const depositoId = await EstoqueDAO.obterDepositoPadrao(client);
+    const values = [depositoId];
 
     let where = `
         WHERE p.tenant_id = ${TENANT_CONTEXT_SQL}
@@ -277,8 +278,10 @@ class VendaDAO {
           p.produto_id,
           COALESCE(NULLIF(p.codigo_interno, ''), p.produto_id::varchar(60)) AS codigo_interno,
           p.descricao,
+          p.controla_estoque,
           COALESCE(um.sigla, '') AS unidade_sigla,
-          COALESCE(pp.preco_venda, 0) AS preco_venda
+          COALESCE(pp.preco_venda, 0) AS preco_venda,
+          COALESCE(pe.estoque_atual, 0) AS estoque_atual
         FROM produto p
         LEFT JOIN produto_unidade pu ON pu.produto_id = p.produto_id
         LEFT JOIN unidade_medida um ON um.unidade_medida_id = pu.unidade_comercial_id
@@ -291,6 +294,10 @@ class VendaDAO {
          AND pp.tabela_preco_id = tp.tabela_preco_id
          AND pp.ativo = TRUE
          AND (pp.data_fim IS NULL OR pp.data_fim >= CURRENT_DATE)
+        LEFT JOIN produto_estoque pe
+          ON pe.produto_id = p.produto_id
+         AND pe.deposito_id = $1
+         AND pe.tenant_id = p.tenant_id
         ${where}
         ORDER BY p.descricao
         LIMIT $${values.length}
@@ -300,7 +307,9 @@ class VendaDAO {
 
     return rows.map((row) => ({
       ...row,
+      controla_estoque: !!row.controla_estoque,
       preco_venda: Number(row.preco_venda || 0),
+      estoque_atual: Number(row.estoque_atual || 0),
     }));
   }
 

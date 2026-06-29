@@ -14,6 +14,16 @@ const mapStatusParcelaTone = (status) => {
   return "warning";
 };
 
+const formatProdutoMeta = (option) => {
+  const base = `${option.unidade_sigla || "--"} · ${currencyFormatter.format(
+    Number(option.preco_venda || 0)
+  )}`;
+
+  if (!option.controla_estoque) return base;
+
+  return `${base} · Estoque ${Number(option.estoque_atual || 0).toLocaleString("pt-BR")}`;
+};
+
 export const ModalVenda = ({ isOpen, vendaId, onClose }) => {
   const {
     activeTab,
@@ -38,6 +48,7 @@ export const ModalVenda = ({ isOpen, vendaId, onClose }) => {
     handleSubmit,
     selectedPessoa,
     getProdutoSelecionado,
+    isProdutoSemEstoque,
   } = useModalVenda({
     isOpen,
     vendaId,
@@ -268,21 +279,25 @@ export const ModalVenda = ({ isOpen, vendaId, onClose }) => {
                               inputRef={registerFieldRef(`item_produto_${index}`)}
                               value={item.produto_id}
                               selectedOption={getProdutoSelecionado(item.produto_id)}
-                              onSelect={(produtoId) => handleSelectProduto(index, produtoId)}
+                              onSelect={(produtoId, produto) =>
+                                handleSelectProduto(index, produtoId, produto)
+                              }
                               loadOptions={loadProdutosOptions}
                               placeholder="Selecione um produto"
                               searchPlaceholder="Digite código ou descrição"
                               emptyMessage="Nenhum produto encontrado."
                               minChars={0}
                               getOptionValue={(option) => option.produto_id}
+                              getOptionDisabled={isProdutoSemEstoque}
+                              onDisabledSelect={(produto) =>
+                                handleSelectProduto(index, produto.produto_id, produto)
+                              }
                               getOptionLabel={(option) =>
-                                `${option.codigo_interno} - ${option.descricao}`
+                                `${option.codigo_interno} - ${option.descricao}${
+                                  isProdutoSemEstoque(option) ? " (sem estoque)" : ""
+                                }`
                               }
-                              getOptionMeta={(option) =>
-                                `${option.unidade_sigla || "--"} · ${currencyFormatter.format(
-                                  Number(option.preco_venda || 0)
-                                )}`
-                              }
+                              getOptionMeta={formatProdutoMeta}
                             />
                           </C.InlineField>
 

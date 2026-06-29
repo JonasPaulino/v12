@@ -52,14 +52,15 @@ export const OptionButton = styled.button`
   border-top: 1px solid ${({ theme }) => theme.colors.border};
   background: ${({ $active }) => ($active ? "rgba(11, 95, 255, 0.08)" : "transparent")};
   text-align: left;
-  cursor: pointer;
+  cursor: ${({ $disabled }) => ($disabled ? "not-allowed" : "pointer")};
+  opacity: ${({ $disabled }) => ($disabled ? 0.48 : 1)};
 
   &:first-child {
     border-top: 0;
   }
 
   &:hover {
-    background: rgba(11, 95, 255, 0.08);
+    background: ${({ $disabled }) => ($disabled ? "transparent" : "rgba(11, 95, 255, 0.08)")};
   }
 `;
 
