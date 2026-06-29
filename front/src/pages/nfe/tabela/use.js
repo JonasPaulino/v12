@@ -111,9 +111,6 @@ export const useTabelaNfe = ({ search, status, refreshKey, onChanged }) => {
   };
 
   const handleProcessar = async (nfe) => {
-    const danfeWindow = window.open("", "_blank", "noopener,noreferrer");
-    let danfeAberto = false;
-
     await runAction(
       () => processarNfe(nfe.nfe_id),
       "Integração iniciada",
@@ -121,22 +118,10 @@ export const useTabelaNfe = ({ search, status, refreshKey, onChanged }) => {
       "Enviando NF-e para integração fiscal...",
       ({ mappedStatus }) => {
         if (mappedStatus === "autorizada") {
-          if (danfeWindow) {
-            danfeWindow.location.href = `/reports/nfe/${nfe.nfe_id}/danfe`;
-          } else {
-            window.open(`/reports/nfe/${nfe.nfe_id}/danfe`, "_blank", "noopener,noreferrer");
-          }
-          danfeAberto = true;
-          return;
+          window.open(`/reports/nfe/${nfe.nfe_id}/danfe`, "_blank", "noopener,noreferrer");
         }
-
-        danfeWindow?.close();
       }
     );
-
-    if (!danfeAberto) {
-      danfeWindow?.close();
-    }
   };
 
   const handleConsultarStatus = async (nfe) =>
@@ -203,6 +188,11 @@ export const useTabelaNfe = ({ search, status, refreshKey, onChanged }) => {
     window.open(`/reports/nfe/${nfe.nfe_id}/danfe`, "_blank", "noopener,noreferrer");
   };
 
+  const handleAbrirPrevia = (nfe) => {
+    if (!nfe?.nfe_id) return;
+    window.open(`/reports/nfe/${nfe.nfe_id}/previa`, "_blank", "noopener,noreferrer");
+  };
+
   return {
     nfes,
     page,
@@ -213,6 +203,7 @@ export const useTabelaNfe = ({ search, status, refreshKey, onChanged }) => {
     handleProcessar,
     handleConsultarStatus,
     handleAbrirDanfe,
+    handleAbrirPrevia,
     handleCancelar,
   };
 };

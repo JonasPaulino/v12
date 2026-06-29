@@ -22,6 +22,11 @@ const canProcessar = (status) =>
     String(status || "").toLowerCase()
   );
 
+const canPreview = (status) =>
+  ["rascunho", "erro_integracao", "rejeitada", "processando"].includes(
+    String(status || "").toLowerCase()
+  );
+
 const formatDate = (value) => {
   if (!value) return "--";
   const date = new Date(value);
@@ -39,6 +44,7 @@ const Tabela = ({ search, status, refreshKey, onChanged }) => {
     handleProcessar,
     handleConsultarStatus,
     handleAbrirDanfe,
+    handleAbrirPrevia,
     handleCancelar,
   } = useTabelaNfe({
     search,
@@ -183,6 +189,11 @@ const Tabela = ({ search, status, refreshKey, onChanged }) => {
                             label: "Consultar status",
                             disabled: !nfe.chave_acesso,
                             onClick: () => handleConsultarStatus(nfe),
+                          },
+                          {
+                            label: "Prévia da NF-e",
+                            disabled: !canPreview(nfe.status),
+                            onClick: () => handleAbrirPrevia(nfe),
                           },
                           {
                             label: "Imprimir DANFE",
