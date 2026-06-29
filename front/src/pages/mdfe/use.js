@@ -59,9 +59,6 @@ const initialSeguradoraForm = () => ({
 });
 
 const initialManifestoForm = () => ({
-  serie: "1",
-  numero: "",
-  ambiente: "2",
   tipo_emitente: "2",
   modal: "1",
   tipo_transportador: "",
@@ -92,9 +89,6 @@ const initialManifestoForm = () => ({
 
 const mapManifestoToForm = (manifesto = {}) => ({
   ...initialManifestoForm(),
-  serie: String(manifesto.serie ?? "1"),
-  numero: manifesto.numero ? String(manifesto.numero) : "",
-  ambiente: manifesto.ambiente || "2",
   tipo_emitente: manifesto.tipo_emitente || "2",
   modal: manifesto.modal || "1",
   tipo_transportador: manifesto.tipo_transportador || "",

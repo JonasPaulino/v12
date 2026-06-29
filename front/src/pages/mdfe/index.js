@@ -698,16 +698,6 @@ export const Mdfe = () => {
                       </C.Select>
                     </C.Field>
                     <C.Field>
-                      <C.FieldSpan>Ambiente</C.FieldSpan>
-                      <C.Select
-                        value={manifestoForm.ambiente}
-                        onChange={(event) => updateManifestoField("ambiente", event.target.value)}
-                      >
-                        <option value="2">Homologação</option>
-                        <option value="1">Produção</option>
-                      </C.Select>
-                    </C.Field>
-                    <C.Field>
                       <C.FieldSpan>Tipo transportador</C.FieldSpan>
                       <C.Select
                         value={manifestoForm.tipo_transportador}
@@ -716,25 +706,10 @@ export const Mdfe = () => {
                         }
                       >
                         <option value="">Não informar</option>
-                        <option value="1">ETC</option>
-                        <option value="2">TAC</option>
-                        <option value="3">CTC</option>
+                        <option value="1">ETC - Empresa de Transporte de Carga</option>
+                        <option value="2">TAC - Transportador Autônomo de Cargas</option>
+                        <option value="3">CTC - Cooperativa de Transporte de Cargas</option>
                       </C.Select>
-                    </C.Field>
-                    <C.Field>
-                      <C.FieldSpan>Série</C.FieldSpan>
-                      <C.Input
-                        value={manifestoForm.serie}
-                        onChange={(event) => updateManifestoField("serie", event.target.value)}
-                      />
-                    </C.Field>
-                    <C.Field>
-                      <C.FieldSpan>Número</C.FieldSpan>
-                      <C.Input
-                        value={manifestoForm.numero}
-                        onChange={(event) => updateManifestoField("numero", event.target.value)}
-                        placeholder="Opcional"
-                      />
                     </C.Field>
                     <C.Field>
                       <C.FieldSpan>UF início</C.FieldSpan>

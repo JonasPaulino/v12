@@ -75,7 +75,7 @@ class MdfeIntegrationDAO {
           t.tenant_id,
           COALESCE(p.pessoa_cpf_cnpj, t.tenant_documento) AS documento,
           pe.uf,
-          cfg.ambiente_nfe,
+          cfg.ambiente_mdfe,
           cert.conteudo_pfx,
           cert.senha_criptografada
         FROM tenant t
@@ -118,7 +118,7 @@ class MdfeIntegrationDAO {
       tenantId: row.tenant_id,
       cnpjCpf,
       uf: String(row.uf || "").trim().toUpperCase(),
-      ambiente: row.ambiente_nfe || "2",
+      ambiente: row.ambiente_mdfe || "2",
       certificado: {
         conteudo_pfx: row.conteudo_pfx,
         senha_criptografada: row.senha_criptografada,
@@ -197,7 +197,7 @@ class MdfeIntegrationDAO {
           m.*,
           COALESCE(m.emitente_pessoa_id, t.pessoa_id) AS emitente_pessoa_id_resolvido,
           cfg.mdfe_habilitado,
-          cfg.ambiente_nfe,
+          cfg.ambiente_mdfe,
           cert.conteudo_pfx,
           cert.senha_criptografada,
           emit.pessoa_nome_razao AS emitente_nome_razao,
@@ -364,7 +364,7 @@ class MdfeIntegrationDAO {
         veiculo_tracao_id: row.veiculo_tracao_id,
         serie: Number(row.serie || 1),
         numero: row.numero ? Number(row.numero) : null,
-        ambiente: row.ambiente || row.ambiente_nfe || "2",
+        ambiente: row.ambiente || row.ambiente_mdfe || "2",
         tipo_emitente: row.tipo_emitente || "2",
         modal: row.modal || "1",
         tipo_transportador: row.tipo_transportador || "",

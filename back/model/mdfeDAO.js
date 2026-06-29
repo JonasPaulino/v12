@@ -273,7 +273,7 @@ const normalizeCiot = (ciot = {}) => {
   };
 };
 
-const normalizeManifestoPayload = (payload = {}) => {
+const normalizeManifestoPayload = (payload = {}, defaults = {}) => {
   const documentos = Array.isArray(payload.documentos)
     ? payload.documentos.filter((item) => item?.chave_acesso).map(normalizeDocumento)
     : [];
@@ -338,6 +338,20 @@ const normalizeManifestoPayload = (payload = {}) => {
     ? payload.ciot.map(normalizeCiot).filter(Boolean)
     : [];
 
+  const ambiente = normalizeText(payload.ambiente ?? defaults.ambiente_mdfe ?? "2", 1, {
+    required: true,
+    label: "Ambiente do MDF-e",
+  });
+  const tipoTransportador = normalizeText(payload.tipo_transportador, 1);
+
+  if (!["1", "2"].includes(ambiente)) {
+    throw new Error("Ambiente do MDF-e inválido.");
+  }
+
+  if (tipoTransportador && !["1", "2", "3"].includes(tipoTransportador)) {
+    throw new Error("Tipo de transportador do MDF-e inválido.");
+  }
+
   return {
     emitente_pessoa_id: parseInteger(payload.emitente_pessoa_id, {
       allowNull: true,
@@ -347,15 +361,18 @@ const normalizeManifestoPayload = (payload = {}) => {
       allowNull: false,
       label: "Veículo tração",
     }),
-    serie: parseInteger(payload.serie || 1, { label: "Série" }),
-    numero: parseInteger(payload.numero, { allowNull: true, label: "Número" }),
-    ambiente: normalizeText(payload.ambiente || "2", 1, { required: true, label: "Ambiente" }),
+    serie: parseInteger(payload.serie ?? defaults.serie_mdfe_padrao ?? 1, { label: "Série" }),
+    numero: parseInteger(payload.numero ?? defaults.numero ?? null, {
+      allowNull: true,
+      label: "Número",
+    }),
+    ambiente,
     tipo_emitente: normalizeText(payload.tipo_emitente || "2", 1, {
       required: true,
       label: "Tipo emitente",
     }),
     modal: normalizeText(payload.modal || "1", 2, { required: true, label: "Modal" }),
-    tipo_transportador: normalizeText(payload.tipo_transportador, 1),
+    tipo_transportador: tipoTransportador,
     uf_inicio: normalizeUf(payload.uf_inicio, "UF início"),
     uf_fim: normalizeUf(payload.uf_fim, "UF fim"),
     municipio_carregamento_codigo: normalizeIbgeCode(
@@ -378,6 +395,25 @@ const normalizeManifestoPayload = (payload = {}) => {
 };
 
 class MdfeDAO {
+  static async buscarConfiguracaoMdfe(client) {
+    const { rows } = await client.query(
+      `
+        SELECT
+          ambiente_mdfe,
+          serie_mdfe_padrao
+        FROM tenant_configuracao_fiscal
+        WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+        LIMIT 1
+      `
+    );
+
+    const row = rows[0] || {};
+    return {
+      ambiente_mdfe: row.ambiente_mdfe || "2",
+      serie_mdfe_padrao: Number(row.serie_mdfe_padrao ?? 1),
+    };
+  }
+
   static async listarEntidade(client, type, { page = 1, limit = 20, search = "" } = {}) {
     const config = ENTITY_TABLES[type];
     if (!config) throw new Error("Tipo de cadastro inválido.");
@@ -1073,7 +1109,30 @@ class MdfeDAO {
   }
 
   static async salvarManifesto(client, { id = null, payload = {}, usuarioId = null } = {}) {
-    const data = normalizeManifestoPayload(payload);
+    const configuracaoMdfe = await this.buscarConfiguracaoMdfe(client);
+    let manifestoAtual = null;
+
+    if (id) {
+      const { rows } = await client.query(
+        `
+          SELECT serie, numero, ambiente
+          FROM fiscal.mdfe
+          WHERE mdfe_id = $1
+            AND tenant_id = ${TENANT_CONTEXT_SQL}
+            AND excluido = FALSE
+          LIMIT 1
+        `,
+        [id]
+      );
+      manifestoAtual = rows[0] || null;
+    }
+
+    const data = normalizeManifestoPayload(payload, {
+      ...configuracaoMdfe,
+      serie_mdfe_padrao: manifestoAtual?.serie ?? configuracaoMdfe.serie_mdfe_padrao,
+      ambiente_mdfe: manifestoAtual?.ambiente ?? configuracaoMdfe.ambiente_mdfe,
+      numero: manifestoAtual?.numero ?? null,
+    });
     await this.validarVinculosManifesto(client, data);
     const valorTotalCarga = data.documentos.reduce(
       (total, item) => total + Number(item.valor_documento || 0),

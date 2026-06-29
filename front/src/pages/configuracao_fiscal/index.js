@@ -477,6 +477,75 @@ export const ConfiguracaoFiscal = () => {
                         />
                         <span>Habilitar emissão de NF-e nesta filial</span>
                       </C.ToggleRow>
+
+                      <C.CardHeader>
+                        <C.CardTitle>Parâmetros do MDF-e</C.CardTitle>
+                        <C.CardText>
+                          Estes dados definem o ambiente, série e numeração padrão dos
+                          manifestos eletrônicos emitidos pela filial.
+                        </C.CardText>
+                      </C.CardHeader>
+
+                      <C.FieldsGrid>
+                        <C.Field>
+                          <C.FieldSpan>
+                            Ambiente MDF-e
+                            <C.RequiredMark title={requiredTitle}>*</C.RequiredMark>
+                          </C.FieldSpan>
+                          <C.Select
+                            value={form.ambiente_mdfe}
+                            onChange={(event) => updateField("ambiente_mdfe", event.target.value)}
+                          >
+                            <option value="1">1 - Produção</option>
+                            <option value="2">2 - Homologação</option>
+                          </C.Select>
+                        </C.Field>
+
+                        <C.Field>
+                          <C.FieldSpan>
+                            Série padrão MDF-e
+                            <C.RequiredMark title={requiredTitle}>*</C.RequiredMark>
+                          </C.FieldSpan>
+                          <C.Input
+                            value={form.serie_mdfe_padrao}
+                            onChange={(event) =>
+                              updateField("serie_mdfe_padrao", event.target.value)
+                            }
+                            inputMode="numeric"
+                            min="0"
+                            max="999"
+                            placeholder="1"
+                          />
+                        </C.Field>
+
+                        <C.Field>
+                          <C.FieldSpan>
+                            Próximo número MDF-e
+                            <C.RequiredMark title={requiredTitle}>*</C.RequiredMark>
+                          </C.FieldSpan>
+                          <C.Input
+                            value={form.proximo_numero_mdfe}
+                            onChange={(event) =>
+                              updateField("proximo_numero_mdfe", event.target.value)
+                            }
+                            inputMode="numeric"
+                            min="1"
+                            max="999999999"
+                            placeholder="1"
+                          />
+                        </C.Field>
+                      </C.FieldsGrid>
+
+                      <C.ToggleRow>
+                        <C.Checkbox
+                          type="checkbox"
+                          checked={form.mdfe_habilitado}
+                          onChange={(event) =>
+                            updateField("mdfe_habilitado", event.target.checked)
+                          }
+                        />
+                        <span>Habilitar emissão de MDF-e nesta filial</span>
+                      </C.ToggleRow>
                     </C.SectionBody>
                   ) : null}
 

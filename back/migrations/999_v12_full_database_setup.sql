@@ -1037,6 +1037,10 @@ CREATE TABLE IF NOT EXISTS tenant_configuracao_fiscal (
     CHECK (ambiente_nfe IN ('1', '2')),
   serie_nfe_padrao INTEGER NOT NULL DEFAULT 1,
   proximo_numero_nfe INTEGER NOT NULL DEFAULT 1,
+  ambiente_mdfe VARCHAR(1) NOT NULL DEFAULT '2',
+  serie_mdfe_padrao INTEGER NOT NULL DEFAULT 1,
+  proximo_numero_mdfe INTEGER NOT NULL DEFAULT 1,
+  mdfe_habilitado BOOLEAN NOT NULL DEFAULT TRUE,
   crt VARCHAR(1) NOT NULL DEFAULT '3'
     CHECK (crt IN ('1', '2', '3')),
   cnae VARCHAR(7),
@@ -1141,6 +1145,10 @@ INSERT INTO tenant_configuracao_fiscal (
   ambiente_nfe,
   serie_nfe_padrao,
   proximo_numero_nfe,
+  ambiente_mdfe,
+  serie_mdfe_padrao,
+  proximo_numero_mdfe,
+  mdfe_habilitado,
   crt,
   natureza_operacao_padrao,
   nfe_habilitada
@@ -1150,6 +1158,10 @@ SELECT
   '2',
   1,
   1,
+  '2',
+  1,
+  1,
+  TRUE,
   '3',
   'Venda de mercadoria',
   FALSE

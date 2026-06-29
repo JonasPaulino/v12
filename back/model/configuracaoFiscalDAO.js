@@ -345,6 +345,10 @@ class ConfiguracaoFiscalDAO {
           cfg.ambiente_nfe,
           cfg.serie_nfe_padrao,
           cfg.proximo_numero_nfe,
+          cfg.ambiente_mdfe,
+          cfg.serie_mdfe_padrao,
+          cfg.proximo_numero_mdfe,
+          cfg.mdfe_habilitado,
           cfg.crt,
           cfg.cnae,
           cfg.natureza_operacao_padrao,
@@ -414,6 +418,10 @@ class ConfiguracaoFiscalDAO {
         ambiente_nfe: row.ambiente_nfe || "2",
         serie_nfe_padrao: Number(row.serie_nfe_padrao ?? 1),
         proximo_numero_nfe: Number(row.proximo_numero_nfe ?? 1),
+        ambiente_mdfe: row.ambiente_mdfe || "2",
+        serie_mdfe_padrao: Number(row.serie_mdfe_padrao ?? 1),
+        proximo_numero_mdfe: Number(row.proximo_numero_mdfe ?? 1),
+        mdfe_habilitado: row.mdfe_habilitado !== false,
         crt: row.crt || "3",
         cnae: row.cnae || "",
         natureza_operacao_padrao: row.natureza_operacao_padrao || "",
@@ -479,6 +487,15 @@ class ConfiguracaoFiscalDAO {
       throw new Error("Ambiente da NF-e inválido.");
     }
 
+    const ambienteMdfe = normalizeText(payload.ambiente_mdfe ?? "2", 1, {
+      required: true,
+      label: "Ambiente do MDF-e",
+    });
+
+    if (!["1", "2"].includes(ambienteMdfe)) {
+      throw new Error("Ambiente do MDF-e inválido.");
+    }
+
     const serieNfePadrao = parseInteger(payload.serie_nfe_padrao, {
       min: 0,
       max: 999,
@@ -488,6 +505,17 @@ class ConfiguracaoFiscalDAO {
     const proximoNumeroNfe = parseInteger(payload.proximo_numero_nfe, {
       max: 999999999,
       label: "Próximo número da NF-e",
+    });
+
+    const serieMdfePadrao = parseInteger(payload.serie_mdfe_padrao ?? 1, {
+      min: 0,
+      max: 999,
+      label: "Série padrão do MDF-e",
+    });
+
+    const proximoNumeroMdfe = parseInteger(payload.proximo_numero_mdfe ?? 1, {
+      max: 999999999,
+      label: "Próximo número do MDF-e",
     });
 
     const certificado = payload.certificado || {};
@@ -577,6 +605,10 @@ class ConfiguracaoFiscalDAO {
       ambiente_nfe: ambienteNfe,
       serie_nfe_padrao: serieNfePadrao,
       proximo_numero_nfe: proximoNumeroNfe,
+      ambiente_mdfe: ambienteMdfe,
+      serie_mdfe_padrao: serieMdfePadrao,
+      proximo_numero_mdfe: proximoNumeroMdfe,
+      mdfe_habilitado: normalizeBoolean(payload.mdfe_habilitado, true),
       crt,
       cnae: normalizeText(payload.cnae, 7, { label: "CNAE" }),
       natureza_operacao_padrao: normalizeText(payload.natureza_operacao_padrao, 120, {
@@ -699,6 +731,10 @@ class ConfiguracaoFiscalDAO {
             ambiente_nfe,
             serie_nfe_padrao,
             proximo_numero_nfe,
+            ambiente_mdfe,
+            serie_mdfe_padrao,
+            proximo_numero_mdfe,
+            mdfe_habilitado,
             crt,
             cnae,
             natureza_operacao_padrao,
@@ -714,13 +750,21 @@ class ConfiguracaoFiscalDAO {
             $5,
             $6,
             $7,
-            $8
+            $8,
+            $9,
+            $10,
+            $11,
+            $12
           )
           ON CONFLICT (tenant_id) DO UPDATE
           SET
             ambiente_nfe = EXCLUDED.ambiente_nfe,
             serie_nfe_padrao = EXCLUDED.serie_nfe_padrao,
             proximo_numero_nfe = EXCLUDED.proximo_numero_nfe,
+            ambiente_mdfe = EXCLUDED.ambiente_mdfe,
+            serie_mdfe_padrao = EXCLUDED.serie_mdfe_padrao,
+            proximo_numero_mdfe = EXCLUDED.proximo_numero_mdfe,
+            mdfe_habilitado = EXCLUDED.mdfe_habilitado,
             crt = EXCLUDED.crt,
             cnae = EXCLUDED.cnae,
             natureza_operacao_padrao = EXCLUDED.natureza_operacao_padrao,
@@ -731,6 +775,10 @@ class ConfiguracaoFiscalDAO {
           data.ambiente_nfe,
           data.serie_nfe_padrao,
           data.proximo_numero_nfe,
+          data.ambiente_mdfe,
+          data.serie_mdfe_padrao,
+          data.proximo_numero_mdfe,
+          data.mdfe_habilitado,
           data.crt,
           data.cnae,
           data.natureza_operacao_padrao,
