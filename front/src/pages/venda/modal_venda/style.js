@@ -279,7 +279,7 @@ export const ItemsScroll = styled.div`
   height: 100%;
   overflow: auto;
   -webkit-overflow-scrolling: touch;
-  scrollbar-gutter: stable both-edges;
+  scrollbar-gutter: stable;
   overscroll-behavior: contain;
 
   @media (max-width: 640px) {
