@@ -17,7 +17,7 @@ const normalizeText = (value, maxLength, { required = false, label = "Campo" } =
   return maxLength ? normalized.slice(0, maxLength) : normalized;
 };
 
-const parseInteger = (value, { allowNull = false, min = 1, label = "Campo" } = {}) => {
+const parseInteger = (value, { allowNull = false, min = 1, max = null, label = "Campo" } = {}) => {
   if (value === undefined || value === null || value === "") {
     if (allowNull) return null;
     throw new Error(`${label} obrigatório.`);
@@ -25,7 +25,7 @@ const parseInteger = (value, { allowNull = false, min = 1, label = "Campo" } = {
 
   const parsed = Number(value);
 
-  if (!Number.isInteger(parsed) || parsed < min) {
+  if (!Number.isInteger(parsed) || parsed < min || (max !== null && parsed > max)) {
     throw new Error(`${label} inválido.`);
   }
 
@@ -412,8 +412,8 @@ class ConfiguracaoFiscalDAO {
       emitente,
       fiscal: {
         ambiente_nfe: row.ambiente_nfe || "2",
-        serie_nfe_padrao: Number(row.serie_nfe_padrao || 1),
-        proximo_numero_nfe: Number(row.proximo_numero_nfe || 1),
+        serie_nfe_padrao: Number(row.serie_nfe_padrao ?? 1),
+        proximo_numero_nfe: Number(row.proximo_numero_nfe ?? 1),
         crt: row.crt || "3",
         cnae: row.cnae || "",
         natureza_operacao_padrao: row.natureza_operacao_padrao || "",
@@ -480,10 +480,13 @@ class ConfiguracaoFiscalDAO {
     }
 
     const serieNfePadrao = parseInteger(payload.serie_nfe_padrao, {
+      min: 0,
+      max: 999,
       label: "Série padrão",
     });
 
     const proximoNumeroNfe = parseInteger(payload.proximo_numero_nfe, {
+      max: 999999999,
       label: "Próximo número da NF-e",
     });
 

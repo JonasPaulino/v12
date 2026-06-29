@@ -413,6 +413,8 @@ export const ConfiguracaoFiscal = () => {
                             value={form.serie_nfe_padrao}
                             onChange={(event) => updateField("serie_nfe_padrao", event.target.value)}
                             inputMode="numeric"
+                            min="0"
+                            max="999"
                             placeholder="1"
                           />
                         </C.Field>
@@ -428,6 +430,8 @@ export const ConfiguracaoFiscal = () => {
                               updateField("proximo_numero_nfe", event.target.value)
                             }
                             inputMode="numeric"
+                            min="1"
+                            max="999999999"
                             placeholder="1"
                           />
                         </C.Field>

@@ -1,12 +1,22 @@
 import crypto from "crypto";
 import { TENANT_CONTEXT_SQL } from "../utils/sql.js";
 
-const parseInteger = (value, { label = "Campo", min = 1 } = {}) => {
+const parseInteger = (value, { label = "Campo", min = 1, max = null } = {}) => {
   const parsed = Number(value);
-  if (!Number.isInteger(parsed) || parsed < min) {
+  if (!Number.isInteger(parsed) || parsed < min || (max !== null && parsed > max)) {
     throw new Error(`${label} inválido.`);
   }
   return parsed;
+};
+
+const isValidNfeSerie = (value) => {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed >= 0 && parsed <= 999;
+};
+
+const isValidNfeNumero = (value) => {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed >= 1 && parsed <= 999999999;
 };
 
 const onlyDigits = (value) => String(value || "").replace(/\D/g, "");
@@ -96,7 +106,7 @@ class AcbrNfeIntegrationDAO {
 
     const nfeResult = await client.query(
       `
-        SELECT nfe_id, numero
+        SELECT nfe_id, serie, numero, status, protocolo
         FROM fiscal.nfe
         WHERE tenant_id = ${TENANT_CONTEXT_SQL}
           AND nfe_id = $1
@@ -110,13 +120,12 @@ class AcbrNfeIntegrationDAO {
       throw new Error("NF-e não encontrada.");
     }
 
-    if (nfeRow.numero) {
-      return Number(nfeRow.numero);
-    }
-
     const configResult = await client.query(
       `
-        SELECT tenant_id, COALESCE(proximo_numero_nfe, 1) AS proximo_numero_nfe
+        SELECT
+          tenant_id,
+          COALESCE(serie_nfe_padrao, 1) AS serie_nfe_padrao,
+          COALESCE(proximo_numero_nfe, 1) AS proximo_numero_nfe
         FROM tenant_configuracao_fiscal
         WHERE tenant_id = ${TENANT_CONTEXT_SQL}
         FOR UPDATE
@@ -128,7 +137,40 @@ class AcbrNfeIntegrationDAO {
       throw new Error("Configuração fiscal da filial não encontrada.");
     }
 
-    const numero = Number(configRow.proximo_numero_nfe || 1);
+    const serieConfigurada = parseInteger(configRow.serie_nfe_padrao, {
+      label: "Série padrão da NF-e",
+      min: 0,
+      max: 999,
+    });
+    const proximoNumero = parseInteger(configRow.proximo_numero_nfe, {
+      label: "Próximo número da NF-e",
+      max: 999999999,
+    });
+
+    if (!isValidNfeSerie(nfeRow.serie)) {
+      if (nfeRow.protocolo || ["autorizada", "cancelada", "denegada"].includes(nfeRow.status)) {
+        throw new Error("A NF-e já possui vínculo fiscal e está com série inválida. Corrija a nota manualmente.");
+      }
+
+      await client.query(
+        `
+          UPDATE fiscal.nfe
+          SET serie = $2
+          WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+            AND nfe_id = $1
+        `,
+        [safeNfeId, serieConfigurada]
+      );
+    }
+
+    if (nfeRow.numero) {
+      return parseInteger(nfeRow.numero, {
+        label: "Número da NF-e",
+        max: 999999999,
+      });
+    }
+
+    const numero = proximoNumero;
 
     await client.query(
       `
@@ -340,7 +382,7 @@ class AcbrNfeIntegrationDAO {
         nfe_id: row.nfe_id,
         tenant_id: row.tenant_id,
         pedido_venda_id: row.pedido_venda_id,
-        serie: Number(row.serie || 1),
+        serie: Number(row.serie ?? 1),
         numero: row.numero ? Number(row.numero) : null,
         modelo: row.modelo || "55",
         chave_acesso: row.chave_acesso || "",
@@ -460,6 +502,14 @@ class AcbrNfeIntegrationDAO {
   static validarContexto(context) {
     if (!context.configuracao.nfe_habilitada) {
       throw new Error("A NF-e não está habilitada para esta filial.");
+    }
+
+    if (!isValidNfeSerie(context.nfe.serie)) {
+      throw new Error("Série da NF-e inválida. A série deve estar entre 0 e 999.");
+    }
+
+    if (!isValidNfeNumero(context.nfe.numero)) {
+      throw new Error("Número da NF-e inválido. O número deve estar entre 1 e 999999999.");
     }
 
     if (!context.certificado.conteudo_pfx) {

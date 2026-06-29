@@ -38,14 +38,14 @@ const normalizeText = (value, maxLength, { required = false, label = "Campo" } =
   return maxLength ? normalized.slice(0, maxLength) : normalized;
 };
 
-const parseInteger = (value, { allowNull = false, min = 1, label = "Campo" } = {}) => {
+const parseInteger = (value, { allowNull = false, min = 1, max = null, label = "Campo" } = {}) => {
   if (value === undefined || value === null || value === "") {
     if (allowNull) return null;
     throw new Error(`${label} obrigatório.`);
   }
 
   const parsed = Number(value);
-  if (!Number.isInteger(parsed) || parsed < min) {
+  if (!Number.isInteger(parsed) || parsed < min || (max !== null && parsed > max)) {
     throw new Error(`${label} inválido.`);
   }
 
@@ -271,8 +271,8 @@ class NfeDAO {
       configuracao: {
         nfe_habilitada: !!data.nfe_habilitada,
         ambiente_nfe: data.ambiente_nfe || "2",
-        serie_nfe_padrao: Number(data.serie_nfe_padrao || 1),
-        proximo_numero_nfe: Number(data.proximo_numero_nfe || 1),
+        serie_nfe_padrao: Number(data.serie_nfe_padrao ?? 1),
+        proximo_numero_nfe: Number(data.proximo_numero_nfe ?? 1),
         natureza_operacao_padrao: data.natureza_operacao_padrao || "",
       },
       certificado: {
@@ -554,6 +554,11 @@ class NfeDAO {
     });
 
     const observacao = normalizeText(payload.observacao || pedido.observacao, null);
+    const serieNfePadrao = parseInteger(configuracao.serie_nfe_padrao ?? 1, {
+      label: "Série padrão da NF-e",
+      min: 0,
+      max: 999,
+    });
 
     await client.query("BEGIN");
 
@@ -609,7 +614,7 @@ class NfeDAO {
           configuracao.pessoa_id,
           pedido.pessoa_id,
           usuarioId || null,
-          Number(configuracao.serie_nfe_padrao || 1),
+          serieNfePadrao,
           naturezaOperacao,
           tipoOperacao,
           finalidade,
@@ -825,6 +830,11 @@ class NfeDAO {
       required: true,
       label: "Natureza de operação",
     });
+    const serieNfePadrao = parseInteger(configuracao.serie_nfe_padrao ?? 1, {
+      label: "Série padrão da NF-e",
+      min: 0,
+      max: 999,
+    });
 
     await client.query("BEGIN");
 
@@ -878,7 +888,7 @@ class NfeDAO {
         [
           configuracao.pessoa_id,
           usuarioId || null,
-          Number(configuracao.serie_nfe_padrao || 1),
+          serieNfePadrao,
           chaveAcesso,
           naturezaOperacao,
           configuracao.ambiente_nfe || "2",

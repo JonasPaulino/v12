@@ -24,7 +24,7 @@ const normalizeDigits = (value, maxLength, { required = false, label = "Campo" }
   return maxLength ? digits.slice(0, maxLength) : digits;
 };
 
-const parseInteger = (value, { required = false, min = 1, label = "Campo" } = {}) => {
+const parseInteger = (value, { required = false, min = 1, max = null, label = "Campo" } = {}) => {
   if (value === undefined || value === null || value === "") {
     if (required) throw new Error(`${label} obrigatório.`);
     return null;
@@ -32,7 +32,7 @@ const parseInteger = (value, { required = false, min = 1, label = "Campo" } = {}
 
   const parsed = Number(value);
 
-  if (!Number.isInteger(parsed) || parsed < min) {
+  if (!Number.isInteger(parsed) || parsed < min || (max !== null && parsed > max)) {
     throw new Error(`${label} inválido.`);
   }
 
@@ -234,8 +234,8 @@ class TenantSetupDAO {
       },
       fiscal: {
         ambiente_nfe: row.ambiente_nfe || "2",
-        serie_nfe_padrao: Number(row.serie_nfe_padrao || 1),
-        proximo_numero_nfe: Number(row.proximo_numero_nfe || 1),
+        serie_nfe_padrao: Number(row.serie_nfe_padrao ?? 1),
+        proximo_numero_nfe: Number(row.proximo_numero_nfe ?? 1),
         crt: row.crt || "3",
         cnae: row.cnae || "",
         natureza_operacao_padrao: row.natureza_operacao_padrao || "Venda de mercadoria",
@@ -340,10 +340,13 @@ class TenantSetupDAO {
         crt: normalizeText(fiscal.crt, 1) || "1",
         serie_nfe_padrao: parseInteger(fiscal.serie_nfe_padrao ?? 1, {
           required: true,
+          min: 0,
+          max: 999,
           label: "Série padrão",
         }),
         proximo_numero_nfe: parseInteger(fiscal.proximo_numero_nfe ?? 1, {
           required: true,
+          max: 999999999,
           label: "Próximo número da NF-e",
         }),
         cnae: normalizeText(fiscal.cnae, 7),
@@ -825,10 +828,13 @@ class TenantSetupDAO {
         ambiente_nfe: normalizeText(fiscal.ambiente_nfe, 1) || "2",
         serie_nfe_padrao: parseInteger(fiscal.serie_nfe_padrao ?? 1, {
           required: true,
+          min: 0,
+          max: 999,
           label: "Série padrão",
         }),
         proximo_numero_nfe: parseInteger(fiscal.proximo_numero_nfe ?? 1, {
           required: true,
+          max: 999999999,
           label: "Próximo número da NF-e",
         }),
         crt: normalizeText(fiscal.crt, 1) || "3",

@@ -383,8 +383,8 @@ export const useConfiguracaoFiscalPage = () => {
     setForm({
       emitente_pessoa_id: emitente?.pessoa_id ? String(emitente.pessoa_id) : "",
       ambiente_nfe: fiscal.ambiente_nfe || "2",
-      serie_nfe_padrao: String(fiscal.serie_nfe_padrao || 1),
-      proximo_numero_nfe: String(fiscal.proximo_numero_nfe || 1),
+      serie_nfe_padrao: String(fiscal.serie_nfe_padrao ?? 1),
+      proximo_numero_nfe: String(fiscal.proximo_numero_nfe ?? 1),
       crt: fiscal.crt || "3",
       cnae: fiscal.cnae || "",
       natureza_operacao_padrao: fiscal.natureza_operacao_padrao || "",
