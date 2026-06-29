@@ -286,7 +286,7 @@ export const useModalPessoa = ({ isOpen, pessoaId, onClose }) => {
         timer: 1800,
       });
 
-      onClose(true);
+      onClose(true, response?.data || null);
     } catch (error) {
       showAlert({
         title: "Falha ao salvar",

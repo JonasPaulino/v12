@@ -116,6 +116,20 @@ router.get("/motoristas-select", async (req, res) => {
   }
 });
 
+router.get("/pessoas-select", async (req, res) => {
+  try {
+    const data = await MdfeDAO.listarPessoasMotoristaSelect(req.db, {
+      search: String(req.query.search || ""),
+      limit: Number(req.query.limit || 20),
+    });
+
+    return res.json({ success: true, data });
+  } catch (error) {
+    console.error("[mdfe] Falha ao pesquisar pessoas:", error);
+    return handleError(res, error, "Não foi possível pesquisar pessoas.", 500);
+  }
+});
+
 router.post("/motoristas", async (req, res) => {
   try {
     const data = await MdfeDAO.salvarMotorista(req.db, { payload: req.body || {} });

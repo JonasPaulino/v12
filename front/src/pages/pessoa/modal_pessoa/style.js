@@ -9,7 +9,7 @@ import { TabPillButtonBase, TabPillGroupBase } from "styles/tabPill";
 export const Overlay = styled.div`
   position: fixed;
   inset: 0;
-  z-index: 110;
+  z-index: 10020;
   display: flex;
   align-items: center;
   justify-content: center;

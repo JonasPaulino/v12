@@ -147,13 +147,8 @@ const normalizeVeiculoPayload = (payload = {}) => {
 };
 
 const normalizeMotoristaPayload = (payload = {}) => {
-  const cpf = onlyDigits(payload.cpf);
-  if (cpf.length !== 11) throw new Error("CPF do motorista deve conter 11 dígitos.");
-
   return {
-    pessoa_id: parseInteger(payload.pessoa_id, { allowNull: true, label: "Pessoa" }),
-    nome: normalizeText(payload.nome, 180, { required: true, label: "Nome" }),
-    cpf,
+    pessoa_id: parseInteger(payload.pessoa_id, { allowNull: false, label: "Pessoa" }),
     cnh: normalizeText(payload.cnh, 20),
     telefone: normalizeText(payload.telefone, 20),
     ativo: parseBoolean(payload.ativo, true),
@@ -349,6 +344,90 @@ class MdfeDAO {
     return result.data.filter((item) => item.ativo);
   }
 
+  static async listarPessoasMotoristaSelect(client, { search = "", limit = 20 } = {}) {
+    const values = [];
+    const safeLimit = Number(limit) > 0 ? Math.min(Number(limit), 50) : 20;
+    const normalizedSearch = String(search || "").trim();
+
+    let where = `
+      WHERE p.pessoa_ativo = TRUE
+        AND p.pessoa_excluido = FALSE
+    `;
+
+    if (normalizedSearch) {
+      values.push(`%${normalizedSearch}%`);
+      where += `
+        AND (
+          LOWER(unaccent(p.pessoa_nome_razao)) LIKE LOWER(unaccent($${values.length}))
+          OR LOWER(unaccent(COALESCE(p.pessoa_cpf_cnpj, ''))) LIKE LOWER(unaccent($${values.length}))
+        )
+      `;
+    }
+
+    values.push(safeLimit);
+
+    const { rows } = await client.query(
+      `
+        SELECT
+          p.pessoa_id,
+          p.pessoa_nome_razao,
+          p.pessoa_cpf_cnpj,
+          p.pessoa_telefone
+        FROM pessoa p
+        JOIN pessoa_tenant pt
+          ON pt.pessoa_id = p.pessoa_id
+         AND pt.tenant_id = ${TENANT_CONTEXT_SQL}
+         AND pt.ativo = TRUE
+        ${where}
+        ORDER BY p.pessoa_nome_razao
+        LIMIT $${values.length}
+      `,
+      values
+    );
+
+    return rows;
+  }
+
+  static async buscarPessoaMotorista(client, pessoaId) {
+    const { rows } = await client.query(
+      `
+        SELECT
+          p.pessoa_id,
+          p.pessoa_nome_razao,
+          p.pessoa_cpf_cnpj,
+          p.pessoa_telefone
+        FROM pessoa p
+        JOIN pessoa_tenant pt
+          ON pt.pessoa_id = p.pessoa_id
+         AND pt.tenant_id = ${TENANT_CONTEXT_SQL}
+         AND pt.ativo = TRUE
+        WHERE p.pessoa_id = $1
+          AND p.pessoa_ativo = TRUE
+          AND p.pessoa_excluido = FALSE
+        LIMIT 1
+      `,
+      [pessoaId]
+    );
+
+    const pessoa = rows[0];
+    if (!pessoa) throw new Error("Pessoa do motorista não encontrada.");
+
+    const cpf = onlyDigits(pessoa.pessoa_cpf_cnpj);
+    if (cpf.length !== 11) {
+      throw new Error("A pessoa selecionada para motorista precisa ter CPF válido.");
+    }
+
+    return {
+      pessoa_id: pessoa.pessoa_id,
+      nome: normalizeText(pessoa.pessoa_nome_razao, 180, {
+        required: true,
+        label: "Nome da pessoa",
+      }),
+      cpf,
+      telefone: normalizeText(pessoa.pessoa_telefone, 20),
+    };
+  }
+
   static async salvarVeiculo(client, { id = null, payload = {} } = {}) {
     const data = normalizeVeiculoPayload(payload);
 
@@ -424,6 +503,8 @@ class MdfeDAO {
 
   static async salvarMotorista(client, { id = null, payload = {} } = {}) {
     const data = normalizeMotoristaPayload(payload);
+    const pessoa = await this.buscarPessoaMotorista(client, data.pessoa_id);
+    const telefone = data.telefone || pessoa.telefone;
 
     if (id) {
       const { rows } = await client.query(
@@ -435,7 +516,7 @@ class MdfeDAO {
             AND excluido = FALSE
           RETURNING *
         `,
-        [data.pessoa_id, data.nome, data.cpf, data.cnh, data.telefone, data.ativo, id]
+        [pessoa.pessoa_id, pessoa.nome, pessoa.cpf, data.cnh, telefone, data.ativo, id]
       );
       if (!rows[0]) throw new Error("Motorista não encontrado.");
       return rows[0];
@@ -449,7 +530,7 @@ class MdfeDAO {
         VALUES (${TENANT_CONTEXT_SQL}, $1, $2, $3, $4, $5, $6)
         RETURNING *
       `,
-      [data.pessoa_id, data.nome, data.cpf, data.cnh, data.telefone, data.ativo]
+      [pessoa.pessoa_id, pessoa.nome, pessoa.cpf, data.cnh, telefone, data.ativo]
     );
     return rows[0];
   }

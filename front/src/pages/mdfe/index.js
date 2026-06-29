@@ -1,9 +1,11 @@
 import React, { useContext, useState } from "react";
+import AsyncSearchSelect from "components/asyncSearchSelect";
 import DropdownMenu from "components/dropDownMenu";
 import Header from "components/header";
 import Paginacao from "components/paginacao";
 import Sidebar from "components/sidebar";
 import { AppContext } from "context";
+import { ModalPessoa } from "pages/pessoa/modal_pessoa";
 import { useMdfePage } from "./use";
 import * as C from "./style";
 
@@ -386,9 +388,15 @@ export const Mdfe = () => {
     manifestoForm,
     veiculoOptions,
     motoristaOptions,
+    selectedMotoristaPessoa,
+    pessoaModalOpen,
     openNew,
     openEdit,
     closeModal,
+    openPessoaModal,
+    closePessoaModal,
+    handleSelectMotoristaPessoa,
+    loadPessoasOptions,
     updateVeiculoField,
     updateMotoristaField,
     updateSeguradoraField,
@@ -590,24 +598,31 @@ export const Mdfe = () => {
               {modalType === "motoristas" && (
                 <C.Grid>
                   <C.FieldFull>
-                    <C.FieldSpan>Nome</C.FieldSpan>
-                    <C.Input
-                      value={motoristaForm.nome}
-                      onChange={(event) => updateMotoristaField("nome", event.target.value)}
-                    />
+                    <C.FieldSpan>Pessoa</C.FieldSpan>
+                    <C.SelectActionRow>
+                      <AsyncSearchSelect
+                        value={motoristaForm.pessoa_id}
+                        selectedOption={selectedMotoristaPessoa}
+                        onSelect={handleSelectMotoristaPessoa}
+                        loadOptions={loadPessoasOptions}
+                        placeholder="Selecione a pessoa motorista"
+                        searchPlaceholder="Digite nome ou CPF"
+                        emptyMessage="Nenhuma pessoa encontrada."
+                        minChars={0}
+                        getOptionValue={(option) => option.pessoa_id}
+                        getOptionLabel={(option) => option.pessoa_nome_razao}
+                        getOptionMeta={(option) => option.pessoa_cpf_cnpj || "Sem CPF"}
+                      />
+                      <C.SmallActionButton type="button" onClick={openPessoaModal}>
+                        Cadastrar
+                      </C.SmallActionButton>
+                    </C.SelectActionRow>
                   </C.FieldFull>
                   <C.Field>
                     <C.FieldSpan>CPF</C.FieldSpan>
                     <C.Input
-                      value={motoristaForm.cpf}
-                      onChange={(event) => updateMotoristaField("cpf", event.target.value)}
-                    />
-                  </C.Field>
-                  <C.Field>
-                    <C.FieldSpan>CNH</C.FieldSpan>
-                    <C.Input
-                      value={motoristaForm.cnh || ""}
-                      onChange={(event) => updateMotoristaField("cnh", event.target.value)}
+                      value={motoristaForm.cpf || selectedMotoristaPessoa?.pessoa_cpf_cnpj || ""}
+                      disabled
                     />
                   </C.Field>
                   <C.Field>
@@ -615,6 +630,13 @@ export const Mdfe = () => {
                     <C.Input
                       value={motoristaForm.telefone || ""}
                       onChange={(event) => updateMotoristaField("telefone", event.target.value)}
+                    />
+                  </C.Field>
+                  <C.Field>
+                    <C.FieldSpan>CNH</C.FieldSpan>
+                    <C.Input
+                      value={motoristaForm.cnh || ""}
+                      onChange={(event) => updateMotoristaField("cnh", event.target.value)}
                     />
                   </C.Field>
                   <C.CheckboxRow>
@@ -1066,6 +1088,12 @@ export const Mdfe = () => {
           </C.Modal>
         </C.ModalOverlay>
       )}
+
+      <ModalPessoa
+        isOpen={pessoaModalOpen}
+        pessoaId={null}
+        onClose={closePessoaModal}
+      />
     </C.Shell>
   );
 };

@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import Swal from "sweetalert2";
 import { AppContext } from "context";
 import { useSweetAlert } from "context/sweet_alert";
@@ -15,6 +15,7 @@ import {
   listManifestosMdfe,
   listMotoristasMdfe,
   listMotoristasMdfeSelect,
+  listPessoasMdfeSelect,
   listSeguradorasMdfe,
   listVeiculosMdfe,
   listVeiculosMdfeSelect,
@@ -42,6 +43,7 @@ const initialVeiculoForm = () => ({
 });
 
 const initialMotoristaForm = () => ({
+  pessoa_id: "",
   nome: "",
   cpf: "",
   cnh: "",
@@ -130,6 +132,27 @@ const mapManifestoToForm = (manifesto = {}) => ({
 const normalizeError = (error, fallback) =>
   error?.response?.data?.message || error?.message || fallback;
 
+const mergeUniqueOptions = (current = [], incoming = [], key = "pessoa_id") => {
+  const map = new Map();
+  [...current, ...incoming].forEach((item) => {
+    const value = item?.[key];
+    if (value !== undefined && value !== null && value !== "") {
+      map.set(Number(value), item);
+    }
+  });
+  return Array.from(map.values());
+};
+
+const mapMotoristaToPessoaOption = (motorista = {}) => {
+  if (!motorista?.pessoa_id) return null;
+  return {
+    pessoa_id: motorista.pessoa_id,
+    pessoa_nome_razao: motorista.nome,
+    pessoa_cpf_cnpj: motorista.cpf,
+    pessoa_telefone: motorista.telefone,
+  };
+};
+
 export const useMdfePage = () => {
   const { showLoading, hideLoading } = useContext(AppContext);
   const { showAlert, askYesNoQuestion } = useSweetAlert();
@@ -153,6 +176,15 @@ export const useMdfePage = () => {
   const [manifestoForm, setManifestoForm] = useState(initialManifestoForm);
   const [veiculoOptions, setVeiculoOptions] = useState([]);
   const [motoristaOptions, setMotoristaOptions] = useState([]);
+  const [pessoasOptions, setPessoasOptions] = useState([]);
+  const [pessoaModalOpen, setPessoaModalOpen] = useState(false);
+
+  const pessoasMap = useMemo(
+    () => new Map((pessoasOptions || []).map((pessoa) => [Number(pessoa.pessoa_id), pessoa])),
+    [pessoasOptions]
+  );
+
+  const selectedMotoristaPessoa = pessoasMap.get(Number(motoristaForm.pessoa_id)) || null;
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 350);
@@ -233,7 +265,10 @@ export const useMdfePage = () => {
       setEditingItem(null);
       setModalType(type);
       if (type === "veiculos") setVeiculoForm(initialVeiculoForm());
-      if (type === "motoristas") setMotoristaForm(initialMotoristaForm());
+      if (type === "motoristas") {
+        setMotoristaForm(initialMotoristaForm());
+        setPessoasOptions([]);
+      }
       if (type === "seguradoras") setSeguradoraForm(initialSeguradoraForm());
       if (type === "manifestos") {
         setManifestoForm(initialManifestoForm());
@@ -249,7 +284,13 @@ export const useMdfePage = () => {
       setModalType(type);
 
       if (type === "veiculos") setVeiculoForm({ ...initialVeiculoForm(), ...item });
-      if (type === "motoristas") setMotoristaForm({ ...initialMotoristaForm(), ...item });
+      if (type === "motoristas") {
+        setMotoristaForm({ ...initialMotoristaForm(), ...item });
+        const pessoaOption = mapMotoristaToPessoaOption(item);
+        if (pessoaOption) {
+          setPessoasOptions((prev) => mergeUniqueOptions(prev, [pessoaOption]));
+        }
+      }
       if (type === "seguradoras") setSeguradoraForm({ ...initialSeguradoraForm(), ...item });
       if (type === "manifestos") {
         try {
@@ -282,6 +323,45 @@ export const useMdfePage = () => {
 
   const updateMotoristaField = (field, value) =>
     setMotoristaForm((prev) => ({ ...prev, [field]: value }));
+
+  const handleSelectMotoristaPessoa = useCallback((pessoaId, pessoa) => {
+    if (pessoa) {
+      setPessoasOptions((prev) => mergeUniqueOptions(prev, [pessoa]));
+    }
+
+    setMotoristaForm((prev) => ({
+      ...prev,
+      pessoa_id: pessoaId,
+      nome: pessoa?.pessoa_nome_razao || prev.nome,
+      cpf: pessoa?.pessoa_cpf_cnpj || prev.cpf,
+      telefone: pessoa?.pessoa_telefone || prev.telefone,
+    }));
+  }, []);
+
+  const loadPessoasOptions = useCallback(async (search) => {
+    const response = await listPessoasMdfeSelect(search, 20);
+    const data = response?.data || [];
+    setPessoasOptions((prev) => mergeUniqueOptions(prev, data));
+    return data;
+  }, []);
+
+  const openPessoaModal = useCallback(() => {
+    setPessoaModalOpen(true);
+  }, []);
+
+  const closePessoaModal = useCallback((saved, pessoa) => {
+    setPessoaModalOpen(false);
+    if (!saved || !pessoa?.pessoa_id) return;
+
+    setPessoasOptions((prev) => mergeUniqueOptions(prev, [pessoa]));
+    setMotoristaForm((prev) => ({
+      ...prev,
+      pessoa_id: pessoa.pessoa_id,
+      nome: pessoa.pessoa_nome_razao || prev.nome,
+      cpf: pessoa.pessoa_cpf_cnpj || prev.cpf,
+      telefone: pessoa.pessoa_telefone || prev.telefone,
+    }));
+  }, []);
 
   const updateSeguradoraField = (field, value) =>
     setSeguradoraForm((prev) => ({ ...prev, [field]: value }));
@@ -622,9 +702,15 @@ export const useMdfePage = () => {
     manifestoForm,
     veiculoOptions,
     motoristaOptions,
+    selectedMotoristaPessoa,
+    pessoaModalOpen,
     openNew,
     openEdit,
     closeModal,
+    openPessoaModal,
+    closePessoaModal,
+    handleSelectMotoristaPessoa,
+    loadPessoasOptions,
     updateVeiculoField,
     updateMotoristaField,
     updateSeguradoraField,

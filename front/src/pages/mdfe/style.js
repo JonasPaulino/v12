@@ -323,6 +323,28 @@ export const FieldSpan = styled.span`
   font-weight: 800;
 `;
 
+export const SelectActionRow = styled.div`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+
+  @media (max-width: 560px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+export const SmallActionButton = styled.button`
+  min-height: 44px;
+  padding: 0 15px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radius.md};
+  background: ${({ theme }) => theme.colors.surfaceAlt};
+  color: ${({ theme }) => theme.colors.primaryStrong};
+  font-weight: 800;
+  cursor: pointer;
+`;
+
 export const Input = styled.input`
   width: 100%;
   height: 44px;
