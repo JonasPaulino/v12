@@ -68,7 +68,13 @@ export const useTabelaNfe = ({ search, status, refreshKey, onChanged }) => {
     };
   }, [hideLoading, page, refreshKey, search, showAlert, showLoading, sort, status]);
 
-  const runAction = async (action, successTitle, successFallbackMessage, loadingMessage) => {
+  const runAction = async (
+    action,
+    successTitle,
+    successFallbackMessage,
+    loadingMessage,
+    afterSuccess
+  ) => {
     try {
       showLoading(loadingMessage);
       const response = await action();
@@ -87,6 +93,9 @@ export const useTabelaNfe = ({ search, status, refreshKey, onChanged }) => {
         icon: businessFailure ? "warning" : "success",
         timer: businessFailure ? undefined : 2200,
       });
+      if (!businessFailure) {
+        afterSuccess?.({ response, mappedStatus });
+      }
       onChanged?.();
     } catch (error) {
       showAlert({
@@ -101,13 +110,34 @@ export const useTabelaNfe = ({ search, status, refreshKey, onChanged }) => {
     }
   };
 
-  const handleProcessar = async (nfe) =>
-    runAction(
+  const handleProcessar = async (nfe) => {
+    const danfeWindow = window.open("", "_blank", "noopener,noreferrer");
+    let danfeAberto = false;
+
+    await runAction(
       () => processarNfe(nfe.nfe_id),
       "Integração iniciada",
       "Processamento enviado para a integração fiscal.",
-      "Enviando NF-e para integração fiscal..."
+      "Enviando NF-e para integração fiscal...",
+      ({ mappedStatus }) => {
+        if (mappedStatus === "autorizada") {
+          if (danfeWindow) {
+            danfeWindow.location.href = `/reports/nfe/${nfe.nfe_id}/danfe`;
+          } else {
+            window.open(`/reports/nfe/${nfe.nfe_id}/danfe`, "_blank", "noopener,noreferrer");
+          }
+          danfeAberto = true;
+          return;
+        }
+
+        danfeWindow?.close();
+      }
     );
+
+    if (!danfeAberto) {
+      danfeWindow?.close();
+    }
+  };
 
   const handleConsultarStatus = async (nfe) =>
     runAction(
