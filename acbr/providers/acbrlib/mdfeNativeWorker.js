@@ -33,12 +33,12 @@ const safeGetXml = (acbr) => {
 
 const validateCertificateFile = async ({ certPath, certificadoSenha }) => {
   const tempPem = path.join(os.tmpdir(), `v12-mdfe-cert-${process.pid}-${Date.now()}.pem`);
-
-  try {
-    await execFileAsync(
+  const runExtract = (legacy = false) =>
+    execFileAsync(
       "openssl",
       [
         "pkcs12",
+        ...(legacy ? ["-legacy"] : []),
         "-in",
         certPath,
         "-nokeys",
@@ -53,10 +53,27 @@ const validateCertificateFile = async ({ certPath, certificadoSenha }) => {
         timeout: 30000,
       }
     );
+
+  try {
+    await runExtract();
   } catch (error) {
     const stderr = String(error.stderr || "").trim();
     if (/invalid password|mac verify error/i.test(stderr)) {
       throw new Error("Senha do certificado A1 inválida ou certificado incompatível.");
+    }
+
+    if (/unsupported|RC2|inner_evp_generic_fetch|digital envelope routines/i.test(stderr)) {
+      try {
+        await fs.rm(tempPem, { force: true }).catch(() => {});
+        await runExtract(true);
+        return;
+      } catch (legacyError) {
+        const legacyStderr = String(legacyError.stderr || "").trim();
+        if (/invalid password|mac verify error/i.test(legacyStderr)) {
+          throw new Error("Senha do certificado A1 inválida ou certificado incompatível.");
+        }
+        throw new Error(legacyStderr || "Não foi possível validar o certificado A1.");
+      }
     }
 
     throw new Error(stderr || error.message || "Não foi possível validar o certificado A1.");

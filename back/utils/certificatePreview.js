@@ -4,6 +4,8 @@ import { execFile } from "child_process";
 import { promisify } from "util";
 
 const execFileAsync = promisify(execFile);
+const OPENSSL_TIMEOUT_MS = 30000;
+const OPENSSL_MAX_BUFFER = 1024 * 1024;
 
 const normalizeBase64 = (value) =>
   String(value || "")
@@ -43,6 +45,67 @@ const extractValidity = (text = "") => {
   return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
 };
 
+const shouldRetryWithLegacyProvider = (error) => {
+  const stderr = String(error?.stderr || "");
+  const message = String(error?.message || "");
+  return /unsupported|RC2|inner_evp_generic_fetch|digital envelope routines/i.test(
+    `${stderr}\n${message}`
+  );
+};
+
+const isPasswordError = (error) => {
+  const stderr = String(error?.stderr || "");
+  const message = String(error?.message || "");
+  return /invalid password|mac verify error|mac verify failure/i.test(`${stderr}\n${message}`);
+};
+
+const runPkcs12Extract = async ({ pfxPath, pemPath, senha, legacy = false }) => {
+  const args = [
+    "pkcs12",
+    ...(legacy ? ["-legacy"] : []),
+    "-in",
+    pfxPath,
+    "-clcerts",
+    "-nokeys",
+    "-passin",
+    `pass:${senha}`,
+    "-out",
+    pemPath,
+  ];
+
+  return execFileAsync("openssl", args, {
+    maxBuffer: OPENSSL_MAX_BUFFER,
+    timeout: OPENSSL_TIMEOUT_MS,
+  });
+};
+
+const extractCertificatePem = async ({ pfxPath, pemPath, senha }) => {
+  try {
+    await runPkcs12Extract({ pfxPath, pemPath, senha });
+  } catch (error) {
+    if (isPasswordError(error)) {
+      throw new Error("Senha do certificado A1 inválida.");
+    }
+
+    if (!shouldRetryWithLegacyProvider(error)) {
+      throw new Error("Não foi possível ler o certificado A1 informado.");
+    }
+
+    try {
+      await fs.rm(pemPath, { force: true }).catch(() => {});
+      await runPkcs12Extract({ pfxPath, pemPath, senha, legacy: true });
+    } catch (legacyError) {
+      if (isPasswordError(legacyError)) {
+        throw new Error("Senha do certificado A1 inválida.");
+      }
+
+      throw new Error(
+        "Não foi possível ler o certificado A1. O arquivo pode estar corrompido ou em formato incompatível."
+      );
+    }
+  }
+};
+
 export const previewCertificate = async ({ certificadoBase64, certificadoSenha, scopeKey }) => {
   const normalizedBase64 = normalizeBase64(certificadoBase64);
   const senha = String(certificadoSenha || "");
@@ -63,17 +126,7 @@ export const previewCertificate = async ({ certificadoBase64, certificadoSenha, 
   await fs.writeFile(pfxPath, Buffer.from(normalizedBase64, "base64"));
 
   try {
-    await execFileAsync("openssl", [
-      "pkcs12",
-      "-in",
-      pfxPath,
-      "-clcerts",
-      "-nokeys",
-      "-passin",
-      `pass:${senha}`,
-      "-out",
-      pemPath,
-    ]);
+    await extractCertificatePem({ pfxPath, pemPath, senha });
 
     const { stdout: subjectOut } = await execFileAsync("openssl", [
       "x509",
