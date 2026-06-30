@@ -3,6 +3,23 @@ const getAcbrServiceBaseUrl = () => {
   return configured || "http://acbr:4100";
 };
 
+const extractFiscalReturn = (text = "") => {
+  const raw = String(text || "");
+  const cStat =
+    raw.match(/\bCStat\s*=\s*(\d{3})/i)?.[1] ||
+    raw.match(/\bcStat\s*[:=]\s*"?(\d{3})"?/i)?.[1] ||
+    raw.match(/(?:^|[\r\n])\s*(\d{3})\s*(?:[\r\n:-]|$)/)?.[1] ||
+    raw.match(/Rejei[cç][aã]o\s+(\d{3})/i)?.[1] ||
+    null;
+  const xMotivo =
+    raw.match(/\bXMotivo\s*=\s*([^\r\n]+)/i)?.[1]?.trim() ||
+    raw.match(/\bxMotivo\s*[:=]\s*"?([^"\r\n}]+)/i)?.[1]?.trim() ||
+    raw.match(/Rejei[cç][aã]o\s*:\s*([^\r\n]+)/i)?.[0]?.trim() ||
+    null;
+
+  return { cStat, xMotivo };
+};
+
 export const consultarInscricaoEstadualAcbr = async ({
   token,
   certificadoBase64,
@@ -38,12 +55,17 @@ export const consultarInscricaoEstadualAcbr = async ({
   }
 
   if (!response.ok) {
-    throw new Error(
+    const message =
       payload?.message ||
         payload?.error ||
         rawText.slice(0, 200) ||
-        `Falha ao consultar inscrição estadual no ACBr (${response.status}).`
-    );
+        `Falha ao consultar inscrição estadual no ACBr (${response.status}).`;
+    const error = new Error(message);
+    const fiscalReturn = extractFiscalReturn(`${message}\n${rawText}`);
+    error.cStat = fiscalReturn.cStat;
+    error.xMotivo = fiscalReturn.xMotivo;
+    error.status = response.status;
+    throw error;
   }
 
   return payload?.data || payload;
@@ -71,12 +93,17 @@ export const consultarXmlNfePorChaveAcbr = async ({ token, chaveAcesso }) => {
   }
 
   if (!response.ok) {
-    throw new Error(
+    const message =
       payload?.message ||
         payload?.error ||
         rawText.slice(0, 200) ||
-        `Falha ao consultar XML da NF-e no ACBr (${response.status}).`
-    );
+        `Falha ao consultar XML da NF-e no ACBr (${response.status}).`;
+    const error = new Error(message);
+    const fiscalReturn = extractFiscalReturn(`${message}\n${rawText}`);
+    error.cStat = fiscalReturn.cStat;
+    error.xMotivo = fiscalReturn.xMotivo;
+    error.status = response.status;
+    throw error;
   }
 
   return payload?.data || payload;

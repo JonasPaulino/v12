@@ -10,6 +10,31 @@ import {
 
 const normalizeAccessKey = (value) => String(value || "").replace(/\D/g, "").slice(0, 44);
 
+const buildConsultaFeedback = (response) => {
+  const data = response?.data || {};
+  if (data.status === "xml_disponivel") {
+    return {
+      title: "XML disponível",
+      text: "XML disponível para importação.",
+      icon: "success",
+    };
+  }
+
+  if (data.status === "erro") {
+    return {
+      title: data.cstat === "217" ? "NF-e não encontrada" : "Consulta com rejeição",
+      text: data.xmotivo || response?.message || "A SEFAZ retornou rejeição para a chave.",
+      icon: "warning",
+    };
+  }
+
+  return {
+    title: "Consulta registrada",
+    text: data.xmotivo || response?.message || "Consulta enviada para a SEFAZ.",
+    icon: "success",
+  };
+};
+
 export const useModalImportarNota = ({ isOpen, onClose }) => {
   const { showAlert } = useSweetAlert();
   const fileInputRef = useRef(null);
@@ -56,12 +81,11 @@ export const useModalImportarNota = ({ isOpen, onClose }) => {
     try {
       setSubmitting(true);
       const response = await solicitarXmlEntradaPorChave(chave);
+      const feedback = buildConsultaFeedback(response);
       showAlert({
-        title: "Consulta registrada",
-        text: response?.data?.status === "xml_disponivel"
-          ? "XML disponível para importação."
-          : response?.data?.xmotivo || response?.message || "Consulta enviada para a SEFAZ.",
-        icon: response?.data?.status === "erro" ? "warning" : "success",
+        title: feedback.title,
+        text: feedback.text,
+        icon: feedback.icon,
         timer: 2200,
       });
       setChaveAcesso("");
@@ -82,12 +106,11 @@ export const useModalImportarNota = ({ isOpen, onClose }) => {
       try {
         setSubmitting(true);
         const response = await atualizarSolicitacaoXmlEntrada(solicitacaoId);
+        const feedback = buildConsultaFeedback(response);
         showAlert({
-          title: "Consulta atualizada",
-          text: response?.data?.status === "xml_disponivel"
-            ? "XML disponível para importação."
-            : response?.data?.xmotivo || "A SEFAZ ainda não retornou XML completo.",
-          icon: response?.data?.status === "erro" ? "warning" : "success",
+          title: response?.data?.status === "erro" ? feedback.title : "Consulta atualizada",
+          text: feedback.text,
+          icon: feedback.icon,
           timer: 2200,
         });
         await loadSolicitacoes();

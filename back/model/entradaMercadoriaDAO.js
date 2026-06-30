@@ -365,9 +365,100 @@ class EntradaMercadoriaDAO {
     if (response.xml) return "resumo_disponivel";
 
     const cStat = String(response.cStat || "").trim();
+    if (cStat === "217") return "erro";
     if (["137", "656"].includes(cStat)) return "aguardando_sefaz";
     if (cStat === "138") return "aguardando_sefaz";
     return cStat ? "aguardando_sefaz" : "erro";
+  }
+
+  static normalizeConsultaSefazError(error) {
+    const rawMessage = String(error?.message || "");
+    const cStat =
+      String(error?.cStat || "").trim() ||
+      rawMessage.match(/(?:^|[\r\n])\s*(\d{3})\s*(?:[\r\n:-]|$)/)?.[1] ||
+      rawMessage.match(/Rejei[cç][aã]o\s+(\d{3})/i)?.[1] ||
+      null;
+
+    if (!cStat) return null;
+
+    const xMotivo =
+      String(error?.xMotivo || "").trim() ||
+      rawMessage.match(/Rejei[cç][aã]o\s*:\s*([^\r\n]+)/i)?.[0]?.trim() ||
+      rawMessage.replace(/^\s*\d{3}\s*[-:]?\s*/i, "").trim() ||
+      "Retorno da SEFAZ na consulta da chave.";
+
+    const friendlyMessage =
+      cStat === "217"
+        ? "Rejeição 217: NF-e inexistente para a chave informada. Confira se a chave foi digitada corretamente e se a filial está no mesmo ambiente da nota."
+        : xMotivo;
+
+    return {
+      cStat,
+      xMotivo: friendlyMessage,
+      raw: rawMessage,
+    };
+  }
+
+  static async registrarErroSolicitacaoXml(client, { chave, usuarioId, existente, error }) {
+    const sefazError = this.normalizeConsultaSefazError(error);
+    if (!sefazError) return null;
+
+    if (existente) {
+      const { rows } = await client.query(
+        `
+          UPDATE entrada_xml_solicitacao
+          SET status = 'erro',
+              cstat = $2,
+              xmotivo = $3,
+              resposta_raw = $4,
+              usuario_id = COALESCE($5, usuario_id),
+              consultado_em = NOW()
+          WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+            AND entrada_xml_solicitacao_id = $1
+          RETURNING *
+        `,
+        [
+          existente.entrada_xml_solicitacao_id,
+          sefazError.cStat,
+          sefazError.xMotivo,
+          sefazError.raw,
+          usuarioId || null,
+        ]
+      );
+
+      return rows[0] || null;
+    }
+
+    const { rows } = await client.query(
+      `
+        INSERT INTO entrada_xml_solicitacao (
+          tenant_id,
+          chave_acesso,
+          status,
+          cstat,
+          xmotivo,
+          resposta_raw,
+          usuario_id,
+          consultado_em
+        )
+        VALUES (${TENANT_CONTEXT_SQL}, $1, 'erro', $2, $3, $4, $5, NOW())
+        ON CONFLICT (tenant_id, chave_acesso)
+        DO UPDATE SET
+          status = CASE
+            WHEN entrada_xml_solicitacao.status = 'importada' THEN entrada_xml_solicitacao.status
+            ELSE 'erro'
+          END,
+          cstat = EXCLUDED.cstat,
+          xmotivo = EXCLUDED.xmotivo,
+          resposta_raw = EXCLUDED.resposta_raw,
+          usuario_id = COALESCE(EXCLUDED.usuario_id, entrada_xml_solicitacao.usuario_id),
+          consultado_em = NOW()
+        RETURNING *
+      `,
+      [chave, sefazError.cStat, sefazError.xMotivo, sefazError.raw, usuarioId || null]
+    );
+
+    return rows[0] || null;
   }
 
   static async buscarDocumentoFilial(client) {
@@ -513,6 +604,17 @@ class EntradaMercadoriaDAO {
         response
       );
     } catch (error) {
+      const errorSolicitacao = await this.registrarErroSolicitacaoXml(client, {
+        chave,
+        usuarioId,
+        existente,
+        error,
+      });
+
+      if (errorSolicitacao) {
+        return errorSolicitacao;
+      }
+
       if (!existente) {
         throw error;
       }
@@ -526,6 +628,7 @@ class EntradaMercadoriaDAO {
         `
           UPDATE entrada_xml_solicitacao
           SET status = 'erro',
+              cstat = NULL,
               xmotivo = $2,
               consultado_em = NOW()
           WHERE tenant_id = ${TENANT_CONTEXT_SQL}
@@ -580,10 +683,22 @@ class EntradaMercadoriaDAO {
         throw error;
       }
 
+      const errorSolicitacao = await this.registrarErroSolicitacaoXml(client, {
+        chave: solicitacao.chave_acesso,
+        usuarioId: solicitacao.usuario_id,
+        existente: solicitacao,
+        error,
+      });
+
+      if (errorSolicitacao) {
+        return errorSolicitacao;
+      }
+
       const { rows: errorRows } = await client.query(
         `
           UPDATE entrada_xml_solicitacao
           SET status = 'erro',
+              cstat = NULL,
               xmotivo = $2,
               consultado_em = NOW()
           WHERE tenant_id = ${TENANT_CONTEXT_SQL}
