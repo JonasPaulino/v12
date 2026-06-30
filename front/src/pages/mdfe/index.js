@@ -37,6 +37,12 @@ const formatDecimal = (value, digits = 2) =>
     maximumFractionDigits: digits,
   }).format(Number(value || 0));
 
+const formatCurrency = (value) =>
+  new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(Number(value || 0));
+
 const shortKey = (value) => {
   const key = String(value || "");
   return key.length === 44 ? `${key.slice(0, 8)}...${key.slice(-6)}` : key || "--";
@@ -398,6 +404,10 @@ export const Mdfe = () => {
     closePessoaModal,
     handleSelectMotoristaPessoa,
     loadPessoasOptions,
+    loadNfesAutorizadasOptions,
+    getDocumentoNfeOption,
+    handleChangeDocumentoTipo,
+    handleSelectDocumentoNfe,
     updateVeiculoField,
     updateMotoristaField,
     updateSeguradoraField,
@@ -916,18 +926,44 @@ export const Mdfe = () => {
                             <C.Select
                               value={item.tipo_documento}
                               onChange={(event) =>
-                                updateManifestoArrayItem(
-                                  "documentos",
-                                  index,
-                                  "tipo_documento",
-                                  event.target.value
-                                )
+                                handleChangeDocumentoTipo(index, event.target.value)
                               }
                             >
                               <option value="nfe">NF-e</option>
                               <option value="cte">CT-e</option>
                             </C.Select>
                           </C.Field>
+                          {item.tipo_documento === "nfe" ? (
+                            <C.FieldFull>
+                              <C.FieldSpan>NF-e autorizada</C.FieldSpan>
+                              <AsyncSearchSelect
+                                value={item.nfe_id}
+                                selectedOption={getDocumentoNfeOption(item)}
+                                onSelect={(value, option) =>
+                                  handleSelectDocumentoNfe(index, value, option)
+                                }
+                                loadOptions={loadNfesAutorizadasOptions}
+                                placeholder="Pesquisar NF-e autorizada"
+                                searchPlaceholder="Número, chave, destinatário ou documento"
+                                emptyMessage="Nenhuma NF-e autorizada disponível."
+                                getOptionValue={(option) => option.nfe_id}
+                                getOptionLabel={(option) =>
+                                  `NF-e ${option.numero || option.nfe_numero || option.nfe_id} - ${
+                                    option.destinatario_nome_razao ||
+                                    option.nfe_destinatario_nome_razao ||
+                                    "Sem destinatário"
+                                  }`
+                                }
+                                getOptionMeta={(option) =>
+                                  `${shortKey(option.chave_acesso)} · ${formatCurrency(
+                                    option.valor_total || option.nfe_valor_total
+                                  )} · ${
+                                    option.finalidade || option.nfe_finalidade || "normal"
+                                  }`
+                                }
+                              />
+                            </C.FieldFull>
+                          ) : null}
                           <C.Field>
                             <C.FieldSpan>Valor</C.FieldSpan>
                             <C.Input
@@ -969,6 +1005,7 @@ export const Mdfe = () => {
                                 )
                               }
                               placeholder="44 dígitos"
+                              readOnly={item.tipo_documento === "nfe" && !!item.nfe_id}
                             />
                           </C.FieldFull>
                           <C.MiniButton

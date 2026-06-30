@@ -78,6 +78,17 @@ export const listPessoasMdfeSelect = async (search = "", limit = 20) => {
   return data;
 };
 
+export const listNfesAutorizadasMdfeSelect = async (
+  search = "",
+  limit = 20,
+  mdfeId = null
+) => {
+  const { data } = await api.get("/mdfe/nfe-autorizadas-select", {
+    params: { search, limit, mdfe_id: mdfeId || undefined },
+  });
+  return data;
+};
+
 export const saveMotoristaMdfe = async (payload, id = null) => {
   const { data } = id
     ? await api.put(`/mdfe/motoristas/${id}`, payload)

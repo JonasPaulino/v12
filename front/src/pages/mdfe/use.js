@@ -15,6 +15,7 @@ import {
   listManifestosMdfe,
   listMotoristasMdfe,
   listMotoristasMdfeSelect,
+  listNfesAutorizadasMdfeSelect,
   listPessoasMdfeSelect,
   listSeguradorasMdfe,
   listSeguradorasMdfeSelect,
@@ -124,6 +125,16 @@ const mapManifestoToForm = (manifesto = {}) => ({
         peso_kg: String(item.peso_kg ?? "0"),
         municipio_descarga_codigo: item.municipio_descarga_codigo || "",
         municipio_descarga_nome: item.municipio_descarga_nome || "",
+        nfe_serie: item.nfe_serie,
+        nfe_numero: item.nfe_numero,
+        nfe_finalidade: item.nfe_finalidade,
+        nfe_tipo_operacao: item.nfe_tipo_operacao,
+        nfe_valor_total: item.nfe_valor_total,
+        nfe_destinatario_nome_razao: item.nfe_destinatario_nome_razao,
+        nfe_destinatario_cpf_cnpj: item.nfe_destinatario_cpf_cnpj,
+        nfe_municipio_descarga_codigo: item.nfe_municipio_descarga_codigo,
+        nfe_municipio_descarga_nome: item.nfe_municipio_descarga_nome,
+        nfe_municipio_descarga_uf: item.nfe_municipio_descarga_uf,
       }))
     : initialManifestoForm().documentos,
   seguros: (manifesto.seguros || []).map((item) => ({
@@ -166,6 +177,26 @@ const mapMotoristaToPessoaOption = (motorista = {}) => {
   };
 };
 
+const mapDocumentoToNfeOption = (documento = {}) => {
+  if (!documento?.nfe_id) return null;
+  return {
+    nfe_id: documento.nfe_id,
+    serie: documento.nfe_serie,
+    numero: documento.nfe_numero,
+    chave_acesso: documento.chave_acesso,
+    finalidade: documento.nfe_finalidade,
+    tipo_operacao: documento.nfe_tipo_operacao,
+    valor_total: documento.nfe_valor_total ?? documento.valor_documento,
+    destinatario_nome_razao: documento.nfe_destinatario_nome_razao,
+    destinatario_cpf_cnpj: documento.nfe_destinatario_cpf_cnpj,
+    municipio_descarga_codigo:
+      documento.nfe_municipio_descarga_codigo || documento.municipio_descarga_codigo,
+    municipio_descarga_nome:
+      documento.nfe_municipio_descarga_nome || documento.municipio_descarga_nome,
+    municipio_descarga_uf: documento.nfe_municipio_descarga_uf,
+  };
+};
+
 export const useMdfePage = () => {
   const { showLoading, hideLoading } = useContext(AppContext);
   const { showAlert, askYesNoQuestion } = useSweetAlert();
@@ -191,6 +222,7 @@ export const useMdfePage = () => {
   const [motoristaOptions, setMotoristaOptions] = useState([]);
   const [seguradoraOptions, setSeguradoraOptions] = useState([]);
   const [pessoasOptions, setPessoasOptions] = useState([]);
+  const [nfeOptions, setNfeOptions] = useState([]);
   const [pessoaModalOpen, setPessoaModalOpen] = useState(false);
 
   const pessoasMap = useMemo(
@@ -199,6 +231,10 @@ export const useMdfePage = () => {
   );
 
   const selectedMotoristaPessoa = pessoasMap.get(Number(motoristaForm.pessoa_id)) || null;
+  const nfesMap = useMemo(
+    () => new Map((nfeOptions || []).map((item) => [Number(item.nfe_id), item])),
+    [nfeOptions]
+  );
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 350);
@@ -288,6 +324,7 @@ export const useMdfePage = () => {
       if (type === "seguradoras") setSeguradoraForm(initialSeguradoraForm());
       if (type === "manifestos") {
         setManifestoForm(initialManifestoForm());
+        setNfeOptions([]);
         await loadSelectData();
       }
     },
@@ -313,7 +350,11 @@ export const useMdfePage = () => {
           showLoading();
           await loadSelectData();
           const response = await getManifestoMdfe(item.mdfe_id);
-          setManifestoForm(mapManifestoToForm(response.data || {}));
+          const nextForm = mapManifestoToForm(response.data || {});
+          setManifestoForm(nextForm);
+          setNfeOptions(
+            nextForm.documentos.map(mapDocumentoToNfeOption).filter(Boolean)
+          );
         } catch (error) {
           showAlert({
             title: "Falha ao abrir",
@@ -361,6 +402,20 @@ export const useMdfePage = () => {
     return data;
   }, []);
 
+  const loadNfesAutorizadasOptions = useCallback(
+    async (search) => {
+      const response = await listNfesAutorizadasMdfeSelect(
+        search,
+        30,
+        editingItem?.mdfe_id || null
+      );
+      const data = response?.data || [];
+      setNfeOptions((prev) => mergeUniqueOptions(prev, data, "nfe_id"));
+      return data;
+    },
+    [editingItem?.mdfe_id]
+  );
+
   const openPessoaModal = useCallback(() => {
     setPessoaModalOpen(true);
   }, []);
@@ -393,6 +448,115 @@ export const useMdfePage = () => {
       ),
     }));
   };
+
+  const getDocumentoNfeOption = useCallback(
+    (documento) =>
+      nfesMap.get(Number(documento?.nfe_id)) || mapDocumentoToNfeOption(documento) || null,
+    [nfesMap]
+  );
+
+  const handleChangeDocumentoTipo = useCallback((index, tipoDocumento) => {
+    setManifestoForm((prev) => ({
+      ...prev,
+      documentos: prev.documentos.map((item, itemIndex) =>
+        itemIndex === index
+          ? {
+              ...item,
+              tipo_documento: tipoDocumento,
+              nfe_id: tipoDocumento === "nfe" ? item.nfe_id : "",
+              chave_acesso: tipoDocumento === "nfe" ? item.chave_acesso : "",
+            }
+          : item
+      ),
+    }));
+  }, []);
+
+  const handleSelectDocumentoNfe = useCallback((index, value, option) => {
+    const selectedNfeId = value || option?.nfe_id || "";
+    const duplicated = manifestoForm.documentos.some(
+      (documento, itemIndex) =>
+        itemIndex !== index && String(documento.nfe_id || "") === String(selectedNfeId)
+    );
+
+    if (selectedNfeId && duplicated) {
+      showAlert({
+        title: "NF-e já adicionada",
+        text: "Esta NF-e já está vinculada ao MDF-e.",
+        icon: "warning",
+      });
+      return;
+    }
+
+    if (option) {
+      setNfeOptions((prev) => mergeUniqueOptions(prev, [option], "nfe_id"));
+    }
+
+    setManifestoForm((prev) => {
+      const codigoDescarga = option?.municipio_descarga_codigo || "";
+      const nomeDescarga = option?.municipio_descarga_nome || "";
+      const ufDescarga = option?.municipio_descarga_uf || "";
+      const nextDocumentos = prev.documentos.map((item, itemIndex) =>
+        itemIndex === index
+          ? {
+              ...item,
+              nfe_id: selectedNfeId,
+              tipo_documento: "nfe",
+              chave_acesso: option?.chave_acesso || item.chave_acesso,
+              valor_documento: String(option?.valor_total ?? item.valor_documento ?? "0"),
+              peso_kg: String(item.peso_kg ?? "0"),
+              municipio_descarga_codigo:
+                codigoDescarga || item.municipio_descarga_codigo || "",
+              municipio_descarga_nome: nomeDescarga || item.municipio_descarga_nome || "",
+              nfe_serie: option?.serie,
+              nfe_numero: option?.numero,
+              nfe_finalidade: option?.finalidade,
+              nfe_tipo_operacao: option?.tipo_operacao,
+              nfe_valor_total: option?.valor_total,
+              nfe_destinatario_nome_razao: option?.destinatario_nome_razao,
+              nfe_destinatario_cpf_cnpj: option?.destinatario_cpf_cnpj,
+              nfe_municipio_descarga_codigo: codigoDescarga,
+              nfe_municipio_descarga_nome: nomeDescarga,
+              nfe_municipio_descarga_uf: ufDescarga,
+            }
+          : item
+      );
+
+      const hasDescarga =
+        codigoDescarga &&
+        prev.descargas.some((descarga) => descarga.municipio_codigo === codigoDescarga);
+      const hasBlankDescarga = prev.descargas.some(
+        (descarga) => !descarga.municipio_codigo && !descarga.municipio_nome
+      );
+      const nextDescargas =
+        codigoDescarga && nomeDescarga && !hasDescarga
+          ? hasBlankDescarga
+            ? prev.descargas.map((descarga) =>
+                !descarga.municipio_codigo && !descarga.municipio_nome
+                  ? {
+                      ...descarga,
+                      municipio_codigo: codigoDescarga,
+                      municipio_nome: nomeDescarga,
+                      uf: ufDescarga || descarga.uf,
+                    }
+                  : descarga
+              )
+            : [
+                ...prev.descargas,
+                {
+                  municipio_codigo: codigoDescarga,
+                  municipio_nome: nomeDescarga,
+                  uf: ufDescarga,
+                },
+              ]
+          : prev.descargas;
+
+      return {
+        ...prev,
+        documentos: nextDocumentos,
+        descargas: nextDescargas,
+      };
+    });
+  }, [manifestoForm.documentos, showAlert]);
 
   const addManifestoArrayItem = (arrayName, item) => {
     setManifestoForm((prev) => ({
@@ -728,6 +892,10 @@ export const useMdfePage = () => {
     closePessoaModal,
     handleSelectMotoristaPessoa,
     loadPessoasOptions,
+    loadNfesAutorizadasOptions,
+    getDocumentoNfeOption,
+    handleChangeDocumentoTipo,
+    handleSelectDocumentoNfe,
     updateVeiculoField,
     updateMotoristaField,
     updateSeguradoraField,

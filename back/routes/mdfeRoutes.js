@@ -249,6 +249,21 @@ router.get("/manifestos", async (req, res) => {
   }
 });
 
+router.get("/nfe-autorizadas-select", async (req, res) => {
+  try {
+    const data = await MdfeDAO.listarNfesAutorizadasSelect(req.db, {
+      search: String(req.query.search || ""),
+      limit: Number(req.query.limit || 20),
+      mdfeId: req.query.mdfe_id ? Number(req.query.mdfe_id) : null,
+    });
+
+    return res.json({ success: true, data });
+  } catch (error) {
+    console.error("[mdfe] Falha ao pesquisar NF-e autorizadas:", error);
+    return handleError(res, error, "Não foi possível pesquisar NF-e autorizadas.", 500);
+  }
+});
+
 router.get("/manifestos/:id", async (req, res) => {
   try {
     const data = await MdfeDAO.buscarManifestoPorId(req.db, Number(req.params.id));

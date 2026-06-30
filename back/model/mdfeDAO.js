@@ -177,8 +177,13 @@ const normalizeDocumento = (documento = {}) => {
   const tipo = String(documento.tipo_documento || "nfe").toLowerCase();
   if (!["nfe", "cte"].includes(tipo)) throw new Error("Tipo de documento inválido.");
 
+  const nfeId = parseInteger(documento.nfe_id, { allowNull: true, label: "NF-e" });
+  if (tipo === "nfe" && !nfeId) {
+    throw new Error("Selecione uma NF-e autorizada do sistema para vincular ao MDF-e.");
+  }
+
   return {
-    nfe_id: parseInteger(documento.nfe_id, { allowNull: true, label: "NF-e" }),
+    nfe_id: nfeId,
     tipo_documento: tipo,
     chave_acesso: chave,
     valor_documento: parseNumeric(documento.valor_documento, { label: "Valor do documento" }),
@@ -520,6 +525,84 @@ class MdfeDAO {
         ${where}
         ORDER BY p.pessoa_nome_razao
         LIMIT $${values.length}
+      `,
+      values
+    );
+
+    return rows;
+  }
+
+  static async listarNfesAutorizadasSelect(
+    client,
+    { search = "", limit = 20, mdfeId = null } = {}
+  ) {
+    const safeLimit = Number(limit) > 0 ? Math.min(Number(limit), 80) : 20;
+    const safeMdfeId = mdfeId ? parseInteger(mdfeId, { label: "MDF-e" }) : null;
+    const values = [safeLimit, safeMdfeId];
+    const normalizedSearch = String(search || "").trim();
+
+    let where = `
+      WHERE n.tenant_id = ${TENANT_CONTEXT_SQL}
+        AND n.modelo = '55'
+        AND LOWER(COALESCE(n.status, '')) = 'autorizada'
+        AND LENGTH(COALESCE(n.chave_acesso, '')) = 44
+        AND NOT EXISTS (
+          SELECT 1
+          FROM fiscal.mdfe_documento d
+          JOIN fiscal.mdfe m
+            ON m.mdfe_id = d.mdfe_id
+           AND m.tenant_id = d.tenant_id
+          WHERE d.tenant_id = n.tenant_id
+            AND (d.nfe_id = n.nfe_id OR d.chave_acesso = n.chave_acesso)
+            AND m.excluido = FALSE
+            AND m.status <> 'cancelado'
+            AND ($2::int IS NULL OR d.mdfe_id <> $2::int)
+        )
+    `;
+
+    if (normalizedSearch) {
+      values.push(`%${normalizedSearch}%`);
+      where += `
+        AND (
+          CAST(n.numero AS TEXT) LIKE $${values.length}
+          OR LOWER(COALESCE(n.chave_acesso, '')) LIKE LOWER($${values.length})
+          OR LOWER(COALESCE(dest.pessoa_nome_razao, '')) LIKE LOWER($${values.length})
+          OR LOWER(COALESCE(dest.pessoa_cpf_cnpj, '')) LIKE LOWER($${values.length})
+        )
+      `;
+    }
+
+    const { rows } = await client.query(
+      `
+        SELECT
+          n.nfe_id,
+          n.serie,
+          n.numero,
+          n.chave_acesso,
+          n.finalidade,
+          n.tipo_operacao,
+          n.valor_total,
+          n.data_autorizacao,
+          dest.pessoa_nome_razao AS destinatario_nome_razao,
+          dest.pessoa_cpf_cnpj AS destinatario_cpf_cnpj,
+          dest_end.cidade AS municipio_descarga_nome,
+          dest_end.uf AS municipio_descarga_uf,
+          dest_end.codigo_ibge AS municipio_descarga_codigo
+        FROM fiscal.nfe n
+        LEFT JOIN pessoa dest
+          ON dest.pessoa_id = n.destinatario_pessoa_id
+        LEFT JOIN LATERAL (
+          SELECT cidade, uf, codigo_ibge
+          FROM pessoa_endereco
+          WHERE pessoa_id = n.destinatario_pessoa_id
+            AND tenant_id = n.tenant_id
+            AND endereco_tipo = 'principal'
+          ORDER BY atualizado_em DESC, criado_em DESC
+          LIMIT 1
+        ) dest_end ON TRUE
+        ${where}
+        ORDER BY n.data_autorizacao DESC NULLS LAST, n.nfe_id DESC
+        LIMIT $1
       `,
       values
     );
@@ -1051,10 +1134,36 @@ class MdfeDAO {
       ),
       client.query(
         `
-          SELECT *
-          FROM fiscal.mdfe_documento
-          WHERE tenant_id = ${TENANT_CONTEXT_SQL}
-            AND mdfe_id = $1
+          SELECT
+            d.*,
+            n.serie AS nfe_serie,
+            n.numero AS nfe_numero,
+            n.finalidade AS nfe_finalidade,
+            n.tipo_operacao AS nfe_tipo_operacao,
+            n.valor_total AS nfe_valor_total,
+            n.data_autorizacao AS nfe_data_autorizacao,
+            dest.pessoa_nome_razao AS nfe_destinatario_nome_razao,
+            dest.pessoa_cpf_cnpj AS nfe_destinatario_cpf_cnpj,
+            dest_end.cidade AS nfe_municipio_descarga_nome,
+            dest_end.uf AS nfe_municipio_descarga_uf,
+            dest_end.codigo_ibge AS nfe_municipio_descarga_codigo
+          FROM fiscal.mdfe_documento d
+          LEFT JOIN fiscal.nfe n
+            ON n.nfe_id = d.nfe_id
+           AND n.tenant_id = d.tenant_id
+          LEFT JOIN pessoa dest
+            ON dest.pessoa_id = n.destinatario_pessoa_id
+          LEFT JOIN LATERAL (
+            SELECT cidade, uf, codigo_ibge
+            FROM pessoa_endereco
+            WHERE pessoa_id = n.destinatario_pessoa_id
+              AND tenant_id = n.tenant_id
+              AND endereco_tipo = 'principal'
+            ORDER BY atualizado_em DESC, criado_em DESC
+            LIMIT 1
+          ) dest_end ON TRUE
+          WHERE d.tenant_id = ${TENANT_CONTEXT_SQL}
+            AND d.mdfe_id = $1
           ORDER BY mdfe_documento_id
         `,
         [id]
