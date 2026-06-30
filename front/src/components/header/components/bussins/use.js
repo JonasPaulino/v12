@@ -4,6 +4,8 @@ import { useSweetAlert } from "context/sweet_alert";
 import { reloadAfterTenantSwitch } from "utils";
 import { switchTenant } from "./api";
 
+const isTenantActive = (tenant) => tenant?.tenant_ativo !== false && tenant?.ativo !== false;
+
 export const useToggleOptions = () => {
   const [isOpen, setIsOpen] = useState(false);
   const optionsContainerRef = useRef(null);
@@ -69,7 +71,7 @@ export const useBusinessOptions = () => {
 
   return {
     business,
-    businesses,
+    businesses: (businesses || []).filter(isTenantActive),
     handleSwitch,
   };
 };

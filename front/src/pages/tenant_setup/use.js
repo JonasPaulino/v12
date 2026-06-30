@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { AppContext } from "context";
 import { useSweetAlert } from "context/sweet_alert";
 import {
   createTenantSetup,
@@ -151,8 +152,10 @@ const normalizeSearch = (value) =>
     .trim();
 
 const normalizeCnpj = (value) => String(value || "").replace(/\D/g, "");
+const isTenantActive = (tenant) => tenant?.tenant_ativo !== false && tenant?.ativo !== false;
 
 export const useTenantSetupPage = () => {
+  const { business, setBusiness, setBusinesses } = useContext(AppContext);
   const { showAlert, askYesNoQuestion } = useSweetAlert();
   const [saving, setSaving] = useState(false);
   const [loadingTenants, setLoadingTenants] = useState(true);
@@ -178,22 +181,41 @@ export const useTenantSetupPage = () => {
     setActionMenuTenantId(null);
   }, []);
 
+  const syncBusinessContext = useCallback(
+    (nextTenants = []) => {
+      const activeTenants = nextTenants.filter(isTenantActive);
+      setBusinesses(activeTenants);
+
+      const currentBusiness = activeTenants.find(
+        (tenant) => Number(tenant.tenant_id) === Number(business?.tenant_id)
+      );
+      if (currentBusiness) {
+        setBusiness(currentBusiness);
+      }
+    },
+    [business?.tenant_id, setBusiness, setBusinesses]
+  );
+
   const loadTenants = useCallback(async () => {
     setLoadingTenants(true);
 
     try {
       const result = await listTenants();
-      setTenants(Array.isArray(result?.data) ? result.data : []);
+      const nextTenants = Array.isArray(result?.data) ? result.data : [];
+      setTenants(nextTenants);
+      syncBusinessContext(nextTenants);
+      return nextTenants;
     } catch (error) {
       await showAlert({
         title: "Falha ao carregar empresas",
         text: error?.response?.data?.error || error?.message || "Não foi possível listar as filiais.",
         icon: "error",
       });
+      return [];
     } finally {
       setLoadingTenants(false);
     }
-  }, [showAlert]);
+  }, [showAlert, syncBusinessContext]);
 
   useEffect(() => {
     loadTenants();
