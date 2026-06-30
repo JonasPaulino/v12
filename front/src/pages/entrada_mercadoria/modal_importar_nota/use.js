@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
+import { AppContext } from "context";
 import { useSweetAlert } from "context/sweet_alert";
 import {
   atualizarSolicitacaoXmlEntrada,
@@ -36,6 +37,7 @@ const buildConsultaFeedback = (response) => {
 };
 
 export const useModalImportarNota = ({ isOpen, onClose }) => {
+  const { showLoading, hideLoading } = useContext(AppContext);
   const { showAlert } = useSweetAlert();
   const fileInputRef = useRef(null);
   const [activeTab, setActiveTab] = useState("chave");
@@ -44,7 +46,6 @@ export const useModalImportarNota = ({ isOpen, onClose }) => {
   const [solicitacoes, setSolicitacoes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [searchingKey, setSearchingKey] = useState(false);
   const [importingFile, setImportingFile] = useState(false);
 
   const loadSolicitacoes = useCallback(async () => {
@@ -81,7 +82,7 @@ export const useModalImportarNota = ({ isOpen, onClose }) => {
 
     try {
       setSubmitting(true);
-      setSearchingKey(true);
+      showLoading("Consultando nota na SEFAZ...");
       const response = await solicitarXmlEntradaPorChave(chave);
       const feedback = buildConsultaFeedback(response);
       showAlert({
@@ -99,10 +100,10 @@ export const useModalImportarNota = ({ isOpen, onClose }) => {
         icon: "error",
       });
     } finally {
-      setSearchingKey(false);
+      hideLoading();
       setSubmitting(false);
     }
-  }, [chaveAcesso, loadSolicitacoes, showAlert]);
+  }, [chaveAcesso, hideLoading, loadSolicitacoes, showAlert, showLoading]);
 
   const handleAtualizarSolicitacao = useCallback(
     async (solicitacaoId) => {
@@ -194,7 +195,6 @@ export const useModalImportarNota = ({ isOpen, onClose }) => {
     solicitacoes,
     loading,
     submitting,
-    searchingKey,
     importingFile,
     fileInputRef,
     loadSolicitacoes,

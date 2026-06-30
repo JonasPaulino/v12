@@ -41,7 +41,6 @@ export const ModalImportarNota = ({ isOpen, onClose }) => {
     solicitacoes,
     loading,
     submitting,
-    searchingKey,
     importingFile,
     fileInputRef,
     loadSolicitacoes,
@@ -96,20 +95,12 @@ export const ModalImportarNota = ({ isOpen, onClose }) => {
                     value={chaveAcesso}
                     onChange={(event) => setChaveAcesso(event.target.value)}
                     placeholder="Informe os 44 dígitos da chave"
-                    disabled={searchingKey}
                   />
                 </C.Field>
                 <C.PrimaryButton type="button" onClick={handleBuscarChave} disabled={submitting}>
-                  {searchingKey ? "Buscando..." : "Buscar"}
+                  Buscar
                 </C.PrimaryButton>
               </C.SearchRow>
-
-              {searchingKey ? (
-                <C.SearchFeedback aria-live="polite">
-                  <C.SearchPulse />
-                  Consultando a SEFAZ pela chave informada...
-                </C.SearchFeedback>
-              ) : null}
 
               <C.RequestPanel>
                 <C.RequestPanelHeader>
