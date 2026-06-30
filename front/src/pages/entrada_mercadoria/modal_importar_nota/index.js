@@ -59,7 +59,7 @@ export const ModalImportarNota = ({ isOpen, onClose }) => {
           <C.TitleBlock>
             <C.Title>Importar nota</C.Title>
             <C.Subtitle>
-              Consulte XML por chave via SEFAZ/ACBr ou importe um arquivo XML já recebido.
+              Consulte XML por chave via SEFAZ ou importe um arquivo XML já recebido.
             </C.Subtitle>
           </C.TitleBlock>
 
