@@ -44,6 +44,7 @@ export const useModalImportarNota = ({ isOpen, onClose }) => {
   const [solicitacoes, setSolicitacoes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [searchingKey, setSearchingKey] = useState(false);
   const [importingFile, setImportingFile] = useState(false);
 
   const loadSolicitacoes = useCallback(async () => {
@@ -80,6 +81,7 @@ export const useModalImportarNota = ({ isOpen, onClose }) => {
 
     try {
       setSubmitting(true);
+      setSearchingKey(true);
       const response = await solicitarXmlEntradaPorChave(chave);
       const feedback = buildConsultaFeedback(response);
       showAlert({
@@ -97,6 +99,7 @@ export const useModalImportarNota = ({ isOpen, onClose }) => {
         icon: "error",
       });
     } finally {
+      setSearchingKey(false);
       setSubmitting(false);
     }
   }, [chaveAcesso, loadSolicitacoes, showAlert]);
@@ -191,6 +194,7 @@ export const useModalImportarNota = ({ isOpen, onClose }) => {
     solicitacoes,
     loading,
     submitting,
+    searchingKey,
     importingFile,
     fileInputRef,
     loadSolicitacoes,

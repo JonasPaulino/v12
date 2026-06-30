@@ -13,6 +13,38 @@ export const SearchRow = styled.div`
   }
 `;
 
+export const SearchFeedback = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(11, 95, 255, 0.18);
+  border-radius: ${({ theme }) => theme.radius.md};
+  background: rgba(11, 95, 255, 0.06);
+  color: ${({ theme }) => theme.colors.primaryStrong};
+  font-size: 0.9rem;
+  font-weight: 800;
+`;
+
+export const SearchPulse = styled.span`
+  width: 10px;
+  height: 10px;
+  flex: 0 0 10px;
+  border-radius: 999px;
+  background: ${({ theme }) => theme.colors.primary};
+  animation: nfeSearchPulse 1s ease-out infinite;
+
+  @keyframes nfeSearchPulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(11, 95, 255, 0.38);
+    }
+
+    100% {
+      box-shadow: 0 0 0 8px rgba(11, 95, 255, 0);
+    }
+  }
+`;
+
 export const RequestTable = styled.div`
   border: 1px solid ${({ theme }) => theme.colors.border};
   border-radius: ${({ theme }) => theme.radius.md};
