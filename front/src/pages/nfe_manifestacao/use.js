@@ -66,10 +66,22 @@ export const useNfeManifestacaoPage = () => {
       showLoading("Consultando SEFAZ...");
       const response = await sincronizarManifestacoesNfe();
       hideLoading();
+      const cStat = response?.data?.controle?.cstat;
+      const xMotivo = response?.data?.controle?.xmotivo;
+      const ambiente = response?.data?.controle?.ambiente;
+      const totalDocumentos = response?.data?.documentos?.length || 0;
+      const homologMessage =
+        ambiente === "2"
+          ? "Esta filial está consultando NF-e recebidas em ambiente de homologação. Notas reais emitidas para o CNPJ só aparecem no ambiente de produção."
+          : "";
       showAlert({
-        icon: "success",
-        title: "Consulta concluída",
-        text: `${response?.data?.documentos?.length || 0} documento(s) retornado(s).`,
+        icon: homologMessage || (cStat && cStat !== "138") ? "warning" : "success",
+        title: homologMessage
+          ? "Ambiente de homologação"
+          : cStat && cStat !== "138"
+          ? "Consulta sem documentos"
+          : "Consulta concluída",
+        text: homologMessage || xMotivo || `${totalDocumentos} documento(s) retornado(s).`,
       });
       refresh();
     } catch (error) {

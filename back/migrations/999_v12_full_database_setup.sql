@@ -1035,6 +1035,8 @@ CREATE TABLE IF NOT EXISTS tenant_configuracao_fiscal (
   tenant_id INTEGER PRIMARY KEY REFERENCES tenant(tenant_id) ON DELETE CASCADE,
   ambiente_nfe VARCHAR(1) NOT NULL DEFAULT '2'
     CHECK (ambiente_nfe IN ('1', '2')),
+  ambiente_manifestacao_nfe VARCHAR(1) NOT NULL DEFAULT '1'
+    CHECK (ambiente_manifestacao_nfe IN ('1', '2')),
   serie_nfe_padrao INTEGER NOT NULL DEFAULT 1,
   proximo_numero_nfe INTEGER NOT NULL DEFAULT 1,
   ambiente_mdfe VARCHAR(1) NOT NULL DEFAULT '2',
@@ -1143,6 +1145,7 @@ CREATE POLICY tenant_responsavel_tecnico_rls ON tenant_responsavel_tecnico
 INSERT INTO tenant_configuracao_fiscal (
   tenant_id,
   ambiente_nfe,
+  ambiente_manifestacao_nfe,
   serie_nfe_padrao,
   proximo_numero_nfe,
   ambiente_mdfe,
@@ -1156,6 +1159,7 @@ INSERT INTO tenant_configuracao_fiscal (
 SELECT
   t.tenant_id,
   '2',
+  '1',
   1,
   1,
   '2',

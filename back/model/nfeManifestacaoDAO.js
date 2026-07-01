@@ -112,7 +112,7 @@ class NfeManifestacaoDAO {
           t.tenant_id,
           COALESCE(p.pessoa_cpf_cnpj, t.tenant_documento) AS documento,
           pe.uf,
-          cfg.ambiente_nfe
+          COALESCE(cfg.ambiente_manifestacao_nfe, '1') AS ambiente_manifestacao_nfe
         FROM tenant t
         LEFT JOIN pessoa p ON p.pessoa_id = t.pessoa_id
         LEFT JOIN LATERAL (
@@ -137,7 +137,7 @@ class NfeManifestacaoDAO {
       tenantId: row.tenant_id,
       documento: onlyDigits(row.documento),
       uf: row.uf,
-      ambiente: row.ambiente_nfe || "2",
+      ambiente: row.ambiente_manifestacao_nfe || "1",
     };
   }
 

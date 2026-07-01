@@ -50,7 +50,7 @@ class AcbrNfeIntegrationDAO {
           t.tenant_id,
           COALESCE(p.pessoa_cpf_cnpj, t.tenant_documento) AS documento,
           pe.uf,
-          cfg.ambiente_nfe,
+          COALESCE(cfg.ambiente_manifestacao_nfe, '1') AS ambiente_manifestacao_nfe,
           cert.conteudo_pfx,
           cert.senha_criptografada
         FROM tenant t
@@ -93,7 +93,7 @@ class AcbrNfeIntegrationDAO {
       tenantId: row.tenant_id,
       cnpjCpf,
       uf: row.uf,
-      ambiente: row.ambiente_nfe || "2",
+      ambiente: row.ambiente_manifestacao_nfe || "1",
       certificado: {
         conteudo_pfx: row.conteudo_pfx,
         senha_criptografada: row.senha_criptografada,
