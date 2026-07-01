@@ -49,6 +49,12 @@ const findIniValue = (text, key) => {
   return match?.[1]?.trim() || "";
 };
 
+const previewRaw = (value, maxLength = 800) =>
+  String(value || "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, maxLength);
+
 const getRootName = (xml) => {
   const match = String(xml || "").match(/<([a-zA-Z0-9:_-]+)(?:\s|>)/);
   return match?.[1]?.replace(/^.*:/, "") || "";
@@ -282,6 +288,15 @@ class NfeManifestacaoDAO {
     if (!contexto.uf) throw new Error("UF da filial não configurada.");
 
     const controle = await this.obterControle(client, contexto);
+    console.log("[nfe-manifestacao] Sincronização iniciada", {
+      tenantId: contexto.tenantId,
+      documento: contexto.documento,
+      uf: contexto.uf,
+      ambiente: contexto.ambiente,
+      ultNsuAtual: controle.ult_nsu,
+      maxNsuAtual: controle.max_nsu,
+    });
+
     const response = await consultarDistribuicaoNfePorUltNsuAcbr({
       token,
       ultNsu: controle.ult_nsu,
@@ -292,14 +307,46 @@ class NfeManifestacaoDAO {
     const cStat = response.cStat || findIniValue(raw, "CStat") || null;
     const xMotivo = response.xMotivo || findIniValue(raw, "XMotivo") || findIniValue(raw, "xMotivo") || null;
     const documentos = [];
+    const ignored = {
+      semChave: 0,
+      destinatarioDivergente: 0,
+    };
+
+    console.log("[nfe-manifestacao] Retorno distribuição", {
+      tenantId: contexto.tenantId,
+      cStat,
+      xMotivo,
+      ultNsu,
+      maxNsu,
+      documentosRecebidos: response.documentos?.length || 0,
+      rawPreview: previewRaw(raw),
+    });
 
     for (const item of response.documentos || []) {
       const doc = parseNfeDistributionXml(item.xml, item.fileName);
-      if (!doc.chave_acesso) continue;
-      if (doc.destinatario_documento && doc.destinatario_documento !== contexto.documento) continue;
+      if (!doc.chave_acesso) {
+        ignored.semChave += 1;
+        continue;
+      }
+      if (doc.destinatario_documento && doc.destinatario_documento !== contexto.documento) {
+        ignored.destinatarioDivergente += 1;
+        console.warn("[nfe-manifestacao] Documento ignorado por destinatário divergente", {
+          tenantId: contexto.tenantId,
+          chaveAcesso: doc.chave_acesso,
+          destinatarioXml: doc.destinatario_documento,
+          destinatarioFilial: contexto.documento,
+        });
+        continue;
+      }
       const saved = await this.salvarDocumentoDistribuicao(client, doc, raw);
       if (saved) documentos.push(saved);
     }
+
+    console.log("[nfe-manifestacao] Sincronização finalizada", {
+      tenantId: contexto.tenantId,
+      documentosSalvos: documentos.length,
+      ignorados: ignored,
+    });
 
     await client.query(
       `

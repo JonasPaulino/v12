@@ -124,6 +124,17 @@ const collectXmlDocumentsFromRaw = (rawResponse) => {
   return docs;
 };
 
+const extractIniValue = (text, key) => {
+  const match = String(text || "").match(new RegExp(`(?:^|\\n)\\s*${key}\\s*=\\s*([^\\r\\n]+)`, "i"));
+  return match?.[1]?.trim() || "";
+};
+
+const previewRaw = (value, maxLength = 800) =>
+  String(value || "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, maxLength);
+
 const distribuicaoDFePorUltNsu = (acbr, cufAutor, cnpjCpfAutor, ultNsu) => {
   const acbrBuffer = new ACBrBuffer(TAMANHO_PADRAO);
 
@@ -176,11 +187,28 @@ const run = async () => {
 
     logStep("distribuicao:start", { tenantId, cufAutor, ultNsu });
     const rawResponse = distribuicaoDFePorUltNsu(session.acbr, cufAutor, cnpjCpfAutor, ultNsu);
+    const rawDocs = collectXmlDocumentsFromRaw(rawResponse);
+    const fileDocs = await collectXmlDocuments(session.xmlDir);
     const documentos = [
-      ...collectXmlDocumentsFromRaw(rawResponse),
-      ...(await collectXmlDocuments(session.xmlDir)),
+      ...rawDocs,
+      ...fileDocs,
     ];
-    logStep("distribuicao:done", { tenantId, documentos: documentos.length });
+    logStep("distribuicao:done", {
+      tenantId,
+      documentos: documentos.length,
+      rawDocs: rawDocs.length,
+      fileDocs: fileDocs.length,
+      cStat: extractIniValue(rawResponse, "CStat"),
+      xMotivo: extractIniValue(rawResponse, "XMotivo") || extractIniValue(rawResponse, "xMotivo"),
+      ultNsuRetorno: extractIniValue(rawResponse, "ultNSU") || extractIniValue(rawResponse, "UltNSU"),
+      maxNsuRetorno: extractIniValue(rawResponse, "maxNSU") || extractIniValue(rawResponse, "MaxNSU"),
+      rawPreview: previewRaw(rawResponse),
+      paths: {
+        configPath: session.configPath,
+        logDir: session.logDir,
+        rootDir: session.rootDir,
+      },
+    });
 
     await writeOutput({
       ok: true,

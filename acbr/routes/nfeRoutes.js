@@ -336,6 +336,11 @@ router.post("/distribuicao-ult-nsu", async (req, res) => {
       .padStart(15, "0")
       .slice(-15);
 
+    console.log("[acbr:nfe] Distribuição por último NSU solicitada", {
+      tenantId: req.user?.tenantId,
+      ultNsu,
+    });
+
     const data = await AcbrLibProvider.distribuirNfePorUltNsu({
       client: req.db,
       tenantId: req.user?.tenantId,
