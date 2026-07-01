@@ -60,8 +60,8 @@ export const Brand = styled.h1`
 `;
 
 export const BrandLogo = styled.img`
-  width: min(240px, 60%);
-  max-height: 120px;
+  width: min(220px, 56%);
+  max-height: 88px;
   display: block;
   margin: 0 0 22px;
   object-fit: contain;
@@ -133,10 +133,10 @@ export const FormCard = styled.div`
 `;
 
 export const FormLogo = styled.img`
-  width: min(180px, 58%);
-  max-height: 92px;
+  width: min(220px, 70%);
+  max-height: 86px;
   display: block;
-  margin: 0 0 18px;
+  margin: 0 0 24px;
   object-fit: contain;
   object-position: left center;
 `;

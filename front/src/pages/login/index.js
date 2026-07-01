@@ -35,7 +35,6 @@ export const Login = () => {
       <C.FormArea>
         <C.FormCard>
           <C.FormLogo src={logoColor} alt="V12 ERP" />
-          <C.Step>V12 ERP</C.Step>
           <C.Title>Entrar no sistema</C.Title>
           <C.Subtitle>
             Informe login e senha. A filial padrão do usuário será carregada e poderá ser alterada depois no menu superior.

@@ -78,9 +78,9 @@ export const Brand = styled.strong`
 `;
 
 export const BrandImage = styled.img`
-  width: ${({ $open }) => ($open ? "168px" : "58px")};
+  width: ${({ $open }) => ($open ? "154px" : "48px")};
   max-width: 100%;
-  max-height: ${({ $open }) => ($open ? "82px" : "58px")};
+  max-height: ${({ $open }) => ($open ? "58px" : "48px")};
   display: block;
   object-fit: contain;
   object-position: ${({ $open }) => ($open ? "left center" : "center")};
