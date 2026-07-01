@@ -329,6 +329,66 @@ router.post("/distribuicao-chave", async (req, res) => {
   }
 });
 
+router.post("/distribuicao-ult-nsu", async (req, res) => {
+  try {
+    const ultNsu = String(req.body?.ult_nsu || req.body?.ultNsu || "000000000000000")
+      .replace(/\D/g, "")
+      .padStart(15, "0")
+      .slice(-15);
+
+    const data = await AcbrLibProvider.distribuirNfePorUltNsu({
+      client: req.db,
+      tenantId: req.user?.tenantId,
+      ultNsu,
+    });
+
+    return res.json({
+      success: true,
+      message: "Distribuição de NF-e por NSU consultada.",
+      data,
+    });
+  } catch (error) {
+    console.error("[acbr:nfe] Falha ao consultar distribuição por NSU:", error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Não foi possível consultar a distribuição de NF-e.",
+    });
+  }
+});
+
+router.post("/manifestacao-destinatario", async (req, res) => {
+  try {
+    const chaveAcesso = normalizeAccessKey(req.body?.chave_acesso || req.body?.chave);
+
+    if (!/^\d{44}$/.test(chaveAcesso)) {
+      return res.status(400).json({
+        success: false,
+        message: "Chave de acesso da NF-e inválida.",
+      });
+    }
+
+    const data = await AcbrLibProvider.manifestarNfeDestinatario({
+      client: req.db,
+      tenantId: req.user?.tenantId,
+      chaveAcesso,
+      tipoEvento: req.body?.tipo_evento,
+      justificativa: req.body?.justificativa,
+    });
+
+    return res.json({
+      success: true,
+      message: "Manifestação da NF-e enviada para a SEFAZ.",
+      data,
+    });
+  } catch (error) {
+    console.error("[acbr:nfe] Falha ao enviar manifestação:", error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Não foi possível enviar a manifestação da NF-e.",
+    });
+  }
+});
+
 router.post("/:id/processar", async (req, res) => {
   try {
     const data = await AcbrLibProvider.emitirNfe({

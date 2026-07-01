@@ -108,3 +108,86 @@ export const consultarXmlNfePorChaveAcbr = async ({ token, chaveAcesso }) => {
 
   return payload?.data || payload;
 };
+
+export const consultarDistribuicaoNfePorUltNsuAcbr = async ({ token, ultNsu }) => {
+  const response = await fetch(`${getAcbrServiceBaseUrl()}/nfe/distribuicao-ult-nsu`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Cookie: `token=${encodeURIComponent(token)}` } : {}),
+    },
+    body: JSON.stringify({
+      ult_nsu: ultNsu || "000000000000000",
+    }),
+  });
+
+  const rawText = await response.text();
+  let payload = null;
+
+  try {
+    payload = rawText ? JSON.parse(rawText) : null;
+  } catch {
+    payload = null;
+  }
+
+  if (!response.ok) {
+    const message =
+      payload?.message ||
+        payload?.error ||
+        rawText.slice(0, 200) ||
+        `Falha ao consultar distribuição de NF-e no ACBr (${response.status}).`;
+    const error = new Error(message);
+    const fiscalReturn = extractFiscalReturn(`${message}\n${rawText}`);
+    error.cStat = fiscalReturn.cStat;
+    error.xMotivo = fiscalReturn.xMotivo;
+    error.status = response.status;
+    throw error;
+  }
+
+  return payload?.data || payload;
+};
+
+export const enviarManifestacaoNfeAcbr = async ({
+  token,
+  chaveAcesso,
+  tipoEvento,
+  justificativa,
+}) => {
+  const response = await fetch(`${getAcbrServiceBaseUrl()}/nfe/manifestacao-destinatario`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Cookie: `token=${encodeURIComponent(token)}` } : {}),
+    },
+    body: JSON.stringify({
+      chave_acesso: chaveAcesso,
+      tipo_evento: tipoEvento,
+      justificativa,
+    }),
+  });
+
+  const rawText = await response.text();
+  let payload = null;
+
+  try {
+    payload = rawText ? JSON.parse(rawText) : null;
+  } catch {
+    payload = null;
+  }
+
+  if (!response.ok) {
+    const message =
+      payload?.message ||
+        payload?.error ||
+        rawText.slice(0, 200) ||
+        `Falha ao enviar manifestação da NF-e no ACBr (${response.status}).`;
+    const error = new Error(message);
+    const fiscalReturn = extractFiscalReturn(`${message}\n${rawText}`);
+    error.cStat = fiscalReturn.cStat;
+    error.xMotivo = fiscalReturn.xMotivo;
+    error.status = response.status;
+    throw error;
+  }
+
+  return payload?.data || payload;
+};

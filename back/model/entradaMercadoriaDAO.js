@@ -551,6 +551,47 @@ class EntradaMercadoriaDAO {
       throw new Error("Chave de acesso da NF-e inválida.");
     }
 
+    const localManifestacao = await client.query(
+      `
+        SELECT xml_completo
+        FROM nfe_recebida_distribuicao
+        WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+          AND chave_acesso = $1
+          AND xml_completo IS NOT NULL
+        LIMIT 1
+      `,
+      [chave]
+    );
+
+    if (localManifestacao.rows[0]?.xml_completo) {
+      const { rows } = await client.query(
+        `
+          INSERT INTO entrada_xml_solicitacao (
+            tenant_id,
+            chave_acesso,
+            status,
+            usuario_id,
+            xml_disponivel,
+            consultado_em
+          )
+          VALUES (${TENANT_CONTEXT_SQL}, $1, 'xml_disponivel', $2, $3, NOW())
+          ON CONFLICT (tenant_id, chave_acesso)
+          DO UPDATE SET
+            status = CASE
+              WHEN entrada_xml_solicitacao.status = 'importada' THEN entrada_xml_solicitacao.status
+              ELSE 'xml_disponivel'
+            END,
+            xml_disponivel = COALESCE(entrada_xml_solicitacao.xml_disponivel, EXCLUDED.xml_disponivel),
+            usuario_id = COALESCE($2, entrada_xml_solicitacao.usuario_id),
+            consultado_em = NOW()
+          RETURNING *
+        `,
+        [chave, usuarioId || null, localManifestacao.rows[0].xml_completo]
+      );
+
+      return rows[0];
+    }
+
     const existenteResult = await client.query(
       `
         SELECT *

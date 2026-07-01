@@ -6,8 +6,8 @@ export const Menu = styled.div`
   border: 1px solid #ddd;
   border-radius: 8px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
-  min-width: ${({ $minWidth }) => $minWidth || 140}px;
-  max-width: 280px;
+  min-width: min(${({ $minWidth }) => $minWidth || 140}px, calc(100vw - 16px));
+  max-width: min(360px, calc(100vw - 16px));
   padding: 4px;
   z-index: ${({ $zIndex }) => $zIndex || 999999};
   opacity: 0;

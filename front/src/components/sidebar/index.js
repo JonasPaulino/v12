@@ -217,6 +217,16 @@ const Sidebar = () => {
                 </C.SubNavButton>
                 <C.SubNavButton
                   $open={mOpen}
+                  $active={location.pathname === "/nfe/manifestacoes"}
+                  onClick={() => handleNavigate("/nfe/manifestacoes", "Manifestação NF-e")}
+                  title="Ciência, confirmação e desconhecimento de NF-e recebidas"
+                  aria-label="Ciência, confirmação e desconhecimento de NF-e recebidas"
+                >
+                  <HiOutlineDocumentText />
+                  <C.NavText $open={mOpen}>Manifestação</C.NavText>
+                </C.SubNavButton>
+                <C.SubNavButton
+                  $open={mOpen}
                   $active={location.pathname === "/devolucoes"}
                   onClick={() => handleNavigate("/devolucoes", "Devoluções")}
                   title="Devoluções de venda e compra com movimentação fiscal e estoque"

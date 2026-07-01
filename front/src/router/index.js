@@ -17,6 +17,7 @@ import { Financeiro } from "pages/financeiro";
 import { ConfiguracaoFiscal } from "pages/configuracao_fiscal";
 import { Nfe } from "pages/nfe";
 import { NfeRecebidas } from "pages/nfe_recebidas";
+import { NfeManifestacao } from "pages/nfe_manifestacao";
 import { Mdfe } from "pages/mdfe";
 import { TenantSetup } from "pages/tenant_setup";
 import { NotFound } from "pages/404";
@@ -199,7 +200,13 @@ export const RouteApp = () => (
       />
       <Route
         path="/nfe/manifestacoes"
-        element={<Navigate to="/nfe/recebidas" replace />}
+        element={
+          <AuthMiddleware>
+            <PageWrapper title="Manifestação NF-e">
+              <NfeManifestacao />
+            </PageWrapper>
+          </AuthMiddleware>
+        }
       />
       <Route
         path="/produtos"

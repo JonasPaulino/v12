@@ -2,6 +2,7 @@ import React, { useContext } from "react";
 import { MdMenuOpen, MdOutlineMenu } from "react-icons/md";
 import { AppContext } from "context";
 import BussinsOptions from "./components/bussins";
+import HeaderNotifications from "./notifications";
 import * as C from "./style";
 
 const Header = () => {
@@ -17,6 +18,7 @@ const Header = () => {
       </C.ButtonContainer>
 
       <C.ProfileContainer>
+        <HeaderNotifications />
         <BussinsOptions />
       </C.ProfileContainer>
     </C.Container>

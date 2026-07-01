@@ -21,6 +21,8 @@ const NFE_NATIVE_WORKER_PATH = path.join(__dirname, "nfeNativeWorker.js");
 const DANFE_NATIVE_WORKER_PATH = path.join(__dirname, "danfeNativeWorker.js");
 const NFE_PREVIA_DANFE_WORKER_PATH = path.join(__dirname, "nfePreviaDanfeWorker.js");
 const NFE_DISTRIBUICAO_WORKER_PATH = path.join(__dirname, "nfeDistribuicaoWorker.js");
+const NFE_DISTRIBUICAO_NSU_WORKER_PATH = path.join(__dirname, "nfeDistribuicaoNsuWorker.js");
+const NFE_MANIFESTACAO_WORKER_PATH = path.join(__dirname, "nfeManifestacaoWorker.js");
 
 class AcbrLibNotConfiguredError extends Error {
   constructor(message = "ACBrLib não configurada neste ambiente.") {
@@ -384,6 +386,164 @@ const runDistribuicaoWorker = async ({
       result?.message ||
       stderr ||
       `A ACBrLib falhou durante a distribuição por chave${signal}.`;
+
+    throw new AcbrLibIntegrationError(message, {
+      tenantId,
+      chaveAcesso,
+      workerResult: result,
+      signal: error.signal || null,
+      stderr,
+    });
+  } finally {
+    await fs.rm(workDir, { recursive: true, force: true });
+  }
+};
+
+const runDistribuicaoNsuWorker = async ({
+  tenantId,
+  ultNsu,
+  cufAutor,
+  cnpjCpfAutor,
+  uf,
+  ambiente,
+  certificadoBuffer,
+  certificadoSenha,
+}) => {
+  const workDir = await fs.mkdtemp(path.join(os.tmpdir(), `v12-dist-nsu-${tenantId}-`));
+  const inputPath = path.join(workDir, "input.json");
+  const outputPath = path.join(workDir, "output.json");
+
+  await fs.writeFile(
+    inputPath,
+    JSON.stringify({
+      tenantId,
+      ultNsu,
+      cufAutor,
+      cnpjCpfAutor,
+      uf,
+      ambiente,
+      certificadoBase64: Buffer.from(certificadoBuffer).toString("base64"),
+      certificadoSenha,
+    }),
+    "utf8"
+  );
+
+  try {
+    const { stderr } = await execFileAsync(
+      process.execPath,
+      [NFE_DISTRIBUICAO_NSU_WORKER_PATH, inputPath, outputPath],
+      {
+        cwd: process.cwd(),
+        env: process.env,
+        maxBuffer: 30 * 1024 * 1024,
+        timeout: 180000,
+      }
+    );
+
+    if (stderr) {
+      console.error(stderr.trim());
+    }
+
+    const result = await safeReadJsonFile(outputPath);
+    if (!result?.ok) {
+      throw new AcbrLibIntegrationError(result?.message || "Falha ao consultar distribuição por NSU na ACBrLib.", {
+        tenantId,
+        ultNsu,
+        workerResult: result,
+      });
+    }
+
+    return result;
+  } catch (error) {
+    const result = await safeReadJsonFile(outputPath);
+    const signal = error.signal ? ` (signal: ${error.signal})` : "";
+    const stderr = String(error.stderr || "").trim();
+    const message =
+      result?.lastReturn ||
+      result?.message ||
+      stderr ||
+      `A ACBrLib falhou durante a distribuição por NSU${signal}.`;
+
+    throw new AcbrLibIntegrationError(message, {
+      tenantId,
+      ultNsu,
+      workerResult: result,
+      signal: error.signal || null,
+      stderr,
+    });
+  } finally {
+    await fs.rm(workDir, { recursive: true, force: true });
+  }
+};
+
+const runManifestacaoWorker = async ({
+  tenantId,
+  chaveAcesso,
+  tipoEvento,
+  justificativa,
+  cufAutor,
+  documento,
+  uf,
+  ambiente,
+  certificadoBuffer,
+  certificadoSenha,
+}) => {
+  const workDir = await fs.mkdtemp(path.join(os.tmpdir(), `v12-manif-${tenantId}-`));
+  const inputPath = path.join(workDir, "input.json");
+  const outputPath = path.join(workDir, "output.json");
+
+  await fs.writeFile(
+    inputPath,
+    JSON.stringify({
+      tenantId,
+      chaveAcesso,
+      tipoEvento,
+      justificativa,
+      cufAutor,
+      documento,
+      uf,
+      ambiente,
+      certificadoBase64: Buffer.from(certificadoBuffer).toString("base64"),
+      certificadoSenha,
+    }),
+    "utf8"
+  );
+
+  try {
+    const { stderr } = await execFileAsync(
+      process.execPath,
+      [NFE_MANIFESTACAO_WORKER_PATH, inputPath, outputPath],
+      {
+        cwd: process.cwd(),
+        env: process.env,
+        maxBuffer: 20 * 1024 * 1024,
+        timeout: 120000,
+      }
+    );
+
+    if (stderr) {
+      console.error(stderr.trim());
+    }
+
+    const result = await safeReadJsonFile(outputPath);
+    if (!result?.ok) {
+      throw new AcbrLibIntegrationError(result?.message || "Falha ao enviar manifestação na ACBrLib.", {
+        tenantId,
+        chaveAcesso,
+        workerResult: result,
+      });
+    }
+
+    return result;
+  } catch (error) {
+    const result = await safeReadJsonFile(outputPath);
+    const signal = error.signal ? ` (signal: ${error.signal})` : "";
+    const stderr = String(error.stderr || "").trim();
+    const message =
+      result?.lastReturn ||
+      result?.message ||
+      stderr ||
+      `A ACBrLib falhou durante a manifestação da NF-e${signal}.`;
 
     throw new AcbrLibIntegrationError(message, {
       tenantId,
@@ -787,6 +947,79 @@ class AcbrLibProvider {
       ...metadata,
       xml,
       xmlCompleto: hasCompleteNfeXml(xml),
+      paths: workerResult.paths || null,
+    };
+  }
+
+  static async distribuirNfePorUltNsu({ client, tenantId, ultNsu }) {
+    this.ensureConfigured();
+
+    const context = await AcbrNfeIntegrationDAO.carregarContextoDistribuicao(client);
+    const uf = String(context.uf || "").trim().toUpperCase();
+    const cufAutor = getCufByUf(uf);
+
+    if (!cufAutor) {
+      throw new AcbrLibIntegrationError("UF da filial inválida para distribuição de NF-e.", {
+        tenantId,
+        uf,
+      });
+    }
+
+    const workerResult = await runDistribuicaoNsuWorker({
+      tenantId,
+      ultNsu,
+      cufAutor,
+      cnpjCpfAutor: context.cnpjCpf,
+      uf,
+      ambiente: context.ambiente,
+      certificadoBuffer: context.certificado.conteudo_pfx,
+      certificadoSenha: decryptSecret(context.certificado.senha_criptografada),
+    });
+    const metadata = extractDistributionMetadata(workerResult.rawResponse);
+
+    return {
+      ...metadata,
+      documentos: workerResult.documentos || [],
+      paths: workerResult.paths || null,
+    };
+  }
+
+  static async manifestarNfeDestinatario({
+    client,
+    tenantId,
+    chaveAcesso,
+    tipoEvento,
+    justificativa,
+  }) {
+    this.ensureConfigured();
+
+    const context = await AcbrNfeIntegrationDAO.carregarContextoDistribuicao(client);
+    const uf = String(context.uf || "").trim().toUpperCase();
+    const cufAutor = getCufByUf(uf);
+
+    if (!cufAutor) {
+      throw new AcbrLibIntegrationError("UF da filial inválida para manifestação da NF-e.", {
+        tenantId,
+        uf,
+      });
+    }
+
+    const workerResult = await runManifestacaoWorker({
+      tenantId,
+      chaveAcesso,
+      tipoEvento,
+      justificativa,
+      cufAutor,
+      documento: context.cnpjCpf,
+      uf,
+      ambiente: context.ambiente,
+      certificadoBuffer: context.certificado.conteudo_pfx,
+      certificadoSenha: decryptSecret(context.certificado.senha_criptografada),
+    });
+    const metadata = buildResponseMetadata(workerResult.rawResponse, "manifestar");
+
+    return {
+      ...metadata,
       paths: workerResult.paths || null,
     };
   }
