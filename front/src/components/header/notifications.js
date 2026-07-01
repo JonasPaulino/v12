@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { HiOutlineBell } from "react-icons/hi2";
 import { useNavigate } from "react-router-dom";
 import { api } from "api/axiosConfig";
 import * as C from "./style";
@@ -14,20 +15,6 @@ const formatDate = (value) => {
     minute: "2-digit",
   }).format(date);
 };
-
-const BellIcon = () => (
-  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-    <path
-      d="M12 22a2.75 2.75 0 0 0 2.62-1.9H9.38A2.75 2.75 0 0 0 12 22Z"
-      fill="currentColor"
-    />
-    <path
-      d="M19.4 17.2c-.78-.98-1.27-1.5-1.27-4.4 0-2.66-1.36-4.73-3.76-5.45a2.48 2.48 0 0 0-4.74 0c-2.4.72-3.76 2.79-3.76 5.45 0 2.9-.49 3.42-1.27 4.4-.33.42-.52.93-.39 1.44.14.55.6.86 1.2.86h13.18c.6 0 1.06-.31 1.2-.86.13-.51-.06-1.02-.39-1.44Z"
-      fill="currentColor"
-      opacity="0.78"
-    />
-  </svg>
-);
 
 const HeaderNotifications = () => {
   const navigate = useNavigate();
@@ -106,7 +93,7 @@ const HeaderNotifications = () => {
         aria-label="Notificações"
         aria-expanded={open}
       >
-        <BellIcon />
+        <HiOutlineBell />
         {unread > 0 && <C.NotificationBadge>{unread > 9 ? "9+" : unread}</C.NotificationBadge>}
       </C.NotificationButton>
 
@@ -136,7 +123,7 @@ const HeaderNotifications = () => {
                     onClick={() => handleClick(item)}
                   >
                     <C.NotificationGlyph $unread={!item.lida}>
-                      <BellIcon />
+                      <HiOutlineBell />
                     </C.NotificationGlyph>
                     <C.NotificationContent>
                       <C.NotificationTitle>{item.titulo}</C.NotificationTitle>

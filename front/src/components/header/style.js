@@ -79,8 +79,9 @@ export const NotificationButton = styled.button`
   transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
 
   svg {
-    width: 22px;
-    height: 22px;
+    width: 21px;
+    height: 21px;
+    stroke-width: 1.8;
   }
 
   &:hover {
@@ -217,8 +218,9 @@ export const NotificationGlyph = styled.span`
   color: ${({ $unread, theme }) => ($unread ? theme.colors.primaryStrong : theme.colors.textSoft)};
 
   svg {
-    width: 20px;
-    height: 20px;
+    width: 19px;
+    height: 19px;
+    stroke-width: 1.8;
   }
 `;
 
