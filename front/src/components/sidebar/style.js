@@ -9,7 +9,7 @@ export const Container = styled.aside`
   display: flex;
   flex-direction: column;
   gap: 18px;
-  padding: 24px 18px;
+  padding: 18px 18px 22px;
   overflow: hidden;
   background:
     linear-gradient(180deg, rgba(8, 59, 154, 0.98) 0%, rgba(10, 27, 64, 0.98) 100%);
@@ -55,7 +55,7 @@ export const MobileCloseButton = styled.button`
 `;
 
 export const LogoContainer = styled.div`
-  padding: ${({ $open }) => ($open ? "12px 10px 6px" : "12px 0 6px")};
+  padding: ${({ $open }) => ($open ? "2px 10px 18px" : "2px 0 18px")};
   display: flex;
   justify-content: ${({ $open }) => ($open ? "flex-start" : "center")};
 
