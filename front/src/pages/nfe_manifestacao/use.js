@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useLoading } from "context/LoadingContext";
+import { useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { AppContext } from "context";
 import { useSweetAlert } from "context/sweet_alert";
 import {
   getManifestacoesNfe,
@@ -20,7 +20,7 @@ const useDebounced = (value, delay = 350) => {
 };
 
 export const useNfeManifestacaoPage = () => {
-  const { showLoading, hideLoading } = useLoading();
+  const { showLoading, hideLoading } = useContext(AppContext);
   const { showAlert, askYesNoQuestion } = useSweetAlert();
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounced(search);
