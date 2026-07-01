@@ -77,6 +77,15 @@ export const Brand = styled.strong`
   letter-spacing: 0.04em;
 `;
 
+export const BrandImage = styled.img`
+  width: ${({ $open }) => ($open ? "168px" : "58px")};
+  max-width: 100%;
+  max-height: ${({ $open }) => ($open ? "82px" : "58px")};
+  display: block;
+  object-fit: contain;
+  object-position: ${({ $open }) => ($open ? "left center" : "center")};
+`;
+
 export const BrandSub = styled.span`
   display: ${({ $open }) => ($open ? "block" : "none")};
   color: rgba(255, 255, 255, 0.72);

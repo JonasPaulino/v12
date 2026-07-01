@@ -17,6 +17,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { AppContext } from "context";
 import * as C from "./style";
 import ProfileOptions from "./components/profile";
+import logoWhite from "../../assets/brand/v12-erp-logo-white.png";
 
 const Sidebar = () => {
   const { mOpen, abreFechaMenu, selecionaPagina, user, business } = useContext(AppContext);
@@ -65,8 +66,7 @@ const Sidebar = () => {
       <C.TopArea>
         <C.LogoContainer $open={mOpen}>
           <C.Logo $open={mOpen}>
-            <C.Brand>V12</C.Brand>
-            {/* <C.BrandSub $open={mOpen}>Sistema de automação  </C.BrandSub> */}
+            <C.BrandImage $open={mOpen} src={logoWhite} alt="V12 ERP" />
           </C.Logo>
         </C.LogoContainer>
 

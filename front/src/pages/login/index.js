@@ -1,6 +1,8 @@
 import React from "react";
 import * as C from "./style";
 import { useLogin } from "./use";
+import logoColor from "../../assets/brand/v12-erp-logo-color.png";
+import logoWhite from "../../assets/brand/v12-erp-logo-white.png";
 
 export const Login = () => {
   const {
@@ -16,11 +18,11 @@ export const Login = () => {
     <C.Container>
       <C.Hero>
         <C.HeroTop>
-          <C.Brand>V12</C.Brand>
-          <C.HeroTitle>Um sistema multi-filial. Desenvolvido para agilizar seu negócio.</C.HeroTitle>
+          <C.BrandLogo src={logoWhite} alt="V12 ERP" />
+          <C.HeroTitle>Um ERP multi-filial. Desenvolvido para agilizar seu negócio.</C.HeroTitle>
           <C.HeroText>
-            Organize sua empresa com o sistema V12, cadastre seus produtos, realize vendas, emita notas fiscais de venda e devolução.
-            Com o V12 você emite seus relatórios e tem as informações que precisa para a tomada de decisão.
+            Organize sua empresa com o V12 ERP, cadastre seus produtos, realize vendas, controle financeiro, estoque e emissão fiscal.
+            Tenha relatórios e informações claras para tomar decisões no dia a dia.
           </C.HeroText>
         </C.HeroTop>
 
@@ -32,7 +34,8 @@ export const Login = () => {
 
       <C.FormArea>
         <C.FormCard>
-          <C.Step>V12 Sistema</C.Step>
+          <C.FormLogo src={logoColor} alt="V12 ERP" />
+          <C.Step>V12 ERP</C.Step>
           <C.Title>Entrar no sistema</C.Title>
           <C.Subtitle>
             Informe login e senha. A filial padrão do usuário será carregada e poderá ser alterada depois no menu superior.

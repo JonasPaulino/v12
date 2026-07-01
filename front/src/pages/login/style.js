@@ -59,6 +59,15 @@ export const Brand = styled.h1`
   font-size: 3rem;
 `;
 
+export const BrandLogo = styled.img`
+  width: min(240px, 60%);
+  max-height: 120px;
+  display: block;
+  margin: 0 0 22px;
+  object-fit: contain;
+  object-position: left center;
+`;
+
 export const HeroTitle = styled.h2`
   max-width: 560px;
   margin: 0;
@@ -121,6 +130,15 @@ export const FormCard = styled.div`
   @media (max-width: 640px) {
     padding: 28px 22px;
   }
+`;
+
+export const FormLogo = styled.img`
+  width: min(180px, 58%);
+  max-height: 92px;
+  display: block;
+  margin: 0 0 18px;
+  object-fit: contain;
+  object-position: left center;
 `;
 
 export const Step = styled.span`
