@@ -161,7 +161,16 @@ class NfeManifestacaoDAO {
     return rows[0];
   }
 
-  static async salvarNotificacaoNovaNfe(client, row) {
+  static async salvarNotificacaoSincronizacao(client, { quantidade, chaves = [] } = {}) {
+    const total = Number(quantidade) || 0;
+    if (total <= 0) return null;
+
+    const plural = total === 1 ? "NF-e recebida" : "NF-e recebidas";
+    const mensagem =
+      total === 1
+        ? "1 NF-e emitida para esta filial foi encontrada na SEFAZ. Você pode confirmar, desconhecer ou importar o XML."
+        : `${total} NF-e emitidas para esta filial foram encontradas na SEFAZ. Você pode confirmar, desconhecer ou importar os XMLs.`;
+
     await client.query(
       `
         INSERT INTO notificacao (
@@ -174,18 +183,20 @@ class NfeManifestacaoDAO {
         )
         VALUES (
           ${TENANT_CONTEXT_SQL},
-          'nfe_recebida',
-          'Nova NF-e recebida',
+          'nfe_recebida_lote',
           $1,
+          $2,
           '/nfe/manifestacoes',
-          $2
+          $3
         )
       `,
       [
-        `${row.emitente_nome || "Fornecedor"} emitiu uma NF-e para esta filial.`,
+        `${total} ${plural} encontradas`,
+        mensagem,
         JSON.stringify({
-          nfe_recebida_distribuicao_id: row.nfe_recebida_distribuicao_id,
-          chave_acesso: row.chave_acesso,
+          origem: "distribuicao_dfe",
+          quantidade: total,
+          chaves: chaves.slice(0, 20),
         }),
       ]
     );
@@ -278,8 +289,10 @@ class NfeManifestacaoDAO {
       ]
     );
 
-    if (isNew) await this.salvarNotificacaoNovaNfe(client, rows[0]);
-    return rows[0];
+    return {
+      ...rows[0],
+      nova_distribuicao: isNew,
+    };
   }
 
   static async sincronizarDistribuicao(client, { token, usuarioId = null } = {}) {
@@ -307,6 +320,7 @@ class NfeManifestacaoDAO {
     const cStat = response.cStat || findIniValue(raw, "CStat") || null;
     const xMotivo = response.xMotivo || findIniValue(raw, "XMotivo") || findIniValue(raw, "xMotivo") || null;
     const documentos = [];
+    const novosDocumentos = [];
     const ignored = {
       semChave: 0,
       destinatarioDivergente: 0,
@@ -339,12 +353,21 @@ class NfeManifestacaoDAO {
         continue;
       }
       const saved = await this.salvarDocumentoDistribuicao(client, doc, raw);
-      if (saved) documentos.push(saved);
+      if (saved) {
+        documentos.push(saved);
+        if (saved.nova_distribuicao) novosDocumentos.push(saved);
+      }
     }
+
+    await this.salvarNotificacaoSincronizacao(client, {
+      quantidade: novosDocumentos.length,
+      chaves: novosDocumentos.map((item) => item.chave_acesso).filter(Boolean),
+    });
 
     console.log("[nfe-manifestacao] Sincronização finalizada", {
       tenantId: contexto.tenantId,
       documentosSalvos: documentos.length,
+      documentosNovos: novosDocumentos.length,
       ignorados: ignored,
     });
 
@@ -371,6 +394,7 @@ class NfeManifestacaoDAO {
         xmotivo: xMotivo,
       },
       documentos,
+      novosDocumentos: novosDocumentos.length,
       usuario_id: usuarioId,
       raw,
     };

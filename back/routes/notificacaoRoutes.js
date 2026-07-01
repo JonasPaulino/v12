@@ -23,6 +23,25 @@ router.get("/", async (req, res) => {
   }
 });
 
+router.post("/lidas", async (req, res) => {
+  try {
+    const data = await NotificacaoDAO.marcarTodasComoLidas(req.db, {
+      usuarioId: Number(req.user?.userId) || null,
+    });
+
+    return res.json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    console.error("[notificacoes] Falha ao marcar todas como lidas:", error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Não foi possível atualizar as notificações.",
+    });
+  }
+});
+
 router.post("/:id/lida", async (req, res) => {
   try {
     const data = await NotificacaoDAO.marcarComoLida(req.db, Number(req.params.id), {

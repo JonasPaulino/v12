@@ -70,19 +70,27 @@ export const useNfeManifestacaoPage = () => {
       const xMotivo = response?.data?.controle?.xmotivo;
       const ambiente = response?.data?.controle?.ambiente;
       const totalDocumentos = response?.data?.documentos?.length || 0;
+      const novosDocumentos = Number(response?.data?.novosDocumentos || 0);
       const homologMessage =
         ambiente === "2"
           ? "Esta filial está consultando NF-e recebidas em ambiente de homologação. Notas reais emitidas para o CNPJ só aparecem no ambiente de produção."
           : "";
+      const notificationMessage =
+        novosDocumentos > 0
+          ? `O sistema recebeu ${novosDocumentos} NF-e da SEFAZ. Você pode confirmar, desconhecer ou importar essas notas.`
+          : xMotivo || `${totalDocumentos} documento(s) retornado(s).`;
       showAlert({
-        icon: homologMessage || (cStat && cStat !== "138") ? "warning" : "success",
+        icon: homologMessage || (cStat && cStat !== "138" && novosDocumentos <= 0) ? "warning" : "success",
         title: homologMessage
           ? "Ambiente de homologação"
+          : novosDocumentos > 0
+          ? "NF-e recebidas encontradas"
           : cStat && cStat !== "138"
           ? "Consulta sem documentos"
           : "Consulta concluída",
-        text: homologMessage || xMotivo || `${totalDocumentos} documento(s) retornado(s).`,
+        text: homologMessage || notificationMessage,
       });
+      document.dispatchEvent(new CustomEvent("app:notifications:refresh"));
       refresh();
     } catch (error) {
       hideLoading();

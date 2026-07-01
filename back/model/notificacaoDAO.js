@@ -68,6 +68,25 @@ class NotificacaoDAO {
     if (!rows[0]) throw new Error("Notificação não encontrada.");
     return rows[0];
   }
+
+  static async marcarTodasComoLidas(client, { usuarioId = null } = {}) {
+    const { rows } = await client.query(
+      `
+        UPDATE notificacao
+        SET lida = TRUE,
+            lida_em = COALESCE(lida_em, NOW())
+        WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+          AND (usuario_id IS NULL OR usuario_id = $1)
+          AND lida = FALSE
+        RETURNING notificacao_id
+      `,
+      [usuarioId || null]
+    );
+
+    return {
+      total: rows.length,
+    };
+  }
 }
 
 export default NotificacaoDAO;
