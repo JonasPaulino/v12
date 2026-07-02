@@ -533,9 +533,9 @@ class GestaoFinanceiroDAO {
       `
         UPDATE gestao.financeiro_parcela
         SET
-          status = $2,
-          valor_pago = CASE WHEN $2 = 'quitado' THEN valor ELSE valor_pago END,
-          pagamento_em = CASE WHEN $2 = 'quitado' THEN COALESCE($3::date, CURRENT_DATE) ELSE pagamento_em END,
+          status = $2::varchar,
+          valor_pago = CASE WHEN $2::text = 'quitado' THEN valor ELSE valor_pago END,
+          pagamento_em = CASE WHEN $2::text = 'quitado' THEN COALESCE($3::date, CURRENT_DATE) ELSE pagamento_em END,
           asaas_payload = COALESCE(asaas_payload, '{}'::jsonb) || $4::jsonb
         WHERE parcela_id = $1
       `,
@@ -552,11 +552,11 @@ class GestaoFinanceiroDAO {
         UPDATE gestao.cliente_parcela
         SET
           status = CASE
-            WHEN $3 = 'quitado' THEN 'paga'
-            WHEN $3 = 'vencido' THEN 'vencida'
+            WHEN $3::text = 'quitado' THEN 'paga'
+            WHEN $3::text = 'vencido' THEN 'vencida'
             ELSE status
           END,
-          pago_em = CASE WHEN $3 = 'quitado' THEN COALESCE($4::date, CURRENT_DATE) ELSE pago_em END,
+          pago_em = CASE WHEN $3::text = 'quitado' THEN COALESCE($4::date, CURRENT_DATE) ELSE pago_em END,
           asaas_payload = COALESCE(asaas_payload, '{}'::jsonb) || $5::jsonb
         WHERE contrato_id = $1
           AND numero_parcela = $2
