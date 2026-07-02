@@ -913,6 +913,125 @@ class GestaoFinanceiroDAO {
     });
   }
 
+  static async cancelarCarneTitulo(client, tituloId) {
+    const contexto = await this.buscarTituloContexto(client, tituloId);
+    if (!contexto) throw new Error("Título financeiro não encontrado.");
+
+    const { titulo, parcelas } = contexto;
+    const installmentId = titulo.asaas_installment_id;
+    if (!installmentId) throw new Error("Título ainda não possui carnê gerado no Asaas.");
+
+    const parcelasQuitadas = parcelas.filter(
+      (parcela) => parcela.status === "quitado" || Number(parcela.valor_pago || 0) > 0
+    );
+
+    if (parcelasQuitadas.length) {
+      throw new Error("Não é possível cancelar carnê com parcela já baixada ou paga.");
+    }
+
+    const config = await this.buscarConfiguracaoAsaas(client);
+    if (!config.ativo || !config.apiKey) {
+      throw new Error("Configuração Asaas da Gestão V12 não está ativa.");
+    }
+
+    const payments = mergeAsaasPayments(
+      await listarPagamentosParcelamentoAsaas(config.apiKey, config.ambiente, installmentId),
+      await listarPagamentosPorInstallmentAsaas(config.apiKey, config.ambiente, installmentId),
+      parcelas
+        .filter((parcela) => parcela.asaas_charge_id)
+        .map((parcela) => ({
+          id: parcela.asaas_charge_id,
+          dueDate: toAsaasDate(parcela.vencimento),
+          installmentNumber: parcela.numero_parcela,
+        }))
+    );
+
+    if (!payments.length) {
+      throw new Error("Não foram encontradas cobranças do carnê para cancelar no Asaas.");
+    }
+
+    const cancelados = [];
+    const erros = [];
+
+    for (const payment of payments) {
+      try {
+        await asaasRequest(config.apiKey, config.ambiente, {
+          method: "DELETE",
+          path: `/v3/payments/${encodeURIComponent(payment.id)}`,
+        });
+        cancelados.push(payment.id);
+      } catch (error) {
+        erros.push({
+          id: payment.id,
+          message: error.message,
+        });
+      }
+    }
+
+    if (erros.length) {
+      throw new Error(
+        `Não foi possível cancelar todas as cobranças do carnê no Asaas. Falhas: ${erros
+          .map((erro) => `${erro.id}: ${erro.message}`)
+          .join("; ")}`
+      );
+    }
+
+    const cancelamentoPayload = {
+      carneCancelado: {
+        installmentId,
+        cancelados,
+        canceladoEm: new Date().toISOString(),
+      },
+    };
+
+    await client.query(
+      `
+        UPDATE gestao.financeiro_parcela
+        SET
+          asaas_charge_id = NULL,
+          asaas_invoice_url = NULL,
+          asaas_payload = COALESCE(asaas_payload, '{}'::jsonb) || $2::jsonb,
+          status = CASE WHEN status = 'vencido' AND vencimento >= CURRENT_DATE THEN 'aberto' ELSE status END
+        WHERE titulo_id = $1
+      `,
+      [tituloId, JSON.stringify(cancelamentoPayload)]
+    );
+
+    await client.query(
+      `
+        UPDATE gestao.cliente_parcela
+        SET
+          status = CASE WHEN status IN ('gerada', 'vencida') THEN 'aberta' ELSE status END,
+          asaas_charge_id = NULL,
+          asaas_invoice_url = NULL,
+          asaas_payload = COALESCE(asaas_payload, '{}'::jsonb) || $3::jsonb
+        WHERE contrato_id = $1
+          AND numero_parcela = ANY($2::int[])
+      `,
+      [
+        titulo.contrato_id,
+        parcelas.map((parcela) => Number(parcela.numero_parcela)),
+        JSON.stringify(cancelamentoPayload),
+      ]
+    );
+
+    await client.query(
+      `
+        UPDATE gestao.financeiro_titulo
+        SET asaas_installment_id = NULL
+        WHERE titulo_id = $1
+      `,
+      [tituloId]
+    );
+
+    await this.atualizarStatusTitulo(client, tituloId);
+
+    return {
+      installmentId,
+      cancelados,
+    };
+  }
+
   static async atualizarStatusCobranca(client, parcelaId) {
     const parcela = await this.buscarParcelaContexto(client, parcelaId);
     if (!parcela) throw new Error("Parcela não encontrada.");
