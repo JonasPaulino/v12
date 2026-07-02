@@ -132,30 +132,6 @@ export const NavText = styled.span`
   white-space: nowrap;
 `;
 
-export const BottomArea = styled.div`
-  display: grid;
-  gap: 10px;
-`;
-
-export const UserCard = styled.div`
-  display: ${({ $open }) => ($open ? "grid" : "none")};
-  gap: 4px;
-  padding: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: ${({ theme }) => theme.radius.md};
-  background: rgba(255, 255, 255, 0.07);
-
-  strong {
-    color: #fff;
-    font-size: 0.9rem;
-  }
-
-  span {
-    color: rgba(255, 255, 255, 0.62);
-    font-size: 0.78rem;
-  }
-`;
-
 export const Content = styled.main`
   flex: 1;
   min-width: 0;
@@ -232,6 +208,36 @@ export const HeaderActions = styled.div`
   display: flex;
   align-items: center;
   gap: 10px;
+`;
+
+export const HeaderUser = styled.div`
+  display: grid;
+  gap: 2px;
+  min-width: 140px;
+  max-width: 240px;
+  padding: 0 4px;
+  text-align: right;
+
+  strong {
+    color: ${({ theme }) => theme.colors.text};
+    font-size: 0.9rem;
+    line-height: 1.1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  span {
+    color: ${({ theme }) => theme.colors.textSoft};
+    font-size: 0.76rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 760px) {
+    display: none;
+  }
 `;
 
 export const ActionButton = styled.button`
