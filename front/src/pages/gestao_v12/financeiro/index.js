@@ -28,6 +28,8 @@ const statusLabel = {
   vencido: "Vencido",
 };
 
+const isTrue = (value) => value === true || value === "true";
+
 const apiBaseUrl = import.meta.env.VITE_API_URL || "/api";
 
 export const GestaoV12Financeiro = () => {
@@ -341,12 +343,13 @@ export const GestaoV12Financeiro = () => {
               <tbody>
                 {rows.length ? (
                   rows.map((parcela) => {
-                    const temCobrancaAtiva = parcela.tem_cobranca_ativa === true;
+                    const temCobrancaAtiva = isTrue(parcela.tem_cobranca_ativa);
                     const carneTemCobrancaAtiva =
-                      parcela.carne_tem_cobranca_ativa === true && !!parcela.asaas_installment_id;
-                    const tituloTemParcelaPaga = parcela.titulo_tem_parcela_paga === true;
-                    const tituloTemPendenteSemCobranca =
-                      parcela.titulo_tem_pendente_sem_cobranca === true;
+                      isTrue(parcela.carne_tem_cobranca_ativa) && !!parcela.asaas_installment_id;
+                    const tituloTemParcelaPaga = isTrue(parcela.titulo_tem_parcela_paga);
+                    const tituloTemPendenteSemCobranca = isTrue(
+                      parcela.titulo_tem_pendente_sem_cobranca
+                    );
                     const podeGerarCobranca =
                       parcela.status !== "quitado" && parcela.status !== "cancelado";
 
@@ -416,11 +419,11 @@ export const GestaoV12Financeiro = () => {
                                   onClick: () => cancelarCarne(parcela),
                                 },
                                 {
-                                  label: "Carnê saldo restante",
+                                  label: "Gerar Carnê saldo",
                                   disabled:
                                     !tituloTemPendenteSemCobranca ||
                                     carneTemCobrancaAtiva ||
-                                    temCobrancaAtiva,
+                                    (temCobrancaAtiva && parcela.status !== "quitado"),
                                   onClick: () => gerarCarneSaldoRestante(parcela),
                                 },
                                 {
