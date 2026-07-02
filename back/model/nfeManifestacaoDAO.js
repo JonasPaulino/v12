@@ -334,6 +334,70 @@ class NfeManifestacaoDAO {
     };
   }
 
+  static async registrarHistoricoDistribuicao(client, {
+    controle,
+    contexto,
+    usuarioId,
+    ultNsuEnviado,
+    ultNsuRetorno,
+    maxNsuRetorno,
+    cStat,
+    xMotivo,
+    sucesso = false,
+    documentosRecebidos = 0,
+    documentosSalvos = 0,
+    documentosNovos = 0,
+    ignorados = {},
+    respostaRaw = "",
+  }) {
+    await client.query(
+      `
+        INSERT INTO nfe_distribuicao_historico (
+          tenant_id,
+          nfe_distribuicao_controle_id,
+          usuario_id,
+          ambiente,
+          documento,
+          uf,
+          ult_nsu_enviado,
+          ult_nsu_retorno,
+          max_nsu_retorno,
+          cstat,
+          xmotivo,
+          sucesso,
+          documentos_recebidos,
+          documentos_salvos,
+          documentos_novos,
+          ignorados_json,
+          resposta_raw
+        )
+        VALUES (
+          ${TENANT_CONTEXT_SQL},
+          $1, $2, $3, $4, $5, $6, $7, $8,
+          $9, $10, $11, $12, $13, $14, $15, $16
+        )
+      `,
+      [
+        controle?.nfe_distribuicao_controle_id || null,
+        usuarioId || null,
+        contexto.ambiente,
+        contexto.documento,
+        contexto.uf,
+        normalizeNsu(ultNsuEnviado),
+        ultNsuRetorno ? normalizeNsu(ultNsuRetorno) : null,
+        maxNsuRetorno ? normalizeNsu(maxNsuRetorno) : null,
+        cStat || null,
+        xMotivo || null,
+        !!sucesso,
+        Number(documentosRecebidos) || 0,
+        Number(documentosSalvos) || 0,
+        Number(documentosNovos) || 0,
+        JSON.stringify(ignorados || {}),
+        respostaRaw || null,
+      ]
+    );
+  }
+
   static async sincronizarDistribuicao(client, { token, usuarioId = null } = {}) {
     const contexto = await this.obterContextoFilial(client);
     if (!contexto.documento) throw new Error("Documento da filial não configurado.");
@@ -393,6 +457,23 @@ class NfeManifestacaoDAO {
       const retryAt = new Date(Date.now() + DISTRIBUICAO_COOLDOWN_MS);
       const retryText = formatDateTime(retryAt);
 
+      await this.registrarHistoricoDistribuicao(client, {
+        controle,
+        contexto,
+        usuarioId,
+        ultNsuEnviado: controle.ult_nsu,
+        ultNsuRetorno: ultNsu,
+        maxNsuRetorno: maxNsu,
+        cStat,
+        xMotivo,
+        sucesso: false,
+        documentosRecebidos: response.documentos?.length || 0,
+        documentosSalvos: 0,
+        documentosNovos: 0,
+        ignorados: ignored,
+        respostaRaw: raw,
+      });
+
       await client.query(
         `
           UPDATE nfe_distribuicao_controle
@@ -445,6 +526,23 @@ class NfeManifestacaoDAO {
       documentosSalvos: documentos.length,
       documentosNovos: novosDocumentos.length,
       ignorados: ignored,
+    });
+
+    await this.registrarHistoricoDistribuicao(client, {
+      controle,
+      contexto,
+      usuarioId,
+      ultNsuEnviado: controle.ult_nsu,
+      ultNsuRetorno: ultNsu,
+      maxNsuRetorno: maxNsu,
+      cStat,
+      xMotivo,
+      sucesso: true,
+      documentosRecebidos: response.documentos?.length || 0,
+      documentosSalvos: documentos.length,
+      documentosNovos: novosDocumentos.length,
+      ignorados: ignored,
+      respostaRaw: raw,
     });
 
     await client.query(
