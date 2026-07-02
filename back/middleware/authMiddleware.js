@@ -3,6 +3,18 @@ import { pool } from "../config/conexao.js";
 import loginDAO from "../model/loginDAO.js";
 import tenantDAO from "../model/tenantDAO.js";
 
+const isMasterAdministrativePath = (req) => {
+  const path = String(req.originalUrl || req.url || "");
+
+  return (
+    path.includes("/auth/validar-token") ||
+    path.includes("/tenant") ||
+    path.includes("/tenant-setup") ||
+    path.includes("/tenant-certificate") ||
+    path.includes("/gestao")
+  );
+};
+
 const verificarToken = async (req, res, next) => {
   const token = req.cookies?.token;
 
@@ -29,8 +41,18 @@ const verificarToken = async (req, res, next) => {
     }
 
     const currentTenant = await tenantDAO.getById(pool, decoded.tenantId);
-    if (!currentTenant || !currentTenant.tenant_ativo) {
+    if (!currentTenant) {
       return res.status(403).json({ message: "Filial inativa." });
+    }
+
+    if (!currentTenant.tenant_ativo) {
+      const isMaster = await loginDAO.usuarioEhMaster(pool, decoded.userId);
+
+      if (!isMaster || !isMasterAdministrativePath(req)) {
+        return res.status(403).json({ message: "Filial inativa." });
+      }
+
+      decoded.usuario_master = true;
     }
 
     req.user = decoded;
