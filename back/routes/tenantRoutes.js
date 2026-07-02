@@ -28,11 +28,12 @@ const buildUserPayload = (usuario) => ({
 router.get("/", async (req, res) => {
   try {
     const tenants = await loginDAO.listarTenantsDoUsuario(pool, req.user.userId);
+    const activeTenants = tenants.filter((item) => item.tenant_ativo);
 
     return res.json({
       success: true,
       currentTenantId: req.user.tenantId,
-      data: tenants.map(buildTenantPayload),
+      data: activeTenants.map(buildTenantPayload),
     });
   } catch (error) {
     console.error("[tenant] Falha ao listar filiais:", error);
@@ -56,6 +57,7 @@ router.post("/switch", async (req, res) => {
 
     const usuario = await loginDAO.buscarUsuarioPorId(pool, req.user.userId);
     const tenants = await loginDAO.listarTenantsDoUsuario(pool, req.user.userId);
+    const activeTenants = tenants.filter((item) => item.tenant_ativo);
     const activeTenant = tenants.find((item) => item.tenant_id === Number(tenantId));
 
     if (!activeTenant || !activeTenant.tenant_ativo) {
@@ -89,7 +91,7 @@ router.post("/switch", async (req, res) => {
       success: true,
       user: buildUserPayload(usuario),
       tenant: buildTenantPayload(activeTenant),
-      tenants: tenants.map(buildTenantPayload),
+      tenants: activeTenants.map(buildTenantPayload),
     });
   } catch (error) {
     console.error("[tenant] Falha ao trocar filial:", error);

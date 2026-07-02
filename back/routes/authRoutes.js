@@ -110,7 +110,7 @@ router.post("/login", async (req, res) => {
     });
 
     const activeTenants = tenants.filter((item) => item.tenant_ativo);
-    const loginTenants = usuario.usuario_master ? tenants : activeTenants;
+    const loginTenants = activeTenants;
 
     if (!loginTenants.length) {
       authDebugLog("login:denied", {
@@ -158,7 +158,7 @@ router.post("/login", async (req, res) => {
       success: true,
       user: buildPublicUser(usuario),
       tenant: buildTenantPayload(activeTenant),
-      tenants: tenants.map(buildTenantPayload),
+      tenants: activeTenants.map(buildTenantPayload),
     });
   } catch (error) {
     console.error("[auth] Falha no login:", error);
@@ -195,9 +195,10 @@ router.get("/validar-token", verificarToken, async (req, res) => {
   try {
     const usuario = await loginDAO.buscarUsuarioPorId(pool, req.user.userId);
     const tenants = await loginDAO.listarTenantsDoUsuario(pool, req.user.userId);
+    const activeTenants = tenants.filter((item) => item.tenant_ativo);
     const tenant = tenants.find((item) => item.tenant_id === req.user.tenantId) || null;
 
-    if (!usuario || !tenant) {
+    if (!usuario || !tenant || !tenant.tenant_ativo) {
       return res.json({ valid: false });
     }
 
@@ -205,7 +206,7 @@ router.get("/validar-token", verificarToken, async (req, res) => {
       valid: true,
       user: buildPublicUser(usuario),
       tenant: buildTenantPayload(tenant),
-      tenants: tenants.map(buildTenantPayload),
+      tenants: activeTenants.map(buildTenantPayload),
     });
   } catch (error) {
     console.error("[auth] Falha ao validar sessao:", error);

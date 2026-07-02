@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { AppContext } from "context";
 import { useSweetAlert } from "context/sweet_alert";
 import { reloadAfterTenantSwitch } from "utils";
@@ -43,9 +43,20 @@ export const useBusinessOptions = () => {
     hideLoading,
   } = useContext(AppContext);
   const { showAlert } = useSweetAlert();
+  const activeBusinesses = useMemo(
+    () => (businesses || []).filter(isTenantActive),
+    [businesses]
+  );
+  const selectedBusiness = useMemo(() => {
+    if (!activeBusinesses.length) return business || null;
+    const currentIsActive = activeBusinesses.some(
+      (tenant) => Number(tenant.tenant_id) === Number(business?.tenant_id)
+    );
+    return currentIsActive ? business : activeBusinesses[0];
+  }, [activeBusinesses, business]);
 
   const handleSwitch = async (tenantId, closeMenu) => {
-    if (!tenantId || tenantId === business?.tenant_id) {
+    if (!tenantId || tenantId === selectedBusiness?.tenant_id) {
       if (typeof closeMenu === "function") closeMenu(false);
       return;
     }
@@ -70,8 +81,8 @@ export const useBusinessOptions = () => {
   };
 
   return {
-    business,
-    businesses: (businesses || []).filter(isTenantActive),
+    business: selectedBusiness,
+    businesses: activeBusinesses,
     handleSwitch,
   };
 };

@@ -25,11 +25,18 @@ export const useBusinessSwitcher = () => {
     () => (businesses || []).filter(isTenantActive),
     [businesses]
   );
+  const selectedTenantId = useMemo(() => {
+    if (!tenantOptions.length) return currentTenantId;
+    const currentIsActive = tenantOptions.some(
+      (tenant) => Number(tenant.tenant_id) === Number(currentTenantId)
+    );
+    return currentIsActive ? currentTenantId : tenantOptions[0].tenant_id;
+  }, [currentTenantId, tenantOptions]);
 
   const toggle = () => setIsOpen((prev) => !prev);
 
   const handleSwitch = async (tenantId) => {
-    if (!tenantId || tenantId === currentTenantId) {
+    if (!tenantId || tenantId === selectedTenantId) {
       setIsOpen(false);
       return;
     }
@@ -54,7 +61,7 @@ export const useBusinessSwitcher = () => {
   };
 
   return {
-    currentTenantId,
+    currentTenantId: selectedTenantId,
     tenantOptions,
     isOpen,
     toggle,
