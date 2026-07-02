@@ -123,7 +123,6 @@ export const GestaoV12Layout = ({ title = "Gestão V12", subtitle, children }) =
             })}
           </C.NavList>
         </C.MenuArea>
-
       </C.Sidebar>
 
       {open ? <C.Overlay onClick={() => setOpen(false)} /> : null}
@@ -141,13 +140,13 @@ export const GestaoV12Layout = ({ title = "Gestão V12", subtitle, children }) =
           </C.HeaderLeft>
 
           <C.HeaderActions>
+            <C.ActionButton type="button" title="Notificações internas" $iconOnly>
+              <HiOutlineBell />
+            </C.ActionButton>
             <C.HeaderUser>
               <strong>{userName}</strong>
               <span>{userEmail || "Usuário interno"}</span>
             </C.HeaderUser>
-            <C.ActionButton type="button" title="Notificações internas">
-              <HiOutlineBell />
-            </C.ActionButton>
             <C.ActionButton type="button" onClick={handleLogout}>
               <HiOutlineArrowLeftOnRectangle />
               <span>Sair</span>

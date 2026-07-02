@@ -207,16 +207,21 @@ export const Subtitle = styled.span`
 export const HeaderActions = styled.div`
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 `;
 
 export const HeaderUser = styled.div`
   display: grid;
   gap: 2px;
-  min-width: 140px;
-  max-width: 240px;
-  padding: 0 4px;
-  text-align: right;
+  min-width: 168px;
+  max-width: 250px;
+  height: 42px;
+  justify-content: center;
+  padding: 0 14px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radius.md};
+  background: rgba(255, 255, 255, 0.78);
+  text-align: left;
 
   strong {
     color: ${({ theme }) => theme.colors.text};
@@ -242,16 +247,28 @@ export const HeaderUser = styled.div`
 
 export const ActionButton = styled.button`
   height: 42px;
+  min-width: ${({ $iconOnly }) => ($iconOnly ? "42px" : "auto")};
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  padding: 0 14px;
+  padding: ${({ $iconOnly }) => ($iconOnly ? "0" : "0 14px")};
   border: 1px solid ${({ theme }) => theme.colors.border};
   border-radius: ${({ theme }) => theme.radius.md};
   background: ${({ theme }) => theme.colors.surface};
   color: ${({ theme }) => theme.colors.text};
   font-weight: 700;
   cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease,
+    background 0.2s ease;
+
+  &:hover {
+    border-color: ${({ theme }) => theme.colors.primary};
+    color: ${({ theme }) => theme.colors.primaryStrong};
+    background: rgba(255, 255, 255, 0.9);
+  }
 
   svg {
     font-size: 1.1rem;

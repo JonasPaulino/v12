@@ -2,7 +2,10 @@ import styled from "styled-components";
 import { SlOptions } from "react-icons/sl";
 
 export const Stack = styled.div`
+  height: 100%;
+  min-height: 0;
   display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 18px;
 `;
 
@@ -63,6 +66,7 @@ export const PrimaryButton = styled.button`
 
 export const Card = styled.section`
   min-height: 0;
+  height: 100%;
   display: flex;
   flex-direction: column;
   border: 1px solid ${({ theme }) => theme.colors.border};
@@ -73,6 +77,7 @@ export const Card = styled.section`
 `;
 
 export const Scroll = styled.div`
+  flex: 1;
   min-height: 0;
   overflow: auto;
 `;

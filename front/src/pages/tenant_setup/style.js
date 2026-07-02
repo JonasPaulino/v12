@@ -334,12 +334,17 @@ export const LoadingCard = styled.div`
 `;
 
 export const PageGrid = styled.div`
+  height: 100%;
+  min-height: 0;
   display: grid;
   gap: 18px;
 `;
 
 export const ListCard = styled.div`
+  height: 100%;
+  min-height: 0;
   display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
   gap: 18px;
   padding: 24px;
   border: 1px solid ${({ theme }) => theme.colors.border};
@@ -418,6 +423,7 @@ export const TenantGrid = styled.div`
 
 export const TableCard = styled.div`
   min-height: 0;
+  height: 100%;
   display: flex;
   flex-direction: column;
   border: 1px solid ${({ theme }) => theme.colors.border};
@@ -427,6 +433,7 @@ export const TableCard = styled.div`
 `;
 
 export const TableScroll = styled.div`
+  flex: 1;
   min-height: 0;
   overflow: auto;
 `;
