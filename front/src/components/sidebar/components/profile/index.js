@@ -1,5 +1,9 @@
 import React from "react";
-import { MdExitToApp, MdKeyboardArrowDown, MdOutlineBusiness } from "react-icons/md";
+import {
+  HiOutlineArrowRightOnRectangle,
+  HiOutlineBuildingOffice2,
+  HiOutlineChevronDown,
+} from "react-icons/hi2";
 import * as C from "./style";
 import { useProfileActions, useToggleOptions, useUser } from "./use";
 
@@ -14,11 +18,23 @@ const ProfileOptions = ({ open = true }) => {
         <C.Options>
           {user.isMaster ? (
             <C.OptionButton onClick={handleOpenTenantSetup}>
-              <MdOutlineBusiness /> Cadastrar empresa
+              <C.OptionIcon>
+                <HiOutlineBuildingOffice2 />
+              </C.OptionIcon>
+              <C.OptionText>
+                <strong>Cadastrar empresa</strong>
+                <span>Filiais e certificado A1</span>
+              </C.OptionText>
             </C.OptionButton>
           ) : null}
           <C.OptionButton onClick={handleLogout}>
-            <MdExitToApp /> Sair
+            <C.OptionIcon>
+              <HiOutlineArrowRightOnRectangle />
+            </C.OptionIcon>
+            <C.OptionText>
+              <strong>Sair</strong>
+              <span>Encerrar sessão</span>
+            </C.OptionText>
           </C.OptionButton>
         </C.Options>
       )}
@@ -30,7 +46,7 @@ const ProfileOptions = ({ open = true }) => {
           <C.UserMail>{user.email || "sem e-mail"}</C.UserMail>
         </C.UserInfo>
         <C.TriggerIndicator $open={open} $active={isOpen}>
-          <MdKeyboardArrowDown />
+          <HiOutlineChevronDown />
         </C.TriggerIndicator>
       </C.Trigger>
     </C.Container>
