@@ -21,6 +21,7 @@ import { NfeManifestacao } from "pages/nfe_manifestacao";
 import { Mdfe } from "pages/mdfe";
 import { GestaoV12Dashboard } from "pages/gestao_v12/dashboard";
 import { GestaoV12Clientes } from "pages/gestao_v12/clientes";
+import { GestaoV12Pessoas } from "pages/gestao_v12/pessoas";
 import { GestaoV12Placeholder } from "pages/gestao_v12/placeholder";
 import { NotFound } from "pages/404";
 
@@ -182,11 +183,7 @@ export const RouteApp = () => (
         element={
           <AuthMiddleware>
             <MasterOnly>
-              <GestaoV12Placeholder
-                title="Pessoas"
-                subtitle="Cadastro interno de funcionários, fornecedores e parceiros da V12."
-                description="Esta tela deve reaproveitar o padrão do cadastro de pessoas, mas gravando os dados internos no schema gestao."
-              />
+              <GestaoV12Pessoas />
             </MasterOnly>
           </AuthMiddleware>
         }
