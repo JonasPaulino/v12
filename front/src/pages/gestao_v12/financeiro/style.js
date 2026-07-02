@@ -11,7 +11,7 @@ export const Stack = styled.div`
 
 export const Toolbar = styled.div`
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 190px auto;
+  grid-template-columns: minmax(260px, 1fr) minmax(360px, 520px) auto;
   gap: 12px;
   align-items: end;
 
@@ -20,7 +20,7 @@ export const Toolbar = styled.div`
   }
 `;
 
-export const Field = styled.label`
+export const Field = styled.div`
   display: grid;
   gap: 8px;
 `;
@@ -63,6 +63,53 @@ export const Select = styled.select`
     border-color: ${({ theme }) => theme.colors.primary};
     box-shadow: 0 0 0 4px rgba(11, 95, 255, 0.12);
   }
+`;
+
+export const StatusFilter = styled.div`
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+`;
+
+export const StatusChip = styled.button`
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 12px;
+  border: 1px solid
+    ${({ $active, theme }) => ($active ? theme.colors.primary : theme.colors.border)};
+  border-radius: ${({ theme }) => theme.radius.pill};
+  background: ${({ $active }) => ($active ? "rgba(11, 95, 255, 0.1)" : "#ffffff")};
+  color: ${({ $active, theme }) => ($active ? theme.colors.primaryStrong : theme.colors.textSoft)};
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: border-color 0.16s ease, background 0.16s ease, color 0.16s ease;
+
+  &:hover {
+    border-color: ${({ theme }) => theme.colors.primary};
+    color: ${({ theme }) => theme.colors.primaryStrong};
+  }
+`;
+
+export const CheckMark = styled.span`
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid
+    ${({ $active, theme }) => ($active ? theme.colors.primary : theme.colors.border)};
+  border-radius: 50%;
+  background: ${({ $active, theme }) => ($active ? theme.colors.primary : "transparent")};
+  color: #ffffff;
+  font-size: 0.72rem;
+  line-height: 1;
+  opacity: ${({ $active }) => ($active ? 1 : 0.35)};
 `;
 
 export const PrimaryButton = styled.button`

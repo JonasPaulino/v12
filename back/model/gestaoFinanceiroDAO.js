@@ -286,6 +286,7 @@ const buildInstallmentPayload = ({ customerId, parcelas, titulo }) => {
 };
 
 const asaasPaidStatuses = new Set(["RECEIVED", "CONFIRMED", "RECEIVED_IN_CASH"]);
+const allowedParcelaStatuses = new Set(["aberto", "vencido", "parcial", "quitado", "cancelado"]);
 
 class GestaoFinanceiroDAO {
   static async listarParcelas(
@@ -347,9 +348,14 @@ class GestaoFinanceiroDAO {
       `);
     }
 
-    if (status) {
-      values.push(status);
-      filters.push("fp.status = $" + values.length);
+    const statusList = String(status || "")
+      .split(",")
+      .map((item) => item.trim())
+      .filter((item) => allowedParcelaStatuses.has(item));
+
+    if (statusList.length) {
+      values.push(statusList);
+      filters.push("fp.status = ANY($" + values.length + "::text[])");
     }
 
     const where = filters.length ? `WHERE ${filters.join(" AND ")}` : "";

@@ -28,6 +28,14 @@ const statusLabel = {
   vencido: "Vencido",
 };
 
+const statusOptions = [
+  { value: "aberto", label: "Aberto" },
+  { value: "vencido", label: "Vencido" },
+  { value: "parcial", label: "Parcial" },
+  { value: "quitado", label: "Quitado" },
+  { value: "cancelado", label: "Cancelado" },
+];
+
 const isTrue = (value) => value === true || value === "true";
 
 const apiBaseUrl = import.meta.env.VITE_API_URL || "/api";
@@ -37,7 +45,7 @@ export const GestaoV12Financeiro = () => {
   const { showAlert, askYesNoQuestion } = useSweetAlert();
   const [parcelas, setParcelas] = useState([]);
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
@@ -63,7 +71,7 @@ export const GestaoV12Financeiro = () => {
           page,
           limit: 12,
           search,
-          status,
+          status: status.join(","),
           sync_asaas: true,
         },
       });
@@ -91,6 +99,12 @@ export const GestaoV12Financeiro = () => {
   useEffect(() => {
     setPage(1);
   }, [search, status]);
+
+  const toggleStatus = useCallback((value) => {
+    setStatus((current) =>
+      current.includes(value) ? current.filter((item) => item !== value) : [...current, value]
+    );
+  }, []);
 
   const closeMenu = useCallback(() => {
     setMenuOpenId(null);
@@ -309,14 +323,32 @@ export const GestaoV12Financeiro = () => {
 
           <C.Field>
             <C.Label>Status</C.Label>
-            <C.Select value={status} onChange={(event) => setStatus(event.target.value)}>
-              <option value="">Todos</option>
-              <option value="aberto">Aberto</option>
-              <option value="vencido">Vencido</option>
-              <option value="parcial">Parcial</option>
-              <option value="quitado">Quitado</option>
-              <option value="cancelado">Cancelado</option>
-            </C.Select>
+            <C.StatusFilter role="group" aria-label="Filtrar por status">
+              <C.StatusChip
+                type="button"
+                $active={!status.length}
+                onClick={() => setStatus([])}
+                aria-pressed={!status.length}
+              >
+                Todos
+              </C.StatusChip>
+              {statusOptions.map((option) => {
+                const active = status.includes(option.value);
+
+                return (
+                  <C.StatusChip
+                    key={option.value}
+                    type="button"
+                    $active={active}
+                    onClick={() => toggleStatus(option.value)}
+                    aria-pressed={active}
+                  >
+                    <C.CheckMark $active={active}>✓</C.CheckMark>
+                    {option.label}
+                  </C.StatusChip>
+                );
+              })}
+            </C.StatusFilter>
           </C.Field>
 
           <C.PrimaryButton type="button" onClick={loadParcelas} disabled={loading}>
