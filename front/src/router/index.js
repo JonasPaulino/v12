@@ -22,6 +22,7 @@ import { Mdfe } from "pages/mdfe";
 import { GestaoV12Dashboard } from "pages/gestao_v12/dashboard";
 import { GestaoV12Clientes } from "pages/gestao_v12/clientes";
 import { GestaoV12Pessoas } from "pages/gestao_v12/pessoas";
+import { GestaoV12Financeiro } from "pages/gestao_v12/financeiro";
 import { GestaoV12Placeholder } from "pages/gestao_v12/placeholder";
 import { NotFound } from "pages/404";
 
@@ -193,11 +194,7 @@ export const RouteApp = () => (
         element={
           <AuthMiddleware>
             <MasterOnly>
-              <GestaoV12Placeholder
-                title="Financeiro"
-                subtitle="Contas a receber dos clientes V12 e contas internas da empresa."
-                description="Aqui ficarão mensalidades, cobranças Asaas, baixas por webhook, inadimplência e contas manuais da própria V12."
-              />
+              <GestaoV12Financeiro />
             </MasterOnly>
           </AuthMiddleware>
         }

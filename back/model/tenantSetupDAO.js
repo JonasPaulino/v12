@@ -351,10 +351,45 @@ const criarContratoGestaoV12 = async (
   );
 
   const contratoId = Number(contratoResult.rows[0].contrato_id);
+  const valorTotal = Number(
+    (Number(financeiro.valor_mensal || 0) * Number(financeiro.quantidade_parcelas || 1)).toFixed(2)
+  );
+
+  const tituloResult = await client.query(
+    `
+      INSERT INTO gestao.financeiro_titulo (
+        pessoa_id,
+        tenant_id,
+        contrato_id,
+        tipo,
+        origem,
+        descricao,
+        documento,
+        valor_total,
+        data_emissao,
+        status,
+        observacao
+      )
+      VALUES ($1, $2, $3, 'receber', 'contrato_v12', $4, $5, $6, CURRENT_DATE, 'aberto', $7)
+      RETURNING titulo_id
+    `,
+    [
+      pessoaGestaoId,
+      tenantId,
+      contratoId,
+      financeiro.plano_nome || "Mensalidade V12 ERP",
+      `CONTRATO-${contratoId}`,
+      valorTotal,
+      financeiro.observacao,
+    ]
+  );
+
+  const tituloId = Number(tituloResult.rows[0].titulo_id);
 
   for (let index = 0; index < financeiro.quantidade_parcelas; index += 1) {
     const numeroParcela = index + 1;
     const vencimento = addMonths(financeiro.primeiro_vencimento, index);
+    const descricao = `Mensalidade V12 ERP ${numeroParcela}/${financeiro.quantidade_parcelas}`;
 
     await client.query(
       `
@@ -373,10 +408,32 @@ const criarContratoGestaoV12 = async (
         contratoId,
         tenantId,
         numeroParcela,
-        `Mensalidade V12 ERP ${numeroParcela}/${financeiro.quantidade_parcelas}`,
+        descricao,
         financeiro.forma_cobranca,
         financeiro.valor_mensal,
         vencimento,
+      ]
+    );
+
+    await client.query(
+      `
+        INSERT INTO gestao.financeiro_parcela (
+          titulo_id,
+          numero_parcela,
+          valor,
+          vencimento,
+          status,
+          forma_cobranca
+        )
+        VALUES ($1, $2, $3, $4, 'aberto', $5)
+        ON CONFLICT (titulo_id, numero_parcela) DO NOTHING
+      `,
+      [
+        tituloId,
+        numeroParcela,
+        financeiro.valor_mensal,
+        vencimento,
+        financeiro.forma_cobranca === "pix" ? "pix" : "boleto",
       ]
     );
   }

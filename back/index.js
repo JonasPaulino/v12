@@ -31,6 +31,7 @@ import paymentIntegrationRoutes from "./routes/paymentIntegrationRoutes.js";
 import messageIntegrationRoutes from "./routes/messageIntegrationRoutes.js";
 import tenantCertificateRoutes from "./routes/tenantCertificateRoutes.js";
 import gestaoPessoaRoutes from "./routes/gestaoPessoaRoutes.js";
+import gestaoFinanceiroRoutes from "./routes/gestaoFinanceiroRoutes.js";
 import requireMaster from "./middleware/requireMaster.js";
 
 dotenv.config();
@@ -75,7 +76,7 @@ app.use("/auth", authRoutes);
 app.use("/tenant", verificarToken, tenantRoutes);
 app.use("/tenant-setup", verificarToken, requireMaster, tenantSetupRoutes);
 app.use("/tenant-certificate", verificarToken, requireMaster, tenantCertificateRoutes);
-app.use("/gestao", verificarToken, requireMaster, gestaoPessoaRoutes);
+app.use("/gestao", verificarToken, requireMaster, gestaoPessoaRoutes, gestaoFinanceiroRoutes);
 app.use("/integracoes/pagamentos", paymentIntegrationRoutes);
 
 const privateRouter = express.Router();
