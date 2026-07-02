@@ -6,6 +6,7 @@ import {
 } from "../utils/acbrSetup.js";
 
 const TENANT_CONTEXT_SQL = "current_setting('app.tenant_id')::INTEGER";
+const DISTRIBUICAO_COOLDOWN_MS = 65 * 60 * 1000;
 
 const EVENT_CONFIG = {
   confirmacao_operacao: { codigo: "210200", label: "Confirmação da operação" },
@@ -54,6 +55,33 @@ const previewRaw = (value, maxLength = 800) =>
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, maxLength);
+
+const formatDateTime = (value) => {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: process.env.TZ || "America/Sao_Paulo",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+};
+
+const getDistribuicaoCooldown = (controle) => {
+  if (String(controle?.cstat || "") !== "656" || !controle?.ultima_consulta_em) {
+    return null;
+  }
+
+  const lastAttempt = new Date(controle.ultima_consulta_em);
+  if (Number.isNaN(lastAttempt.getTime())) return null;
+
+  const retryAt = new Date(lastAttempt.getTime() + DISTRIBUICAO_COOLDOWN_MS);
+  const remainingMs = retryAt.getTime() - Date.now();
+
+  return remainingMs > 0 ? { retryAt, remainingMs } : null;
+};
 
 const getRootName = (xml) => {
   const match = String(xml || "").match(/<([a-zA-Z0-9:_-]+)(?:\s|>)/);
@@ -301,6 +329,21 @@ class NfeManifestacaoDAO {
     if (!contexto.uf) throw new Error("UF da filial não configurada.");
 
     const controle = await this.obterControle(client, contexto);
+    const cooldown = getDistribuicaoCooldown(controle);
+    if (cooldown) {
+      const retryText = formatDateTime(cooldown.retryAt);
+      console.warn("[nfe-manifestacao] Consulta bloqueada por consumo indevido recente", {
+        tenantId: contexto.tenantId,
+        documento: contexto.documento,
+        ambiente: contexto.ambiente,
+        ultNsuAtual: controle.ult_nsu,
+        retryAt: retryText,
+      });
+      throw new Error(
+        `A SEFAZ bloqueou temporariamente a distribuição por consumo indevido. Aguarde até ${retryText} antes de consultar novamente.`
+      );
+    }
+
     console.log("[nfe-manifestacao] Sincronização iniciada", {
       tenantId: contexto.tenantId,
       documento: contexto.documento,
