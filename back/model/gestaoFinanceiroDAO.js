@@ -62,6 +62,8 @@ const toAsaasDate = (value, label = "Data de vencimento") => {
   throw new Error(`${label} inválida.`);
 };
 
+const todayIsoDate = () => new Date().toISOString().slice(0, 10);
+
 const encryptSecret = (text) => {
   if (!text) return null;
 
@@ -161,6 +163,67 @@ const asaasPdfRequest = async (apiKey, ambiente, { path }) => {
     buffer: Buffer.from(await response.arrayBuffer()),
     contentType,
   };
+};
+
+const listarPagamentosParcelamentoAsaas = async (apiKey, ambiente, installmentId) => {
+  const limit = 100;
+  let offset = 0;
+  const payments = [];
+
+  while (true) {
+    const result = await asaasRequest(apiKey, ambiente, {
+      path: `/v3/installments/${encodeURIComponent(
+        installmentId
+      )}/payments?limit=${limit}&offset=${offset}`,
+    });
+    const data = Array.isArray(result?.data) ? result.data : [];
+
+    payments.push(...data);
+
+    if (!result?.hasMore || data.length === 0) break;
+    offset += limit;
+  }
+
+  return payments;
+};
+
+const listarPagamentosPorInstallmentAsaas = async (apiKey, ambiente, installmentId) => {
+  const limit = 100;
+  let offset = 0;
+  const payments = [];
+
+  while (true) {
+    const result = await asaasRequest(apiKey, ambiente, {
+      path: `/v3/payments?installment=${encodeURIComponent(
+        installmentId
+      )}&limit=${limit}&offset=${offset}`,
+    });
+    const data = Array.isArray(result?.data) ? result.data : [];
+
+    payments.push(...data);
+
+    if (!result?.hasMore || data.length === 0) break;
+    offset += limit;
+  }
+
+  return payments;
+};
+
+const mergeAsaasPayments = (...groups) => {
+  const map = new Map();
+
+  for (const group of groups) {
+    for (const payment of group || []) {
+      if (payment?.id) map.set(payment.id, payment);
+    }
+  }
+
+  return [...map.values()].sort((a, b) => {
+    const numberA = Number(a.installmentNumber || 0);
+    const numberB = Number(b.installmentNumber || 0);
+    if (numberA && numberB && numberA !== numberB) return numberA - numberB;
+    return String(a.dueDate || "").localeCompare(String(b.dueDate || ""));
+  });
 };
 
 const getConfigValue = async (client) => {
@@ -622,14 +685,35 @@ class GestaoFinanceiroDAO {
     if (!contexto) throw new Error("Título financeiro não encontrado.");
 
     const { titulo, parcelas } = contexto;
-    const cobraveis = parcelas.filter((parcela) => !["quitado", "cancelado"].includes(parcela.status));
+    const parcelasOrdenadas = [...parcelas].sort(
+      (a, b) => Number(a.numero_parcela) - Number(b.numero_parcela)
+    );
+    const parcelasNaoElegiveis = parcelasOrdenadas.filter((parcela) =>
+      ["quitado", "cancelado"].includes(parcela.status)
+    );
+    const parcelasVencidas = parcelasOrdenadas.filter(
+      (parcela) => toAsaasDate(parcela.vencimento) < todayIsoDate()
+    );
 
-    if (!cobraveis.length) {
+    if (!parcelasOrdenadas.length) {
       throw new Error("Título não possui parcelas abertas para gerar carnê.");
     }
 
-    if (cobraveis.length < 2) {
+    if (parcelasOrdenadas.length < 2) {
       throw new Error("Carnê no Asaas exige duas ou mais parcelas. Para parcela única, gere o boleto individual.");
+    }
+
+    if (parcelasNaoElegiveis.length) {
+      throw new Error(
+        "Carnê deve ser gerado com todas as parcelas do título. Este título já possui parcela quitada ou cancelada; use boleto individual para as parcelas pendentes."
+      );
+    }
+
+    if (parcelasVencidas.length) {
+      const numeros = parcelasVencidas.map((parcela) => parcela.numero_parcela).join(", ");
+      throw new Error(
+        `Carnê não pode ser gerado com parcelas vencidas. Atualize o vencimento das parcelas ${numeros} antes de gerar o carnê.`
+      );
     }
 
     if (titulo.asaas_installment_id) {
@@ -661,14 +745,27 @@ class GestaoFinanceiroDAO {
       asaas_customer_id: titulo.asaas_customer_id,
     });
 
+    const installmentPayload = buildInstallmentPayload({
+      customerId,
+      parcelas: parcelasOrdenadas,
+      titulo,
+    });
+
+    console.log("[gestao:financeiro:carne] Gerando carnê Asaas", {
+      tituloId,
+      contratoId: titulo.contrato_id,
+      parcelas: parcelasOrdenadas.length,
+      primeiraParcela: parcelasOrdenadas[0]?.numero_parcela || null,
+      ultimaParcela: parcelasOrdenadas.at(-1)?.numero_parcela || null,
+      dueDate: installmentPayload.dueDate,
+      installmentCount: installmentPayload.installmentCount,
+      installmentValue: installmentPayload.installmentValue,
+    });
+
     const paymentResponse = await asaasRequest(config.apiKey, config.ambiente, {
       method: "POST",
       path: "/v3/payments",
-      body: buildInstallmentPayload({
-        customerId,
-        parcelas: cobraveis,
-        titulo,
-      }),
+      body: installmentPayload,
     });
 
     const installmentId =
@@ -681,20 +778,44 @@ class GestaoFinanceiroDAO {
       throw new Error("O Asaas não retornou o identificador do carnê gerado.");
     }
 
-    const paymentsResult = await asaasRequest(config.apiKey, config.ambiente, {
-      path: `/v3/installments/${encodeURIComponent(installmentId)}/payments`,
-    });
-    const payments = Array.isArray(paymentsResult?.data) ? paymentsResult.data : [];
+    const paymentsByInstallmentEndpoint = await listarPagamentosParcelamentoAsaas(
+      config.apiKey,
+      config.ambiente,
+      installmentId
+    );
+    const paymentsByPaymentEndpoint = await listarPagamentosPorInstallmentAsaas(
+      config.apiKey,
+      config.ambiente,
+      installmentId
+    );
+    const payments = mergeAsaasPayments(
+      [paymentResponse],
+      paymentsByInstallmentEndpoint,
+      paymentsByPaymentEndpoint
+    );
 
-    if (payments.length < cobraveis.length) {
-      throw new Error("O Asaas não retornou todas as parcelas do carnê gerado.");
+    console.log("[gestao:financeiro:carne] Parcelas retornadas pelo Asaas", {
+      tituloId,
+      installmentId,
+      esperado: parcelasOrdenadas.length,
+      retornado: payments.length,
+      endpointParcelamento: paymentsByInstallmentEndpoint.length,
+      endpointPagamentos: paymentsByPaymentEndpoint.length,
+      numeros: payments.map((payment) => payment.installmentNumber || null),
+      vencimentos: payments.map((payment) => payment.dueDate || null),
+    });
+
+    if (payments.length < parcelasOrdenadas.length) {
+      throw new Error(
+        `O Asaas retornou ${payments.length} de ${parcelasOrdenadas.length} parcelas do carnê gerado. Confira o parcelamento no Asaas antes de tentar novamente.`
+      );
     }
 
     const paymentsByDueDate = new Map(
       payments.map((payment) => [String(payment.dueDate || "").slice(0, 10), payment])
     );
 
-    for (const parcela of cobraveis) {
+    for (const parcela of parcelasOrdenadas) {
       const dueDate = toAsaasDate(parcela.vencimento);
       const payment =
         paymentsByDueDate.get(dueDate) || payments[Number(parcela.numero_parcela || 1) - 1];
