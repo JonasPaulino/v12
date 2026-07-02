@@ -42,6 +42,26 @@ const parseMoney = (value, { required = false, label = "Valor" } = {}) => {
   return Number(parsed.toFixed(2));
 };
 
+const toAsaasDate = (value, label = "Data de vencimento") => {
+  if (!value) throw new Error(`${label} deve ser informada.`);
+
+  if (typeof value === "string") {
+    const normalized = value.trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) return normalized;
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(normalized)) {
+      const [day, month, year] = normalized.split("/");
+      return `${year}-${month}-${day}`;
+    }
+  }
+
+  const parsed = value instanceof Date ? value : new Date(value);
+  if (!Number.isNaN(parsed.getTime())) {
+    return parsed.toISOString().slice(0, 10);
+  }
+
+  throw new Error(`${label} inválida.`);
+};
+
 const encryptSecret = (text) => {
   if (!text) return null;
 
@@ -176,7 +196,7 @@ const buildPaymentPayload = ({ customerId, parcela, titulo, billingType }) => ({
   customer: customerId,
   billingType,
   value: Number(parcela.valor),
-  dueDate: String(parcela.vencimento).slice(0, 10),
+  dueDate: toAsaasDate(parcela.vencimento),
   description: `${titulo.descricao} - Parcela ${parcela.numero_parcela}`,
   externalReference: `v12-gestao:t${titulo.titulo_id}:p${parcela.parcela_id}:${Date.now()}`,
 });
@@ -196,7 +216,7 @@ const buildInstallmentPayload = ({ customerId, parcelas, titulo }) => {
     billingType: "BOLETO",
     installmentCount: sorted.length,
     installmentValue: expectedValue,
-    dueDate: String(first.vencimento).slice(0, 10),
+    dueDate: toAsaasDate(first.vencimento),
     description: titulo.descricao,
     externalReference: `v12-gestao:t${titulo.titulo_id}:carne:${Date.now()}`,
   };
@@ -675,7 +695,7 @@ class GestaoFinanceiroDAO {
     );
 
     for (const parcela of cobraveis) {
-      const dueDate = String(parcela.vencimento).slice(0, 10);
+      const dueDate = toAsaasDate(parcela.vencimento);
       const payment =
         paymentsByDueDate.get(dueDate) || payments[Number(parcela.numero_parcela || 1) - 1];
 
