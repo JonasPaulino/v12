@@ -107,6 +107,42 @@ const asaasRequest = async (apiKey, ambiente, { method = "GET", path, body }) =>
   return parsed;
 };
 
+const asaasPdfRequest = async (apiKey, ambiente, { path }) => {
+  const response = await fetch(`${asaasBaseUrl(ambiente)}${path}`, {
+    method: "GET",
+    headers: {
+      Accept: "application/pdf",
+      access_token: apiKey,
+    },
+  });
+
+  const contentType = response.headers.get("content-type") || "application/pdf";
+
+  if (!response.ok) {
+    const rawText = await response.text();
+    let parsed = null;
+
+    try {
+      parsed = rawText ? JSON.parse(rawText) : null;
+    } catch {
+      parsed = rawText || null;
+    }
+
+    const detail =
+      parsed?.errors?.[0]?.description ||
+      parsed?.message ||
+      parsed?.error ||
+      rawText ||
+      "Falha ao baixar o carnê no Asaas.";
+    throw new Error(detail);
+  }
+
+  return {
+    buffer: Buffer.from(await response.arrayBuffer()),
+    contentType,
+  };
+};
+
 const getConfigValue = async (client) => {
   const { rows } = await client.query(
     `
@@ -144,6 +180,27 @@ const buildPaymentPayload = ({ customerId, parcela, titulo, billingType }) => ({
   description: `${titulo.descricao} - Parcela ${parcela.numero_parcela}`,
   externalReference: `v12-gestao:t${titulo.titulo_id}:p${parcela.parcela_id}:${Date.now()}`,
 });
+
+const buildInstallmentPayload = ({ customerId, parcelas, titulo }) => {
+  const sorted = [...parcelas].sort((a, b) => Number(a.numero_parcela) - Number(b.numero_parcela));
+  const first = sorted[0];
+  const expectedValue = Number(first?.valor || 0);
+  const sameValue = sorted.every((parcela) => Number(parcela.valor || 0) === expectedValue);
+
+  if (!sameValue) {
+    throw new Error("Para gerar carnê no Asaas, todas as parcelas do título precisam ter o mesmo valor.");
+  }
+
+  return {
+    customer: customerId,
+    billingType: "BOLETO",
+    installmentCount: sorted.length,
+    installmentValue: expectedValue,
+    dueDate: String(first.vencimento).slice(0, 10),
+    description: titulo.descricao,
+    externalReference: `v12-gestao:t${titulo.titulo_id}:carne:${Date.now()}`,
+  };
+};
 
 class GestaoFinanceiroDAO {
   static async listarParcelas(client, { page = 1, limit = 20, search = "", status = "" } = {}) {
@@ -241,6 +298,7 @@ class GestaoFinanceiroDAO {
           ft.valor_total,
           ft.tenant_id,
           ft.contrato_id,
+          ft.asaas_installment_id,
           p.pessoa_id,
           p.nome_razao AS pessoa_nome,
           p.nome_fantasia AS pessoa_fantasia,
@@ -298,6 +356,47 @@ class GestaoFinanceiroDAO {
     );
 
     return rows[0] || null;
+  }
+
+  static async buscarTituloContexto(client, tituloId) {
+    const tituloResult = await client.query(
+      `
+        SELECT
+          ft.*,
+          p.pessoa_id AS pessoa_id,
+          p.nome_razao AS pessoa_nome_razao,
+          p.nome_fantasia AS pessoa_nome_fantasia,
+          p.cpf_cnpj AS pessoa_cpf_cnpj,
+          p.email AS pessoa_email,
+          p.telefone AS pessoa_telefone,
+          p.whatsapp AS pessoa_whatsapp,
+          p.asaas_customer_id
+        FROM gestao.financeiro_titulo ft
+        LEFT JOIN gestao.pessoa p ON p.pessoa_id = ft.pessoa_id
+        WHERE ft.titulo_id = $1
+          AND ft.excluido = FALSE
+        LIMIT 1
+      `,
+      [tituloId]
+    );
+
+    const titulo = tituloResult.rows[0] || null;
+    if (!titulo) return null;
+
+    const parcelasResult = await client.query(
+      `
+        SELECT *
+        FROM gestao.financeiro_parcela
+        WHERE titulo_id = $1
+        ORDER BY numero_parcela ASC
+      `,
+      [tituloId]
+    );
+
+    return {
+      titulo,
+      parcelas: parcelasResult.rows,
+    };
   }
 
   static async buscarConfiguracaoAsaas(client) {
@@ -496,6 +595,181 @@ class GestaoFinanceiroDAO {
       charge: payload,
       invoiceUrl: paymentResponse.bankSlipUrl || paymentResponse.invoiceUrl || "",
     };
+  }
+
+  static async gerarCarneTitulo(client, tituloId) {
+    const contexto = await this.buscarTituloContexto(client, tituloId);
+    if (!contexto) throw new Error("Título financeiro não encontrado.");
+
+    const { titulo, parcelas } = contexto;
+    const cobraveis = parcelas.filter((parcela) => !["quitado", "cancelado"].includes(parcela.status));
+
+    if (!cobraveis.length) {
+      throw new Error("Título não possui parcelas abertas para gerar carnê.");
+    }
+
+    if (cobraveis.length < 2) {
+      throw new Error("Carnê no Asaas exige duas ou mais parcelas. Para parcela única, gere o boleto individual.");
+    }
+
+    if (titulo.asaas_installment_id) {
+      return {
+        reused: true,
+        installmentId: titulo.asaas_installment_id,
+      };
+    }
+
+    if (parcelas.some((parcela) => parcela.asaas_charge_id)) {
+      throw new Error(
+        "Este título já possui cobranças individuais. Cancele ou trate essas cobranças antes de gerar um carnê único."
+      );
+    }
+
+    const config = await this.buscarConfiguracaoAsaas(client);
+    if (!config.ativo || !config.apiKey) {
+      throw new Error("Configuração Asaas da Gestão V12 não está ativa.");
+    }
+
+    const customerId = await this.obterOuCriarClienteAsaas(client, config, {
+      pessoa_id: titulo.pessoa_id,
+      titulo_pessoa_id: titulo.pessoa_id,
+      pessoa_nome_razao: titulo.pessoa_nome_razao,
+      pessoa_cpf_cnpj: titulo.pessoa_cpf_cnpj,
+      pessoa_email: titulo.pessoa_email,
+      pessoa_telefone: titulo.pessoa_telefone,
+      pessoa_whatsapp: titulo.pessoa_whatsapp,
+      asaas_customer_id: titulo.asaas_customer_id,
+    });
+
+    const paymentResponse = await asaasRequest(config.apiKey, config.ambiente, {
+      method: "POST",
+      path: "/v3/payments",
+      body: buildInstallmentPayload({
+        customerId,
+        parcelas: cobraveis,
+        titulo,
+      }),
+    });
+
+    const installmentId =
+      paymentResponse.installment ||
+      paymentResponse.installmentId ||
+      paymentResponse.installment_id ||
+      null;
+
+    if (!installmentId) {
+      throw new Error("O Asaas não retornou o identificador do carnê gerado.");
+    }
+
+    const paymentsResult = await asaasRequest(config.apiKey, config.ambiente, {
+      path: `/v3/installments/${encodeURIComponent(installmentId)}/payments`,
+    });
+    const payments = Array.isArray(paymentsResult?.data) ? paymentsResult.data : [];
+
+    if (payments.length < cobraveis.length) {
+      throw new Error("O Asaas não retornou todas as parcelas do carnê gerado.");
+    }
+
+    const paymentsByDueDate = new Map(
+      payments.map((payment) => [String(payment.dueDate || "").slice(0, 10), payment])
+    );
+
+    for (const parcela of cobraveis) {
+      const dueDate = String(parcela.vencimento).slice(0, 10);
+      const payment =
+        paymentsByDueDate.get(dueDate) || payments[Number(parcela.numero_parcela || 1) - 1];
+
+      if (!payment?.id) {
+        throw new Error(`Não foi possível vincular a parcela ${parcela.numero_parcela} ao carnê.`);
+      }
+
+      const boletoResponse =
+        payment.billingType === "BOLETO"
+          ? await asaasRequest(config.apiKey, config.ambiente, {
+              path: `/v3/payments/${payment.id}/identificationField`,
+            }).catch(() => null)
+          : null;
+
+      const payload = {
+        billingType: "BOLETO",
+        installmentId,
+        payment,
+        boleto: boletoResponse,
+      };
+
+      await client.query(
+        `
+          UPDATE gestao.financeiro_parcela
+          SET
+            forma_cobranca = 'boleto',
+            asaas_charge_id = $2,
+            asaas_invoice_url = $3,
+            asaas_payload = $4::jsonb,
+            status = CASE WHEN status = 'vencido' AND vencimento >= CURRENT_DATE THEN 'aberto' ELSE status END
+          WHERE parcela_id = $1
+        `,
+        [
+          parcela.parcela_id,
+          payment.id,
+          payment.bankSlipUrl || payment.invoiceUrl || "",
+          JSON.stringify(payload),
+        ]
+      );
+
+      await client.query(
+        `
+          UPDATE gestao.cliente_parcela
+          SET
+            forma_cobranca = 'boleto',
+            status = 'gerada',
+            asaas_charge_id = $3,
+            asaas_invoice_url = $4,
+            asaas_payload = $5::jsonb
+          WHERE contrato_id = $1
+            AND numero_parcela = $2
+        `,
+        [
+          titulo.contrato_id,
+          parcela.numero_parcela,
+          payment.id,
+          payment.bankSlipUrl || payment.invoiceUrl || "",
+          JSON.stringify(payload),
+        ]
+      );
+    }
+
+    await client.query(
+      `
+        UPDATE gestao.financeiro_titulo
+        SET asaas_installment_id = $2
+        WHERE titulo_id = $1
+      `,
+      [tituloId, installmentId]
+    );
+
+    return {
+      reused: false,
+      installmentId,
+      payment: paymentResponse,
+      payments,
+    };
+  }
+
+  static async baixarCarneTitulo(client, tituloId) {
+    const contexto = await this.buscarTituloContexto(client, tituloId);
+    if (!contexto) throw new Error("Título financeiro não encontrado.");
+
+    const installmentId = contexto.titulo.asaas_installment_id;
+    if (!installmentId) throw new Error("Título ainda não possui carnê gerado no Asaas.");
+
+    const config = await this.buscarConfiguracaoAsaas(client);
+    if (!config.ativo || !config.apiKey) {
+      throw new Error("Configuração Asaas da Gestão V12 não está ativa.");
+    }
+
+    return asaasPdfRequest(config.apiKey, config.ambiente, {
+      path: `/v3/installments/${encodeURIComponent(installmentId)}/paymentBook`,
+    });
   }
 
   static async atualizarStatusCobranca(client, parcelaId) {

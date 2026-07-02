@@ -113,6 +113,51 @@ router.post("/financeiro/parcelas/:id/cobranca", async (req, res) => {
   }
 });
 
+router.post("/financeiro/titulos/:id/carne", async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const result = await GestaoFinanceiroDAO.gerarCarneTitulo(client, Number(req.params.id));
+    await client.query("COMMIT");
+
+    return res.json({
+      success: true,
+      message: result.reused ? "Carnê já existente reutilizado." : "Carnê gerado no Asaas.",
+      data: result,
+    });
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.error("[gestao:financeiro] Falha ao gerar carnê:", error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Não foi possível gerar o carnê.",
+    });
+  } finally {
+    client.release();
+  }
+});
+
+router.get("/financeiro/titulos/:id/carne/pdf", async (req, res) => {
+  try {
+    const result = await withClient((client) =>
+      GestaoFinanceiroDAO.baixarCarneTitulo(client, Number(req.params.id))
+    );
+
+    res.setHeader("Content-Type", result.contentType || "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `inline; filename="carne-v12-titulo-${Number(req.params.id)}.pdf"`
+    );
+    return res.send(result.buffer);
+  } catch (error) {
+    console.error("[gestao:financeiro] Falha ao baixar carnê:", error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Não foi possível baixar o carnê.",
+    });
+  }
+});
+
 router.post("/financeiro/parcelas/:id/baixar-manual", async (req, res) => {
   const client = await pool.connect();
   try {

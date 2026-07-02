@@ -28,6 +28,8 @@ const statusLabel = {
   vencido: "Vencido",
 };
 
+const apiBaseUrl = import.meta.env.VITE_API_URL || "/api";
+
 export const GestaoV12Financeiro = () => {
   const { showLoading, hideLoading } = useContext(AppContext);
   const { showAlert, askYesNoQuestion } = useSweetAlert();
@@ -136,6 +138,14 @@ export const GestaoV12Financeiro = () => {
         }),
     });
 
+  const gerarCarne = (parcela) =>
+    runAction({
+      title: "Carnê gerado",
+      successText: "Carnê registrado no Asaas.",
+      loadingText: "Gerando carnê...",
+      request: () => api.post(`/gestao/financeiro/titulos/${parcela.titulo_id}/carne`),
+    });
+
   const atualizarStatus = (parcela) =>
     runAction({
       title: "Status atualizado",
@@ -187,6 +197,24 @@ export const GestaoV12Financeiro = () => {
     }
 
     window.open(parcela.asaas_invoice_url, "_blank", "noopener,noreferrer");
+  };
+
+  const openCarne = (parcela) => {
+    closeMenu();
+    if (!parcela.asaas_installment_id) {
+      showAlert?.({
+        title: "Carnê indisponível",
+        text: "Gere o carnê do título antes de baixar o PDF.",
+        icon: "warning",
+      });
+      return;
+    }
+
+    window.open(
+      `${apiBaseUrl}/gestao/financeiro/titulos/${parcela.titulo_id}/carne/pdf`,
+      "_blank",
+      "noopener,noreferrer"
+    );
   };
 
   const openPix = (parcela) => {
@@ -285,7 +313,13 @@ export const GestaoV12Financeiro = () => {
                       </C.Cell>
                       <C.Cell $wrap>
                         <C.Strong>{parcela.forma_cobranca === "pix" ? "Pix" : "Boleto"}</C.Strong>
-                        <C.Meta>{parcela.asaas_charge_id ? "Gerada no Asaas" : "Pendente"}</C.Meta>
+                        <C.Meta>
+                          {parcela.asaas_installment_id
+                            ? "Carnê gerado"
+                            : parcela.asaas_charge_id
+                            ? "Gerada no Asaas"
+                            : "Pendente"}
+                        </C.Meta>
                       </C.Cell>
                       <C.Cell>
                         <C.MenuButton
@@ -305,6 +339,17 @@ export const GestaoV12Financeiro = () => {
                             onClose={closeMenu}
                             minWidth={190}
                             items={[
+                              {
+                                label: "Gerar carnê",
+                                disabled:
+                                  parcela.status === "quitado" || !!parcela.asaas_installment_id,
+                                onClick: () => gerarCarne(parcela),
+                              },
+                              {
+                                label: "Baixar carnê",
+                                disabled: !parcela.asaas_installment_id,
+                                onClick: () => openCarne(parcela),
+                              },
                               {
                                 label: "Gerar boleto",
                                 disabled: parcela.status === "quitado",
