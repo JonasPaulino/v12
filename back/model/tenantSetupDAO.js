@@ -179,13 +179,143 @@ const seedFormasPagamento = async (client, tenantId) => {
   );
 };
 
-const criarContratoGestaoV12 = async (client, tenantId, financeiro, usuarioCriadorId) => {
+const upsertPessoaGestaoV12 = async (client, empresa) => {
+  const documento = normalizeDigits(empresa.cnpj, 14, {
+    required: true,
+    label: "CNPJ",
+  });
+
+  const existingResult = await client.query(
+    `
+      SELECT pessoa_id
+      FROM gestao.pessoa
+      WHERE cpf_cnpj = $1
+        AND excluido = FALSE
+      LIMIT 1
+    `,
+    [documento]
+  );
+
+  let pessoaGestaoId = Number(existingResult.rows[0]?.pessoa_id || 0);
+
+  if (pessoaGestaoId) {
+    await client.query(
+      `
+        UPDATE gestao.pessoa
+        SET
+          pessoa_tipo = 'J',
+          nome_razao = $2,
+          nome_fantasia = $3,
+          cpf_cnpj = $4,
+          inscricao_estadual = $5,
+          inscricao_municipal = $6,
+          email = $7,
+          telefone = $8,
+          ativo = TRUE
+        WHERE pessoa_id = $1
+      `,
+      [
+        pessoaGestaoId,
+        empresa.nome_razao,
+        empresa.nome_fantasia,
+        documento,
+        empresa.inscricao_estadual,
+        empresa.inscricao_municipal,
+        empresa.email,
+        empresa.telefone,
+      ]
+    );
+  } else {
+    const pessoaResult = await client.query(
+      `
+        INSERT INTO gestao.pessoa (
+          pessoa_tipo,
+          nome_razao,
+          nome_fantasia,
+          cpf_cnpj,
+          inscricao_estadual,
+          inscricao_municipal,
+          email,
+          telefone,
+          ativo,
+          excluido
+        )
+        VALUES ('J', $1, $2, $3, $4, $5, $6, $7, TRUE, FALSE)
+        RETURNING pessoa_id
+      `,
+      [
+        empresa.nome_razao,
+        empresa.nome_fantasia,
+        documento,
+        empresa.inscricao_estadual,
+        empresa.inscricao_municipal,
+        empresa.email,
+        empresa.telefone,
+      ]
+    );
+
+    pessoaGestaoId = Number(pessoaResult.rows[0].pessoa_id);
+  }
+
+  await client.query(
+    `
+      INSERT INTO gestao.pessoa_endereco (
+        pessoa_id,
+        endereco_tipo,
+        cep,
+        logradouro,
+        numero,
+        complemento,
+        bairro,
+        cidade,
+        uf,
+        codigo_ibge,
+        pais
+      )
+      VALUES ($1, 'principal', $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      ON CONFLICT (pessoa_id, endereco_tipo) DO UPDATE
+      SET
+        cep = EXCLUDED.cep,
+        logradouro = EXCLUDED.logradouro,
+        numero = EXCLUDED.numero,
+        complemento = EXCLUDED.complemento,
+        bairro = EXCLUDED.bairro,
+        cidade = EXCLUDED.cidade,
+        uf = EXCLUDED.uf,
+        codigo_ibge = EXCLUDED.codigo_ibge,
+        pais = EXCLUDED.pais
+    `,
+    [
+      pessoaGestaoId,
+      empresa.cep,
+      empresa.logradouro,
+      empresa.numero,
+      empresa.complemento,
+      empresa.bairro,
+      empresa.cidade,
+      empresa.uf,
+      empresa.codigo_ibge,
+      empresa.pais,
+    ]
+  );
+
+  return pessoaGestaoId;
+};
+
+const criarContratoGestaoV12 = async (
+  client,
+  tenantId,
+  pessoaGestaoId,
+  financeiro,
+  usuarioCriadorId
+) => {
   if (!financeiro?.criar_contrato) return null;
 
   const contratoResult = await client.query(
     `
       INSERT INTO gestao.cliente_contrato (
         tenant_id,
+        pessoa_id,
         plano_nome,
         ciclo,
         forma_cobranca,
@@ -199,11 +329,12 @@ const criarContratoGestaoV12 = async (client, tenantId, financeiro, usuarioCriad
         observacao,
         criado_por
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
       RETURNING contrato_id
     `,
     [
       tenantId,
+      pessoaGestaoId,
       financeiro.plano_nome,
       financeiro.ciclo,
       financeiro.forma_cobranca,
@@ -933,9 +1064,12 @@ class TenantSetupDAO {
         [tenantId]
       );
 
+      const pessoaGestaoId = await upsertPessoaGestaoV12(client, data.empresa);
+
       const contratoGestaoId = await criarContratoGestaoV12(
         client,
         tenantId,
+        pessoaGestaoId,
         data.financeiro,
         usuarioCriadorId
       );
@@ -947,6 +1081,7 @@ class TenantSetupDAO {
         tenant_nome: data.empresa.tenant_nome,
         tenant_slug: tenantSlug,
         pessoa_id: pessoaId,
+        pessoa_gestao_id: pessoaGestaoId,
         usuario_id: usuarioId,
         tenant_ativo: true,
         certificado_validade_em: certificadoPreview.validade_em,
@@ -1124,6 +1259,18 @@ class TenantSetupDAO {
           ]
         );
       }
+
+      const pessoaGestaoId = await upsertPessoaGestaoV12(client, data.empresa);
+
+      await client.query(
+        `
+          UPDATE gestao.cliente_contrato
+          SET pessoa_id = $2
+          WHERE tenant_id = $1
+            AND status = 'ativo'
+        `,
+        [tenantId, pessoaGestaoId]
+      );
 
       if (querAtualizarCertificado) {
         const certificadoBuffer = Buffer.from(data.certificado.conteudo_base64, "base64");
