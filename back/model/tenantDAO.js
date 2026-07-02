@@ -3,7 +3,14 @@ import { TENANT_CONTEXT_SQL } from "../utils/sql.js";
 class TenantDAO {
   static async getById(client, tenantId) {
     const sql = `
-      SELECT tenant_id, tenant_nome, tenant_slug, tenant_documento, tenant_ativo
+      SELECT
+        tenant_id,
+        tenant_nome,
+        tenant_slug,
+        tenant_documento,
+        tenant_ativo,
+        COALESCE(tenant_acesso_bloqueado, FALSE) AS tenant_acesso_bloqueado,
+        tenant_bloqueio_motivo
       FROM tenant
       WHERE tenant_id = $1
       LIMIT 1
@@ -15,7 +22,14 @@ class TenantDAO {
 
   static async getCurrent(client) {
     const sql = `
-      SELECT tenant_id, tenant_nome, tenant_slug, tenant_documento, tenant_ativo
+      SELECT
+        tenant_id,
+        tenant_nome,
+        tenant_slug,
+        tenant_documento,
+        tenant_ativo,
+        COALESCE(tenant_acesso_bloqueado, FALSE) AS tenant_acesso_bloqueado,
+        tenant_bloqueio_motivo
       FROM tenant
       WHERE tenant_id = ${TENANT_CONTEXT_SQL}
       LIMIT 1

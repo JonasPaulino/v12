@@ -36,6 +36,8 @@ const buildTenantPayload = (tenant) => ({
   tenant_documento: tenant.tenant_documento,
   perfil: tenant.perfil,
   tenant_ativo: tenant.tenant_ativo ?? tenant.ativo ?? true,
+  tenant_acesso_bloqueado: !!tenant.tenant_acesso_bloqueado,
+  tenant_bloqueio_motivo: tenant.tenant_bloqueio_motivo || null,
 });
 
 router.post("/login", async (req, res) => {
@@ -109,7 +111,10 @@ router.post("/login", async (req, res) => {
       tenantIds: tenants.map((item) => item.tenant_id),
     });
 
-    const activeTenants = tenants.filter((item) => item.tenant_ativo);
+    const isMaster = !!usuario.usuario_master;
+    const activeTenants = tenants.filter(
+      (item) => item.tenant_ativo && (isMaster || !item.tenant_acesso_bloqueado)
+    );
     const loginTenants = activeTenants;
 
     if (!loginTenants.length) {
@@ -117,7 +122,7 @@ router.post("/login", async (req, res) => {
         reason: "no-active-tenants",
         usuarioId: usuario.usuario_id,
       });
-      return res.status(403).json({ error: "Usuário sem filiais ativas vinculadas." });
+      return res.status(403).json({ error: "Usuário sem filiais ativas disponíveis." });
     }
     const activeTenant =
       loginTenants.find((item) => item.tenant_id === usuario.tenant_id_default) ||
@@ -195,10 +200,13 @@ router.get("/validar-token", verificarToken, async (req, res) => {
   try {
     const usuario = await loginDAO.buscarUsuarioPorId(pool, req.user.userId);
     const tenants = await loginDAO.listarTenantsDoUsuario(pool, req.user.userId);
-    const activeTenants = tenants.filter((item) => item.tenant_ativo);
+    const isMaster = !!usuario?.usuario_master;
+    const activeTenants = tenants.filter(
+      (item) => item.tenant_ativo && (isMaster || !item.tenant_acesso_bloqueado)
+    );
     const tenant = tenants.find((item) => item.tenant_id === req.user.tenantId) || null;
 
-    if (!usuario || !tenant || !tenant.tenant_ativo) {
+    if (!usuario || !tenant || !tenant.tenant_ativo || (!isMaster && tenant.tenant_acesso_bloqueado)) {
       return res.json({ valid: false });
     }
 

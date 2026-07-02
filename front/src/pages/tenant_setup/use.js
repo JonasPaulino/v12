@@ -6,6 +6,7 @@ import {
   getTenantSetup,
   listTenants,
   previewTenantCertificate,
+  toggleTenantAccessBlock,
   toggleTenantSetupStatus,
   updateTenantSetup,
 } from "./api";
@@ -171,7 +172,10 @@ const normalizeSearch = (value) =>
     .trim();
 
 const normalizeCnpj = (value) => String(value || "").replace(/\D/g, "");
-const isTenantActive = (tenant) => tenant?.tenant_ativo !== false && tenant?.ativo !== false;
+const isTenantActive = (tenant) =>
+  tenant?.tenant_ativo !== false &&
+  tenant?.ativo !== false &&
+  tenant?.tenant_acesso_bloqueado !== true;
 
 export const useTenantSetupPage = ({ gestaoContext = false } = {}) => {
   const { business, setBusiness, setBusinesses, showLoading, hideLoading } =
@@ -190,6 +194,7 @@ export const useTenantSetupPage = ({ gestaoContext = false } = {}) => {
   const [page, setPage] = useState(1);
   const [editingTenantId, setEditingTenantId] = useState(null);
   const [actionMenuTenantId, setActionMenuTenantId] = useState(null);
+  const [actionMenuAnchorEl, setActionMenuAnchorEl] = useState(null);
 
   const resetForm = useCallback(() => {
     setStep(1);
@@ -199,6 +204,17 @@ export const useTenantSetupPage = ({ gestaoContext = false } = {}) => {
     setPreview(null);
     setEditingTenantId(null);
     setActionMenuTenantId(null);
+    setActionMenuAnchorEl(null);
+  }, []);
+
+  const closeTenantActionMenu = useCallback(() => {
+    setActionMenuTenantId(null);
+    setActionMenuAnchorEl(null);
+  }, []);
+
+  const openTenantActionMenu = useCallback((tenantId, anchorElement) => {
+    setActionMenuTenantId(tenantId);
+    setActionMenuAnchorEl(anchorElement);
   }, []);
 
   const syncBusinessContext = useCallback(
@@ -221,7 +237,7 @@ export const useTenantSetupPage = ({ gestaoContext = false } = {}) => {
     showLoading("Carregando clientes...");
 
     try {
-      const result = await listTenants();
+      const result = await listTenants({ includeAll: gestaoContext });
       const nextTenants = Array.isArray(result?.data) ? result.data : [];
       setTenants(nextTenants);
       syncBusinessContext(nextTenants);
@@ -238,7 +254,7 @@ export const useTenantSetupPage = ({ gestaoContext = false } = {}) => {
       setLoadingTenants(false);
       hideLoading();
     }
-  }, [hideLoading, showAlert, showLoading, syncBusinessContext]);
+  }, [gestaoContext, hideLoading, showAlert, showLoading, syncBusinessContext]);
 
   useEffect(() => {
     loadTenants();
@@ -252,6 +268,7 @@ export const useTenantSetupPage = ({ gestaoContext = false } = {}) => {
   const openEditModal = useCallback(
     async (tenantId) => {
       setActionMenuTenantId(null);
+      setActionMenuAnchorEl(null);
       setLoadingTenants(true);
       showLoading("Carregando cadastro...");
 
@@ -802,6 +819,7 @@ export const useTenantSetupPage = ({ gestaoContext = false } = {}) => {
   const handleToggleTenantStatus = useCallback(
     async (tenant, currentTenantId = null) => {
       setActionMenuTenantId(null);
+      setActionMenuAnchorEl(null);
 
       if (
         !gestaoContext &&
@@ -839,6 +857,36 @@ export const useTenantSetupPage = ({ gestaoContext = false } = {}) => {
     [askYesNoQuestion, gestaoContext, hideLoading, loadTenants, showAlert, showLoading]
   );
 
+  const handleToggleTenantAccessBlock = useCallback(
+    async (tenant) => {
+      setActionMenuTenantId(null);
+      setActionMenuAnchorEl(null);
+
+      const willBlock = !tenant.tenant_acesso_bloqueado;
+      const confirmed = await askYesNoQuestion(
+        willBlock ? "Bloquear acesso?" : "Desbloquear acesso?",
+        willBlock
+          ? `Os usuários comuns de ${tenant.tenant_nome} não conseguirão acessar o sistema.`
+          : `Os usuários comuns de ${tenant.tenant_nome} poderão acessar novamente, se a empresa estiver ativa.`
+      );
+
+      if (!confirmed) return;
+
+      try {
+        showLoading(willBlock ? "Bloqueando acesso..." : "Desbloqueando acesso...");
+        await toggleTenantAccessBlock(
+          tenant.tenant_id,
+          willBlock,
+          willBlock ? "Bloqueio manual pela Gestão V12" : null
+        );
+        await loadTenants();
+      } finally {
+        hideLoading();
+      }
+    },
+    [askYesNoQuestion, hideLoading, loadTenants, showLoading]
+  );
+
   return {
     REQUIRED_TITLE,
     saving,
@@ -856,14 +904,17 @@ export const useTenantSetupPage = ({ gestaoContext = false } = {}) => {
     search,
     editingTenantId,
     actionMenuTenantId,
+    actionMenuAnchorEl,
     updateField,
     setSearch,
     setPage,
-    setActionMenuTenantId,
+    openTenantActionMenu,
+    closeTenantActionMenu,
     openModal,
     openEditModal,
     closeModal,
     handleToggleTenantStatus,
+    handleToggleTenantAccessBlock,
     handleSelectCertificado,
     handleSelectLogo,
     handleConfirmCertificate,

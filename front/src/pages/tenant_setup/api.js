@@ -12,8 +12,12 @@ const requestConfig = (payload) =>
       }
     : undefined;
 
-export const listTenants = async () => {
-  const { data } = await api.get("/tenant");
+export const listTenants = async (options = {}) => {
+  const { data } = await api.get("/tenant", {
+    params: {
+      include_all: options.includeAll === true,
+    },
+  });
   return data;
 };
 
@@ -50,6 +54,14 @@ export const toggleTenantSetupStatus = async (tenantId, tenantAtivo, options = {
   const { data } = await api.patch(`/tenant-setup/${tenantId}/status`, {
     tenant_ativo: tenantAtivo,
     gestao_context: options.gestaoContext === true,
+  });
+  return data;
+};
+
+export const toggleTenantAccessBlock = async (tenantId, bloqueado, motivo = null) => {
+  const { data } = await api.patch(`/tenant-setup/${tenantId}/access`, {
+    tenant_acesso_bloqueado: bloqueado,
+    motivo,
   });
   return data;
 };

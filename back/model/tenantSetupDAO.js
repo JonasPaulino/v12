@@ -451,6 +451,8 @@ class TenantSetupDAO {
           t.tenant_slug,
           t.tenant_documento,
           t.tenant_ativo,
+          COALESCE(t.tenant_acesso_bloqueado, FALSE) AS tenant_acesso_bloqueado,
+          t.tenant_bloqueio_motivo,
           t.pessoa_id,
           p.pessoa_nome_razao,
           p.pessoa_nome_fantasia,
@@ -514,6 +516,8 @@ class TenantSetupDAO {
       tenant_slug: row.tenant_slug,
       tenant_documento: row.tenant_documento,
       tenant_ativo: row.tenant_ativo,
+      tenant_acesso_bloqueado: !!row.tenant_acesso_bloqueado,
+      tenant_bloqueio_motivo: row.tenant_bloqueio_motivo || null,
       pessoa_id: row.pessoa_id,
       empresa: {
         tenant_nome: row.tenant_nome || "",
@@ -1420,6 +1424,29 @@ class TenantSetupDAO {
         RETURNING tenant_id, tenant_nome, tenant_ativo
       `,
       [tenantId, !!tenantAtivo]
+    );
+
+    return rows[0] || null;
+  }
+
+  static async alternarBloqueioAcesso(client, tenantId, bloqueado, usuarioId = null, motivo = null) {
+    const { rows } = await client.query(
+      `
+        UPDATE tenant
+        SET
+          tenant_acesso_bloqueado = $2,
+          tenant_bloqueio_motivo = CASE WHEN $2 THEN NULLIF(TRIM($4), '') ELSE NULL END,
+          tenant_bloqueado_em = CASE WHEN $2 THEN NOW() ELSE NULL END,
+          tenant_bloqueado_por = CASE WHEN $2 THEN $3 ELSE NULL END
+        WHERE tenant_id = $1
+        RETURNING
+          tenant_id,
+          tenant_nome,
+          tenant_ativo,
+          tenant_acesso_bloqueado,
+          tenant_bloqueio_motivo
+      `,
+      [tenantId, !!bloqueado, usuarioId || null, motivo || null]
     );
 
     return rows[0] || null;

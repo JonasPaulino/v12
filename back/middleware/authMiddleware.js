@@ -55,6 +55,16 @@ const verificarToken = async (req, res, next) => {
       decoded.usuario_master = true;
     }
 
+    if (currentTenant.tenant_acesso_bloqueado) {
+      const isMaster = decoded.usuario_master || (await loginDAO.usuarioEhMaster(pool, decoded.userId));
+
+      if (!isMaster) {
+        return res.status(403).json({ message: "Acesso bloqueado para esta filial." });
+      }
+
+      decoded.usuario_master = true;
+    }
+
     req.user = decoded;
     res.set("Cache-Control", "no-store");
     return next();

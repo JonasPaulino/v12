@@ -1,4 +1,5 @@
 import React, { useContext } from "react";
+import DropdownMenu from "components/dropDownMenu";
 import Header from "components/header";
 import Sidebar from "components/sidebar";
 import Paginacao from "components/paginacao";
@@ -587,9 +588,11 @@ export const TenantSetup = ({ embedded = false }) => {
     totalPages,
     search,
     actionMenuTenantId,
+    actionMenuAnchorEl,
     setSearch,
     setPage,
-    setActionMenuTenantId,
+    openTenantActionMenu,
+    closeTenantActionMenu,
     openModal,
     openEditModal,
     closeModal,
@@ -601,6 +604,7 @@ export const TenantSetup = ({ embedded = false }) => {
     goPreviousStep,
     handleSubmit,
     handleToggleTenantStatus,
+    handleToggleTenantAccessBlock,
   } = useTenantSetupPage({ gestaoContext: embedded });
 
   const pageContent = (
@@ -670,44 +674,61 @@ export const TenantSetup = ({ embedded = false }) => {
                         <C.TableCell>{tenant.tenant_slug || "--"}</C.TableCell>
                         <C.TableCell>{tenant.perfil || "--"}</C.TableCell>
                         <C.TableCell>
-                          <C.TenantStatusBadge $active={!!tenant.tenant_ativo}>
-                            {tenant.tenant_ativo ? "Ativa" : "Inativa"}
+                          <C.TenantStatusBadge
+                            $active={!!tenant.tenant_ativo && !tenant.tenant_acesso_bloqueado}
+                            $blocked={!!tenant.tenant_acesso_bloqueado}
+                          >
+                            {tenant.tenant_acesso_bloqueado
+                              ? "Bloqueada"
+                              : tenant.tenant_ativo
+                                ? "Ativa"
+                                : "Inativa"}
                           </C.TenantStatusBadge>
                         </C.TableCell>
                         <C.TableCell>
-                          <C.TenantMenuWrap>
-                            <C.TenantMenuToggle
-                              type="button"
-                              onClick={() =>
-                                setActionMenuTenantId((current) =>
-                                  current === tenant.tenant_id ? null : tenant.tenant_id
-                                )
-                              }
-                              title="Ações"
-                            >
-                              ⋮
-                            </C.TenantMenuToggle>
-                            {actionMenuTenantId === tenant.tenant_id ? (
-                              <C.TenantMenu>
-                                <C.TenantMenuButton
-                                  type="button"
-                                  onClick={() => openEditModal(tenant.tenant_id)}
-                                >
-                                  Editar cadastro
-                                </C.TenantMenuButton>
-                                <C.TenantMenuButton
-                                  type="button"
-                                  onClick={() =>
-                                    handleToggleTenantStatus(tenant, business?.tenant_id)
-                                  }
-                                  $danger={tenant.tenant_ativo}
-                                  $success={!tenant.tenant_ativo}
-                                >
-                                  {tenant.tenant_ativo ? "Inativar empresa" : "Reativar empresa"}
-                                </C.TenantMenuButton>
-                              </C.TenantMenu>
-                            ) : null}
-                          </C.TenantMenuWrap>
+                          <C.TenantMenuToggle
+                            type="button"
+                            onClick={(event) =>
+                              openTenantActionMenu(tenant.tenant_id, event.currentTarget)
+                            }
+                            title="Ações"
+                            aria-label="Ações"
+                          >
+                            <C.TenantMenuIcon />
+                          </C.TenantMenuToggle>
+                          {actionMenuTenantId === tenant.tenant_id ? (
+                            <DropdownMenu
+                              open={!!actionMenuTenantId}
+                              anchorEl={actionMenuAnchorEl}
+                              onClose={closeTenantActionMenu}
+                              minWidth={190}
+                              items={[
+                                {
+                                  label: "Editar cadastro",
+                                  onClick: () => openEditModal(tenant.tenant_id),
+                                },
+                                ...(embedded
+                                  ? [
+                                      {
+                                        label: tenant.tenant_acesso_bloqueado
+                                          ? "Desbloquear acesso"
+                                          : "Bloquear acesso",
+                                        danger: !tenant.tenant_acesso_bloqueado,
+                                        onClick: () => handleToggleTenantAccessBlock(tenant),
+                                      },
+                                    ]
+                                  : []),
+                                {
+                                  label: tenant.tenant_ativo
+                                    ? "Inativar empresa"
+                                    : "Reativar empresa",
+                                  danger: tenant.tenant_ativo,
+                                  onClick: () =>
+                                    handleToggleTenantStatus(tenant, business?.tenant_id),
+                                },
+                              ]}
+                            />
+                          ) : null}
                         </C.TableCell>
                       </C.TableRow>
                     ))

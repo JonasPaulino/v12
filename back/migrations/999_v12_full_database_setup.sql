@@ -22,6 +22,10 @@ CREATE TABLE IF NOT EXISTS tenant (
   tenant_slug VARCHAR(80) NOT NULL UNIQUE,
   tenant_documento VARCHAR(20),
   tenant_ativo BOOLEAN NOT NULL DEFAULT TRUE,
+  tenant_acesso_bloqueado BOOLEAN NOT NULL DEFAULT FALSE,
+  tenant_bloqueio_motivo TEXT,
+  tenant_bloqueado_em TIMESTAMPTZ,
+  tenant_bloqueado_por INTEGER,
   criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   atualizado_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

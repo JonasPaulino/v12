@@ -24,8 +24,12 @@ const getDefaultIcon = (item) => {
   const label = getLabelText(item);
   if (label.includes("editar")) return <HiOutlinePencilSquare />;
   if (label.includes("remover") || label.includes("excluir")) return <HiOutlineTrash />;
-  if (label.includes("cancelar") || label.includes("inativar")) return <HiOutlineXCircle />;
-  if (label.includes("reativar") || label.includes("confirmar")) return <HiOutlineCheckCircle />;
+  if (label.includes("reativar") || label.includes("confirmar") || label.includes("desbloquear")) {
+    return <HiOutlineCheckCircle />;
+  }
+  if (label.includes("cancelar") || label.includes("inativar") || label.includes("bloquear")) {
+    return <HiOutlineXCircle />;
+  }
   if (label.includes("consultar") || label.includes("atualizar") || label.includes("status")) return <HiOutlineArrowPath />;
   if (label.includes("visualizar") || label.includes("detalhe") || label.includes("abrir")) return <HiOutlineEye />;
   if (label.includes("imprimir") || label.includes("danfe")) return <HiOutlinePrinter />;

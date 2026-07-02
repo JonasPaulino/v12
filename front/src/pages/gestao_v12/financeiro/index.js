@@ -495,6 +495,7 @@ export const GestaoV12Financeiro = () => {
                                 },
                                 {
                                   label: "Cancelar carnê",
+                                  danger: true,
                                   disabled: !carneTemCobrancaAtiva || tituloTemParcelaPaga,
                                   onClick: () => cancelarCarne(parcela),
                                 },
@@ -520,6 +521,7 @@ export const GestaoV12Financeiro = () => {
                                 },
                                 {
                                   label: "Cancelar cobrança",
+                                  danger: true,
                                   disabled: !temCobrancaAtiva || parcela.status === "quitado",
                                   onClick: () => cancelarCobranca(parcela),
                                 },

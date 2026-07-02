@@ -152,4 +152,59 @@ router.patch("/:tenantId/status", async (req, res) => {
   }
 });
 
+router.patch("/:tenantId/access", async (req, res) => {
+  let client;
+
+  try {
+    client = await pool.connect();
+    const tenantId = Number(req.params.tenantId);
+    const bloqueado = !!req.body?.tenant_acesso_bloqueado;
+    const motivo = req.body?.motivo || null;
+    const isMaster = await loginDAO.usuarioEhMaster(pool, Number(req.user?.userId));
+
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        message: "Filial inválida.",
+      });
+    }
+
+    if (!isMaster) {
+      return res.status(403).json({
+        success: false,
+        message: "Apenas usuário master pode bloquear acesso de clientes.",
+      });
+    }
+
+    const data = await TenantSetupDAO.alternarBloqueioAcesso(
+      client,
+      tenantId,
+      bloqueado,
+      Number(req.user?.userId) || null,
+      motivo
+    );
+
+    if (!data) {
+      return res.status(404).json({
+        success: false,
+        message: "Filial não encontrada.",
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: bloqueado ? "Acesso bloqueado com sucesso." : "Acesso desbloqueado com sucesso.",
+      data,
+    });
+  } catch (error) {
+    console.error("[tenant-setup] Falha ao alterar bloqueio de acesso:", error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Não foi possível alterar o bloqueio de acesso.",
+    });
+  } finally {
+    client?.release();
+  }
+});
+
 export default router;

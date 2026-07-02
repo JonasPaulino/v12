@@ -56,6 +56,8 @@ class LoginDAO {
         t.tenant_slug,
         t.tenant_documento,
         t.tenant_ativo,
+        COALESCE(t.tenant_acesso_bloqueado, FALSE) AS tenant_acesso_bloqueado,
+        t.tenant_bloqueio_motivo,
         ut.perfil,
         ut.ativo
       FROM usuario_tenant ut
@@ -126,6 +128,8 @@ class LoginDAO {
         t.tenant_slug,
         t.tenant_documento,
         t.tenant_ativo,
+        COALESCE(t.tenant_acesso_bloqueado, FALSE) AS tenant_acesso_bloqueado,
+        t.tenant_bloqueio_motivo,
         ut.perfil
       FROM usuario_tenant ut
       JOIN tenant t ON t.tenant_id = ut.tenant_id

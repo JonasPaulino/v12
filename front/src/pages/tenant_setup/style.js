@@ -1,4 +1,5 @@
 import styled, { css } from "styled-components";
+import { SlOptions } from "react-icons/sl";
 import {
   PageBodyBase,
   PageContent,
@@ -497,11 +498,6 @@ export const TenantItemRight = styled.div`
   gap: 10px;
 `;
 
-export const TenantMenuWrap = styled.div`
-  position: relative;
-  display: inline-flex;
-`;
-
 export const TenantItemTitle = styled.strong`
   color: ${({ theme }) => theme.colors.text};
   font-size: 1rem;
@@ -519,40 +515,37 @@ export const TenantStatusBadge = styled.span`
   align-self: flex-start;
   padding: 6px 10px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  background: ${({ $active }) => ($active ? "rgba(15, 168, 88, 0.12)" : "rgba(230, 66, 87, 0.12)")};
-  color: ${({ $active }) => ($active ? "#0f9f52" : "#cf3b50")};
+  background: ${({ $active, $blocked }) =>
+    $blocked
+      ? "rgba(239, 124, 20, 0.14)"
+      : $active
+        ? "rgba(15, 168, 88, 0.12)"
+        : "rgba(230, 66, 87, 0.12)"};
+  color: ${({ $active, $blocked }) =>
+    $blocked ? "#b05a06" : $active ? "#0f9f52" : "#cf3b50"};
   font-size: 0.78rem;
   font-weight: 700;
 `;
 
 export const TenantMenuToggle = styled.button`
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: ${({ theme }) => theme.radius.md};
+  border-radius: 12px;
   background: ${({ theme }) => theme.colors.surface};
   color: ${({ theme }) => theme.colors.textSoft};
   font-size: 1.15rem;
   font-weight: 800;
   line-height: 1;
   cursor: pointer;
-  box-shadow: 0 8px 18px rgba(16, 32, 58, 0.08);
-  transition:
-    background 0.18s ease,
-    border-color 0.18s ease,
-    color 0.18s ease,
-    transform 0.18s ease,
-    box-shadow 0.18s ease;
+  transition: border-color 0.16s ease, color 0.16s ease;
 
   &:hover {
     border-color: ${({ theme }) => theme.colors.primary};
-    background: ${({ theme }) => theme.colors.surfaceAlt};
     color: ${({ theme }) => theme.colors.primaryStrong};
-    transform: translateY(-1px);
-    box-shadow: 0 12px 24px rgba(11, 95, 255, 0.12);
   }
 
   &:focus-visible {
@@ -562,95 +555,8 @@ export const TenantMenuToggle = styled.button`
   }
 `;
 
-export const TenantMenu = styled.div`
-  position: absolute;
-  top: calc(100% + 10px);
-  right: 0;
-  z-index: 10;
-  min-width: 224px;
-  padding: 6px;
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: ${({ theme }) => theme.radius.md};
-  background: ${({ theme }) => theme.colors.surface};
-  box-shadow: 0 18px 42px rgba(7, 16, 34, 0.16);
-  transform-origin: top right;
-  animation: tenantMenuIn 120ms ease-out;
-
-  &::before {
-    content: "";
-    position: absolute;
-    top: -6px;
-    right: 14px;
-    width: 10px;
-    height: 10px;
-    border-top: 1px solid ${({ theme }) => theme.colors.border};
-    border-left: 1px solid ${({ theme }) => theme.colors.border};
-    background: ${({ theme }) => theme.colors.surface};
-    transform: rotate(45deg);
-  }
-
-  @keyframes tenantMenuIn {
-    from {
-      opacity: 0;
-      transform: translateY(-4px) scale(0.98);
-    }
-
-    to {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-  }
-`;
-
-export const TenantMenuButton = styled.button`
-  width: 100%;
-  min-height: 42px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 0 12px;
-  border: 0;
-  border-radius: ${({ theme }) => theme.radius.sm};
-  background: transparent;
-  color: ${({ theme }) => theme.colors.text};
-  font-weight: 700;
-  text-align: left;
-  cursor: pointer;
-  transition:
-    background 0.16s ease,
-    color 0.16s ease;
-
-  &:hover {
-    background: ${({ theme }) => theme.colors.surfaceAlt};
-    color: ${({ theme }) => theme.colors.primaryStrong};
-  }
-
-  &:focus-visible {
-    outline: none;
-    box-shadow: inset 0 0 0 2px rgba(11, 95, 255, 0.18);
-  }
-
-  ${({ $danger }) =>
-    $danger &&
-    css`
-      color: #cf3b50;
-
-      &:hover {
-        background: rgba(230, 66, 87, 0.1);
-        color: #b82f43;
-      }
-    `}
-
-  ${({ $success }) =>
-    $success &&
-    css`
-      color: #0f9f52;
-
-      &:hover {
-        background: rgba(15, 168, 88, 0.1);
-        color: #0b7f41;
-      }
-    `}
+export const TenantMenuIcon = styled(SlOptions)`
+  font-size: 1rem;
 `;
 
 export const EmptyState = styled.div`

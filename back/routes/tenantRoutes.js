@@ -14,6 +14,8 @@ const buildTenantPayload = (tenant) => ({
   perfil: tenant.perfil,
   ativo: tenant.tenant_ativo ?? tenant.ativo ?? true,
   tenant_ativo: tenant.tenant_ativo ?? tenant.ativo ?? true,
+  tenant_acesso_bloqueado: !!tenant.tenant_acesso_bloqueado,
+  tenant_bloqueio_motivo: tenant.tenant_bloqueio_motivo || null,
 });
 
 const buildUserPayload = (usuario) => ({
@@ -28,12 +30,16 @@ const buildUserPayload = (usuario) => ({
 router.get("/", async (req, res) => {
   try {
     const tenants = await loginDAO.listarTenantsDoUsuario(pool, req.user.userId);
-    const activeTenants = tenants.filter((item) => item.tenant_ativo);
+    const isMaster = await loginDAO.usuarioEhMaster(pool, req.user.userId);
+    const includeAll = req.query.include_all === "true" && isMaster;
+    const visibleTenants = includeAll
+      ? tenants
+      : tenants.filter((item) => item.tenant_ativo && (isMaster || !item.tenant_acesso_bloqueado));
 
     return res.json({
       success: true,
       currentTenantId: req.user.tenantId,
-      data: activeTenants.map(buildTenantPayload),
+      data: visibleTenants.map(buildTenantPayload),
     });
   } catch (error) {
     console.error("[tenant] Falha ao listar filiais:", error);
@@ -57,11 +63,18 @@ router.post("/switch", async (req, res) => {
 
     const usuario = await loginDAO.buscarUsuarioPorId(pool, req.user.userId);
     const tenants = await loginDAO.listarTenantsDoUsuario(pool, req.user.userId);
-    const activeTenants = tenants.filter((item) => item.tenant_ativo);
+    const isMaster = !!usuario?.usuario_master;
+    const activeTenants = tenants.filter(
+      (item) => item.tenant_ativo && (isMaster || !item.tenant_acesso_bloqueado)
+    );
     const activeTenant = tenants.find((item) => item.tenant_id === Number(tenantId));
 
     if (!activeTenant || !activeTenant.tenant_ativo) {
       return res.status(403).json({ error: "Filial inativa." });
+    }
+
+    if (!isMaster && activeTenant.tenant_acesso_bloqueado) {
+      return res.status(403).json({ error: "Acesso bloqueado para esta filial." });
     }
 
     const token = jwt.sign(
