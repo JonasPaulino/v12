@@ -420,10 +420,7 @@ export const GestaoV12Financeiro = () => {
                                 },
                                 {
                                   label: "Gerar Carnê saldo",
-                                  disabled:
-                                    !tituloTemPendenteSemCobranca ||
-                                    carneTemCobrancaAtiva ||
-                                    (temCobrancaAtiva && parcela.status !== "quitado"),
+                                  disabled: !tituloTemPendenteSemCobranca || carneTemCobrancaAtiva,
                                   onClick: () => gerarCarneSaldoRestante(parcela),
                                 },
                                 {

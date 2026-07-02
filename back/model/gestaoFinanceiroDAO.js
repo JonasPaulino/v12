@@ -381,7 +381,11 @@ class GestaoFinanceiroDAO {
           fp.asaas_charge_id,
           fp.asaas_invoice_url,
           fp.asaas_payload,
-          (fp.asaas_charge_id IS NOT NULL AND fp.status <> 'cancelado') AS tem_cobranca_ativa,
+          (
+            fp.asaas_charge_id IS NOT NULL
+            AND fp.status NOT IN ('quitado', 'cancelado')
+            AND fp.valor_pago <= 0
+          ) AS tem_cobranca_ativa,
           ft.descricao,
           ft.documento,
           ft.valor_total,
@@ -393,7 +397,8 @@ class GestaoFinanceiroDAO {
             FROM gestao.financeiro_parcela fpa
             WHERE fpa.titulo_id = ft.titulo_id
               AND fpa.asaas_charge_id IS NOT NULL
-              AND fpa.status <> 'cancelado'
+              AND fpa.status NOT IN ('quitado', 'cancelado')
+              AND fpa.valor_pago <= 0
           ) AS carne_tem_cobranca_ativa,
           EXISTS (
             SELECT 1
@@ -494,7 +499,11 @@ class GestaoFinanceiroDAO {
           fp.asaas_charge_id,
           fp.asaas_invoice_url,
           fp.asaas_payload,
-          (fp.asaas_charge_id IS NOT NULL AND fp.status <> 'cancelado') AS tem_cobranca_ativa,
+          (
+            fp.asaas_charge_id IS NOT NULL
+            AND fp.status NOT IN ('quitado', 'cancelado')
+            AND fp.valor_pago <= 0
+          ) AS tem_cobranca_ativa,
           ft.descricao,
           ft.documento,
           ft.valor_total,
@@ -506,7 +515,8 @@ class GestaoFinanceiroDAO {
             FROM gestao.financeiro_parcela fpa
             WHERE fpa.titulo_id = ft.titulo_id
               AND fpa.asaas_charge_id IS NOT NULL
-              AND fpa.status <> 'cancelado'
+              AND fpa.status NOT IN ('quitado', 'cancelado')
+              AND fpa.valor_pago <= 0
           ) AS carne_tem_cobranca_ativa,
           EXISTS (
             SELECT 1
@@ -1081,6 +1091,18 @@ class GestaoFinanceiroDAO {
     const installmentId = contexto.titulo.asaas_installment_id;
     if (!installmentId) throw new Error("Título ainda não possui carnê gerado no Asaas.");
 
+    const temParcelaAbertaComCobranca = contexto.parcelas.some(
+      (parcela) =>
+        parcela.asaas_charge_id &&
+        parcela.status !== "quitado" &&
+        parcela.status !== "cancelado" &&
+        Number(parcela.valor_pago || 0) <= 0
+    );
+
+    if (!temParcelaAbertaComCobranca) {
+      throw new Error("Este título não possui carnê ativo para baixar.");
+    }
+
     const config = await this.buscarConfiguracaoAsaas(client);
     if (!config.ativo || !config.apiKey) {
       throw new Error("Configuração Asaas da Gestão V12 não está ativa.");
@@ -1159,16 +1181,14 @@ class GestaoFinanceiroDAO {
       ]
     );
 
-    if (parcelasEmAberto.length === parcelas.length) {
-      await client.query(
-        `
-          UPDATE gestao.financeiro_titulo
-          SET asaas_installment_id = NULL
-          WHERE titulo_id = $1
-        `,
-        [tituloId]
-      );
-    }
+    await client.query(
+      `
+        UPDATE gestao.financeiro_titulo
+        SET asaas_installment_id = NULL
+        WHERE titulo_id = $1
+      `,
+      [tituloId]
+    );
 
     await this.atualizarStatusTitulo(client, tituloId);
 
