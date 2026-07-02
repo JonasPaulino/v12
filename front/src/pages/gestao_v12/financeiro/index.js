@@ -52,9 +52,9 @@ export const GestaoV12Financeiro = () => {
 
   const rows = useMemo(() => parcelas || [], [parcelas]);
 
-  const loadParcelas = useCallback(async () => {
+  const loadParcelas = useCallback(async ({ silent = false } = {}) => {
     setLoading(true);
-    showLoading("Carregando financeiro...");
+    if (!silent) showLoading("Carregando financeiro...");
     try {
       const { data } = await api.get("/gestao/financeiro/listar", {
         params: {
@@ -78,7 +78,7 @@ export const GestaoV12Financeiro = () => {
       });
     } finally {
       setLoading(false);
-      hideLoading();
+      if (!silent) hideLoading();
     }
   }, [hideLoading, page, search, showAlert, showLoading, status]);
 
@@ -113,7 +113,7 @@ export const GestaoV12Financeiro = () => {
         icon: "success",
         timer: 1800,
       });
-      await loadParcelas();
+      await loadParcelas({ silent: true });
     } catch (error) {
       hideLoading();
       showAlert?.({
