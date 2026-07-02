@@ -11,7 +11,7 @@ export const Stack = styled.div`
 
 export const Toolbar = styled.div`
   display: grid;
-  grid-template-columns: minmax(260px, 1fr) minmax(360px, 520px) auto;
+  grid-template-columns: minmax(0, 1fr) 280px auto;
   gap: 12px;
   align-items: end;
 
@@ -65,51 +65,143 @@ export const Select = styled.select`
   }
 `;
 
-export const StatusFilter = styled.div`
-  min-height: 48px;
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
+export const MultiSelect = styled.div`
+  position: relative;
 `;
 
-export const StatusChip = styled.button`
-  min-height: 38px;
-  display: inline-flex;
+export const MultiSelectButton = styled.button`
+  width: 100%;
+  min-height: 48px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 7px;
-  padding: 0 12px;
-  border: 1px solid
-    ${({ $active, theme }) => ($active ? theme.colors.primary : theme.colors.border)};
-  border-radius: ${({ theme }) => theme.radius.pill};
-  background: ${({ $active }) => ($active ? "rgba(11, 95, 255, 0.1)" : "#ffffff")};
-  color: ${({ $active, theme }) => ($active ? theme.colors.primaryStrong : theme.colors.textSoft)};
+  gap: 8px;
+  padding: 6px 12px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radius.md};
+  background: ${({ theme }) => theme.colors.surfaceAlt};
+  color: ${({ theme }) => theme.colors.text};
   font: inherit;
-  font-size: 0.88rem;
-  font-weight: 800;
+  text-align: left;
   cursor: pointer;
-  transition: border-color 0.16s ease, background 0.16s ease, color 0.16s ease;
+  outline: none;
 
+  &:focus,
   &:hover {
     border-color: ${({ theme }) => theme.colors.primary};
-    color: ${({ theme }) => theme.colors.primaryStrong};
+    box-shadow: 0 0 0 4px rgba(11, 95, 255, 0.12);
   }
 `;
 
-export const CheckMark = styled.span`
+export const MultiSelectValue = styled.span`
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+`;
+
+export const MultiSelectPlaceholder = styled.span`
+  color: ${({ theme }) => theme.colors.textSoft};
+`;
+
+export const MultiSelectTag = styled.span`
+  max-width: 92px;
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  border-radius: 8px;
+  background: rgba(11, 95, 255, 0.1);
+  color: ${({ theme }) => theme.colors.primaryStrong};
+  font-size: 0.84rem;
+  font-weight: 800;
+  white-space: nowrap;
+`;
+
+export const TagRemove = styled.button`
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(11, 95, 255, 0.14);
+  }
+`;
+
+export const MultiSelectArrow = styled.span`
+  color: ${({ theme }) => theme.colors.textSoft};
+  font-size: 1rem;
+  transform: rotate(${({ $open }) => ($open ? "180deg" : "0deg")});
+  transition: transform 0.16s ease;
+`;
+
+export const MultiSelectPanel = styled.div`
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  display: grid;
+  padding: 6px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radius.md};
+  background: ${({ theme }) => theme.colors.surface};
+  box-shadow: 0 18px 50px rgba(5, 17, 39, 0.18);
+`;
+
+export const MultiSelectOption = styled.button`
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 10px;
+  background: ${({ $active }) => ($active ? "rgba(11, 95, 255, 0.1)" : "transparent")};
+  color: ${({ $active, theme }) => ($active ? theme.colors.primaryStrong : theme.colors.text)};
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(15, 23, 42, 0.06);
+  }
+`;
+
+export const OptionCheck = styled.span`
   width: 18px;
   height: 18px;
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border: 1px solid
     ${({ $active, theme }) => ($active ? theme.colors.primary : theme.colors.border)};
-  border-radius: 50%;
-  background: ${({ $active, theme }) => ($active ? theme.colors.primary : "transparent")};
-  color: #ffffff;
-  font-size: 0.72rem;
-  line-height: 1;
-  opacity: ${({ $active }) => ($active ? 1 : 0.35)};
+  border-radius: 5px;
+  background: ${({ $active, theme }) => ($active ? theme.colors.primary : "#ffffff")};
+  opacity: ${({ $active }) => ($active ? 1 : 0.65)};
+
+  &::after {
+    content: "";
+    width: 8px;
+    height: 4px;
+    border-left: 2px solid #ffffff;
+    border-bottom: 2px solid #ffffff;
+    opacity: ${({ $active }) => ($active ? 1 : 0)};
+    transform: rotate(-45deg) translate(1px, -1px);
+  }
 `;
 
 export const PrimaryButton = styled.button`

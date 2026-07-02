@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import DropdownMenu from "components/dropDownMenu";
 import Paginacao from "components/paginacao";
 import { api } from "api/axiosConfig";
@@ -53,6 +53,8 @@ export const GestaoV12Financeiro = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [menuOpenId, setMenuOpenId] = useState(null);
   const [anchorEl, setAnchorEl] = useState(null);
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+  const statusDropdownRef = useRef(null);
   const [baixaModal, setBaixaModal] = useState(null);
   const [baixaForm, setBaixaForm] = useState({
     valor_pago: "",
@@ -61,6 +63,10 @@ export const GestaoV12Financeiro = () => {
   });
 
   const rows = useMemo(() => parcelas || [], [parcelas]);
+  const selectedStatusOptions = useMemo(
+    () => statusOptions.filter((option) => status.includes(option.value)),
+    [status]
+  );
 
   const loadParcelas = useCallback(async ({ silent = false } = {}) => {
     setLoading(true);
@@ -99,6 +105,17 @@ export const GestaoV12Financeiro = () => {
   useEffect(() => {
     setPage(1);
   }, [search, status]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!statusDropdownRef.current?.contains(event.target)) {
+        setStatusDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const toggleStatus = useCallback((value) => {
     setStatus((current) =>
@@ -323,32 +340,63 @@ export const GestaoV12Financeiro = () => {
 
           <C.Field>
             <C.Label>Status</C.Label>
-            <C.StatusFilter role="group" aria-label="Filtrar por status">
-              <C.StatusChip
+            <C.MultiSelect ref={statusDropdownRef}>
+              <C.MultiSelectButton
                 type="button"
-                $active={!status.length}
-                onClick={() => setStatus([])}
-                aria-pressed={!status.length}
+                onClick={() => setStatusDropdownOpen((current) => !current)}
+                aria-expanded={statusDropdownOpen}
+                aria-haspopup="listbox"
               >
-                Todos
-              </C.StatusChip>
-              {statusOptions.map((option) => {
-                const active = status.includes(option.value);
+                <C.MultiSelectValue>
+                  {selectedStatusOptions.length ? (
+                    selectedStatusOptions.map((option) => (
+                      <C.MultiSelectTag key={option.value}>
+                        {option.label}
+                        <C.TagRemove
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            toggleStatus(option.value);
+                          }}
+                          aria-label={`Remover ${option.label}`}
+                        >
+                          x
+                        </C.TagRemove>
+                      </C.MultiSelectTag>
+                    ))
+                  ) : (
+                    <C.MultiSelectPlaceholder>Todos</C.MultiSelectPlaceholder>
+                  )}
+                </C.MultiSelectValue>
+                <C.MultiSelectArrow $open={statusDropdownOpen}>v</C.MultiSelectArrow>
+              </C.MultiSelectButton>
 
-                return (
-                  <C.StatusChip
-                    key={option.value}
-                    type="button"
-                    $active={active}
-                    onClick={() => toggleStatus(option.value)}
-                    aria-pressed={active}
-                  >
-                    <C.CheckMark $active={active}>✓</C.CheckMark>
-                    {option.label}
-                  </C.StatusChip>
-                );
-              })}
-            </C.StatusFilter>
+              {statusDropdownOpen ? (
+                <C.MultiSelectPanel role="listbox" aria-multiselectable="true">
+                  <C.MultiSelectOption type="button" onClick={() => setStatus([])} $active={!status.length}>
+                    <C.OptionCheck $active={!status.length} />
+                    Todos
+                  </C.MultiSelectOption>
+                  {statusOptions.map((option) => {
+                    const active = status.includes(option.value);
+
+                    return (
+                      <C.MultiSelectOption
+                        key={option.value}
+                        type="button"
+                        onClick={() => toggleStatus(option.value)}
+                        $active={active}
+                        role="option"
+                        aria-selected={active}
+                      >
+                        <C.OptionCheck $active={active} />
+                        {option.label}
+                      </C.MultiSelectOption>
+                    );
+                  })}
+                </C.MultiSelectPanel>
+              ) : null}
+            </C.MultiSelect>
           </C.Field>
 
           <C.PrimaryButton type="button" onClick={loadParcelas} disabled={loading}>
