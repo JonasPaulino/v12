@@ -1,6 +1,39 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import {
+  HiOutlineArrowDownTray,
+  HiOutlineArrowPath,
+  HiOutlineCheckCircle,
+  HiOutlineDocumentText,
+  HiOutlineEllipsisHorizontalCircle,
+  HiOutlineEye,
+  HiOutlinePaperAirplane,
+  HiOutlinePencilSquare,
+  HiOutlinePrinter,
+  HiOutlineTrash,
+  HiOutlineXCircle,
+} from "react-icons/hi2";
 import * as S from "./style";
+
+const getLabelText = (item) =>
+  String(
+    typeof item.label === "string" ? item.label : item.ariaLabel || item.title || ""
+  ).toLowerCase();
+
+const getDefaultIcon = (item) => {
+  const label = getLabelText(item);
+  if (label.includes("editar")) return <HiOutlinePencilSquare />;
+  if (label.includes("remover") || label.includes("excluir")) return <HiOutlineTrash />;
+  if (label.includes("cancelar") || label.includes("inativar")) return <HiOutlineXCircle />;
+  if (label.includes("reativar") || label.includes("confirmar")) return <HiOutlineCheckCircle />;
+  if (label.includes("consultar") || label.includes("atualizar") || label.includes("status")) return <HiOutlineArrowPath />;
+  if (label.includes("visualizar") || label.includes("detalhe") || label.includes("abrir")) return <HiOutlineEye />;
+  if (label.includes("imprimir") || label.includes("danfe")) return <HiOutlinePrinter />;
+  if (label.includes("enviar") || label.includes("whatsapp")) return <HiOutlinePaperAirplane />;
+  if (label.includes("baixar") || label.includes("download")) return <HiOutlineArrowDownTray />;
+  if (label.includes("xml") || label.includes("nota") || label.includes("nf-e")) return <HiOutlineDocumentText />;
+  return <HiOutlineEllipsisHorizontalCircle />;
+};
 
 export default function DropdownMenu({
   open,
@@ -95,8 +128,13 @@ export default function DropdownMenu({
         $strategy={strategy}
         role="menu"
       >
-        {items.map((item, index) =>
-          item.isDivider ? (
+        {items.map((item, index) => {
+          const icon = item.icon || getDefaultIcon(item);
+          const ariaLabel =
+            item.ariaLabel ||
+            (typeof item.label === "string" ? item.label : item.title || "Opção do menu");
+
+          return item.isDivider ? (
             <S.Divider key={item.key ?? `div-${index}`} />
           ) : (
             <S.Item
@@ -110,14 +148,14 @@ export default function DropdownMenu({
               $danger={!!item.danger}
               disabled={!!item.disabled}
               title={item.title || ""}
-              aria-label={item.ariaLabel || item.label}
+              aria-label={ariaLabel}
               role="menuitem"
             >
-              {item.icon || null}
-              {item.label}
+              <S.ItemIcon $danger={!!item.danger}>{icon}</S.ItemIcon>
+              <S.ItemLabel>{item.label}</S.ItemLabel>
             </S.Item>
-          )
-        )}
+          );
+        })}
       </S.Menu>
     </>,
     body
