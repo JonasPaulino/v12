@@ -211,30 +211,25 @@ export const HeaderActions = styled.div`
 `;
 
 export const HeaderUser = styled.div`
-  display: grid;
-  gap: 2px;
-  min-width: 168px;
-  max-width: 250px;
+  min-width: 128px;
+  max-width: 190px;
   height: 42px;
+  display: flex;
+  align-items: center;
   justify-content: center;
   padding: 0 14px;
   border: 1px solid ${({ theme }) => theme.colors.border};
   border-radius: ${({ theme }) => theme.radius.md};
   background: rgba(255, 255, 255, 0.78);
-  text-align: left;
+  text-align: center;
 
   strong {
+    min-width: 0;
+    display: block;
     color: ${({ theme }) => theme.colors.text};
-    font-size: 0.9rem;
+    font-size: 0.84rem;
     line-height: 1.1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  span {
-    color: ${({ theme }) => theme.colors.textSoft};
-    font-size: 0.76rem;
+    letter-spacing: 0.04em;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

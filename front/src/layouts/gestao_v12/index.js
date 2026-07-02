@@ -65,7 +65,6 @@ export const GestaoV12Layout = ({ title = "Gestão V12", subtitle, children }) =
 
   const pageSubtitle = subtitle || "Ambiente interno para administração da empresa V12.";
   const userName = user?.usuario_nome || "Usuário";
-  const userEmail = user?.usuario_email || "";
 
   const activeTitle = useMemo(() => {
     const activeItem = menuItems.find((item) => isActiveRoute(location.pathname, item));
@@ -144,8 +143,7 @@ export const GestaoV12Layout = ({ title = "Gestão V12", subtitle, children }) =
               <HiOutlineBell />
             </C.ActionButton>
             <C.HeaderUser>
-              <strong>{userName}</strong>
-              <span>{userEmail || "Usuário interno"}</span>
+              <strong>{userName.toUpperCase()}</strong>
             </C.HeaderUser>
             <C.ActionButton type="button" onClick={handleLogout}>
               <HiOutlineArrowLeftOnRectangle />
