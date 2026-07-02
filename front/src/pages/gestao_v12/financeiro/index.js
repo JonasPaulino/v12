@@ -39,13 +39,6 @@ export const GestaoV12Financeiro = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [menuOpenId, setMenuOpenId] = useState(null);
   const [anchorEl, setAnchorEl] = useState(null);
-  const [asaasConfig, setAsaasConfig] = useState(null);
-  const [configModal, setConfigModal] = useState(false);
-  const [configForm, setConfigForm] = useState({
-    ativo: false,
-    ambiente: "sandbox",
-    api_key: "",
-  });
   const [baixaModal, setBaixaModal] = useState(null);
   const [baixaForm, setBaixaForm] = useState({
     valor_pago: "",
@@ -81,28 +74,9 @@ export const GestaoV12Financeiro = () => {
     }
   }, [page, search, status, showAlert]);
 
-  const loadConfig = useCallback(async () => {
-    try {
-      const { data } = await api.get("/gestao/financeiro/configuracao/asaas");
-      setAsaasConfig(data.data || null);
-      setConfigForm((current) => ({
-        ...current,
-        ativo: data.data?.ativo === true,
-        ambiente: data.data?.ambiente || "sandbox",
-        api_key: "",
-      }));
-    } catch {
-      setAsaasConfig(null);
-    }
-  }, []);
-
   useEffect(() => {
     loadParcelas();
   }, [loadParcelas]);
-
-  useEffect(() => {
-    loadConfig();
-  }, [loadConfig]);
 
   useEffect(() => {
     setPage(1);
@@ -169,30 +143,6 @@ export const GestaoV12Financeiro = () => {
     });
   };
 
-  const submitConfig = async (event) => {
-    event.preventDefault();
-    setActionLoading(true);
-    try {
-      const { data } = await api.put("/gestao/financeiro/configuracao/asaas", configForm);
-      setAsaasConfig(data.data || null);
-      setConfigModal(false);
-      showAlert?.({
-        title: "Configuração salva",
-        text: "A conta Asaas da Gestão V12 foi atualizada.",
-        icon: "success",
-        timer: 1800,
-      });
-    } catch (error) {
-      showAlert?.({
-        title: "Falha ao salvar configuração",
-        text: error?.response?.data?.message || "Não foi possível salvar a conta Asaas.",
-        icon: "error",
-      });
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
   const submitBaixaManual = async (event) => {
     event.preventDefault();
     if (!baixaModal) return;
@@ -254,27 +204,6 @@ export const GestaoV12Financeiro = () => {
       subtitle="Contas a receber dos clientes V12, cobranças Asaas e baixas manuais."
     >
       <C.Stack>
-        <C.ConfigCard>
-          <C.ConfigText>
-            <strong>Conta Asaas da V12</strong>
-            <span>
-              {asaasConfig?.ativo
-                ? `Ativa em ${asaasConfig.ambiente === "production" ? "produção" : "sandbox"}${
-                    asaasConfig.api_key_masked ? ` • ${asaasConfig.api_key_masked}` : ""
-                  }`
-                : "Configure GESTAO_ASAAS_API_KEY no ambiente ou salve a chave em gestao.configuracao."}
-            </span>
-          </C.ConfigText>
-          <C.ButtonGroup>
-            <C.SecondaryButton type="button" onClick={loadConfig}>
-              Recarregar
-            </C.SecondaryButton>
-            <C.PrimaryButton type="button" onClick={() => setConfigModal(true)}>
-              Configurar Asaas
-            </C.PrimaryButton>
-          </C.ButtonGroup>
-        </C.ConfigCard>
-
         <C.Toolbar>
           <C.Field>
             <C.Label>Pesquisar</C.Label>
@@ -480,73 +409,6 @@ export const GestaoV12Financeiro = () => {
                 Cancelar
               </C.SecondaryButton>
               <C.PrimaryButton type="submit">Registrar baixa</C.PrimaryButton>
-            </C.ModalFooter>
-          </C.Modal>
-        </C.ModalOverlay>
-      ) : null}
-
-      {configModal ? (
-        <C.ModalOverlay>
-          <C.Modal onSubmit={submitConfig}>
-            <C.ModalTitle>
-              <h2>Configurar Asaas V12</h2>
-              <p>Conta usada somente para cobrar mensalidades dos clientes do sistema.</p>
-            </C.ModalTitle>
-
-            <C.ModalGrid>
-              <C.Field>
-                <C.Label>Status</C.Label>
-                <C.Select
-                  value={configForm.ativo ? "true" : "false"}
-                  onChange={(event) =>
-                    setConfigForm((current) => ({
-                      ...current,
-                      ativo: event.target.value === "true",
-                    }))
-                  }
-                >
-                  <option value="true">Ativa</option>
-                  <option value="false">Inativa</option>
-                </C.Select>
-              </C.Field>
-
-              <C.Field>
-                <C.Label>Ambiente</C.Label>
-                <C.Select
-                  value={configForm.ambiente}
-                  onChange={(event) =>
-                    setConfigForm((current) => ({ ...current, ambiente: event.target.value }))
-                  }
-                >
-                  <option value="sandbox">Sandbox</option>
-                  <option value="production">Produção</option>
-                </C.Select>
-              </C.Field>
-
-              <C.Field>
-                <C.Label>API key</C.Label>
-                <C.Input
-                  type="password"
-                  value={configForm.api_key}
-                  onChange={(event) =>
-                    setConfigForm((current) => ({ ...current, api_key: event.target.value }))
-                  }
-                  placeholder={
-                    asaasConfig?.api_key_masked
-                      ? `Atual: ${asaasConfig.api_key_masked}`
-                      : "Informe a chave da conta Asaas da V12"
-                  }
-                />
-              </C.Field>
-            </C.ModalGrid>
-
-            <C.ModalFooter>
-              <C.SecondaryButton type="button" onClick={() => setConfigModal(false)}>
-                Cancelar
-              </C.SecondaryButton>
-              <C.PrimaryButton type="submit" disabled={actionLoading}>
-                {actionLoading ? "Salvando..." : "Salvar configuração"}
-              </C.PrimaryButton>
             </C.ModalFooter>
           </C.Modal>
         </C.ModalOverlay>

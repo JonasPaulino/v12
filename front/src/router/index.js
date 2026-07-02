@@ -23,6 +23,7 @@ import { GestaoV12Dashboard } from "pages/gestao_v12/dashboard";
 import { GestaoV12Clientes } from "pages/gestao_v12/clientes";
 import { GestaoV12Pessoas } from "pages/gestao_v12/pessoas";
 import { GestaoV12Financeiro } from "pages/gestao_v12/financeiro";
+import { GestaoV12Configuracoes } from "pages/gestao_v12/configuracoes";
 import { GestaoV12Placeholder } from "pages/gestao_v12/placeholder";
 import { NotFound } from "pages/404";
 
@@ -218,11 +219,7 @@ export const RouteApp = () => (
         element={
           <AuthMiddleware>
             <MasterOnly>
-              <GestaoV12Placeholder
-                title="Configurações"
-                subtitle="Parâmetros próprios da empresa V12."
-                description="Aqui ficarão conta Asaas da V12, mensagens, parâmetros fiscais, certificado próprio e integrações administrativas."
-              />
+              <GestaoV12Configuracoes />
             </MasterOnly>
           </AuthMiddleware>
         }

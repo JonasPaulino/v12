@@ -89,52 +89,6 @@ export const SecondaryButton = styled.button`
   cursor: pointer;
 `;
 
-export const ConfigCard = styled.div`
-  display: flex;
-  justify-content: space-between;
-  gap: 14px;
-  align-items: center;
-  padding: 14px 16px;
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: ${({ theme }) => theme.radius.lg};
-  background: rgba(255, 255, 255, 0.86);
-  box-shadow: ${({ theme }) => theme.colors.shadowSoft};
-
-  @media (max-width: 720px) {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-`;
-
-export const ConfigText = styled.div`
-  display: grid;
-  gap: 4px;
-
-  strong {
-    color: ${({ theme }) => theme.colors.text};
-  }
-
-  span {
-    color: ${({ theme }) => theme.colors.textSoft};
-    font-size: 0.9rem;
-  }
-`;
-
-export const ButtonGroup = styled.div`
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  flex-wrap: wrap;
-
-  @media (max-width: 720px) {
-    width: 100%;
-
-    button {
-      flex: 1;
-    }
-  }
-`;
-
 export const Card = styled.section`
   min-height: 0;
   display: flex;
