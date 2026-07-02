@@ -344,6 +344,9 @@ export const GestaoV12Financeiro = () => {
                     const temCobrancaAtiva = parcela.tem_cobranca_ativa === true;
                     const carneTemCobrancaAtiva =
                       parcela.carne_tem_cobranca_ativa === true && !!parcela.asaas_installment_id;
+                    const tituloTemParcelaPaga = parcela.titulo_tem_parcela_paga === true;
+                    const tituloTemPendenteSemCobranca =
+                      parcela.titulo_tem_pendente_sem_cobranca === true;
                     const podeGerarCobranca =
                       parcela.status !== "quitado" && parcela.status !== "cancelado";
 
@@ -409,12 +412,15 @@ export const GestaoV12Financeiro = () => {
                                 },
                                 {
                                   label: "Cancelar carnê",
-                                  disabled: !carneTemCobrancaAtiva,
+                                  disabled: !carneTemCobrancaAtiva || tituloTemParcelaPaga,
                                   onClick: () => cancelarCarne(parcela),
                                 },
                                 {
                                   label: "Carnê saldo restante",
-                                  disabled: parcela.status === "quitado" || temCobrancaAtiva,
+                                  disabled:
+                                    !tituloTemPendenteSemCobranca ||
+                                    carneTemCobrancaAtiva ||
+                                    temCobrancaAtiva,
                                   onClick: () => gerarCarneSaldoRestante(parcela),
                                 },
                                 {

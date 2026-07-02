@@ -395,6 +395,20 @@ class GestaoFinanceiroDAO {
               AND fpa.asaas_charge_id IS NOT NULL
               AND fpa.status <> 'cancelado'
           ) AS carne_tem_cobranca_ativa,
+          EXISTS (
+            SELECT 1
+            FROM gestao.financeiro_parcela fpp
+            WHERE fpp.titulo_id = ft.titulo_id
+              AND (fpp.status = 'quitado' OR fpp.valor_pago > 0)
+          ) AS titulo_tem_parcela_paga,
+          EXISTS (
+            SELECT 1
+            FROM gestao.financeiro_parcela fpp
+            WHERE fpp.titulo_id = ft.titulo_id
+              AND fpp.status NOT IN ('quitado', 'cancelado')
+              AND fpp.valor_pago <= 0
+              AND fpp.asaas_charge_id IS NULL
+          ) AS titulo_tem_pendente_sem_cobranca,
           p.pessoa_id,
           p.nome_razao AS pessoa_nome,
           p.nome_fantasia AS pessoa_fantasia,
@@ -494,6 +508,20 @@ class GestaoFinanceiroDAO {
               AND fpa.asaas_charge_id IS NOT NULL
               AND fpa.status <> 'cancelado'
           ) AS carne_tem_cobranca_ativa,
+          EXISTS (
+            SELECT 1
+            FROM gestao.financeiro_parcela fpp
+            WHERE fpp.titulo_id = ft.titulo_id
+              AND (fpp.status = 'quitado' OR fpp.valor_pago > 0)
+          ) AS titulo_tem_parcela_paga,
+          EXISTS (
+            SELECT 1
+            FROM gestao.financeiro_parcela fpp
+            WHERE fpp.titulo_id = ft.titulo_id
+              AND fpp.status NOT IN ('quitado', 'cancelado')
+              AND fpp.valor_pago <= 0
+              AND fpp.asaas_charge_id IS NULL
+          ) AS titulo_tem_pendente_sem_cobranca,
           p.pessoa_id,
           p.nome_razao AS pessoa_nome,
           p.nome_fantasia AS pessoa_fantasia,
