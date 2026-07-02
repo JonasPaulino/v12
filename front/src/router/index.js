@@ -156,17 +156,18 @@ export const RouteApp = () => (
       />
       <Route path="/configuracao-fiscal" element={<Navigate to="/configuracao" replace />} />
       <Route
-        path="/filiais/nova"
+        path="/gestao-v12"
         element={
           <AuthMiddleware>
             <MasterOnly>
-              <PageWrapper title="Empresas">
+              <PageWrapper title="Gestão V12">
                 <TenantSetup />
               </PageWrapper>
             </MasterOnly>
           </AuthMiddleware>
         }
       />
+      <Route path="/filiais/nova" element={<Navigate to="/gestao-v12" replace />} />
       <Route path="/nfe" element={<Navigate to="/nfe/emitidas" replace />} />
       <Route
         path="/nfe/emitidas"

@@ -42,6 +42,12 @@ const Wizard = ({
           Usuário admin
         </C.StepButton>
       )}
+      {editingTenantId ? null : (
+        <C.StepButton type="button" $active={step === 4}>
+          <C.StepNumber>4</C.StepNumber>
+          Financeiro V12
+        </C.StepButton>
+      )}
     </C.Steps>
 
     {step === 1 ? (
@@ -404,6 +410,132 @@ const Wizard = ({
       </C.Section>
     ) : null}
 
+    {!editingTenantId && step === 4 ? (
+      <C.Section>
+        <C.Hint>
+          Configure o contrato de uso do V12 para esta empresa. Estas parcelas
+          pertencem à gestão interna do V12 e não entram no financeiro operacional
+          da filial.
+        </C.Hint>
+
+        <C.FieldsGrid>
+          <C.Field>
+            <C.FieldSpan>Plano</C.FieldSpan>
+            <C.Input
+              value={form.financeiro_plano_nome}
+              onChange={(event) => updateField("financeiro_plano_nome", event.target.value)}
+              placeholder="V12 ERP"
+            />
+          </C.Field>
+          <C.Field>
+            <C.FieldSpan>
+              Valor mensal
+              <C.RequiredMark title={REQUIRED_TITLE}>*</C.RequiredMark>
+            </C.FieldSpan>
+            <C.Input
+              type="number"
+              min="0"
+              step="0.01"
+              value={form.financeiro_valor_mensal}
+              onChange={(event) => updateField("financeiro_valor_mensal", event.target.value)}
+              placeholder="0,00"
+            />
+          </C.Field>
+          <C.Field>
+            <C.FieldSpan>Tipo de contrato</C.FieldSpan>
+            <C.Select
+              value={form.financeiro_ciclo}
+              onChange={(event) => updateField("financeiro_ciclo", event.target.value)}
+            >
+              <option value="mensal">Mensal</option>
+              <option value="trimestral">Trimestral</option>
+              <option value="semestral">Semestral</option>
+              <option value="anual">Anual</option>
+            </C.Select>
+          </C.Field>
+          <C.Field>
+            <C.FieldSpan>Forma de cobrança</C.FieldSpan>
+            <C.Select
+              value={form.financeiro_forma_cobranca}
+              onChange={(event) => updateField("financeiro_forma_cobranca", event.target.value)}
+            >
+              <option value="boleto">Boleto</option>
+              <option value="pix">Pix</option>
+            </C.Select>
+          </C.Field>
+          <C.Field>
+            <C.FieldSpan>
+              Primeiro vencimento
+              <C.RequiredMark title={REQUIRED_TITLE}>*</C.RequiredMark>
+            </C.FieldSpan>
+            <C.Input
+              type="date"
+              value={form.financeiro_primeiro_vencimento}
+              onChange={(event) => updateField("financeiro_primeiro_vencimento", event.target.value)}
+            />
+          </C.Field>
+          <C.Field>
+            <C.FieldSpan>Quantidade de parcelas</C.FieldSpan>
+            <C.Input
+              type="number"
+              min="1"
+              max="120"
+              value={form.financeiro_quantidade_parcelas}
+              onChange={(event) => updateField("financeiro_quantidade_parcelas", event.target.value)}
+            />
+          </C.Field>
+          <C.Field>
+            <C.FieldSpan>Dia preferencial de vencimento</C.FieldSpan>
+            <C.Input
+              type="number"
+              min="1"
+              max="31"
+              value={form.financeiro_dia_vencimento}
+              onChange={(event) => updateField("financeiro_dia_vencimento", event.target.value)}
+            />
+          </C.Field>
+          <C.Field>
+            <C.FieldSpan>Bloquear após atraso de dias</C.FieldSpan>
+            <C.Input
+              type="number"
+              min="0"
+              max="365"
+              value={form.financeiro_bloquear_apos_dias}
+              onChange={(event) => updateField("financeiro_bloquear_apos_dias", event.target.value)}
+            />
+          </C.Field>
+          <C.Field>
+            <C.FieldSpan>Juros por atraso (%)</C.FieldSpan>
+            <C.Input
+              type="number"
+              min="0"
+              step="0.01"
+              value={form.financeiro_juros_mora_percentual}
+              onChange={(event) => updateField("financeiro_juros_mora_percentual", event.target.value)}
+            />
+          </C.Field>
+          <C.Field>
+            <C.FieldSpan>Multa por atraso (%)</C.FieldSpan>
+            <C.Input
+              type="number"
+              min="0"
+              step="0.01"
+              value={form.financeiro_multa_atraso_percentual}
+              onChange={(event) => updateField("financeiro_multa_atraso_percentual", event.target.value)}
+            />
+          </C.Field>
+          <C.FieldFull>
+            <C.FieldSpan>Observação do contrato</C.FieldSpan>
+            <C.TextArea
+              value={form.financeiro_observacao}
+              onChange={(event) => updateField("financeiro_observacao", event.target.value)}
+              placeholder="Condições comerciais, desconto negociado ou observações internas."
+            />
+          </C.FieldFull>
+        </C.FieldsGrid>
+      </C.Section>
+    ) : null}
+
     <C.Toolbar>
       <C.Hint>
         O certificado fica vinculado à filial e os dados principais são preenchidos
@@ -416,7 +548,7 @@ const Wizard = ({
             Voltar
           </C.GhostButton>
         ) : null}
-        {step < (editingTenantId ? 2 : 3) ? (
+        {step < (editingTenantId ? 2 : 4) ? (
           <C.PrimaryButton type="button" onClick={goNextStep}>
             Próxima etapa
           </C.PrimaryButton>
@@ -428,7 +560,7 @@ const Wizard = ({
                 : "Cadastrando..."
               : editingTenantId
                 ? "Salvar alterações"
-                : "Cadastrar empresa"}
+                : "Cadastrar cliente"}
           </C.PrimaryButton>
         )}
       </C.Actions>
@@ -484,16 +616,16 @@ export const TenantSetup = () => {
             <C.ListCard>
               <C.ListHeader>
                 <C.ListHeaderText>
-                  <C.ListKicker>Empresas</C.ListKicker>
-                  <C.CardTitle>Filiais cadastradas</C.CardTitle>
+                  <C.ListKicker>Gestão V12</C.ListKicker>
+                  <C.CardTitle>Clientes e filiais cadastradas</C.CardTitle>
                   <C.CardText>
-                    Consulte as empresas já cadastradas e abra o modal para registrar uma
-                    nova filial com os dados do certificado.
+                    Consulte clientes do V12, cadastre novas filiais, vincule
+                    certificado A1 e defina o contrato financeiro inicial.
                   </C.CardText>
                 </C.ListHeaderText>
 
                 <C.PrimaryButton type="button" onClick={openModal}>
-                  Cadastrar nova empresa
+                  Cadastrar novo cliente
                 </C.PrimaryButton>
               </C.ListHeader>
 
@@ -505,13 +637,13 @@ export const TenantSetup = () => {
                 />
                 <C.CountText>
                   {loadingTenants
-                    ? "Carregando empresas..."
-                    : `${totalTenants} empresa(s) encontrada(s)`}
+                    ? "Carregando clientes..."
+                    : `${totalTenants} cliente(s) encontrado(s)`}
                 </C.CountText>
               </C.SearchRow>
 
               {loadingTenants ? (
-                <C.LoadingCard>Carregando empresas cadastradas...</C.LoadingCard>
+                <C.LoadingCard>Carregando clientes cadastrados...</C.LoadingCard>
               ) : tenants.length ? (
                 <C.TenantGrid>
                   {tenants.map((tenant) => (
@@ -565,9 +697,9 @@ export const TenantSetup = () => {
                 </C.TenantGrid>
               ) : (
                 <C.EmptyState>
-                  <C.EmptyTitle>Nenhuma empresa encontrada</C.EmptyTitle>
+                  <C.EmptyTitle>Nenhum cliente encontrado</C.EmptyTitle>
                   <C.EmptyText>
-                    Use o botão de cadastro para criar a primeira filial do sistema.
+                    Use o botão de cadastro para criar o primeiro cliente do V12.
                   </C.EmptyText>
                 </C.EmptyState>
               )}
@@ -590,12 +722,12 @@ export const TenantSetup = () => {
               <C.ModalTitle>
                 <C.ListKicker>{editingTenantId ? "Edição" : "Cadastro"}</C.ListKicker>
                 <C.ModalTitleText>
-                  {editingTenantId ? "Editar filial" : "Cadastrar empresa"}
+                  {editingTenantId ? "Editar filial" : "Cadastrar cliente V12"}
                 </C.ModalTitleText>
                 <C.CardText>
                   {editingTenantId
                     ? "Atualize os dados da filial e, se necessário, substitua o certificado."
-                    : "Este fluxo cria uma nova filial do sistema, lê o certificado A1, consulta os dados do CNPJ pela BrasilAPI e tenta buscar a IE na SEFAZ."}
+                    : "Este fluxo cria a filial, vincula certificado A1, cria o usuário admin e registra o contrato financeiro do cliente."}
                 </C.CardText>
               </C.ModalTitle>
 

@@ -22,8 +22,8 @@ const ProfileOptions = ({ open = true }) => {
                 <HiOutlineBuildingOffice2 />
               </C.OptionIcon>
               <C.OptionText>
-                <strong>Cadastrar empresa</strong>
-                <span>Filiais e certificado A1</span>
+                <strong>Gestão V12</strong>
+                <span>Clientes, filiais e contratos</span>
               </C.OptionText>
             </C.OptionButton>
           ) : null}

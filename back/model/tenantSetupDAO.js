@@ -39,6 +39,46 @@ const parseInteger = (value, { required = false, min = 1, max = null, label = "C
   return parsed;
 };
 
+const parseDecimal = (value, { required = false, min = 0, label = "Campo" } = {}) => {
+  if (value === undefined || value === null || value === "") {
+    if (required) throw new Error(`${label} obrigatório.`);
+    return null;
+  }
+
+  const raw = String(value).trim();
+  const normalized = raw.includes(",") ? raw.replace(/\./g, "").replace(",", ".") : raw;
+  const parsed = Number(normalized);
+
+  if (!Number.isFinite(parsed) || parsed < min) {
+    throw new Error(`${label} inválido.`);
+  }
+
+  return Number(parsed.toFixed(2));
+};
+
+const parseDateOnly = (value, { required = false, label = "Data" } = {}) => {
+  const normalized = String(value ?? "").trim();
+
+  if (!normalized) {
+    if (required) throw new Error(`${label} obrigatória.`);
+    return null;
+  }
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+    throw new Error(`${label} inválida.`);
+  }
+
+  return normalized;
+};
+
+const addMonths = (dateValue, months) => {
+  const [year, month, day] = String(dateValue).split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  date.setUTCMonth(date.getUTCMonth() + months);
+
+  return date.toISOString().slice(0, 10);
+};
+
 const slugify = (value) =>
   String(value || "")
     .normalize("NFD")
@@ -137,6 +177,80 @@ const seedFormasPagamento = async (client, tenantId) => {
     `,
     [tenantId]
   );
+};
+
+const criarContratoGestaoV12 = async (client, tenantId, financeiro, usuarioCriadorId) => {
+  if (!financeiro?.criar_contrato) return null;
+
+  const contratoResult = await client.query(
+    `
+      INSERT INTO gestao.cliente_contrato (
+        tenant_id,
+        plano_nome,
+        ciclo,
+        forma_cobranca,
+        valor_mensal,
+        quantidade_parcelas,
+        dia_vencimento,
+        primeiro_vencimento,
+        juros_mora_percentual,
+        multa_atraso_percentual,
+        bloquear_apos_dias,
+        observacao,
+        criado_por
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      RETURNING contrato_id
+    `,
+    [
+      tenantId,
+      financeiro.plano_nome,
+      financeiro.ciclo,
+      financeiro.forma_cobranca,
+      financeiro.valor_mensal,
+      financeiro.quantidade_parcelas,
+      financeiro.dia_vencimento,
+      financeiro.primeiro_vencimento,
+      financeiro.juros_mora_percentual,
+      financeiro.multa_atraso_percentual,
+      financeiro.bloquear_apos_dias,
+      financeiro.observacao,
+      usuarioCriadorId,
+    ]
+  );
+
+  const contratoId = Number(contratoResult.rows[0].contrato_id);
+
+  for (let index = 0; index < financeiro.quantidade_parcelas; index += 1) {
+    const numeroParcela = index + 1;
+    const vencimento = addMonths(financeiro.primeiro_vencimento, index);
+
+    await client.query(
+      `
+        INSERT INTO gestao.cliente_parcela (
+          contrato_id,
+          tenant_id,
+          numero_parcela,
+          descricao,
+          forma_cobranca,
+          valor,
+          vencimento
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `,
+      [
+        contratoId,
+        tenantId,
+        numeroParcela,
+        `Mensalidade V12 ERP ${numeroParcela}/${financeiro.quantidade_parcelas}`,
+        financeiro.forma_cobranca,
+        financeiro.valor_mensal,
+        vencimento,
+      ]
+    );
+  }
+
+  return contratoId;
 };
 
 class TenantSetupDAO {
@@ -262,6 +376,8 @@ class TenantSetupDAO {
     const usuario = payload.usuario || {};
     const certificado = payload.certificado || {};
     const fiscal = payload.fiscal || {};
+    const financeiro = payload.financeiro || {};
+    const hasFinanceiro = !!payload.financeiro;
     const logo = payload.logo || null;
 
     const tenantNome = normalizeText(empresa.tenant_nome, 150, {
@@ -362,6 +478,52 @@ class TenantSetupDAO {
               tamanho_arquivo: Number(logo.tamanho_arquivo || logo.conteudo.length || 0),
             }
           : null,
+      financeiro: {
+        criar_contrato: hasFinanceiro && financeiro.criar_contrato !== false,
+        plano_nome: normalizeText(financeiro.plano_nome, 120) || "V12 ERP",
+        ciclo: ["mensal", "trimestral", "semestral", "anual"].includes(financeiro.ciclo)
+          ? financeiro.ciclo
+          : "mensal",
+        forma_cobranca: ["boleto", "pix"].includes(financeiro.forma_cobranca)
+          ? financeiro.forma_cobranca
+          : "boleto",
+        valor_mensal: parseDecimal(financeiro.valor_mensal, {
+          required: hasFinanceiro && financeiro.criar_contrato !== false,
+          label: "Valor mensal",
+        }),
+        quantidade_parcelas: parseInteger(financeiro.quantidade_parcelas ?? 1, {
+          required: hasFinanceiro && financeiro.criar_contrato !== false,
+          min: 1,
+          max: 120,
+          label: "Quantidade de parcelas",
+        }),
+        dia_vencimento: parseInteger(financeiro.dia_vencimento ?? 10, {
+          required: false,
+          min: 1,
+          max: 31,
+          label: "Dia de vencimento",
+        }) || 10,
+        primeiro_vencimento: parseDateOnly(financeiro.primeiro_vencimento, {
+          required: hasFinanceiro && financeiro.criar_contrato !== false,
+          label: "Primeiro vencimento",
+        }),
+        juros_mora_percentual:
+          parseDecimal(financeiro.juros_mora_percentual ?? 0, {
+            label: "Juros por atraso",
+          }) || 0,
+        multa_atraso_percentual:
+          parseDecimal(financeiro.multa_atraso_percentual ?? 0, {
+            label: "Multa por atraso",
+          }) || 0,
+        bloquear_apos_dias:
+          parseInteger(financeiro.bloquear_apos_dias ?? 0, {
+            required: false,
+            min: 0,
+            max: 365,
+            label: "Bloquear após dias",
+          }) || 0,
+        observacao: normalizeText(financeiro.observacao, 500),
+      },
     };
   }
 
@@ -771,6 +933,13 @@ class TenantSetupDAO {
         [tenantId]
       );
 
+      const contratoGestaoId = await criarContratoGestaoV12(
+        client,
+        tenantId,
+        data.financeiro,
+        usuarioCriadorId
+      );
+
       await client.query("COMMIT");
 
       return {
@@ -781,6 +950,7 @@ class TenantSetupDAO {
         usuario_id: usuarioId,
         tenant_ativo: true,
         certificado_validade_em: certificadoPreview.validade_em,
+        contrato_gestao_id: contratoGestaoId,
         created_by: usuarioCriadorId,
       };
     } catch (error) {

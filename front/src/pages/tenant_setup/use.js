@@ -16,6 +16,14 @@ const LOGO_TARGET_BYTES = 500 * 1024;
 const LOGO_MAX_WIDTH = 900;
 const LOGO_MAX_HEIGHT = 300;
 
+const todayInputValue = () => {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 const createInitialForm = () => ({
   certificado_senha: "",
   tenant_nome: "",
@@ -40,6 +48,17 @@ const createInitialForm = () => ({
   usuario_username: "",
   usuario_password: "",
   usuario_confirm_password: "",
+  financeiro_plano_nome: "V12 ERP",
+  financeiro_ciclo: "mensal",
+  financeiro_forma_cobranca: "boleto",
+  financeiro_valor_mensal: "",
+  financeiro_quantidade_parcelas: "1",
+  financeiro_dia_vencimento: "10",
+  financeiro_primeiro_vencimento: todayInputValue(),
+  financeiro_juros_mora_percentual: "0",
+  financeiro_multa_atraso_percentual: "0",
+  financeiro_bloquear_apos_dias: "0",
+  financeiro_observacao: "",
 });
 
 const formatFileSize = (value) => {
@@ -439,7 +458,44 @@ export const useTenantSetupPage = () => {
       }
     }
 
-    setStep((prev) => Math.min(prev + 1, editingTenantId ? 2 : 3));
+    if (!editingTenantId && step === 3) {
+      const requiredUserFields = [
+        ["usuario_nome", "Nome do usuário admin"],
+        ["usuario_email", "E-mail do usuário admin"],
+        ["usuario_username", "Login do usuário admin"],
+        ["usuario_password", "Senha do usuário admin"],
+      ];
+
+      const missing = requiredUserFields.find(([field]) => !String(form[field] || "").trim());
+      if (missing) {
+        await showAlert({
+          title: "Usuário incompleto",
+          text: `${missing[1]} é obrigatório.`,
+          icon: "warning",
+        });
+        return;
+      }
+
+      if (String(form.usuario_password || "").length < 6) {
+        await showAlert({
+          title: "Senha inválida",
+          text: "A senha do usuário admin precisa ter pelo menos 6 caracteres.",
+          icon: "warning",
+        });
+        return;
+      }
+
+      if (form.usuario_password !== form.usuario_confirm_password) {
+        await showAlert({
+          title: "Senha não confere",
+          text: "A confirmação da senha do usuário admin não confere.",
+          icon: "warning",
+        });
+        return;
+      }
+    }
+
+    setStep((prev) => Math.min(prev + 1, editingTenantId ? 2 : 4));
   }, [certificadoFile, editingTenantId, form, showAlert, step]);
 
   const goPreviousStep = useCallback(() => {
@@ -551,6 +607,24 @@ export const useTenantSetupPage = () => {
           return;
         }
 
+        if (!Number(form.financeiro_valor_mensal || 0)) {
+          await showAlert({
+            title: "Financeiro incompleto",
+            text: "Informe o valor mensal do contrato V12.",
+            icon: "warning",
+          });
+          return;
+        }
+
+        if (!String(form.financeiro_primeiro_vencimento || "").trim()) {
+          await showAlert({
+            title: "Financeiro incompleto",
+            text: "Informe o primeiro vencimento do contrato V12.",
+            icon: "warning",
+          });
+          return;
+        }
+
         payload.usuario = {
           nome: form.usuario_nome,
           email: form.usuario_email,
@@ -561,6 +635,20 @@ export const useTenantSetupPage = () => {
           nome_arquivo: certificadoFile.name,
           senha: form.certificado_senha,
           conteudo_base64: conteudoBase64,
+        };
+        payload.financeiro = {
+          criar_contrato: true,
+          plano_nome: form.financeiro_plano_nome,
+          ciclo: form.financeiro_ciclo,
+          forma_cobranca: form.financeiro_forma_cobranca,
+          valor_mensal: form.financeiro_valor_mensal,
+          quantidade_parcelas: form.financeiro_quantidade_parcelas,
+          dia_vencimento: form.financeiro_dia_vencimento,
+          primeiro_vencimento: form.financeiro_primeiro_vencimento,
+          juros_mora_percentual: form.financeiro_juros_mora_percentual,
+          multa_atraso_percentual: form.financeiro_multa_atraso_percentual,
+          bloquear_apos_dias: form.financeiro_bloquear_apos_dias,
+          observacao: form.financeiro_observacao,
         };
 
         await createTenantSetup(buildTenantRequestPayload(payload, logoFile));

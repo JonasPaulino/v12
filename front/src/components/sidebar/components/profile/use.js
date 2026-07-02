@@ -61,7 +61,7 @@ export const useProfileActions = () => {
   };
 
   const handleOpenTenantSetup = () => {
-    navigate("/filiais/nova");
+    navigate("/gestao-v12");
   };
 
   return { handleLogout, handleOpenTenantSetup };
