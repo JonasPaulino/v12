@@ -1,6 +1,7 @@
 import express from "express";
 import { pool } from "../config/conexao.js";
 import { tenantLogoUpload } from "../middleware/tenantLogoUpload.js";
+import loginDAO from "../model/loginDAO.js";
 import TenantSetupDAO from "../model/tenantSetupDAO.js";
 
 const router = express.Router();
@@ -107,6 +108,7 @@ router.patch("/:tenantId/status", async (req, res) => {
     const tenantId = Number(req.params.tenantId);
     const tenantAtivo = !!req.body?.tenant_ativo;
     const currentTenantId = Number(req.user?.tenantId || 0);
+    const gestaoContext = req.body?.gestao_context === true;
 
     if (!tenantId) {
       return res.status(400).json({
@@ -115,7 +117,10 @@ router.patch("/:tenantId/status", async (req, res) => {
       });
     }
 
-    if (currentTenantId && currentTenantId === tenantId && !tenantAtivo) {
+    const canBypassCurrentTenantRule =
+      gestaoContext && (await loginDAO.usuarioEhMaster(pool, Number(req.user?.userId)));
+
+    if (currentTenantId && currentTenantId === tenantId && !tenantAtivo && !canBypassCurrentTenantRule) {
       return res.status(403).json({
         success: false,
         message: "Você não pode inativar a filial em que está logado.",

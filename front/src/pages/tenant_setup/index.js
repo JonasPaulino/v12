@@ -601,7 +601,7 @@ export const TenantSetup = ({ embedded = false }) => {
     goPreviousStep,
     handleSubmit,
     handleToggleTenantStatus,
-  } = useTenantSetupPage();
+  } = useTenantSetupPage({ gestaoContext: embedded });
 
   const pageContent = (
     <>

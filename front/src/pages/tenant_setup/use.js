@@ -173,7 +173,7 @@ const normalizeSearch = (value) =>
 const normalizeCnpj = (value) => String(value || "").replace(/\D/g, "");
 const isTenantActive = (tenant) => tenant?.tenant_ativo !== false && tenant?.ativo !== false;
 
-export const useTenantSetupPage = () => {
+export const useTenantSetupPage = ({ gestaoContext = false } = {}) => {
   const { business, setBusiness, setBusinesses, showLoading, hideLoading } =
     useContext(AppContext);
   const { showAlert, askYesNoQuestion } = useSweetAlert();
@@ -804,6 +804,7 @@ export const useTenantSetupPage = () => {
       setActionMenuTenantId(null);
 
       if (
+        !gestaoContext &&
         tenant.tenant_ativo &&
         currentTenantId &&
         Number(currentTenantId) === Number(tenant.tenant_id)
@@ -827,13 +828,15 @@ export const useTenantSetupPage = () => {
 
       try {
         showLoading(tenant.tenant_ativo ? "Inativando cliente..." : "Reativando cliente...");
-        await toggleTenantSetupStatus(tenant.tenant_id, !tenant.tenant_ativo);
+        await toggleTenantSetupStatus(tenant.tenant_id, !tenant.tenant_ativo, {
+          gestaoContext,
+        });
         await loadTenants();
       } finally {
         hideLoading();
       }
     },
-    [askYesNoQuestion, hideLoading, loadTenants, showAlert, showLoading]
+    [askYesNoQuestion, gestaoContext, hideLoading, loadTenants, showAlert, showLoading]
   );
 
   return {

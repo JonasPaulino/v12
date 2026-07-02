@@ -46,9 +46,10 @@ export const updateTenantSetup = async (tenantId, payload) => {
   return data;
 };
 
-export const toggleTenantSetupStatus = async (tenantId, tenantAtivo) => {
+export const toggleTenantSetupStatus = async (tenantId, tenantAtivo, options = {}) => {
   const { data } = await api.patch(`/tenant-setup/${tenantId}/status`, {
     tenant_ativo: tenantAtivo,
+    gestao_context: options.gestaoContext === true,
   });
   return data;
 };
