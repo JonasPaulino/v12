@@ -106,7 +106,7 @@ LEFT JOIN LATERAL (
   ORDER BY atualizado_em DESC, criado_em DESC
   LIMIT 1
 ) pe ON TRUE
-WHERE pe.endereco_id IS NOT NULL
+WHERE pe.pessoa_endereco_id IS NOT NULL
   AND NOT EXISTS (
     SELECT 1
     FROM gestao.pessoa_endereco gpe
