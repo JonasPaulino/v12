@@ -5,6 +5,11 @@ import withReactContent from "sweetalert2-react-content";
 const SweetAlertContext = createContext(null);
 const ReactSwal = withReactContent(Swal);
 
+const hideGlobalLoading = () => {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent("app:loading:hide"));
+};
+
 export const SweetAlertProvider = ({ children }) => {
   const value = useMemo(
     () => ({
@@ -16,8 +21,9 @@ export const SweetAlertProvider = ({ children }) => {
         timer,
         confirmButtonText,
         width,
-      }) =>
-        ReactSwal.fire({
+      }) => {
+        hideGlobalLoading();
+        return ReactSwal.fire({
           title,
           text: html ? undefined : text,
           html,
@@ -30,8 +36,10 @@ export const SweetAlertProvider = ({ children }) => {
               ? confirmButtonText
               : "OK",
           confirmButtonColor: "#0b5fff",
-        }),
+        });
+      },
       askYesNoQuestion: async (title, text) => {
+        hideGlobalLoading();
         const result = await ReactSwal.fire({
           title,
           text,
@@ -45,6 +53,7 @@ export const SweetAlertProvider = ({ children }) => {
         return result.isConfirmed;
       },
       promptPasswordChange: async () => {
+        hideGlobalLoading();
         const result = await ReactSwal.fire({
           title: "Primeiro acesso",
           html: `

@@ -227,6 +227,7 @@ export const useTenantSetupPage = () => {
       syncBusinessContext(nextTenants);
       return nextTenants;
     } catch (error) {
+      hideLoading();
       await showAlert({
         title: "Falha ao carregar empresas",
         text: error?.response?.data?.error || error?.message || "Não foi possível listar as filiais.",
@@ -293,6 +294,7 @@ export const useTenantSetupPage = () => {
         setStep(2);
         setIsModalOpen(true);
       } catch (error) {
+        hideLoading();
         await showAlert({
           title: "Falha ao carregar filial",
           text: error?.response?.data?.message || error?.message || "Não foi possível carregar a filial.",
@@ -530,6 +532,80 @@ export const useTenantSetupPage = () => {
       return;
     }
 
+    if (editingTenantId && certificadoFile && !String(form.certificado_senha || "").trim()) {
+      await showAlert({
+        title: "Senha obrigatória",
+        text: "Informe a senha do novo certificado para substituir o certificado atual.",
+        icon: "warning",
+      });
+      return;
+    }
+
+    if (!editingTenantId) {
+      const tenantExistente = findTenantByCnpj(form.cnpj);
+      if (tenantExistente) {
+        await showAlert({
+          title: "Empresa já cadastrada",
+          text: `Já existe uma filial cadastrada com este CNPJ (${tenantExistente.tenant_nome}).`,
+          icon: "warning",
+        });
+        return;
+      }
+
+      const requiredUserFields = [
+        ["usuario_nome", "Nome do usuário admin"],
+        ["usuario_email", "E-mail do usuário admin"],
+        ["usuario_username", "Login do usuário admin"],
+        ["usuario_password", "Senha do usuário admin"],
+      ];
+
+      const missing = requiredUserFields.find(([field]) => !String(form[field] || "").trim());
+      if (missing) {
+        await showAlert({
+          title: "Usuário incompleto",
+          text: `${missing[1]} é obrigatório.`,
+          icon: "warning",
+        });
+        return;
+      }
+
+      if (String(form.usuario_password || "").length < 6) {
+        await showAlert({
+          title: "Senha inválida",
+          text: "A senha do usuário admin precisa ter pelo menos 6 caracteres.",
+          icon: "warning",
+        });
+        return;
+      }
+
+      if (form.usuario_password !== form.usuario_confirm_password) {
+        await showAlert({
+          title: "Senha não confere",
+          text: "A confirmação da senha do usuário admin não confere.",
+          icon: "warning",
+        });
+        return;
+      }
+
+      if (!Number(form.financeiro_valor_mensal || 0)) {
+        await showAlert({
+          title: "Financeiro incompleto",
+          text: "Informe o valor mensal do contrato V12.",
+          icon: "warning",
+        });
+        return;
+      }
+
+      if (!String(form.financeiro_primeiro_vencimento || "").trim()) {
+        await showAlert({
+          title: "Financeiro incompleto",
+          text: "Informe o primeiro vencimento do contrato V12.",
+          icon: "warning",
+        });
+        return;
+      }
+    }
+
     setSaving(true);
     showLoading(editingTenantId ? "Atualizando cliente..." : "Cadastrando cliente...");
 
@@ -558,15 +634,6 @@ export const useTenantSetupPage = () => {
 
       if (editingTenantId) {
         if (certificadoFile) {
-          if (!String(form.certificado_senha || "").trim()) {
-            await showAlert({
-              title: "Senha obrigatória",
-              text: "Informe a senha do novo certificado para substituir o certificado atual.",
-              icon: "warning",
-            });
-            return;
-          }
-
           const conteudoBase64 = await readFileAsBase64(certificadoFile);
           payload.certificado = {
             nome_arquivo: certificadoFile.name,
@@ -580,69 +647,7 @@ export const useTenantSetupPage = () => {
           buildTenantRequestPayload(payload, logoFile)
         );
       } else {
-        const tenantExistente = findTenantByCnpj(form.cnpj);
-        if (tenantExistente) {
-          await showAlert({
-            title: "Empresa já cadastrada",
-            text: `Já existe uma filial cadastrada com este CNPJ (${tenantExistente.tenant_nome}).`,
-            icon: "warning",
-          });
-          return;
-        }
-
         const conteudoBase64 = await readFileAsBase64(certificadoFile);
-        const requiredUserFields = [
-          ["usuario_nome", "Nome do usuário admin"],
-          ["usuario_email", "E-mail do usuário admin"],
-          ["usuario_username", "Login do usuário admin"],
-          ["usuario_password", "Senha do usuário admin"],
-        ];
-
-        const missing = requiredUserFields.find(([field]) => !String(form[field] || "").trim());
-        if (missing) {
-          await showAlert({
-            title: "Usuário incompleto",
-            text: `${missing[1]} é obrigatório.`,
-            icon: "warning",
-          });
-          return;
-        }
-
-        if (String(form.usuario_password || "").length < 6) {
-          await showAlert({
-            title: "Senha inválida",
-            text: "A senha do usuário admin precisa ter pelo menos 6 caracteres.",
-            icon: "warning",
-          });
-          return;
-        }
-
-        if (form.usuario_password !== form.usuario_confirm_password) {
-          await showAlert({
-            title: "Senha não confere",
-            text: "A confirmação da senha do usuário admin não confere.",
-            icon: "warning",
-          });
-          return;
-        }
-
-        if (!Number(form.financeiro_valor_mensal || 0)) {
-          await showAlert({
-            title: "Financeiro incompleto",
-            text: "Informe o valor mensal do contrato V12.",
-            icon: "warning",
-          });
-          return;
-        }
-
-        if (!String(form.financeiro_primeiro_vencimento || "").trim()) {
-          await showAlert({
-            title: "Financeiro incompleto",
-            text: "Informe o primeiro vencimento do contrato V12.",
-            icon: "warning",
-          });
-          return;
-        }
 
         payload.usuario = {
           nome: form.usuario_nome,
@@ -674,6 +679,7 @@ export const useTenantSetupPage = () => {
       }
 
       await loadTenants();
+      hideLoading();
       await showAlert({
         title: editingTenantId ? "Filial atualizada" : "Filial cadastrada",
         text: editingTenantId
@@ -684,6 +690,7 @@ export const useTenantSetupPage = () => {
 
       closeModal();
     } catch (error) {
+      hideLoading();
       await showAlert({
         title: editingTenantId ? "Falha ao atualizar filial" : "Falha ao cadastrar filial",
         text:

@@ -33,6 +33,7 @@ export const GestaoV12Configuracoes = () => {
         api_key: "",
       });
     } catch (error) {
+      hideLoading();
       showAlert?.({
         title: "Falha ao carregar configuração",
         text: error?.response?.data?.message || "Não foi possível carregar o Asaas da V12.",
@@ -67,6 +68,7 @@ export const GestaoV12Configuracoes = () => {
         ...current,
         api_key: "",
       }));
+      hideLoading();
       showAlert?.({
         title: "Configuração salva",
         text: "A conta Asaas da Gestão V12 foi atualizada.",
@@ -74,6 +76,7 @@ export const GestaoV12Configuracoes = () => {
         timer: 1800,
       });
     } catch (error) {
+      hideLoading();
       showAlert?.({
         title: "Falha ao salvar configuração",
         text: error?.response?.data?.message || "Não foi possível salvar a conta Asaas.",

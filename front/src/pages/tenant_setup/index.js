@@ -609,12 +609,14 @@ export const TenantSetup = ({ embedded = false }) => {
         <C.ListCard>
           <C.ListHeader>
             <C.ListHeaderText>
-              <C.ListKicker>Gestão V12</C.ListKicker>
-              <C.CardTitle>Clientes e filiais cadastradas</C.CardTitle>
-              <C.CardText>
-                Consulte clientes do V12, cadastre novas filiais, vincule
-                certificado A1 e defina o contrato financeiro inicial.
-              </C.CardText>
+              {embedded ? null : <C.ListKicker>Gestão V12</C.ListKicker>}
+              <C.CardTitle>{embedded ? "Clientes" : "Clientes e filiais cadastradas"}</C.CardTitle>
+              {embedded ? null : (
+                <C.CardText>
+                  Consulte clientes do V12, cadastre novas filiais, vincule
+                  certificado A1 e defina o contrato financeiro inicial.
+                </C.CardText>
+              )}
             </C.ListHeaderText>
 
             <C.PrimaryButton type="button" onClick={openModal}>

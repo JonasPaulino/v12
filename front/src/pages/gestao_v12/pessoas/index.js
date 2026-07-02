@@ -80,6 +80,7 @@ export const GestaoV12Pessoas = () => {
       setTotalPages(data.totalPages || 1);
       setTotal(data.total || 0);
     } catch (error) {
+      hideLoading();
       showAlert?.({
         title: "Falha ao carregar pessoas",
         text: error?.response?.data?.message || "Não foi possível listar as pessoas da gestão.",
@@ -124,6 +125,7 @@ export const GestaoV12Pessoas = () => {
       setForm(normalizeForm(data.data));
       setModalOpen(true);
     } catch (error) {
+      hideLoading();
       showAlert?.({
         title: "Falha ao carregar pessoa",
         text: error?.response?.data?.message || "Não foi possível carregar os dados.",
@@ -169,6 +171,7 @@ export const GestaoV12Pessoas = () => {
         await api.post("/gestao/pessoas", form);
       }
 
+      hideLoading();
       showAlert?.({
         title: editingId ? "Pessoa atualizada" : "Pessoa cadastrada",
         text: "Cadastro salvo na Gestão V12.",
@@ -178,6 +181,7 @@ export const GestaoV12Pessoas = () => {
       closeModal();
       loadPessoas();
     } catch (error) {
+      hideLoading();
       showAlert?.({
         title: "Não foi possível salvar",
         text: error?.response?.data?.message || "Revise os dados informados.",
@@ -200,6 +204,7 @@ export const GestaoV12Pessoas = () => {
     try {
       showLoading("Inativando pessoa...");
       await api.delete(`/gestao/pessoas/${pessoa.pessoa_id}`);
+      hideLoading();
       showAlert?.({
         title: "Pessoa inativada",
         text: "O cadastro foi inativado com sucesso.",
@@ -208,6 +213,7 @@ export const GestaoV12Pessoas = () => {
       });
       loadPessoas();
     } catch (error) {
+      hideLoading();
       showAlert?.({
         title: "Falha ao inativar",
         text: error?.response?.data?.message || "Não foi possível inativar a pessoa.",

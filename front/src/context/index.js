@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useMemo, useState } from "react";
+import React, { createContext, useCallback, useEffect, useMemo, useState } from "react";
 import { SweetAlertProvider } from "./sweet_alert";
 import Loading from "./loading";
 
@@ -44,6 +44,12 @@ export const AppProvider = ({ children }) => {
   const hideLoading = useCallback(() => {
     setLoading({ active: false, message: null });
   }, []);
+
+  useEffect(() => {
+    const handleHideLoading = () => hideLoading();
+    window.addEventListener("app:loading:hide", handleHideLoading);
+    return () => window.removeEventListener("app:loading:hide", handleHideLoading);
+  }, [hideLoading]);
 
   const abreFechaMenu = useCallback(() => {
     setMOpen((prev) => !prev);

@@ -67,6 +67,7 @@ export const GestaoV12Financeiro = () => {
       setTotalPages(data.totalPages || 1);
       setTotal(data.total || 0);
     } catch (error) {
+      hideLoading();
       showAlert?.({
         title: "Falha ao carregar financeiro",
         text: error?.response?.data?.message || "Não foi possível listar as parcelas.",
@@ -102,6 +103,7 @@ export const GestaoV12Financeiro = () => {
     showLoading(loadingText);
     try {
       const { data } = await request();
+      hideLoading();
       showAlert?.({
         title,
         text: data?.message || successText,
@@ -110,6 +112,7 @@ export const GestaoV12Financeiro = () => {
       });
       await loadParcelas();
     } catch (error) {
+      hideLoading();
       showAlert?.({
         title: "Ação não concluída",
         text: error?.response?.data?.message || "Não foi possível executar a ação.",

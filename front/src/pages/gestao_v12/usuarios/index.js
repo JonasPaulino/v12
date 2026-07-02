@@ -56,6 +56,7 @@ export const GestaoV12Usuarios = () => {
       setTotalPages(data.totalPages || 1);
       setTotal(data.total || 0);
     } catch (error) {
+      hideLoading();
       showAlert?.({
         title: "Falha ao carregar usuários",
         text: error?.response?.data?.message || "Não foi possível listar os usuários internos.",
@@ -109,6 +110,7 @@ export const GestaoV12Usuarios = () => {
     showLoading("Cadastrando usuário...");
     try {
       await api.post("/gestao/usuarios", form);
+      hideLoading();
       showAlert?.({
         title: "Usuário cadastrado",
         text: "O usuário foi criado como master da Gestão V12.",
@@ -119,6 +121,7 @@ export const GestaoV12Usuarios = () => {
       setForm(emptyForm);
       await loadUsuarios();
     } catch (error) {
+      hideLoading();
       showAlert?.({
         title: "Não foi possível cadastrar",
         text: error?.response?.data?.message || "Revise os dados informados.",
