@@ -78,7 +78,7 @@ export const GestaoV12Financeiro = () => {
           limit: 12,
           search,
           status: status.join(","),
-          sync_asaas: true,
+          sync_asaas: false,
         },
       });
 
@@ -368,7 +368,7 @@ export const GestaoV12Financeiro = () => {
                     <C.MultiSelectPlaceholder>Todos</C.MultiSelectPlaceholder>
                   )}
                 </C.MultiSelectValue>
-                <C.MultiSelectArrow $open={statusDropdownOpen}>v</C.MultiSelectArrow>
+                <C.MultiSelectArrow $open={statusDropdownOpen} />
               </C.MultiSelectButton>
 
               {statusDropdownOpen ? (

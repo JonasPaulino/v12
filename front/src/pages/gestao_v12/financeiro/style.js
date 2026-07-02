@@ -1,5 +1,6 @@
 import styled from "styled-components";
 import { SlOptions } from "react-icons/sl";
+import { IoChevronDownOutline } from "react-icons/io5";
 
 export const Stack = styled.div`
   height: 100%;
@@ -139,9 +140,9 @@ export const TagRemove = styled.button`
   }
 `;
 
-export const MultiSelectArrow = styled.span`
+export const MultiSelectArrow = styled(IoChevronDownOutline)`
   color: ${({ theme }) => theme.colors.textSoft};
-  font-size: 1rem;
+  font-size: 1.12rem;
   transform: rotate(${({ $open }) => ($open ? "180deg" : "0deg")});
   transition: transform 0.16s ease;
 `;
