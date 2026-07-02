@@ -21,6 +21,7 @@ router.get("/financeiro/listar", async (req, res) => {
         limit: req.query.limit,
         search: String(req.query.search || ""),
         status: String(req.query.status || ""),
+        syncAsaas: req.query.sync_asaas === "true",
       })
     );
 

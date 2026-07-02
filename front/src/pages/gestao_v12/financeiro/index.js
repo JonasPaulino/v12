@@ -62,6 +62,7 @@ export const GestaoV12Financeiro = () => {
           limit: 12,
           search,
           status,
+          sync_asaas: true,
         },
       });
 

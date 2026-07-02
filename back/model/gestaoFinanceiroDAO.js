@@ -285,8 +285,13 @@ const buildInstallmentPayload = ({ customerId, parcelas, titulo }) => {
   };
 };
 
+const asaasPaidStatuses = new Set(["RECEIVED", "CONFIRMED", "RECEIVED_IN_CASH"]);
+
 class GestaoFinanceiroDAO {
-  static async listarParcelas(client, { page = 1, limit = 20, search = "", status = "" } = {}) {
+  static async listarParcelas(
+    client,
+    { page = 1, limit = 20, search = "", status = "", syncAsaas = false } = {}
+  ) {
     await client.query(
       `
         UPDATE gestao.financeiro_parcela fp
@@ -399,10 +404,17 @@ class GestaoFinanceiroDAO {
       values
     );
 
+    if (syncAsaas) {
+      await this.sincronizarStatusParcelasAsaas(
+        client,
+        rows.filter((row) => row.asaas_charge_id && row.status !== "quitado")
+      );
+    }
+
     const total = Number(countResult.rows[0]?.total || 0);
 
     return {
-      data: rows,
+      data: syncAsaas ? await this.buscarParcelasPorIds(client, rows.map((row) => row.parcela_id)) : rows,
       total,
       page: safePage,
       limit: safeLimit,
@@ -439,6 +451,128 @@ class GestaoFinanceiroDAO {
     );
 
     return rows[0] || null;
+  }
+
+  static async buscarParcelasPorIds(client, parcelaIds = []) {
+    const ids = parcelaIds.map(Number).filter(Boolean);
+    if (!ids.length) return [];
+
+    const { rows } = await client.query(
+      `
+        SELECT
+          fp.parcela_id,
+          fp.titulo_id,
+          fp.numero_parcela,
+          fp.valor,
+          fp.valor_pago,
+          fp.vencimento,
+          fp.pagamento_em,
+          fp.status,
+          fp.forma_cobranca,
+          fp.asaas_charge_id,
+          fp.asaas_invoice_url,
+          fp.asaas_payload,
+          ft.descricao,
+          ft.documento,
+          ft.valor_total,
+          ft.tenant_id,
+          ft.contrato_id,
+          ft.asaas_installment_id,
+          p.pessoa_id,
+          p.nome_razao AS pessoa_nome,
+          p.nome_fantasia AS pessoa_fantasia,
+          p.cpf_cnpj AS pessoa_documento,
+          t.tenant_nome
+        FROM gestao.financeiro_parcela fp
+        JOIN gestao.financeiro_titulo ft ON ft.titulo_id = fp.titulo_id
+        LEFT JOIN gestao.pessoa p ON p.pessoa_id = ft.pessoa_id
+        LEFT JOIN tenant t ON t.tenant_id = ft.tenant_id
+        WHERE fp.parcela_id = ANY($1::int[])
+        ORDER BY fp.vencimento ASC, fp.parcela_id DESC
+      `,
+      [ids]
+    );
+
+    const order = new Map(ids.map((id, index) => [id, index]));
+    return rows.sort((a, b) => order.get(Number(a.parcela_id)) - order.get(Number(b.parcela_id)));
+  }
+
+  static async sincronizarStatusParcelasAsaas(client, parcelas = []) {
+    if (!parcelas.length) return;
+
+    const config = await this.buscarConfiguracaoAsaas(client);
+    if (!config.ativo || !config.apiKey) return;
+
+    const parcelasParaSincronizar = parcelas.slice(0, 20);
+
+    for (const parcela of parcelasParaSincronizar) {
+      try {
+        const payment = await asaasRequest(config.apiKey, config.ambiente, {
+          path: `/v3/payments/${parcela.asaas_charge_id}`,
+        });
+        await this.aplicarStatusPagamentoAsaas(client, parcela, payment);
+      } catch (error) {
+        console.error("[gestao:financeiro] Falha ao sincronizar cobrança Asaas:", {
+          parcelaId: parcela.parcela_id,
+          chargeId: parcela.asaas_charge_id,
+          message: error.message,
+        });
+      }
+    }
+  }
+
+  static async aplicarStatusPagamentoAsaas(client, parcela, payment) {
+    const status = asaasPaidStatuses.has(payment.status)
+      ? "quitado"
+      : toAsaasDate(parcela.vencimento) < todayIsoDate()
+      ? "vencido"
+      : "aberto";
+    const pagamentoEm = payment.paymentDate || payment.clientPaymentDate || payment.confirmedDate || null;
+
+    await client.query(
+      `
+        UPDATE gestao.financeiro_parcela
+        SET
+          status = $2,
+          valor_pago = CASE WHEN $2 = 'quitado' THEN valor ELSE valor_pago END,
+          pagamento_em = CASE WHEN $2 = 'quitado' THEN COALESCE($3::date, CURRENT_DATE) ELSE pagamento_em END,
+          asaas_payload = COALESCE(asaas_payload, '{}'::jsonb) || $4::jsonb
+        WHERE parcela_id = $1
+      `,
+      [
+        parcela.parcela_id,
+        status,
+        pagamentoEm,
+        JSON.stringify({ statusCheck: payment, sincronizadoEm: new Date().toISOString() }),
+      ]
+    );
+
+    await client.query(
+      `
+        UPDATE gestao.cliente_parcela
+        SET
+          status = CASE
+            WHEN $3 = 'quitado' THEN 'paga'
+            WHEN $3 = 'vencido' THEN 'vencida'
+            ELSE status
+          END,
+          pago_em = CASE WHEN $3 = 'quitado' THEN COALESCE($4::date, CURRENT_DATE) ELSE pago_em END,
+          asaas_payload = COALESCE(asaas_payload, '{}'::jsonb) || $5::jsonb
+        WHERE contrato_id = $1
+          AND numero_parcela = $2
+      `,
+      [
+        parcela.contrato_id,
+        parcela.numero_parcela,
+        status,
+        pagamentoEm,
+        JSON.stringify({ statusCheck: payment, sincronizadoEm: new Date().toISOString() }),
+      ]
+    );
+
+    await this.atualizarStatusTitulo(client, parcela.titulo_id);
+
+    return { payment, status };
   }
 
   static async buscarTituloContexto(client, tituloId) {
@@ -1090,56 +1224,7 @@ class GestaoFinanceiroDAO {
       path: `/v3/payments/${parcela.asaas_charge_id}`,
     });
 
-    const status = ["RECEIVED", "CONFIRMED", "RECEIVED_IN_CASH"].includes(payment.status)
-      ? "quitado"
-      : String(parcela.vencimento).slice(0, 10) < new Date().toISOString().slice(0, 10)
-      ? "vencido"
-      : "aberto";
-
-    await client.query(
-      `
-        UPDATE gestao.financeiro_parcela
-        SET
-          status = $2,
-          valor_pago = CASE WHEN $2 = 'quitado' THEN valor ELSE valor_pago END,
-          pagamento_em = CASE WHEN $2 = 'quitado' THEN COALESCE($3::date, CURRENT_DATE) ELSE pagamento_em END,
-          asaas_payload = COALESCE(asaas_payload, '{}'::jsonb) || $4::jsonb
-        WHERE parcela_id = $1
-      `,
-      [
-        parcelaId,
-        status,
-        payment.paymentDate || payment.clientPaymentDate || payment.confirmedDate || null,
-        JSON.stringify({ statusCheck: payment }),
-      ]
-    );
-
-    await client.query(
-      `
-        UPDATE gestao.cliente_parcela
-        SET
-          status = CASE
-            WHEN $3 = 'quitado' THEN 'paga'
-            WHEN $3 = 'vencido' THEN 'vencida'
-            ELSE status
-          END,
-          pago_em = CASE WHEN $3 = 'quitado' THEN COALESCE($4::date, CURRENT_DATE) ELSE pago_em END,
-          asaas_payload = COALESCE(asaas_payload, '{}'::jsonb) || $5::jsonb
-        WHERE contrato_id = $1
-          AND numero_parcela = $2
-      `,
-      [
-        parcela.contrato_id,
-        parcela.numero_parcela,
-        status,
-        payment.paymentDate || payment.clientPaymentDate || payment.confirmedDate || null,
-        JSON.stringify({ statusCheck: payment }),
-      ]
-    );
-
-    await this.atualizarStatusTitulo(client, parcela.titulo_id);
-
-    return { payment, status };
+    return this.aplicarStatusPagamentoAsaas(client, parcela, payment);
   }
 
   static async registrarBaixaManual(client, parcelaId, data = {}) {
