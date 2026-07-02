@@ -10,6 +10,8 @@
       "context/*": ["context/*"],
       "hooks": ["hooks"],
       "hooks/*": ["hooks/*"],
+      "layouts": ["layouts"],
+      "layouts/*": ["layouts/*"],
       "middleware": ["middleware/index.js"],
       "middleware/*": ["middleware/*"],
       "pages": ["pages"],

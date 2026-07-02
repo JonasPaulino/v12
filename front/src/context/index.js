@@ -35,6 +35,7 @@ export const AppProvider = ({ children }) => {
   const [businesses, setBusinessesState] = useState(
     () => readStoredJSON("businesses") || []
   );
+  const [systemMode, setSystemModeState] = useState(() => readStoredJSON("systemMode") || "cliente");
 
   const showLoading = useCallback((message = null) => {
     setLoading({ active: true, message });
@@ -68,11 +69,18 @@ export const AppProvider = ({ children }) => {
     writeStoredJSON("businesses", normalized);
   }, []);
 
+  const setSystemMode = useCallback((value) => {
+    const normalized = value === "gestao" ? "gestao" : "cliente";
+    setSystemModeState(normalized);
+    writeStoredJSON("systemMode", normalized);
+  }, []);
+
   const clearSession = useCallback(() => {
     setUser(null);
     setBusiness(null);
     setBusinesses([]);
-  }, [setBusiness, setBusinesses, setUser]);
+    setSystemMode("cliente");
+  }, [setBusiness, setBusinesses, setSystemMode, setUser]);
 
   const contextValue = useMemo(
     () => ({
@@ -82,6 +90,7 @@ export const AppProvider = ({ children }) => {
       user,
       business,
       businesses,
+      systemMode,
       showLoading,
       hideLoading,
       abreFechaMenu,
@@ -89,6 +98,7 @@ export const AppProvider = ({ children }) => {
       setUser,
       setBusiness,
       setBusinesses,
+      setSystemMode,
       clearSession,
     }),
     [
@@ -98,6 +108,7 @@ export const AppProvider = ({ children }) => {
       user,
       business,
       businesses,
+      systemMode,
       showLoading,
       hideLoading,
       abreFechaMenu,
@@ -105,6 +116,7 @@ export const AppProvider = ({ children }) => {
       setUser,
       setBusiness,
       setBusinesses,
+      setSystemMode,
       clearSession,
     ]
   );

@@ -568,7 +568,7 @@ const Wizard = ({
   </>
 );
 
-export const TenantSetup = () => {
+export const TenantSetup = ({ embedded = false }) => {
   const { mOpen, abreFechaMenu, business } = useContext(AppContext);
   const {
     REQUIRED_TITLE,
@@ -603,117 +603,108 @@ export const TenantSetup = () => {
     handleToggleTenantStatus,
   } = useTenantSetupPage();
 
-  return (
-    <C.Shell>
-      <Sidebar />
-      {mOpen && <C.Overlay onClick={abreFechaMenu} />}
+  const pageContent = (
+    <>
+      <C.PageGrid>
+        <C.ListCard>
+          <C.ListHeader>
+            <C.ListHeaderText>
+              <C.ListKicker>Gestão V12</C.ListKicker>
+              <C.CardTitle>Clientes e filiais cadastradas</C.CardTitle>
+              <C.CardText>
+                Consulte clientes do V12, cadastre novas filiais, vincule
+                certificado A1 e defina o contrato financeiro inicial.
+              </C.CardText>
+            </C.ListHeaderText>
 
-      <C.Content>
-        <Header />
+            <C.PrimaryButton type="button" onClick={openModal}>
+              Cadastrar novo cliente
+            </C.PrimaryButton>
+          </C.ListHeader>
 
-        <C.Body>
-          <C.PageGrid>
-            <C.ListCard>
-              <C.ListHeader>
-                <C.ListHeaderText>
-                  <C.ListKicker>Gestão V12</C.ListKicker>
-                  <C.CardTitle>Clientes e filiais cadastradas</C.CardTitle>
-                  <C.CardText>
-                    Consulte clientes do V12, cadastre novas filiais, vincule
-                    certificado A1 e defina o contrato financeiro inicial.
-                  </C.CardText>
-                </C.ListHeaderText>
+          <C.SearchRow>
+            <C.SearchInput
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Pesquisar por nome, CNPJ, slug ou perfil"
+            />
+            <C.CountText>
+              {loadingTenants
+                ? "Carregando clientes..."
+                : `${totalTenants} cliente(s) encontrado(s)`}
+            </C.CountText>
+          </C.SearchRow>
 
-                <C.PrimaryButton type="button" onClick={openModal}>
-                  Cadastrar novo cliente
-                </C.PrimaryButton>
-              </C.ListHeader>
-
-              <C.SearchRow>
-                <C.SearchInput
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Pesquisar por nome, CNPJ, slug ou perfil"
-                />
-                <C.CountText>
-                  {loadingTenants
-                    ? "Carregando clientes..."
-                    : `${totalTenants} cliente(s) encontrado(s)`}
-                </C.CountText>
-              </C.SearchRow>
-
-              {loadingTenants ? (
-                <C.LoadingCard>Carregando clientes cadastrados...</C.LoadingCard>
-              ) : tenants.length ? (
-                <C.TenantGrid>
-                  {tenants.map((tenant) => (
-                    <C.TenantItem key={tenant.tenant_id}>
-                      <C.TenantItemLeft>
-                        <C.TenantItemTitle>{tenant.tenant_nome}</C.TenantItemTitle>
-                        <C.TenantMeta>
-                          <span>CNPJ: {tenant.tenant_documento || "--"}</span>
-                          <span>Slug: {tenant.tenant_slug || "--"}</span>
-                          <span>Perfil: {tenant.perfil || "--"}</span>
-                        </C.TenantMeta>
-                      </C.TenantItemLeft>
-                      <C.TenantItemRight>
-                        <C.TenantStatusBadge $active={!!tenant.tenant_ativo}>
-                          {tenant.tenant_ativo ? "Ativa" : "Inativa"}
-                        </C.TenantStatusBadge>
-                        <C.TenantMenuWrap>
-                          <C.TenantMenuToggle
+          {loadingTenants ? (
+            <C.LoadingCard>Carregando clientes cadastrados...</C.LoadingCard>
+          ) : tenants.length ? (
+            <C.TenantGrid>
+              {tenants.map((tenant) => (
+                <C.TenantItem key={tenant.tenant_id}>
+                  <C.TenantItemLeft>
+                    <C.TenantItemTitle>{tenant.tenant_nome}</C.TenantItemTitle>
+                    <C.TenantMeta>
+                      <span>CNPJ: {tenant.tenant_documento || "--"}</span>
+                      <span>Slug: {tenant.tenant_slug || "--"}</span>
+                      <span>Perfil: {tenant.perfil || "--"}</span>
+                    </C.TenantMeta>
+                  </C.TenantItemLeft>
+                  <C.TenantItemRight>
+                    <C.TenantStatusBadge $active={!!tenant.tenant_ativo}>
+                      {tenant.tenant_ativo ? "Ativa" : "Inativa"}
+                    </C.TenantStatusBadge>
+                    <C.TenantMenuWrap>
+                      <C.TenantMenuToggle
+                        type="button"
+                        onClick={() =>
+                          setActionMenuTenantId((current) =>
+                            current === tenant.tenant_id ? null : tenant.tenant_id
+                          )
+                        }
+                        title="Ações"
+                      >
+                        ⋮
+                      </C.TenantMenuToggle>
+                      {actionMenuTenantId === tenant.tenant_id ? (
+                        <C.TenantMenu>
+                          <C.TenantMenuButton
                             type="button"
-                            onClick={() =>
-                              setActionMenuTenantId((current) =>
-                                current === tenant.tenant_id ? null : tenant.tenant_id
-                              )
-                            }
-                            title="Ações"
+                            onClick={() => openEditModal(tenant.tenant_id)}
                           >
-                            ⋮
-                          </C.TenantMenuToggle>
-                          {actionMenuTenantId === tenant.tenant_id ? (
-                            <C.TenantMenu>
-                              <C.TenantMenuButton
-                                type="button"
-                                onClick={() => openEditModal(tenant.tenant_id)}
-                              >
-                                Editar cadastro
-                              </C.TenantMenuButton>
-                              <C.TenantMenuButton
-                                type="button"
-                                onClick={() => handleToggleTenantStatus(tenant, business?.tenant_id)}
-                                $danger={tenant.tenant_ativo}
-                                $success={!tenant.tenant_ativo}
-                              >
-                                {tenant.tenant_ativo ? "Inativar empresa" : "Reativar empresa"}
-                              </C.TenantMenuButton>
-                            </C.TenantMenu>
-                          ) : null}
-                        </C.TenantMenuWrap>
-                      </C.TenantItemRight>
-                    </C.TenantItem>
-                  ))}
-                </C.TenantGrid>
-              ) : (
-                <C.EmptyState>
-                  <C.EmptyTitle>Nenhum cliente encontrado</C.EmptyTitle>
-                  <C.EmptyText>
-                    Use o botão de cadastro para criar o primeiro cliente do V12.
-                  </C.EmptyText>
-                </C.EmptyState>
-              )}
+                            Editar cadastro
+                          </C.TenantMenuButton>
+                          <C.TenantMenuButton
+                            type="button"
+                            onClick={() => handleToggleTenantStatus(tenant, business?.tenant_id)}
+                            $danger={tenant.tenant_ativo}
+                            $success={!tenant.tenant_ativo}
+                          >
+                            {tenant.tenant_ativo ? "Inativar empresa" : "Reativar empresa"}
+                          </C.TenantMenuButton>
+                        </C.TenantMenu>
+                      ) : null}
+                    </C.TenantMenuWrap>
+                  </C.TenantItemRight>
+                </C.TenantItem>
+              ))}
+            </C.TenantGrid>
+          ) : (
+            <C.EmptyState>
+              <C.EmptyTitle>Nenhum cliente encontrado</C.EmptyTitle>
+              <C.EmptyText>
+                Use o botão de cadastro para criar o primeiro cliente do V12.
+              </C.EmptyText>
+            </C.EmptyState>
+          )}
 
-              <C.Pagination>
-                <C.CountText>
-                  Página {page} de {totalPages}
-                </C.CountText>
-                <Paginacao page={page} totalPages={totalPages} onPageChange={setPage} />
-              </C.Pagination>
-            </C.ListCard>
-          </C.PageGrid>
-        </C.Body>
-      </C.Content>
+          <C.Pagination>
+            <C.CountText>
+              Página {page} de {totalPages}
+            </C.CountText>
+            <Paginacao page={page} totalPages={totalPages} onPageChange={setPage} />
+          </C.Pagination>
+        </C.ListCard>
+      </C.PageGrid>
 
       {isModalOpen ? (
         <C.ModalOverlay role="dialog" aria-modal="true" aria-label="Cadastro de empresa">
@@ -756,6 +747,20 @@ export const TenantSetup = () => {
           </C.ModalPanel>
         </C.ModalOverlay>
       ) : null}
+    </>
+  );
+
+  if (embedded) return pageContent;
+
+  return (
+    <C.Shell>
+      <Sidebar />
+      {mOpen && <C.Overlay onClick={abreFechaMenu} />}
+
+      <C.Content>
+        <Header />
+        <C.Body>{pageContent}</C.Body>
+      </C.Content>
     </C.Shell>
   );
 };

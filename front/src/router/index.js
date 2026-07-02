@@ -19,7 +19,9 @@ import { Nfe } from "pages/nfe";
 import { NfeRecebidas } from "pages/nfe_recebidas";
 import { NfeManifestacao } from "pages/nfe_manifestacao";
 import { Mdfe } from "pages/mdfe";
-import { TenantSetup } from "pages/tenant_setup";
+import { GestaoV12Dashboard } from "pages/gestao_v12/dashboard";
+import { GestaoV12Clientes } from "pages/gestao_v12/clientes";
+import { GestaoV12Placeholder } from "pages/gestao_v12/placeholder";
 import { NotFound } from "pages/404";
 
 const canManageUsers = ({ user, business }) =>
@@ -160,9 +162,73 @@ export const RouteApp = () => (
         element={
           <AuthMiddleware>
             <MasterOnly>
-              <PageWrapper title="Gestão V12">
-                <TenantSetup />
-              </PageWrapper>
+              <GestaoV12Dashboard />
+            </MasterOnly>
+          </AuthMiddleware>
+        }
+      />
+      <Route
+        path="/gestao-v12/clientes"
+        element={
+          <AuthMiddleware>
+            <MasterOnly>
+              <GestaoV12Clientes />
+            </MasterOnly>
+          </AuthMiddleware>
+        }
+      />
+      <Route
+        path="/gestao-v12/pessoas"
+        element={
+          <AuthMiddleware>
+            <MasterOnly>
+              <GestaoV12Placeholder
+                title="Pessoas"
+                subtitle="Cadastro interno de funcionários, fornecedores e parceiros da V12."
+                description="Esta tela deve reaproveitar o padrão do cadastro de pessoas, mas gravando os dados internos no schema gestao."
+              />
+            </MasterOnly>
+          </AuthMiddleware>
+        }
+      />
+      <Route
+        path="/gestao-v12/financeiro"
+        element={
+          <AuthMiddleware>
+            <MasterOnly>
+              <GestaoV12Placeholder
+                title="Financeiro"
+                subtitle="Contas a receber dos clientes V12 e contas internas da empresa."
+                description="Aqui ficarão mensalidades, cobranças Asaas, baixas por webhook, inadimplência e contas manuais da própria V12."
+              />
+            </MasterOnly>
+          </AuthMiddleware>
+        }
+      />
+      <Route
+        path="/gestao-v12/usuarios"
+        element={
+          <AuthMiddleware>
+            <MasterOnly>
+              <GestaoV12Placeholder
+                title="Usuários internos"
+                subtitle="Acesso de suporte, financeiro, vendedor e administração da V12."
+                description="Esta área controlará usuários que acessam o módulo Gestão V12, sem vínculo obrigatório com filiais dos clientes."
+              />
+            </MasterOnly>
+          </AuthMiddleware>
+        }
+      />
+      <Route
+        path="/gestao-v12/configuracoes"
+        element={
+          <AuthMiddleware>
+            <MasterOnly>
+              <GestaoV12Placeholder
+                title="Configurações"
+                subtitle="Parâmetros próprios da empresa V12."
+                description="Aqui ficarão conta Asaas da V12, mensagens, parâmetros fiscais, certificado próprio e integrações administrativas."
+              />
             </MasterOnly>
           </AuthMiddleware>
         }

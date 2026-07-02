@@ -215,6 +215,38 @@ export const Button = styled.button`
   }
 `;
 
+export const ModeGrid = styled.div`
+  display: grid;
+  gap: 12px;
+  margin-top: 22px;
+`;
+
+export const ModeButton = styled.button`
+  display: grid;
+  gap: 6px;
+  padding: 18px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radius.md};
+  background: ${({ theme }) => theme.colors.surfaceAlt};
+  color: ${({ theme }) => theme.colors.text};
+  text-align: left;
+  cursor: pointer;
+
+  strong {
+    font-size: 1rem;
+  }
+
+  span {
+    color: ${({ theme }) => theme.colors.textSoft};
+    line-height: 1.45;
+  }
+
+  &:hover {
+    border-color: ${({ theme }) => theme.colors.primary};
+    box-shadow: 0 0 0 4px rgba(11, 95, 255, 0.1);
+  }
+`;
+
 export const PreviewCard = styled.div`
   margin-top: 18px;
   padding: 16px;

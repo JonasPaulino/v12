@@ -8,10 +8,13 @@ export const Login = () => {
   const {
     username,
     password,
+    pendingAccess,
     setUsername,
     setPassword,
     handleKeyDown,
     handleLogin,
+    enterClientMode,
+    enterGestaoMode,
   } = useLogin();
 
   return (
@@ -35,33 +38,57 @@ export const Login = () => {
       <C.FormArea>
         <C.FormCard>
           <C.FormLogo src={logoColor} alt="V12 ERP" />
-          <C.Title>Entrar no sistema</C.Title>
-          <C.Subtitle>
-            Informe login e senha. A filial padrão do usuário será carregada e poderá ser alterada depois no menu superior.
-          </C.Subtitle>
+          {pendingAccess ? (
+            <>
+              <C.Step>Escolha o ambiente</C.Step>
+              <C.Title>Como deseja entrar?</C.Title>
+              <C.Subtitle>
+                Seu usuário é master. Você pode acessar o ERP como cliente ou entrar
+                no ambiente interno de gestão da empresa V12.
+              </C.Subtitle>
 
-          <C.Label>Login ou e-mail</C.Label>
-          <C.Input
-            value={username}
-            onChange={(event) => setUsername(event.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="admin ou admin@mail.com"
-            autoComplete="username"
-          />
+              <C.ModeGrid>
+                <C.ModeButton type="button" onClick={enterGestaoMode}>
+                  <strong>Gestão V12</strong>
+                  <span>Clientes, contratos, cobranças e administração interna.</span>
+                </C.ModeButton>
+                <C.ModeButton type="button" onClick={enterClientMode}>
+                  <strong>Modo cliente</strong>
+                  <span>Visualizar o ERP como uma filial/cliente usa no dia a dia.</span>
+                </C.ModeButton>
+              </C.ModeGrid>
+            </>
+          ) : (
+            <>
+              <C.Title>Entrar no sistema</C.Title>
+              <C.Subtitle>
+                Informe login e senha. A filial padrão do usuário será carregada e poderá ser alterada depois no menu superior.
+              </C.Subtitle>
 
-          <C.Label>Senha</C.Label>
-          <C.Input
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Sua senha"
-            autoComplete="current-password"
-          />
+              <C.Label>Login ou e-mail</C.Label>
+              <C.Input
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="admin ou admin@mail.com"
+                autoComplete="username"
+              />
 
-          <C.Actions>
-            <C.Button type="button" onClick={handleLogin}>Acessar</C.Button>
-          </C.Actions>
+              <C.Label>Senha</C.Label>
+              <C.Input
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Sua senha"
+                autoComplete="current-password"
+              />
+
+              <C.Actions>
+                <C.Button type="button" onClick={handleLogin}>Acessar</C.Button>
+              </C.Actions>
+            </>
+          )}
         </C.FormCard>
       </C.FormArea>
     </C.Container>

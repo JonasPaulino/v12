@@ -7,11 +7,12 @@ import { loginRequest } from "./api";
 export const useLogin = () => {
   const navigate = useNavigate();
   const { showAlert } = useSweetAlert();
-  const { showLoading, hideLoading, setUser, setBusiness, setBusinesses } =
+  const { showLoading, hideLoading, setUser, setBusiness, setBusinesses, setSystemMode } =
     useContext(AppContext);
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [pendingAccess, setPendingAccess] = useState(null);
 
   const handleKeyDown = (event) => {
     if (event.key === "Enter") {
@@ -48,9 +49,15 @@ export const useLogin = () => {
         return;
       }
 
+      if (response.user?.usuario_master) {
+        setPendingAccess(response);
+        return;
+      }
+
       setUser(response.user || null);
       setBusiness(response.tenant || null);
       setBusinesses(response.tenants || []);
+      setSystemMode("cliente");
       navigate("/dashboard", { replace: true });
     } catch (error) {
       showAlert({
@@ -63,12 +70,35 @@ export const useLogin = () => {
     }
   };
 
+  const enterClientMode = () => {
+    if (!pendingAccess) return;
+
+    setUser(pendingAccess.user || null);
+    setBusiness(pendingAccess.tenant || null);
+    setBusinesses(pendingAccess.tenants || []);
+    setSystemMode("cliente");
+    navigate("/dashboard", { replace: true });
+  };
+
+  const enterGestaoMode = () => {
+    if (!pendingAccess) return;
+
+    setUser(pendingAccess.user || null);
+    setBusiness(pendingAccess.tenant || null);
+    setBusinesses(pendingAccess.tenants || []);
+    setSystemMode("gestao");
+    navigate("/gestao-v12", { replace: true });
+  };
+
   return {
     username,
     password,
+    pendingAccess,
     setUsername,
     setPassword,
     handleKeyDown,
     handleLogin,
+    enterClientMode,
+    enterGestaoMode,
   };
 };

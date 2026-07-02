@@ -13,6 +13,7 @@ export default defineConfig({
       components: path.resolve(__dirname, "./src/components"),
       context: path.resolve(__dirname, "./src/context"),
       hooks: path.resolve(__dirname, "./src/hooks"),
+      layouts: path.resolve(__dirname, "./src/layouts"),
       middleware: path.resolve(__dirname, "./src/middleware"),
       pages: path.resolve(__dirname, "./src/pages"),
       router: path.resolve(__dirname, "./src/router"),
