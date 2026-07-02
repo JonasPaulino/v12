@@ -1210,6 +1210,131 @@ class GestaoFinanceiroDAO {
     };
   }
 
+  static async gerarCarneSaldoRestante(client, tituloId) {
+    const contexto = await this.buscarTituloContexto(client, tituloId);
+    if (!contexto) throw new Error("Título financeiro não encontrado.");
+
+    const { titulo, parcelas } = contexto;
+    const parcelasPendentes = parcelas
+      .filter((parcela) => parcela.status !== "quitado" && Number(parcela.valor_pago || 0) <= 0)
+      .sort((a, b) => Number(a.numero_parcela) - Number(b.numero_parcela));
+
+    if (!parcelasPendentes.length) {
+      throw new Error("Não há parcelas pendentes para gerar novo carnê.");
+    }
+
+    if (parcelasPendentes.some((parcela) => parcela.asaas_charge_id)) {
+      throw new Error("Cancele as cobranças em aberto antes de gerar novo carnê do saldo restante.");
+    }
+
+    if (parcelasPendentes.length < 2) {
+      throw new Error("Saldo restante possui apenas uma parcela. Gere boleto individual para essa parcela.");
+    }
+
+    const valorTotal = parcelasPendentes.reduce((sum, parcela) => sum + Number(parcela.valor || 0), 0);
+    const origemPayload = {
+      renegociacaoSaldo: {
+        titulo_origem_id: titulo.titulo_id,
+        parcelas_origem: parcelasPendentes.map((parcela) => ({
+          parcela_id: parcela.parcela_id,
+          numero_parcela: parcela.numero_parcela,
+          valor: Number(parcela.valor || 0),
+          vencimento: toAsaasDate(parcela.vencimento),
+        })),
+        criadoEm: new Date().toISOString(),
+      },
+    };
+
+    const insertTitulo = await client.query(
+      `
+        INSERT INTO gestao.financeiro_titulo (
+          pessoa_id,
+          tenant_id,
+          contrato_id,
+          tipo,
+          origem,
+          descricao,
+          documento,
+          valor_total,
+          data_emissao,
+          status,
+          observacao
+        )
+        VALUES (
+          $1,
+          $2,
+          $3,
+          'receber',
+          'renegociacao_contrato_v12',
+          $4,
+          $5,
+          $6,
+          CURRENT_DATE,
+          'aberto',
+          $7
+        )
+        RETURNING titulo_id
+      `,
+      [
+        titulo.pessoa_id,
+        titulo.tenant_id,
+        titulo.contrato_id,
+        `${titulo.descricao} - saldo restante`,
+        `${titulo.documento || `TITULO-${titulo.titulo_id}`}-SALDO`,
+        valorTotal,
+        `Saldo restante gerado a partir do título ${titulo.titulo_id}.`,
+      ]
+    );
+
+    const novoTituloId = Number(insertTitulo.rows[0].titulo_id);
+
+    for (const [index, parcela] of parcelasPendentes.entries()) {
+      await client.query(
+        `
+          INSERT INTO gestao.financeiro_parcela (
+            titulo_id,
+            numero_parcela,
+            valor,
+            vencimento,
+            status,
+            forma_cobranca,
+            asaas_payload
+          )
+          VALUES ($1, $2, $3, $4, 'aberto', 'boleto', $5::jsonb)
+        `,
+        [
+          novoTituloId,
+          index + 1,
+          Number(parcela.valor || 0),
+          toAsaasDate(parcela.vencimento),
+          JSON.stringify(origemPayload),
+        ]
+      );
+    }
+
+    await client.query(
+      `
+        UPDATE gestao.financeiro_parcela
+        SET
+          status = 'cancelado',
+          asaas_payload = COALESCE(asaas_payload, '{}'::jsonb) || $2::jsonb
+        WHERE parcela_id = ANY($1::int[])
+      `,
+      [parcelasPendentes.map((parcela) => Number(parcela.parcela_id)), JSON.stringify(origemPayload)]
+    );
+
+    await this.atualizarStatusTitulo(client, titulo.titulo_id);
+    const carne = await this.gerarCarneTitulo(client, novoTituloId);
+
+    return {
+      tituloOrigemId: titulo.titulo_id,
+      novoTituloId,
+      parcelas: parcelasPendentes.length,
+      valorTotal,
+      carne,
+    };
+  }
+
   static async atualizarStatusCobranca(client, parcelaId) {
     const parcela = await this.buscarParcelaContexto(client, parcelaId);
     if (!parcela) throw new Error("Parcela não encontrada.");

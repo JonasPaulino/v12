@@ -180,6 +180,23 @@ export const GestaoV12Financeiro = () => {
     });
   };
 
+  const gerarCarneSaldoRestante = async (parcela) => {
+    closeMenu();
+    const confirmed = await askYesNoQuestion?.(
+      "Gerar carnê do saldo restante?",
+      "Será criado um novo título financeiro com as parcelas pendentes e um novo carnê será gerado no Asaas."
+    );
+    if (!confirmed) return;
+
+    await runAction({
+      title: "Novo carnê gerado",
+      successText: "Carnê do saldo restante gerado no Asaas.",
+      loadingText: "Gerando carnê do saldo restante...",
+      request: () =>
+        api.post(`/gestao/financeiro/titulos/${parcela.titulo_id}/carne/saldo-restante`),
+    });
+  };
+
   const atualizarStatus = (parcela) =>
     runAction({
       title: "Status atualizado",
@@ -388,6 +405,11 @@ export const GestaoV12Financeiro = () => {
                                 label: "Cancelar carnê",
                                 disabled: !parcela.asaas_installment_id,
                                 onClick: () => cancelarCarne(parcela),
+                              },
+                              {
+                                label: "Carnê saldo restante",
+                                disabled: parcela.status === "quitado",
+                                onClick: () => gerarCarneSaldoRestante(parcela),
                               },
                               {
                                 label: "Gerar boleto",

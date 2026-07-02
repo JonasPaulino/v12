@@ -183,6 +183,33 @@ router.post("/financeiro/titulos/:id/carne/cancelar", async (req, res) => {
   }
 });
 
+router.post("/financeiro/titulos/:id/carne/saldo-restante", async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const result = await GestaoFinanceiroDAO.gerarCarneSaldoRestante(
+      client,
+      Number(req.params.id)
+    );
+    await client.query("COMMIT");
+
+    return res.json({
+      success: true,
+      message: "Novo carnê do saldo restante gerado no Asaas.",
+      data: result,
+    });
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.error("[gestao:financeiro] Falha ao gerar carnê do saldo restante:", error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Não foi possível gerar o carnê do saldo restante.",
+    });
+  } finally {
+    client.release();
+  }
+});
+
 router.post("/financeiro/parcelas/:id/cobranca/cancelar", async (req, res) => {
   const client = await pool.connect();
   try {
