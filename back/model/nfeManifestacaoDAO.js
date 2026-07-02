@@ -390,6 +390,9 @@ class NfeManifestacaoDAO {
     });
 
     if (!DISTRIBUICAO_OK_CSTATS.has(String(cStat || ""))) {
+      const retryAt = new Date(Date.now() + DISTRIBUICAO_COOLDOWN_MS);
+      const retryText = formatDateTime(retryAt);
+
       await client.query(
         `
           UPDATE nfe_distribuicao_controle
@@ -401,6 +404,10 @@ class NfeManifestacaoDAO {
         `,
         [controle.nfe_distribuicao_controle_id, cStat, xMotivo]
       );
+
+      if (String(cStat || "") === "656") {
+        throw new Error(buildCooldownMessage({ cstat: cStat }, retryText));
+      }
 
       throw new Error(xMotivo || "A SEFAZ não autorizou a distribuição de NF-e.");
     }
