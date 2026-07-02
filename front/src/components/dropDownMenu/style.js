@@ -6,11 +6,11 @@ export const Menu = styled.div`
     radial-gradient(circle at top right, rgba(11, 95, 255, 0.1), transparent 36%),
     #ffffff;
   border: 1px solid rgba(206, 222, 255, 0.95);
-  border-radius: 18px;
-  box-shadow: 0 22px 60px rgba(3, 11, 31, 0.22);
+  border-radius: 14px;
+  box-shadow: 0 14px 34px rgba(3, 11, 31, 0.16);
   min-width: min(${({ $minWidth }) => $minWidth || 140}px, calc(100vw - 16px));
   max-width: min(360px, calc(100vw - 16px));
-  padding: 8px;
+  padding: 6px;
   z-index: ${({ $zIndex }) => $zIndex || 999999};
   opacity: 0;
   transform: translateY(-6px) scale(0.98);
@@ -35,13 +35,13 @@ export const Item = styled.button`
   border: 1px solid transparent;
   background: transparent;
   text-align: left;
-  font-size: 0.9rem;
-  padding: 10px 12px;
-  border-radius: 14px;
+  font-size: 0.86rem;
+  padding: 8px 10px;
+  border-radius: 11px;
   display: grid;
-  grid-template-columns: 36px minmax(0, 1fr);
+  grid-template-columns: 30px minmax(0, 1fr);
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   cursor: pointer;
   color: ${({ $danger, theme }) => ($danger ? theme.colors.danger : theme.colors.text)};
   transition: background 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
@@ -69,19 +69,19 @@ export const Item = styled.button`
 `;
 
 export const ItemIcon = styled.span`
-  width: 36px;
-  height: 36px;
+  width: 30px;
+  height: 30px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 13px;
+  border-radius: 10px;
   background: ${({ $danger }) =>
     $danger ? "rgba(212, 73, 73, 0.1)" : "rgba(11, 95, 255, 0.1)"};
   color: ${({ $danger, theme }) => ($danger ? theme.colors.danger : theme.colors.primaryStrong)};
 
   svg {
-    width: 19px;
-    height: 19px;
+    width: 17px;
+    height: 17px;
     stroke-width: 1.8;
   }
 `;
@@ -95,7 +95,7 @@ export const ItemLabel = styled.span`
 
 export const Divider = styled.div`
   height: 1px;
-  margin: 6px 8px;
+  margin: 5px 7px;
   background: ${({ theme }) => theme.colors.border};
 `;
 
