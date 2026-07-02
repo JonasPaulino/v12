@@ -635,74 +635,103 @@ export const TenantSetup = ({ embedded = false }) => {
             </C.CountText>
           </C.SearchRow>
 
-          {loadingTenants ? (
-            <C.LoadingCard>Carregando clientes cadastrados...</C.LoadingCard>
-          ) : tenants.length ? (
-            <C.TenantGrid>
-              {tenants.map((tenant) => (
-                <C.TenantItem key={tenant.tenant_id}>
-                  <C.TenantItemLeft>
-                    <C.TenantItemTitle>{tenant.tenant_nome}</C.TenantItemTitle>
-                    <C.TenantMeta>
-                      <span>CNPJ: {tenant.tenant_documento || "--"}</span>
-                      <span>Slug: {tenant.tenant_slug || "--"}</span>
-                      <span>Perfil: {tenant.perfil || "--"}</span>
-                    </C.TenantMeta>
-                  </C.TenantItemLeft>
-                  <C.TenantItemRight>
-                    <C.TenantStatusBadge $active={!!tenant.tenant_ativo}>
-                      {tenant.tenant_ativo ? "Ativa" : "Inativa"}
-                    </C.TenantStatusBadge>
-                    <C.TenantMenuWrap>
-                      <C.TenantMenuToggle
-                        type="button"
-                        onClick={() =>
-                          setActionMenuTenantId((current) =>
-                            current === tenant.tenant_id ? null : tenant.tenant_id
-                          )
-                        }
-                        title="Ações"
-                      >
-                        ⋮
-                      </C.TenantMenuToggle>
-                      {actionMenuTenantId === tenant.tenant_id ? (
-                        <C.TenantMenu>
-                          <C.TenantMenuButton
-                            type="button"
-                            onClick={() => openEditModal(tenant.tenant_id)}
-                          >
-                            Editar cadastro
-                          </C.TenantMenuButton>
-                          <C.TenantMenuButton
-                            type="button"
-                            onClick={() => handleToggleTenantStatus(tenant, business?.tenant_id)}
-                            $danger={tenant.tenant_ativo}
-                            $success={!tenant.tenant_ativo}
-                          >
-                            {tenant.tenant_ativo ? "Inativar empresa" : "Reativar empresa"}
-                          </C.TenantMenuButton>
-                        </C.TenantMenu>
-                      ) : null}
-                    </C.TenantMenuWrap>
-                  </C.TenantItemRight>
-                </C.TenantItem>
-              ))}
-            </C.TenantGrid>
-          ) : (
-            <C.EmptyState>
-              <C.EmptyTitle>Nenhum cliente encontrado</C.EmptyTitle>
-              <C.EmptyText>
-                Use o botão de cadastro para criar o primeiro cliente do V12.
-              </C.EmptyText>
-            </C.EmptyState>
-          )}
+          <C.TableCard>
+            <C.TableScroll>
+              <C.Table>
+                <C.TableHead>
+                  <C.TableRow>
+                    <C.TableHeaderCell>Código</C.TableHeaderCell>
+                    <C.TableHeaderCell>Cliente / filial</C.TableHeaderCell>
+                    <C.TableHeaderCell>Documento</C.TableHeaderCell>
+                    <C.TableHeaderCell>Slug</C.TableHeaderCell>
+                    <C.TableHeaderCell>Perfil</C.TableHeaderCell>
+                    <C.TableHeaderCell>Status</C.TableHeaderCell>
+                    <C.TableHeaderCell>Ações</C.TableHeaderCell>
+                  </C.TableRow>
+                </C.TableHead>
+                <tbody>
+                  {loadingTenants ? (
+                    <C.TableRow>
+                      <C.TableCell colSpan={7}>
+                        <C.EmptyState>Carregando clientes cadastrados...</C.EmptyState>
+                      </C.TableCell>
+                    </C.TableRow>
+                  ) : tenants.length ? (
+                    tenants.map((tenant) => (
+                      <C.TableRow key={tenant.tenant_id}>
+                        <C.TableCell>#{tenant.tenant_id}</C.TableCell>
+                        <C.TableCell $wrap>
+                          <C.TenantItemTitle>{tenant.tenant_nome}</C.TenantItemTitle>
+                          <C.TenantMeta>{tenant.tenant_documento || "--"}</C.TenantMeta>
+                        </C.TableCell>
+                        <C.TableCell>{tenant.tenant_documento || "--"}</C.TableCell>
+                        <C.TableCell>{tenant.tenant_slug || "--"}</C.TableCell>
+                        <C.TableCell>{tenant.perfil || "--"}</C.TableCell>
+                        <C.TableCell>
+                          <C.TenantStatusBadge $active={!!tenant.tenant_ativo}>
+                            {tenant.tenant_ativo ? "Ativa" : "Inativa"}
+                          </C.TenantStatusBadge>
+                        </C.TableCell>
+                        <C.TableCell>
+                          <C.TenantMenuWrap>
+                            <C.TenantMenuToggle
+                              type="button"
+                              onClick={() =>
+                                setActionMenuTenantId((current) =>
+                                  current === tenant.tenant_id ? null : tenant.tenant_id
+                                )
+                              }
+                              title="Ações"
+                            >
+                              ⋮
+                            </C.TenantMenuToggle>
+                            {actionMenuTenantId === tenant.tenant_id ? (
+                              <C.TenantMenu>
+                                <C.TenantMenuButton
+                                  type="button"
+                                  onClick={() => openEditModal(tenant.tenant_id)}
+                                >
+                                  Editar cadastro
+                                </C.TenantMenuButton>
+                                <C.TenantMenuButton
+                                  type="button"
+                                  onClick={() =>
+                                    handleToggleTenantStatus(tenant, business?.tenant_id)
+                                  }
+                                  $danger={tenant.tenant_ativo}
+                                  $success={!tenant.tenant_ativo}
+                                >
+                                  {tenant.tenant_ativo ? "Inativar empresa" : "Reativar empresa"}
+                                </C.TenantMenuButton>
+                              </C.TenantMenu>
+                            ) : null}
+                          </C.TenantMenuWrap>
+                        </C.TableCell>
+                      </C.TableRow>
+                    ))
+                  ) : (
+                    <C.TableRow>
+                      <C.TableCell colSpan={7}>
+                        <C.EmptyState>
+                          <C.EmptyTitle>Nenhum cliente encontrado</C.EmptyTitle>
+                          <C.EmptyText>
+                            Use o botão de cadastro para criar o primeiro cliente do V12.
+                          </C.EmptyText>
+                        </C.EmptyState>
+                      </C.TableCell>
+                    </C.TableRow>
+                  )}
+                </tbody>
+              </C.Table>
+            </C.TableScroll>
+          </C.TableCard>
 
-          <C.Pagination>
+          <C.Footer>
             <C.CountText>
               Página {page} de {totalPages}
             </C.CountText>
             <Paginacao page={page} totalPages={totalPages} onPageChange={setPage} />
-          </C.Pagination>
+          </C.Footer>
         </C.ListCard>
       </C.PageGrid>
 

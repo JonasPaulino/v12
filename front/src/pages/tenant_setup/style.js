@@ -416,6 +416,57 @@ export const TenantGrid = styled.div`
   gap: 12px;
 `;
 
+export const TableCard = styled.div`
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radius.lg};
+  background: rgba(255, 255, 255, 0.92);
+  overflow: hidden;
+`;
+
+export const TableScroll = styled.div`
+  min-height: 0;
+  overflow: auto;
+`;
+
+export const Table = styled.table`
+  width: 100%;
+  min-width: 980px;
+  border-collapse: collapse;
+`;
+
+export const TableHead = styled.thead`
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: rgba(238, 244, 255, 0.96);
+`;
+
+export const TableRow = styled.tr`
+  &:not(:last-child) {
+    border-bottom: 1px solid ${({ theme }) => theme.colors.border};
+  }
+`;
+
+export const TableHeaderCell = styled.th`
+  padding: 15px 14px;
+  text-align: left;
+  color: ${({ theme }) => theme.colors.textSoft};
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+`;
+
+export const TableCell = styled.td`
+  padding: 15px 14px;
+  color: ${({ theme }) => theme.colors.text};
+  vertical-align: middle;
+  white-space: ${({ $wrap }) => ($wrap ? "normal" : "nowrap")};
+`;
+
 export const TenantItem = styled.div`
   display: flex;
   flex-wrap: wrap;
@@ -622,6 +673,19 @@ export const Pagination = styled.div`
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+`;
+
+export const Footer = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 0 0;
+
+  @media (max-width: 720px) {
+    flex-direction: column;
+    align-items: stretch;
+  }
 `;
 
 export const ModalOverlay = styled.div`
