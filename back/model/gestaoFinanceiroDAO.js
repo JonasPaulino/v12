@@ -381,12 +381,20 @@ class GestaoFinanceiroDAO {
           fp.asaas_charge_id,
           fp.asaas_invoice_url,
           fp.asaas_payload,
+          (fp.asaas_charge_id IS NOT NULL AND fp.status <> 'cancelado') AS tem_cobranca_ativa,
           ft.descricao,
           ft.documento,
           ft.valor_total,
           ft.tenant_id,
           ft.contrato_id,
           ft.asaas_installment_id,
+          EXISTS (
+            SELECT 1
+            FROM gestao.financeiro_parcela fpa
+            WHERE fpa.titulo_id = ft.titulo_id
+              AND fpa.asaas_charge_id IS NOT NULL
+              AND fpa.status <> 'cancelado'
+          ) AS carne_tem_cobranca_ativa,
           p.pessoa_id,
           p.nome_razao AS pessoa_nome,
           p.nome_fantasia AS pessoa_fantasia,
@@ -472,12 +480,20 @@ class GestaoFinanceiroDAO {
           fp.asaas_charge_id,
           fp.asaas_invoice_url,
           fp.asaas_payload,
+          (fp.asaas_charge_id IS NOT NULL AND fp.status <> 'cancelado') AS tem_cobranca_ativa,
           ft.descricao,
           ft.documento,
           ft.valor_total,
           ft.tenant_id,
           ft.contrato_id,
           ft.asaas_installment_id,
+          EXISTS (
+            SELECT 1
+            FROM gestao.financeiro_parcela fpa
+            WHERE fpa.titulo_id = ft.titulo_id
+              AND fpa.asaas_charge_id IS NOT NULL
+              AND fpa.status <> 'cancelado'
+          ) AS carne_tem_cobranca_ativa,
           p.pessoa_id,
           p.nome_razao AS pessoa_nome,
           p.nome_fantasia AS pessoa_fantasia,

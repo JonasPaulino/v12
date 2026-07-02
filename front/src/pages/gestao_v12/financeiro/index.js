@@ -340,123 +340,131 @@ export const GestaoV12Financeiro = () => {
               </C.Head>
               <tbody>
                 {rows.length ? (
-                  rows.map((parcela) => (
-                    <C.Row key={parcela.parcela_id}>
-                      <C.Cell $wrap>
-                        <C.Strong>{parcela.pessoa_nome || "--"}</C.Strong>
-                        <C.Meta>{parcela.pessoa_documento || "--"}</C.Meta>
-                      </C.Cell>
-                      <C.Cell $wrap>{parcela.tenant_nome || "--"}</C.Cell>
-                      <C.Cell $wrap>
-                        <C.Strong>{parcela.descricao}</C.Strong>
-                        <C.Meta>{parcela.documento || `Título #${parcela.titulo_id}`}</C.Meta>
-                      </C.Cell>
-                      <C.Cell>{parcela.numero_parcela}</C.Cell>
-                      <C.Cell>{formatDate(parcela.vencimento)}</C.Cell>
-                      <C.Cell>
-                        <C.Strong>{formatMoney(parcela.valor)}</C.Strong>
-                        <C.Meta>Pago: {formatMoney(parcela.valor_pago)}</C.Meta>
-                      </C.Cell>
-                      <C.Cell>
-                        <C.Badge $status={parcela.status}>
-                          {statusLabel[parcela.status] || parcela.status}
-                        </C.Badge>
-                      </C.Cell>
-                      <C.Cell $wrap>
-                        <C.Strong>{parcela.forma_cobranca === "pix" ? "Pix" : "Boleto"}</C.Strong>
-                        <C.Meta>
-                          {parcela.asaas_installment_id
-                            ? "Carnê gerado"
-                            : parcela.asaas_charge_id
-                            ? "Gerada no Asaas"
-                            : "Pendente"}
-                        </C.Meta>
-                      </C.Cell>
-                      <C.Cell>
-                        <C.MenuButton
-                          type="button"
-                          onClick={(event) => openMenu(parcela.parcela_id, event.currentTarget)}
-                          aria-label="Ações"
-                          title="Ações"
-                          disabled={actionLoading}
-                        >
-                          <C.MenuIcon />
-                        </C.MenuButton>
+                  rows.map((parcela) => {
+                    const temCobrancaAtiva = parcela.tem_cobranca_ativa === true;
+                    const carneTemCobrancaAtiva =
+                      parcela.carne_tem_cobranca_ativa === true && !!parcela.asaas_installment_id;
+                    const podeGerarCobranca =
+                      parcela.status !== "quitado" && parcela.status !== "cancelado";
 
-                        {menuOpenId === parcela.parcela_id ? (
-                          <DropdownMenu
-                            open={!!menuOpenId}
-                            anchorEl={anchorEl}
-                            onClose={closeMenu}
-                            minWidth={190}
-                            items={[
-                              {
-                                label: "Gerar carnê",
-                                disabled:
-                                  parcela.status === "quitado" || !!parcela.asaas_installment_id,
-                                onClick: () => gerarCarne(parcela),
-                              },
-                              {
-                                label: "Baixar carnê",
-                                disabled: !parcela.asaas_installment_id,
-                                onClick: () => openCarne(parcela),
-                              },
-                              {
-                                label: "Cancelar carnê",
-                                disabled: !parcela.asaas_installment_id,
-                                onClick: () => cancelarCarne(parcela),
-                              },
-                              {
-                                label: "Carnê saldo restante",
-                                disabled: parcela.status === "quitado",
-                                onClick: () => gerarCarneSaldoRestante(parcela),
-                              },
-                              {
-                                label: "Gerar boleto",
-                                disabled: parcela.status === "quitado",
-                                onClick: () => gerarCobranca(parcela, "boleto", false),
-                              },
-                              {
-                                label: "Atualizar boleto",
-                                disabled: parcela.status === "quitado",
-                                onClick: () => gerarCobranca(parcela, "boleto", true),
-                              },
-                              {
-                                label: "Baixar boleto",
-                                disabled: !parcela.asaas_invoice_url,
-                                onClick: () => openInvoice(parcela),
-                              },
-                              {
-                                label: "Cancelar cobrança",
-                                disabled: !parcela.asaas_charge_id || parcela.status === "quitado",
-                                onClick: () => cancelarCobranca(parcela),
-                              },
-                              {
-                                label: "Gerar Pix",
-                                disabled: parcela.status === "quitado",
-                                onClick: () => gerarCobranca(parcela, "pix", true),
-                              },
-                              {
-                                label: "Copiar Pix",
-                                disabled: !parcela.asaas_payload?.pix?.payload,
-                                onClick: () => openPix(parcela),
-                              },
-                              {
-                                label: "Ver status",
-                                disabled: !parcela.asaas_charge_id,
-                                onClick: () => atualizarStatus(parcela),
-                              },
-                              {
-                                label: "Baixa manual",
-                                disabled: parcela.status === "quitado",
-                                onClick: () => openBaixaManual(parcela),
-                              },
-                            ]}
-                          />
-                        ) : null}
-                      </C.Cell>
-                    </C.Row>
-                  ))
+                    return (
+                      <C.Row key={parcela.parcela_id}>
+                        <C.Cell $wrap>
+                          <C.Strong>{parcela.pessoa_nome || "--"}</C.Strong>
+                          <C.Meta>{parcela.pessoa_documento || "--"}</C.Meta>
+                        </C.Cell>
+                        <C.Cell $wrap>{parcela.tenant_nome || "--"}</C.Cell>
+                        <C.Cell $wrap>
+                          <C.Strong>{parcela.descricao}</C.Strong>
+                          <C.Meta>{parcela.documento || `Título #${parcela.titulo_id}`}</C.Meta>
+                        </C.Cell>
+                        <C.Cell>{parcela.numero_parcela}</C.Cell>
+                        <C.Cell>{formatDate(parcela.vencimento)}</C.Cell>
+                        <C.Cell>
+                          <C.Strong>{formatMoney(parcela.valor)}</C.Strong>
+                          <C.Meta>Pago: {formatMoney(parcela.valor_pago)}</C.Meta>
+                        </C.Cell>
+                        <C.Cell>
+                          <C.Badge $status={parcela.status}>
+                            {statusLabel[parcela.status] || parcela.status}
+                          </C.Badge>
+                        </C.Cell>
+                        <C.Cell $wrap>
+                          <C.Strong>{parcela.forma_cobranca === "pix" ? "Pix" : "Boleto"}</C.Strong>
+                          <C.Meta>
+                            {carneTemCobrancaAtiva
+                              ? "Carnê gerado"
+                              : temCobrancaAtiva
+                              ? "Gerada no Asaas"
+                              : "Pendente"}
+                          </C.Meta>
+                        </C.Cell>
+                        <C.Cell>
+                          <C.MenuButton
+                            type="button"
+                            onClick={(event) => openMenu(parcela.parcela_id, event.currentTarget)}
+                            aria-label="Ações"
+                            title="Ações"
+                            disabled={actionLoading}
+                          >
+                            <C.MenuIcon />
+                          </C.MenuButton>
+
+                          {menuOpenId === parcela.parcela_id ? (
+                            <DropdownMenu
+                              open={!!menuOpenId}
+                              anchorEl={anchorEl}
+                              onClose={closeMenu}
+                              minWidth={190}
+                              items={[
+                                {
+                                  label: "Gerar carnê",
+                                  disabled: !podeGerarCobranca || !!parcela.asaas_installment_id,
+                                  onClick: () => gerarCarne(parcela),
+                                },
+                                {
+                                  label: "Baixar carnê",
+                                  disabled: !carneTemCobrancaAtiva,
+                                  onClick: () => openCarne(parcela),
+                                },
+                                {
+                                  label: "Cancelar carnê",
+                                  disabled: !carneTemCobrancaAtiva,
+                                  onClick: () => cancelarCarne(parcela),
+                                },
+                                {
+                                  label: "Carnê saldo restante",
+                                  disabled: parcela.status === "quitado" || temCobrancaAtiva,
+                                  onClick: () => gerarCarneSaldoRestante(parcela),
+                                },
+                                {
+                                  label: "Gerar boleto",
+                                  disabled: !podeGerarCobranca || temCobrancaAtiva,
+                                  onClick: () => gerarCobranca(parcela, "boleto", false),
+                                },
+                                {
+                                  label: "Atualizar boleto",
+                                  disabled: !temCobrancaAtiva || parcela.status === "quitado",
+                                  onClick: () => gerarCobranca(parcela, "boleto", true),
+                                },
+                                {
+                                  label: "Baixar boleto",
+                                  disabled: !temCobrancaAtiva || !parcela.asaas_invoice_url,
+                                  onClick: () => openInvoice(parcela),
+                                },
+                                {
+                                  label: "Cancelar cobrança",
+                                  disabled: !temCobrancaAtiva || parcela.status === "quitado",
+                                  onClick: () => cancelarCobranca(parcela),
+                                },
+                                {
+                                  label: "Gerar Pix",
+                                  disabled: !podeGerarCobranca,
+                                  onClick: () => gerarCobranca(parcela, "pix", true),
+                                },
+                                {
+                                  label: "Copiar Pix",
+                                  disabled: !temCobrancaAtiva || !parcela.asaas_payload?.pix?.payload,
+                                  onClick: () => openPix(parcela),
+                                },
+                                {
+                                  label: "Ver status",
+                                  disabled: !temCobrancaAtiva,
+                                  onClick: () => atualizarStatus(parcela),
+                                },
+                                {
+                                  label: "Baixa manual",
+                                  disabled:
+                                    parcela.status === "quitado" || parcela.status === "cancelado",
+                                  onClick: () => openBaixaManual(parcela),
+                                },
+                              ]}
+                            />
+                          ) : null}
+                        </C.Cell>
+                      </C.Row>
+                    );
+                  })
                 ) : (
                   <C.Row>
                     <C.Cell colSpan={9}>
