@@ -388,6 +388,7 @@ export const useTenantSetupPage = () => {
       if (!editingTenantId) {
         const tenantExistente = findTenantByCnpj(empresa.cnpj);
         if (tenantExistente) {
+          hideLoading();
           await showAlert({
             title: "Empresa já cadastrada",
             text: `Já existe uma filial cadastrada com este CNPJ (${tenantExistente.tenant_nome}).`,
@@ -420,6 +421,7 @@ export const useTenantSetupPage = () => {
       }));
       setStep(2);
     } catch (error) {
+      hideLoading();
       await showAlert({
         title: "Falha ao ler certificado",
         text: error?.response?.data?.message || error?.message || "Não foi possível ler o certificado.",
