@@ -1,7 +1,8 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import DropdownMenu from "components/dropDownMenu";
 import Paginacao from "components/paginacao";
 import { api } from "api/axiosConfig";
+import { AppContext } from "context";
 import { useSweetAlert } from "context/sweet_alert";
 import { GestaoV12Layout } from "layouts/gestao_v12";
 import * as C from "./style";
@@ -28,6 +29,7 @@ const statusLabel = {
 };
 
 export const GestaoV12Financeiro = () => {
+  const { showLoading, hideLoading } = useContext(AppContext);
   const { showAlert, askYesNoQuestion } = useSweetAlert();
   const [parcelas, setParcelas] = useState([]);
   const [search, setSearch] = useState("");
@@ -50,6 +52,7 @@ export const GestaoV12Financeiro = () => {
 
   const loadParcelas = useCallback(async () => {
     setLoading(true);
+    showLoading("Carregando financeiro...");
     try {
       const { data } = await api.get("/gestao/financeiro/listar", {
         params: {
@@ -71,8 +74,9 @@ export const GestaoV12Financeiro = () => {
       });
     } finally {
       setLoading(false);
+      hideLoading();
     }
-  }, [page, search, status, showAlert]);
+  }, [hideLoading, page, search, showAlert, showLoading, status]);
 
   useEffect(() => {
     loadParcelas();
@@ -92,9 +96,10 @@ export const GestaoV12Financeiro = () => {
     setAnchorEl(element);
   }, []);
 
-  const runAction = async ({ title, request, successText }) => {
+  const runAction = async ({ title, request, successText, loadingText = "Processando ação..." }) => {
     closeMenu();
     setActionLoading(true);
+    showLoading(loadingText);
     try {
       const { data } = await request();
       showAlert?.({
@@ -112,6 +117,7 @@ export const GestaoV12Financeiro = () => {
       });
     } finally {
       setActionLoading(false);
+      hideLoading();
     }
   };
 
@@ -119,6 +125,7 @@ export const GestaoV12Financeiro = () => {
     runAction({
       title: tipo === "pix" ? "Pix gerado" : forceNew ? "Boleto atualizado" : "Boleto gerado",
       successText: "Cobrança registrada no Asaas.",
+      loadingText: tipo === "pix" ? "Gerando Pix..." : "Gerando boleto...",
       request: () =>
         api.post(`/gestao/financeiro/parcelas/${parcela.parcela_id}/cobranca`, {
           tipo,
@@ -130,6 +137,7 @@ export const GestaoV12Financeiro = () => {
     runAction({
       title: "Status atualizado",
       successText: "Status consultado no Asaas.",
+      loadingText: "Consultando status...",
       request: () => api.post(`/gestao/financeiro/parcelas/${parcela.parcela_id}/status`),
     });
 
@@ -156,6 +164,7 @@ export const GestaoV12Financeiro = () => {
     await runAction({
       title: "Baixa registrada",
       successText: "Parcela baixada manualmente.",
+      loadingText: "Registrando baixa...",
       request: () =>
         api.post(`/gestao/financeiro/parcelas/${baixaModal.parcela_id}/baixar-manual`, baixaForm),
     });

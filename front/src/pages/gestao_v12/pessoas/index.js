@@ -1,8 +1,9 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import Documento from "components/documento";
 import DropdownMenu from "components/dropDownMenu";
 import Paginacao from "components/paginacao";
 import { api } from "api/axiosConfig";
+import { AppContext } from "context";
 import { useSweetAlert } from "context/sweet_alert";
 import { formatTelefone } from "utils";
 import { GestaoV12Layout } from "layouts/gestao_v12";
@@ -46,6 +47,7 @@ const normalizeForm = (data = {}) => ({
 });
 
 export const GestaoV12Pessoas = () => {
+  const { showLoading, hideLoading } = useContext(AppContext);
   const { showAlert, askYesNoQuestion } = useSweetAlert();
   const [pessoas, setPessoas] = useState([]);
   const [search, setSearch] = useState("");
@@ -64,6 +66,7 @@ export const GestaoV12Pessoas = () => {
 
   const loadPessoas = useCallback(async () => {
     setLoading(true);
+    showLoading("Carregando pessoas...");
     try {
       const { data } = await api.get("/gestao/pessoas/listar", {
         params: {
@@ -84,8 +87,9 @@ export const GestaoV12Pessoas = () => {
       });
     } finally {
       setLoading(false);
+      hideLoading();
     }
-  }, [page, search, showAlert]);
+  }, [hideLoading, page, search, showAlert, showLoading]);
 
   useEffect(() => {
     loadPessoas();
@@ -113,6 +117,7 @@ export const GestaoV12Pessoas = () => {
 
   const openEditModal = async (pessoaId) => {
     closeMenu();
+    showLoading("Carregando pessoa...");
     try {
       const { data } = await api.get(`/gestao/pessoas/${pessoaId}`);
       setEditingId(pessoaId);
@@ -124,6 +129,8 @@ export const GestaoV12Pessoas = () => {
         text: error?.response?.data?.message || "Não foi possível carregar os dados.",
         icon: "error",
       });
+    } finally {
+      hideLoading();
     }
   };
 
@@ -154,6 +161,7 @@ export const GestaoV12Pessoas = () => {
   const handleSubmit = async (event) => {
     event.preventDefault();
     setSaving(true);
+    showLoading(editingId ? "Atualizando pessoa..." : "Cadastrando pessoa...");
     try {
       if (editingId) {
         await api.put(`/gestao/pessoas/${editingId}`, form);
@@ -177,6 +185,7 @@ export const GestaoV12Pessoas = () => {
       });
     } finally {
       setSaving(false);
+      hideLoading();
     }
   };
 
@@ -189,6 +198,7 @@ export const GestaoV12Pessoas = () => {
     if (!confirmed) return;
 
     try {
+      showLoading("Inativando pessoa...");
       await api.delete(`/gestao/pessoas/${pessoa.pessoa_id}`);
       showAlert?.({
         title: "Pessoa inativada",
@@ -203,6 +213,8 @@ export const GestaoV12Pessoas = () => {
         text: error?.response?.data?.message || "Não foi possível inativar a pessoa.",
         icon: "error",
       });
+    } finally {
+      hideLoading();
     }
   };
 

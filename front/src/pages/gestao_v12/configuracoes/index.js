@@ -1,5 +1,6 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useContext, useEffect, useState } from "react";
 import { api } from "api/axiosConfig";
+import { AppContext } from "context";
 import { useSweetAlert } from "context/sweet_alert";
 import { GestaoV12Layout } from "layouts/gestao_v12";
 import * as C from "./style";
@@ -11,6 +12,7 @@ const initialAsaasForm = {
 };
 
 export const GestaoV12Configuracoes = () => {
+  const { showLoading, hideLoading } = useContext(AppContext);
   const { showAlert } = useSweetAlert();
   const [activeTab, setActiveTab] = useState("cobranca");
   const [loading, setLoading] = useState(false);
@@ -20,6 +22,7 @@ export const GestaoV12Configuracoes = () => {
 
   const loadAsaasConfig = useCallback(async () => {
     setLoading(true);
+    showLoading("Carregando configurações...");
     try {
       const { data } = await api.get("/gestao/financeiro/configuracao/asaas");
       const config = data.data || {};
@@ -37,8 +40,9 @@ export const GestaoV12Configuracoes = () => {
       });
     } finally {
       setLoading(false);
+      hideLoading();
     }
-  }, [showAlert]);
+  }, [hideLoading, showAlert, showLoading]);
 
   useEffect(() => {
     loadAsaasConfig();
@@ -54,6 +58,7 @@ export const GestaoV12Configuracoes = () => {
   const handleSubmitAsaas = async (event) => {
     event.preventDefault();
     setSaving(true);
+    showLoading("Salvando configurações...");
     try {
       const { data } = await api.put("/gestao/financeiro/configuracao/asaas", asaasForm);
       const config = data.data || {};
@@ -76,6 +81,7 @@ export const GestaoV12Configuracoes = () => {
       });
     } finally {
       setSaving(false);
+      hideLoading();
     }
   };
 

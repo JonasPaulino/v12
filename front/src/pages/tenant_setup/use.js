@@ -174,7 +174,8 @@ const normalizeCnpj = (value) => String(value || "").replace(/\D/g, "");
 const isTenantActive = (tenant) => tenant?.tenant_ativo !== false && tenant?.ativo !== false;
 
 export const useTenantSetupPage = () => {
-  const { business, setBusiness, setBusinesses } = useContext(AppContext);
+  const { business, setBusiness, setBusinesses, showLoading, hideLoading } =
+    useContext(AppContext);
   const { showAlert, askYesNoQuestion } = useSweetAlert();
   const [saving, setSaving] = useState(false);
   const [loadingTenants, setLoadingTenants] = useState(true);
@@ -217,6 +218,7 @@ export const useTenantSetupPage = () => {
 
   const loadTenants = useCallback(async () => {
     setLoadingTenants(true);
+    showLoading("Carregando clientes...");
 
     try {
       const result = await listTenants();
@@ -233,8 +235,9 @@ export const useTenantSetupPage = () => {
       return [];
     } finally {
       setLoadingTenants(false);
+      hideLoading();
     }
-  }, [showAlert, syncBusinessContext]);
+  }, [hideLoading, showAlert, showLoading, syncBusinessContext]);
 
   useEffect(() => {
     loadTenants();
@@ -249,6 +252,7 @@ export const useTenantSetupPage = () => {
     async (tenantId) => {
       setActionMenuTenantId(null);
       setLoadingTenants(true);
+      showLoading("Carregando cadastro...");
 
       try {
         const result = await getTenantSetup(tenantId);
@@ -296,9 +300,10 @@ export const useTenantSetupPage = () => {
         });
       } finally {
         setLoadingTenants(false);
+        hideLoading();
       }
     },
-    [showAlert]
+    [hideLoading, showAlert, showLoading]
   );
 
   const findTenantByCnpj = useCallback(
@@ -370,6 +375,7 @@ export const useTenantSetupPage = () => {
     }
 
     try {
+      showLoading("Lendo certificado...");
       const conteudoBase64 = await readFileAsBase64(certificadoFile);
       const result = await previewTenantCertificate({
         certificadoBase64: conteudoBase64,
@@ -419,8 +425,18 @@ export const useTenantSetupPage = () => {
         text: error?.response?.data?.message || error?.message || "Não foi possível ler o certificado.",
         icon: "error",
       });
+    } finally {
+      hideLoading();
     }
-  }, [certificadoFile, editingTenantId, findTenantByCnpj, form.certificado_senha, showAlert]);
+  }, [
+    certificadoFile,
+    editingTenantId,
+    findTenantByCnpj,
+    form.certificado_senha,
+    hideLoading,
+    showAlert,
+    showLoading,
+  ]);
 
   const goNextStep = useCallback(async () => {
     if (step === 1) {
@@ -513,6 +529,7 @@ export const useTenantSetupPage = () => {
     }
 
     setSaving(true);
+    showLoading(editingTenantId ? "Atualizando cliente..." : "Cadastrando cliente...");
 
     try {
       const payload = {
@@ -675,6 +692,7 @@ export const useTenantSetupPage = () => {
       });
     } finally {
       setSaving(false);
+      hideLoading();
     }
   }, [
     certificadoFile,
@@ -682,9 +700,11 @@ export const useTenantSetupPage = () => {
     editingTenantId,
     findTenantByCnpj,
     form,
+    hideLoading,
     loadTenants,
     logoFile,
     showAlert,
+    showLoading,
   ]);
 
   const certificateSummary = useMemo(() => {
@@ -796,10 +816,15 @@ export const useTenantSetupPage = () => {
 
       if (!confirmed) return;
 
-      await toggleTenantSetupStatus(tenant.tenant_id, !tenant.tenant_ativo);
-      await loadTenants();
+      try {
+        showLoading(tenant.tenant_ativo ? "Inativando cliente..." : "Reativando cliente...");
+        await toggleTenantSetupStatus(tenant.tenant_id, !tenant.tenant_ativo);
+        await loadTenants();
+      } finally {
+        hideLoading();
+      }
     },
-    [askYesNoQuestion, loadTenants, showAlert]
+    [askYesNoQuestion, hideLoading, loadTenants, showAlert, showLoading]
   );
 
   return {

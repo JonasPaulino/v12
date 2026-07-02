@@ -1,7 +1,8 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import DropdownMenu from "components/dropDownMenu";
 import Paginacao from "components/paginacao";
 import { api } from "api/axiosConfig";
+import { AppContext } from "context";
 import { useSweetAlert } from "context/sweet_alert";
 import { GestaoV12Layout } from "layouts/gestao_v12";
 import * as C from "./style";
@@ -13,7 +14,17 @@ const perfilLabel = {
   vendedor: "Vendedor",
 };
 
+const emptyForm = {
+  usuario_nome: "",
+  usuario_email: "",
+  usuario_username: "",
+  usuario_senha: "",
+  perfil: "suporte",
+  usuario_ativo: true,
+};
+
 export const GestaoV12Usuarios = () => {
+  const { showLoading, hideLoading } = useContext(AppContext);
   const { showAlert } = useSweetAlert();
   const [usuarios, setUsuarios] = useState([]);
   const [search, setSearch] = useState("");
@@ -21,6 +32,9 @@ export const GestaoV12Usuarios = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [form, setForm] = useState(emptyForm);
   const [menuOpenId, setMenuOpenId] = useState(null);
   const [anchorEl, setAnchorEl] = useState(null);
 
@@ -28,6 +42,7 @@ export const GestaoV12Usuarios = () => {
 
   const loadUsuarios = useCallback(async () => {
     setLoading(true);
+    showLoading("Carregando usuários...");
     try {
       const { data } = await api.get("/gestao/usuarios/listar", {
         params: {
@@ -48,8 +63,9 @@ export const GestaoV12Usuarios = () => {
       });
     } finally {
       setLoading(false);
+      hideLoading();
     }
-  }, [page, search, showAlert]);
+  }, [hideLoading, page, search, showAlert, showLoading]);
 
   useEffect(() => {
     loadUsuarios();
@@ -69,12 +85,49 @@ export const GestaoV12Usuarios = () => {
     setAnchorEl(element);
   }, []);
 
-  const openNewUserInfo = () => {
-    showAlert?.({
-      title: "Cadastro de usuário interno",
-      text: "A consulta já está padronizada. O cadastro completo de usuários internos deve ser conectado à regra de acesso da Gestão V12.",
-      icon: "info",
-    });
+  const openNewUser = () => {
+    setForm(emptyForm);
+    setModalOpen(true);
+  };
+
+  const closeModal = () => {
+    if (saving) return;
+    setModalOpen(false);
+    setForm(emptyForm);
+  };
+
+  const updateField = (field, value) => {
+    setForm((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setSaving(true);
+    showLoading("Cadastrando usuário...");
+    try {
+      await api.post("/gestao/usuarios", form);
+      showAlert?.({
+        title: "Usuário cadastrado",
+        text: "O usuário foi criado como master da Gestão V12.",
+        icon: "success",
+        timer: 1800,
+      });
+      setModalOpen(false);
+      setForm(emptyForm);
+      await loadUsuarios();
+    } catch (error) {
+      showAlert?.({
+        title: "Não foi possível cadastrar",
+        text: error?.response?.data?.message || "Revise os dados informados.",
+        icon: "error",
+      });
+    } finally {
+      setSaving(false);
+      hideLoading();
+    }
   };
 
   return (
@@ -93,7 +146,7 @@ export const GestaoV12Usuarios = () => {
             />
           </C.SearchField>
 
-          <C.PrimaryButton type="button" onClick={openNewUserInfo}>
+          <C.PrimaryButton type="button" onClick={openNewUser}>
             Novo usuário
           </C.PrimaryButton>
         </C.Toolbar>
@@ -192,6 +245,115 @@ export const GestaoV12Usuarios = () => {
           </C.Footer>
         </C.Card>
       </C.Stack>
+
+      {modalOpen ? (
+        <C.ModalOverlay>
+          <C.Modal onSubmit={handleSubmit}>
+            <C.ModalHeader>
+              <C.ModalTitle>
+                <h2>Novo usuário interno</h2>
+                <p>Usuários cadastrados aqui serão criados como master da Gestão V12.</p>
+              </C.ModalTitle>
+              <C.CloseButton type="button" onClick={closeModal} aria-label="Fechar">
+                ×
+              </C.CloseButton>
+            </C.ModalHeader>
+
+            <C.ModalBody>
+              <C.FormGrid>
+                <C.Field>
+                  <C.Label>
+                    Nome completo <C.Required>*</C.Required>
+                  </C.Label>
+                  <C.Input
+                    value={form.usuario_nome}
+                    onChange={(event) => updateField("usuario_nome", event.target.value)}
+                    required
+                  />
+                </C.Field>
+
+                <C.Field>
+                  <C.Label>
+                    E-mail <C.Required>*</C.Required>
+                  </C.Label>
+                  <C.Input
+                    type="email"
+                    value={form.usuario_email}
+                    onChange={(event) => updateField("usuario_email", event.target.value)}
+                    required
+                  />
+                </C.Field>
+
+                <C.Field>
+                  <C.Label>
+                    Login <C.Required>*</C.Required>
+                  </C.Label>
+                  <C.Input
+                    value={form.usuario_username}
+                    onChange={(event) => updateField("usuario_username", event.target.value)}
+                    required
+                  />
+                </C.Field>
+
+                <C.Field>
+                  <C.Label>
+                    Senha inicial <C.Required>*</C.Required>
+                  </C.Label>
+                  <C.Input
+                    type="password"
+                    value={form.usuario_senha}
+                    onChange={(event) => updateField("usuario_senha", event.target.value)}
+                    minLength={6}
+                    required
+                  />
+                </C.Field>
+
+                <C.Field>
+                  <C.Label>Perfil interno</C.Label>
+                  <C.Select
+                    value={form.perfil}
+                    onChange={(event) => updateField("perfil", event.target.value)}
+                  >
+                    <option value="suporte">Suporte</option>
+                    <option value="financeiro">Financeiro</option>
+                    <option value="vendedor">Vendedor</option>
+                    <option value="admin">Administrador</option>
+                  </C.Select>
+                </C.Field>
+
+                <C.Field>
+                  <C.Label>Status</C.Label>
+                  <C.Select
+                    value={form.usuario_ativo ? "true" : "false"}
+                    onChange={(event) =>
+                      updateField("usuario_ativo", event.target.value === "true")
+                    }
+                  >
+                    <option value="true">Ativo</option>
+                    <option value="false">Inativo</option>
+                  </C.Select>
+                </C.Field>
+
+                <C.FieldFull>
+                  <C.InfoBox>
+                    Este usuário será salvo como <strong>master</strong>. Ao entrar no login, ele
+                    poderá acessar o ambiente Gestão V12.
+                  </C.InfoBox>
+                </C.FieldFull>
+              </C.FormGrid>
+            </C.ModalBody>
+
+            <C.ModalFooter>
+              <C.SecondaryButton type="button" onClick={closeModal}>
+                Cancelar
+              </C.SecondaryButton>
+              <C.PrimaryButton type="submit" disabled={saving}>
+                {saving ? "Salvando..." : "Salvar usuário"}
+              </C.PrimaryButton>
+            </C.ModalFooter>
+          </C.Modal>
+        </C.ModalOverlay>
+      ) : null}
     </GestaoV12Layout>
   );
 };
