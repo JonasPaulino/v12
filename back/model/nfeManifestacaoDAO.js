@@ -7,6 +7,8 @@ import {
 
 const TENANT_CONTEXT_SQL = "current_setting('app.tenant_id')::INTEGER";
 const DISTRIBUICAO_COOLDOWN_MS = 65 * 60 * 1000;
+const DISTRIBUICAO_OK_CSTATS = new Set(["137", "138"]);
+const DISTRIBUICAO_COOLDOWN_CSTATS = new Set(["137", "656"]);
 
 const EVENT_CONFIG = {
   confirmacao_operacao: { codigo: "210200", label: "Confirmação da operação" },
@@ -70,7 +72,8 @@ const formatDateTime = (value) => {
 };
 
 const getDistribuicaoCooldown = (controle) => {
-  if (String(controle?.cstat || "") !== "656" || !controle?.ultima_consulta_em) {
+  const cStat = String(controle?.cstat || "");
+  if (!DISTRIBUICAO_COOLDOWN_CSTATS.has(cStat) || !controle?.ultima_consulta_em) {
     return null;
   }
 
@@ -81,6 +84,14 @@ const getDistribuicaoCooldown = (controle) => {
   const remainingMs = retryAt.getTime() - Date.now();
 
   return remainingMs > 0 ? { retryAt, remainingMs } : null;
+};
+
+const buildCooldownMessage = (controle, retryText) => {
+  if (String(controle?.cstat || "") === "137") {
+    return `A última consulta não encontrou novos documentos. Aguarde até ${retryText} antes de consultar novamente para evitar consumo indevido na SEFAZ.`;
+  }
+
+  return `A SEFAZ bloqueou temporariamente a distribuição por consumo indevido. Aguarde até ${retryText} antes de consultar novamente.`;
 };
 
 const getRootName = (xml) => {
@@ -332,16 +343,15 @@ class NfeManifestacaoDAO {
     const cooldown = getDistribuicaoCooldown(controle);
     if (cooldown) {
       const retryText = formatDateTime(cooldown.retryAt);
-      console.warn("[nfe-manifestacao] Consulta bloqueada por consumo indevido recente", {
+      console.warn("[nfe-manifestacao] Consulta bloqueada por cooldown SEFAZ", {
         tenantId: contexto.tenantId,
         documento: contexto.documento,
         ambiente: contexto.ambiente,
+        cStat: controle.cstat,
         ultNsuAtual: controle.ult_nsu,
         retryAt: retryText,
       });
-      throw new Error(
-        `A SEFAZ bloqueou temporariamente a distribuição por consumo indevido. Aguarde até ${retryText} antes de consultar novamente.`
-      );
+      throw new Error(buildCooldownMessage(controle, retryText));
     }
 
     console.log("[nfe-manifestacao] Sincronização iniciada", {
@@ -378,6 +388,22 @@ class NfeManifestacaoDAO {
       documentosRecebidos: response.documentos?.length || 0,
       rawPreview: previewRaw(raw),
     });
+
+    if (!DISTRIBUICAO_OK_CSTATS.has(String(cStat || ""))) {
+      await client.query(
+        `
+          UPDATE nfe_distribuicao_controle
+          SET cstat = $2,
+              xmotivo = $3,
+              ultima_consulta_em = NOW()
+          WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+            AND nfe_distribuicao_controle_id = $1
+        `,
+        [controle.nfe_distribuicao_controle_id, cStat, xMotivo]
+      );
+
+      throw new Error(xMotivo || "A SEFAZ não autorizou a distribuição de NF-e.");
+    }
 
     for (const item of response.documentos || []) {
       const doc = parseNfeDistributionXml(item.xml, item.fileName);
