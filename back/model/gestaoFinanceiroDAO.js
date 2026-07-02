@@ -921,12 +921,12 @@ class GestaoFinanceiroDAO {
     const installmentId = titulo.asaas_installment_id;
     if (!installmentId) throw new Error("Título ainda não possui carnê gerado no Asaas.");
 
-    const parcelasQuitadas = parcelas.filter(
-      (parcela) => parcela.status === "quitado" || Number(parcela.valor_pago || 0) > 0
+    const parcelasEmAberto = parcelas.filter(
+      (parcela) => parcela.status !== "quitado" && Number(parcela.valor_pago || 0) <= 0
     );
 
-    if (parcelasQuitadas.length) {
-      throw new Error("Não é possível cancelar carnê com parcela já baixada ou paga.");
+    if (!parcelasEmAberto.length) {
+      throw new Error("Não há parcelas em aberto para cancelar neste carnê.");
     }
 
     const config = await this.buscarConfiguracaoAsaas(client);
@@ -934,52 +934,15 @@ class GestaoFinanceiroDAO {
       throw new Error("Configuração Asaas da Gestão V12 não está ativa.");
     }
 
-    const payments = mergeAsaasPayments(
-      await listarPagamentosParcelamentoAsaas(config.apiKey, config.ambiente, installmentId),
-      await listarPagamentosPorInstallmentAsaas(config.apiKey, config.ambiente, installmentId),
-      parcelas
-        .filter((parcela) => parcela.asaas_charge_id)
-        .map((parcela) => ({
-          id: parcela.asaas_charge_id,
-          dueDate: toAsaasDate(parcela.vencimento),
-          installmentNumber: parcela.numero_parcela,
-        }))
-    );
-
-    if (!payments.length) {
-      throw new Error("Não foram encontradas cobranças do carnê para cancelar no Asaas.");
-    }
-
-    const cancelados = [];
-    const erros = [];
-
-    for (const payment of payments) {
-      try {
-        await asaasRequest(config.apiKey, config.ambiente, {
-          method: "DELETE",
-          path: `/v3/payments/${encodeURIComponent(payment.id)}`,
-        });
-        cancelados.push(payment.id);
-      } catch (error) {
-        erros.push({
-          id: payment.id,
-          message: error.message,
-        });
-      }
-    }
-
-    if (erros.length) {
-      throw new Error(
-        `Não foi possível cancelar todas as cobranças do carnê no Asaas. Falhas: ${erros
-          .map((erro) => `${erro.id}: ${erro.message}`)
-          .join("; ")}`
-      );
-    }
+    const cancelamentoResponse = await asaasRequest(config.apiKey, config.ambiente, {
+      method: "DELETE",
+      path: `/v3/installments/${encodeURIComponent(installmentId)}/payments`,
+    });
 
     const cancelamentoPayload = {
       carneCancelado: {
         installmentId,
-        cancelados,
+        response: cancelamentoResponse,
         canceladoEm: new Date().toISOString(),
       },
     };
@@ -993,6 +956,8 @@ class GestaoFinanceiroDAO {
           asaas_payload = COALESCE(asaas_payload, '{}'::jsonb) || $2::jsonb,
           status = CASE WHEN status = 'vencido' AND vencimento >= CURRENT_DATE THEN 'aberto' ELSE status END
         WHERE titulo_id = $1
+          AND status <> 'quitado'
+          AND valor_pago <= 0
       `,
       [tituloId, JSON.stringify(cancelamentoPayload)]
     );
@@ -1007,28 +972,107 @@ class GestaoFinanceiroDAO {
           asaas_payload = COALESCE(asaas_payload, '{}'::jsonb) || $3::jsonb
         WHERE contrato_id = $1
           AND numero_parcela = ANY($2::int[])
+          AND status <> 'paga'
       `,
       [
         titulo.contrato_id,
-        parcelas.map((parcela) => Number(parcela.numero_parcela)),
+        parcelasEmAberto.map((parcela) => Number(parcela.numero_parcela)),
         JSON.stringify(cancelamentoPayload),
       ]
     );
 
-    await client.query(
-      `
-        UPDATE gestao.financeiro_titulo
-        SET asaas_installment_id = NULL
-        WHERE titulo_id = $1
-      `,
-      [tituloId]
-    );
+    if (parcelasEmAberto.length === parcelas.length) {
+      await client.query(
+        `
+          UPDATE gestao.financeiro_titulo
+          SET asaas_installment_id = NULL
+          WHERE titulo_id = $1
+        `,
+        [tituloId]
+      );
+    }
 
     await this.atualizarStatusTitulo(client, tituloId);
 
     return {
       installmentId,
-      cancelados,
+      parcelasCanceladas: parcelasEmAberto.length,
+      cancelamento: cancelamentoResponse,
+    };
+  }
+
+  static async cancelarCobrancaParcela(client, parcelaId) {
+    const parcela = await this.buscarParcelaContexto(client, parcelaId);
+    if (!parcela) throw new Error("Parcela não encontrada.");
+    if (!parcela.asaas_charge_id) throw new Error("Parcela ainda não possui cobrança Asaas.");
+    if (parcela.status === "quitado" || Number(parcela.valor_pago || 0) > 0) {
+      throw new Error("Não é possível cancelar uma parcela já baixada ou paga.");
+    }
+
+    const config = await this.buscarConfiguracaoAsaas(client);
+    if (!config.ativo || !config.apiKey) {
+      throw new Error("Configuração Asaas da Gestão V12 não está ativa.");
+    }
+
+    const payment = await asaasRequest(config.apiKey, config.ambiente, {
+      path: `/v3/payments/${parcela.asaas_charge_id}`,
+    });
+
+    if (["RECEIVED", "CONFIRMED", "RECEIVED_IN_CASH"].includes(payment.status)) {
+      throw new Error("A cobrança já consta como paga no Asaas. Atualize o status antes de alterar.");
+    }
+
+    const cancelamentoResponse = await asaasRequest(config.apiKey, config.ambiente, {
+      method: "DELETE",
+      path: `/v3/payments/${encodeURIComponent(parcela.asaas_charge_id)}`,
+    });
+
+    const cancelamentoPayload = {
+      cobrancaCancelada: {
+        chargeId: parcela.asaas_charge_id,
+        response: cancelamentoResponse,
+        canceladoEm: new Date().toISOString(),
+      },
+    };
+
+    await client.query(
+      `
+        UPDATE gestao.financeiro_parcela
+        SET
+          asaas_charge_id = NULL,
+          asaas_invoice_url = NULL,
+          asaas_payload = COALESCE(asaas_payload, '{}'::jsonb) || $2::jsonb,
+          status = CASE WHEN status = 'vencido' AND vencimento >= CURRENT_DATE THEN 'aberto' ELSE status END
+        WHERE parcela_id = $1
+      `,
+      [parcelaId, JSON.stringify(cancelamentoPayload)]
+    );
+
+    await client.query(
+      `
+        UPDATE gestao.cliente_parcela
+        SET
+          status = CASE WHEN status IN ('gerada', 'vencida') THEN 'aberta' ELSE status END,
+          asaas_charge_id = NULL,
+          asaas_invoice_url = NULL,
+          asaas_payload = COALESCE(asaas_payload, '{}'::jsonb) || $4::jsonb
+        WHERE contrato_id = $1
+          AND numero_parcela = $2
+          AND asaas_charge_id = $3
+      `,
+      [
+        parcela.contrato_id,
+        parcela.numero_parcela,
+        parcela.asaas_charge_id,
+        JSON.stringify(cancelamentoPayload),
+      ]
+    );
+
+    await this.atualizarStatusTitulo(client, parcela.titulo_id);
+
+    return {
+      chargeId: parcela.asaas_charge_id,
+      cancelamento: cancelamentoResponse,
     };
   }
 

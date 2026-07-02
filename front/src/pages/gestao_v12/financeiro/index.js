@@ -146,6 +146,39 @@ export const GestaoV12Financeiro = () => {
       request: () => api.post(`/gestao/financeiro/titulos/${parcela.titulo_id}/carne`),
     });
 
+  const cancelarCarne = async (parcela) => {
+    closeMenu();
+    const confirmed = await askYesNoQuestion?.(
+      "Cancelar carnê?",
+      "As parcelas em aberto do carnê serão canceladas no Asaas. Parcelas pagas ou baixadas não serão alteradas."
+    );
+    if (!confirmed) return;
+
+    await runAction({
+      title: "Carnê cancelado",
+      successText: "Parcelas em aberto do carnê foram canceladas.",
+      loadingText: "Cancelando carnê...",
+      request: () => api.post(`/gestao/financeiro/titulos/${parcela.titulo_id}/carne/cancelar`),
+    });
+  };
+
+  const cancelarCobranca = async (parcela) => {
+    closeMenu();
+    const confirmed = await askYesNoQuestion?.(
+      "Cancelar cobrança?",
+      "A cobrança desta parcela será cancelada no Asaas. Essa ação não representa estorno nem baixa financeira."
+    );
+    if (!confirmed) return;
+
+    await runAction({
+      title: "Cobrança cancelada",
+      successText: "Cobrança da parcela cancelada no Asaas.",
+      loadingText: "Cancelando cobrança...",
+      request: () =>
+        api.post(`/gestao/financeiro/parcelas/${parcela.parcela_id}/cobranca/cancelar`),
+    });
+  };
+
   const atualizarStatus = (parcela) =>
     runAction({
       title: "Status atualizado",
@@ -351,6 +384,11 @@ export const GestaoV12Financeiro = () => {
                                 onClick: () => openCarne(parcela),
                               },
                               {
+                                label: "Cancelar carnê",
+                                disabled: !parcela.asaas_installment_id,
+                                onClick: () => cancelarCarne(parcela),
+                              },
+                              {
                                 label: "Gerar boleto",
                                 disabled: parcela.status === "quitado",
                                 onClick: () => gerarCobranca(parcela, "boleto", false),
@@ -364,6 +402,11 @@ export const GestaoV12Financeiro = () => {
                                 label: "Baixar boleto",
                                 disabled: !parcela.asaas_invoice_url,
                                 onClick: () => openInvoice(parcela),
+                              },
+                              {
+                                label: "Cancelar cobrança",
+                                disabled: !parcela.asaas_charge_id || parcela.status === "quitado",
+                                onClick: () => cancelarCobranca(parcela),
                               },
                               {
                                 label: "Gerar Pix",

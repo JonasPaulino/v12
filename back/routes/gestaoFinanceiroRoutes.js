@@ -158,6 +158,57 @@ router.get("/financeiro/titulos/:id/carne/pdf", async (req, res) => {
   }
 });
 
+router.post("/financeiro/titulos/:id/carne/cancelar", async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const result = await GestaoFinanceiroDAO.cancelarCarneTitulo(client, Number(req.params.id));
+    await client.query("COMMIT");
+
+    return res.json({
+      success: true,
+      message: "Parcelas em aberto do carnê canceladas no Asaas.",
+      data: result,
+    });
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.error("[gestao:financeiro] Falha ao cancelar carnê:", error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Não foi possível cancelar o carnê.",
+    });
+  } finally {
+    client.release();
+  }
+});
+
+router.post("/financeiro/parcelas/:id/cobranca/cancelar", async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const result = await GestaoFinanceiroDAO.cancelarCobrancaParcela(
+      client,
+      Number(req.params.id)
+    );
+    await client.query("COMMIT");
+
+    return res.json({
+      success: true,
+      message: "Cobrança da parcela cancelada no Asaas.",
+      data: result,
+    });
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.error("[gestao:financeiro] Falha ao cancelar cobrança:", error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Não foi possível cancelar a cobrança.",
+    });
+  } finally {
+    client.release();
+  }
+});
+
 router.post("/financeiro/parcelas/:id/baixar-manual", async (req, res) => {
   const client = await pool.connect();
   try {
