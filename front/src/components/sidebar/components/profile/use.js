@@ -60,9 +60,5 @@ export const useProfileActions = () => {
     navigate("/login", { replace: true });
   };
 
-  const handleOpenTenantSetup = () => {
-    navigate("/gestao-v12");
-  };
-
-  return { handleLogout, handleOpenTenantSetup };
+  return { handleLogout };
 };

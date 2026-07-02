@@ -1,7 +1,6 @@
 import React from "react";
 import {
   HiOutlineArrowRightOnRectangle,
-  HiOutlineBuildingOffice2,
   HiOutlineChevronDown,
 } from "react-icons/hi2";
 import * as C from "./style";
@@ -9,24 +8,13 @@ import { useProfileActions, useToggleOptions, useUser } from "./use";
 
 const ProfileOptions = ({ open = true }) => {
   const { isOpen, toggleOptions, optionsContainerRef } = useToggleOptions();
-  const { handleLogout, handleOpenTenantSetup } = useProfileActions();
+  const { handleLogout } = useProfileActions();
   const user = useUser();
 
   return (
     <C.Container ref={optionsContainerRef}>
       {isOpen && (
         <C.Options>
-          {user.isMaster ? (
-            <C.OptionButton onClick={handleOpenTenantSetup}>
-              <C.OptionIcon>
-                <HiOutlineBuildingOffice2 />
-              </C.OptionIcon>
-              <C.OptionText>
-                <strong>Gestão V12</strong>
-                <span>Clientes, filiais e contratos</span>
-              </C.OptionText>
-            </C.OptionButton>
-          ) : null}
           <C.OptionButton onClick={handleLogout}>
             <C.OptionIcon>
               <HiOutlineArrowRightOnRectangle />

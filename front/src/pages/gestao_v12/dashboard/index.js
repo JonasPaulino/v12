@@ -31,16 +31,6 @@ export const GestaoV12Dashboard = () => (
     subtitle="Indicadores internos da operação comercial e financeira do V12."
   >
     <C.Grid>
-      <C.Hero>
-        <C.Badge>Gestão interna</C.Badge>
-        <C.Title>Controle da empresa V12</C.Title>
-        <C.Text>
-          Este ambiente é separado do ERP usado pelos clientes. Aqui ficam cadastro
-          de clientes, contratos, parcelas, cobranças, usuários internos e
-          configurações administrativas da operação V12.
-        </C.Text>
-      </C.Hero>
-
       <C.KpiGrid>
         {kpis.map((item) => (
           <C.KpiCard key={item.label}>
@@ -68,15 +58,6 @@ export const GestaoV12Dashboard = () => (
               <span>Baixar mensalidades sem misturar com o Asaas das filiais.</span>
             </C.Task>
           </C.TaskList>
-        </C.Panel>
-
-        <C.Panel>
-          <C.PanelTitle>Separação aplicada</C.PanelTitle>
-          <C.Text>
-            O modo Gestão V12 não usa seletor de filial e não deve gravar dados no
-            financeiro operacional dos clientes. A base financeira interna usa o
-            schema `gestao`.
-          </C.Text>
         </C.Panel>
       </C.Panels>
     </C.Grid>
