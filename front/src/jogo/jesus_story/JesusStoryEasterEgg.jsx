@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { finalDecision, storyScenes } from "./storyScenes";
+import { PixelCross, PixelJesus, PixelPerson, PixelStable, PixelTomb, PixelViewer } from "./sprites/PixelSprites";
 import * as C from "./JesusStoryEasterEgg.styles";
 
 const SCENE_STEP = 560;
@@ -94,34 +95,20 @@ const useJourneyClock = ({ isDecision, sceneIndex, setSceneIndex, setIsDecision 
   return { elapsed, totalDuration, resetClock, finishClock };
 };
 
-const MiniPerson = ({ $kind = "person", label }) => (
-  <C.MiniPerson $kind={$kind}>
-    <C.Head $kind={$kind} />
-    <C.Body $kind={$kind} />
-    <C.Arm $side="left" />
-    <C.Arm $side="right" />
-    <C.Leg $side="left" />
-    <C.Leg $side="right" />
-    {label ? <C.MiniLabel>{label}</C.MiniLabel> : null}
-  </C.MiniPerson>
-);
-
-const Cross = ({ small = false }) => (
-  <C.Cross $small={small}>
-    <span />
-  </C.Cross>
-);
-
 const SceneArt = ({ type }) => {
   if (type === "birth") {
     return (
       <C.ArtRow>
-        <C.Stable>
-          <C.Star />
-          <MiniPerson label="Maria" />
-          <C.Manger />
-          <MiniPerson label="José" />
-        </C.Stable>
+        <C.SpriteWrap $scale={1.1}>
+          <PixelStable />
+        </C.SpriteWrap>
+        <C.SpriteWrap>
+          <PixelPerson label="Maria" />
+        </C.SpriteWrap>
+        <C.Manger />
+        <C.SpriteWrap>
+          <PixelPerson label="José" />
+        </C.SpriteWrap>
       </C.ArtRow>
     );
   }
@@ -129,10 +116,18 @@ const SceneArt = ({ type }) => {
   if (type === "disciples") {
     return (
       <C.ArtRow>
-        <MiniPerson $kind="jesus" label="Jesus" />
-        <MiniPerson label="Pedro" />
-        <MiniPerson label="João" />
-        <MiniPerson label="André" />
+        <C.SpriteWrap $scale={1.18}>
+          <PixelJesus pose="blessing" label="Jesus" />
+        </C.SpriteWrap>
+        <C.SpriteWrap>
+          <PixelPerson pose="walk" label="Pedro" />
+        </C.SpriteWrap>
+        <C.SpriteWrap>
+          <PixelPerson pose="walk" label="João" />
+        </C.SpriteWrap>
+        <C.SpriteWrap>
+          <PixelPerson label="André" />
+        </C.SpriteWrap>
       </C.ArtRow>
     );
   }
@@ -140,9 +135,13 @@ const SceneArt = ({ type }) => {
   if (type === "miracles") {
     return (
       <C.ArtRow>
-        <MiniPerson $kind="jesus" label="Jesus" />
+        <C.SpriteWrap $scale={1.18}>
+          <PixelJesus pose="blessing" label="Jesus" />
+        </C.SpriteWrap>
         <C.HelpedPerson>
-          <MiniPerson label="Curado" />
+          <C.SpriteWrap>
+            <PixelPerson label="Curado" />
+          </C.SpriteWrap>
         </C.HelpedPerson>
         <C.LightBeam />
       </C.ArtRow>
@@ -152,11 +151,19 @@ const SceneArt = ({ type }) => {
   if (type === "teachings") {
     return (
       <C.ArtRow>
-        <MiniPerson $kind="jesus" label="Jesus" />
+        <C.SpriteWrap $scale={1.16}>
+          <PixelJesus pose="blessing" label="Jesus" />
+        </C.SpriteWrap>
         <C.Hill />
-        <MiniPerson label="Ouvinte" />
-        <MiniPerson label="Ouvinte" />
-        <MiniPerson label="Ouvinte" />
+        <C.SpriteWrap>
+          <PixelPerson label="Ouvinte" />
+        </C.SpriteWrap>
+        <C.SpriteWrap>
+          <PixelPerson label="Ouvinte" />
+        </C.SpriteWrap>
+        <C.SpriteWrap>
+          <PixelPerson label="Ouvinte" />
+        </C.SpriteWrap>
       </C.ArtRow>
     );
   }
@@ -164,9 +171,11 @@ const SceneArt = ({ type }) => {
   if (type === "crossJourney") {
     return (
       <C.ArtRow>
-        <MiniPerson $kind="jesus" label="Jesus" />
+        <C.SpriteWrap $scale={1.18}>
+          <PixelJesus pose="walk2" label="Jesus" />
+        </C.SpriteWrap>
         <C.CarriedCross>
-          <Cross small />
+          <PixelCross small />
         </C.CarriedCross>
       </C.ArtRow>
     );
@@ -175,9 +184,9 @@ const SceneArt = ({ type }) => {
   if (type === "death") {
     return (
       <C.ArtRow>
-        <Cross />
-        <Cross small />
-        <Cross small />
+        <PixelCross />
+        <PixelCross small />
+        <PixelCross small />
       </C.ArtRow>
     );
   }
@@ -185,10 +194,15 @@ const SceneArt = ({ type }) => {
   if (type === "resurrection") {
     return (
       <C.ArtRow>
-        <C.Tomb>
+        <C.SpriteWrap $scale={1.18}>
+          <PixelTomb />
+        </C.SpriteWrap>
+        <C.TombLight>
           <C.LightBeam />
-        </C.Tomb>
-        <MiniPerson $kind="jesus" label="Vivo" />
+        </C.TombLight>
+        <C.SpriteWrap $scale={1.18}>
+          <PixelJesus pose="blessing" label="Vivo" />
+        </C.SpriteWrap>
       </C.ArtRow>
     );
   }
@@ -196,10 +210,18 @@ const SceneArt = ({ type }) => {
   if (type === "appears") {
     return (
       <C.ArtRow>
-        <MiniPerson $kind="jesus" label="Jesus" />
-        <MiniPerson label="Discípulo" />
-        <MiniPerson label="Discípulo" />
-        <MiniPerson label="Discípulo" />
+        <C.SpriteWrap $scale={1.18}>
+          <PixelJesus pose="blessing" label="Jesus" />
+        </C.SpriteWrap>
+        <C.SpriteWrap>
+          <PixelPerson label="Discípulo" />
+        </C.SpriteWrap>
+        <C.SpriteWrap>
+          <PixelPerson label="Discípulo" />
+        </C.SpriteWrap>
+        <C.SpriteWrap>
+          <PixelPerson label="Discípulo" />
+        </C.SpriteWrap>
       </C.ArtRow>
     );
   }
@@ -207,9 +229,13 @@ const SceneArt = ({ type }) => {
   if (type === "mission") {
     return (
       <C.ArtRow>
-        <MiniPerson $kind="jesus" label="Jesus" />
+        <C.SpriteWrap $scale={1.18}>
+          <PixelJesus pose="blessing" label="Jesus" />
+        </C.SpriteWrap>
         <C.Sign>Ide</C.Sign>
-        <MiniPerson label="Mundo" />
+        <C.SpriteWrap>
+          <PixelPerson label="Mundo" />
+        </C.SpriteWrap>
       </C.ArtRow>
     );
   }
@@ -219,10 +245,16 @@ const SceneArt = ({ type }) => {
       <C.ArtRow>
         <C.AscensionLight />
         <C.RisingPerson>
-          <MiniPerson $kind="jesus" label="Jesus" />
+          <C.SpriteWrap $scale={1.18}>
+            <PixelJesus pose="jump" label="Jesus" />
+          </C.SpriteWrap>
         </C.RisingPerson>
-        <MiniPerson label="Discípulo" />
-        <MiniPerson label="Discípulo" />
+        <C.SpriteWrap>
+          <PixelPerson label="Discípulo" />
+        </C.SpriteWrap>
+        <C.SpriteWrap>
+          <PixelPerson label="Discípulo" />
+        </C.SpriteWrap>
       </C.ArtRow>
     );
   }
@@ -304,12 +336,7 @@ export const JesusStoryEasterEgg = () => {
               </C.TextPanel>
 
               <C.Runner>
-                <C.RunnerName>Você</C.RunnerName>
-                <C.RunnerHead />
-                <C.RunnerBody />
-                <C.RunnerArm />
-                <C.RunnerLeg $side="front" />
-                <C.RunnerLeg $side="back" />
+                <PixelViewer />
               </C.Runner>
 
               <C.Track style={{ transform: `translateX(${trackOffset})` }}>

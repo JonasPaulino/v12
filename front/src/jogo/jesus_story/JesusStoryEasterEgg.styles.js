@@ -9,24 +9,6 @@ const groundMove = keyframes`
   }
 `;
 
-const legRunFront = keyframes`
-  0%, 100% {
-    transform: rotate(22deg);
-  }
-  50% {
-    transform: rotate(-24deg);
-  }
-`;
-
-const legRunBack = keyframes`
-  0%, 100% {
-    transform: rotate(-26deg);
-  }
-  50% {
-    transform: rotate(20deg);
-  }
-`;
-
 const bob = keyframes`
   0%, 100% {
     transform: translateY(0);
@@ -296,77 +278,40 @@ export const Runner = styled.div`
   z-index: 7;
   left: clamp(64px, 13vw, 150px);
   bottom: 118px;
-  width: 74px;
-  height: 132px;
+  width: 96px;
+  height: 142px;
   animation: ${bob} 0.42s ease-in-out infinite;
+
+  > span {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    transform: scale(1.95);
+    transform-origin: bottom left;
+  }
+
+  > span > span {
+    padding: 3px 7px;
+    border: 1px solid #1f2933;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #1f2933;
+    font-size: 0.46rem;
+    font-weight: 950;
+    line-height: 1;
+    white-space: nowrap;
+  }
 
   @media (max-width: 720px) {
     left: 34px;
     bottom: 128px;
-    transform: scale(0.88);
-    transform-origin: bottom left;
+    width: 78px;
+
+    > span {
+      transform: scale(1.56);
+    }
   }
-`;
-
-export const RunnerName = styled.span`
-  position: absolute;
-  top: -38px;
-  left: 50%;
-  transform: translateX(-50%);
-  min-width: 58px;
-  text-align: center;
-  padding: 5px 10px;
-  border: 2px solid #1f2933;
-  border-radius: 999px;
-  background: #ffffff;
-  color: #1f2933;
-  font-size: 0.78rem;
-  font-weight: 950;
-`;
-
-export const RunnerHead = styled.div`
-  position: absolute;
-  top: 7px;
-  left: 24px;
-  width: 28px;
-  height: 28px;
-  border: 3px solid #1f2933;
-  border-radius: 50%;
-  background: #ffffff;
-`;
-
-export const RunnerBody = styled.div`
-  position: absolute;
-  top: 37px;
-  left: 31px;
-  width: 18px;
-  height: 56px;
-  border: 3px solid #1f2933;
-  border-radius: 999px 999px 6px 6px;
-  background: #f8fafc;
-`;
-
-export const RunnerArm = styled.div`
-  position: absolute;
-  top: 47px;
-  left: 18px;
-  width: 46px;
-  height: 3px;
-  background: #1f2933;
-  transform: rotate(-18deg);
-  transform-origin: center;
-`;
-
-export const RunnerLeg = styled.div`
-  position: absolute;
-  top: 88px;
-  left: ${({ $side }) => ($side === "front" ? "38px" : "28px")};
-  width: 4px;
-  height: 42px;
-  border-radius: 999px;
-  background: #1f2933;
-  transform-origin: top center;
-  animation: ${({ $side }) => ($side === "front" ? legRunFront : legRunBack)} 0.42s linear infinite;
 `;
 
 export const Track = styled.div`
@@ -419,135 +364,42 @@ export const ArtRow = styled.div`
   gap: 26px;
 `;
 
-export const MiniPerson = styled.div`
-  position: relative;
-  width: 42px;
-  height: ${({ $kind }) => ($kind === "jesus" ? "110px" : "96px")};
+export const SpriteWrap = styled.div`
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
   flex: 0 0 auto;
-`;
+  transform: scale(${({ $scale }) => $scale || 1});
+  transform-origin: bottom center;
 
-export const Head = styled.div`
-  position: absolute;
-  top: ${({ $kind }) => ($kind === "jesus" ? "6px" : "14px")};
-  left: 9px;
-  width: 24px;
-  height: 24px;
-  border: 3px solid #1f2933;
-  border-radius: 50%;
-  background: #ffffff;
-
-  ${({ $kind }) =>
-    $kind === "jesus"
-      ? `
-        &::after {
-          content: "";
-          position: absolute;
-          top: -10px;
-          left: 50%;
-          width: 34px;
-          height: 10px;
-          border: 2px solid #8b949e;
-          border-radius: 50%;
-          transform: translateX(-50%);
-        }
-      `
-      : ""}
-`;
-
-export const Body = styled.div`
-  position: absolute;
-  top: ${({ $kind }) => ($kind === "jesus" ? "34px" : "42px")};
-  left: 13px;
-  width: 18px;
-  height: ${({ $kind }) => ($kind === "jesus" ? "56px" : "45px")};
-  border: 3px solid #1f2933;
-  border-top: 0;
-  border-radius: 999px 999px 8px 8px;
-  background: ${({ $kind }) => ($kind === "jesus" ? "#ffffff" : "#f1f3f6")};
-`;
-
-export const Arm = styled.div`
-  position: absolute;
-  top: 54px;
-  left: ${({ $side }) => ($side === "left" ? "3px" : "22px")};
-  width: 24px;
-  height: 3px;
-  border-radius: 999px;
-  background: #1f2933;
-  transform: rotate(${({ $side }) => ($side === "left" ? "-22deg" : "22deg")});
-`;
-
-export const Leg = styled.div`
-  position: absolute;
-  bottom: 0;
-  left: ${({ $side }) => ($side === "left" ? "15px" : "25px")};
-  width: 4px;
-  height: 28px;
-  border-radius: 999px;
-  background: #1f2933;
-  transform: rotate(${({ $side }) => ($side === "left" ? "8deg" : "-8deg")});
-`;
-
-export const MiniLabel = styled.span`
-  position: absolute;
-  left: 50%;
-  bottom: -24px;
-  transform: translateX(-50%);
-  max-width: 84px;
-  padding: 3px 6px;
-  border: 1px solid #8b949e;
-  border-radius: 999px;
-  background: #ffffff;
-  color: #52606d;
-  font-size: 0.68rem;
-  font-weight: 800;
-  white-space: nowrap;
-`;
-
-export const Stable = styled.div`
-  position: relative;
-  width: 210px;
-  height: 150px;
-  border: 3px solid #1f2933;
-  border-top: 0;
-  border-radius: 0 0 12px 12px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  gap: 18px;
-  padding-bottom: 10px;
-
-  &::before,
-  &::after {
-    content: "";
-    position: absolute;
-    top: -46px;
-    width: 3px;
-    height: 88px;
-    background: #1f2933;
-    transform-origin: bottom;
+  > span {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
   }
 
-  &::before {
-    left: 33px;
-    transform: rotate(52deg);
+  > span > svg,
+  > svg {
+    display: block;
+    image-rendering: pixelated;
   }
 
-  &::after {
-    right: 33px;
-    transform: rotate(-52deg);
+  > span > span {
+    max-width: 88px;
+    padding: 3px 6px;
+    border: 1px solid #8b949e;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #52606d;
+    font-size: 0.62rem;
+    font-weight: 850;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
   }
-`;
-
-export const Star = styled.div`
-  position: absolute;
-  top: -82px;
-  left: 50%;
-  width: 26px;
-  height: 26px;
-  transform: translateX(-50%) rotate(45deg);
-  border: 3px solid #1f2933;
-  background: #ffffff;
 `;
 
 export const Manger = styled.div`
@@ -578,51 +430,14 @@ export const Hill = styled.div`
   border-radius: 90px 90px 0 0;
 `;
 
-export const Cross = styled.div`
-  position: relative;
-  width: ${({ $small }) => ($small ? "14px" : "20px")};
-  height: ${({ $small }) => ($small ? "96px" : "145px")};
-  background: #1f2933;
-  border-radius: 2px;
-
-  span {
-    position: absolute;
-    top: ${({ $small }) => ($small ? "24px" : "36px")};
-    left: 50%;
-    width: ${({ $small }) => ($small ? "58px" : "88px")};
-    height: ${({ $small }) => ($small ? "14px" : "18px")};
-    background: #1f2933;
-    border-radius: 2px;
-    transform: translateX(-50%);
-  }
-`;
-
 export const CarriedCross = styled.div`
   transform: translate(-8px, -28px) rotate(-34deg);
 `;
 
-export const Tomb = styled.div`
-  position: relative;
-  width: 150px;
-  height: 92px;
-  border: 3px solid #1f2933;
-  border-bottom: 0;
-  border-radius: 90px 90px 0 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  &::after {
-    content: "";
-    position: absolute;
-    right: -24px;
-    bottom: -2px;
-    width: 54px;
-    height: 54px;
-    border: 3px solid #1f2933;
-    border-radius: 50%;
-    background: #ffffff;
-  }
+export const TombLight = styled.div`
+  margin-left: -74px;
+  margin-right: -26px;
+  pointer-events: none;
 `;
 
 export const Sign = styled.div`
