@@ -402,10 +402,13 @@ class ChatDAO {
       filters.push(`c.slug = $${params.length}`);
     }
 
-    const statusValue = normalizeText(status, 30);
-    if (statusValue) {
-      params.push(statusValue);
-      filters.push(`a.status = $${params.length}`);
+    const statusValues = String(status || "")
+      .split(",")
+      .map((item) => normalizeText(item, 30))
+      .filter((item) => ["aguardando", "em_atendimento", "encerrado"].includes(item));
+    if (statusValues.length) {
+      params.push(statusValues);
+      filters.push(`a.status = ANY($${params.length}::varchar[])`);
     }
 
     const searchValue = normalizeText(search, 120);

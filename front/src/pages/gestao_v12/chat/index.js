@@ -7,7 +7,6 @@ import { linkifyText } from "utils/linkifyText";
 import * as C from "./style";
 
 const filters = [
-  { value: "", label: "Todos" },
   { value: "aguardando", label: "Fila" },
   { value: "em_atendimento", label: "Atendendo" },
   { value: "encerrado", label: "Encerrados" },
@@ -27,7 +26,8 @@ export const GestaoV12Chat = () => {
   const [selectedId, setSelectedId] = useState(null);
   const [detail, setDetail] = useState(null);
   const [categorias, setCategorias] = useState([]);
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState([]);
+  const [statusOpen, setStatusOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [message, setMessage] = useState("");
   const [transferTo, setTransferTo] = useState("");
@@ -43,7 +43,7 @@ export const GestaoV12Chat = () => {
       if (!silent) setLoading(true);
       try {
         const { data } = await api.get("/gestao/chat/atendimentos", {
-          params: { status, search },
+          params: { status: status.join(","), search },
         });
         setItems(data?.data || []);
       } catch (error) {
@@ -165,6 +165,21 @@ export const GestaoV12Chat = () => {
 
   const atendimento = detail?.atendimento;
   const mensagens = detail?.mensagens || [];
+  const statusFilterLabel =
+    status.length === 0
+      ? "Todos os status"
+      : filters
+          .filter((item) => status.includes(item.value))
+          .map((item) => item.label)
+          .join(", ");
+
+  const toggleStatus = (value) => {
+    setStatus((current) =>
+      current.includes(value)
+        ? current.filter((item) => item !== value)
+        : [...current, value]
+    );
+  };
 
   return (
     <GestaoV12Layout title="Chat" subtitle="Atendimento de clientes e visitantes do V12.">
@@ -177,16 +192,33 @@ export const GestaoV12Chat = () => {
               placeholder="Pesquisar atendimento"
             />
             <C.FilterRow>
-              {filters.map((item) => (
-                <C.FilterButton
-                  key={item.value}
+              <C.StatusFilter>
+                <C.StatusFilterButton
                   type="button"
-                  $active={status === item.value}
-                  onClick={() => setStatus(item.value)}
+                  onClick={() => setStatusOpen((current) => !current)}
                 >
-                  {item.label}
-                </C.FilterButton>
-              ))}
+                  <span>{statusFilterLabel}</span>
+                  <strong>⌄</strong>
+                </C.StatusFilterButton>
+                {statusOpen ? (
+                  <C.StatusFilterMenu>
+                    <C.StatusFilterOption type="button" onClick={() => setStatus([])}>
+                      <input type="checkbox" checked={status.length === 0} readOnly />
+                      Todos
+                    </C.StatusFilterOption>
+                    {filters.map((item) => (
+                      <C.StatusFilterOption
+                        key={item.value}
+                        type="button"
+                        onClick={() => toggleStatus(item.value)}
+                      >
+                        <input type="checkbox" checked={status.includes(item.value)} readOnly />
+                        {item.label}
+                      </C.StatusFilterOption>
+                    ))}
+                  </C.StatusFilterMenu>
+                ) : null}
+              </C.StatusFilter>
             </C.FilterRow>
           </C.SidebarHeader>
 
@@ -204,9 +236,13 @@ export const GestaoV12Chat = () => {
                     <C.Badge $status={item.status}>{statusLabel(item.status)}</C.Badge>
                   </C.TicketMeta>
                   <span>{item.assunto}</span>
-                  <small>
-                    {item.categoria_nome} • {item.protocolo}
-                  </small>
+                  <C.TicketSupport>
+                    {item.categoria_nome} •{" "}
+                    {item.atendente_nome
+                      ? `Atendente: ${item.atendente_nome}`
+                      : "Novo atendimento sem atendente"}
+                  </C.TicketSupport>
+                  <small>{item.protocolo}</small>
                   {item.ultima_mensagem ? (
                     <C.TicketPreview>{item.ultima_mensagem}</C.TicketPreview>
                   ) : null}
