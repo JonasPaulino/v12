@@ -220,6 +220,53 @@ const findInMdfeSections = (sections, keys = []) => {
   return null;
 };
 
+const findAcbrInlineValue = (rawText, key) => {
+  const text = String(rawText || "").replace(/\r?\n/g, " ").trim();
+  const escapedKey = String(key).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = text.match(new RegExp(`(?:^|\\s)${escapedKey}=([\\s\\S]*?)(?=\\s+[A-Za-z][A-Za-z0-9]*=|$)`, "i"));
+  return match?.[1]?.trim() || null;
+};
+
+const buildMdfeStatusMetadata = (rawText, context = {}) => {
+  const parsed = parseIniLikeResponse(rawText);
+  const cStat =
+    findIniValue(parsed, ["CStat", "cStat", "Status"], ["Status"]) ||
+    findAcbrInlineValue(rawText, "CStat");
+  const xMotivo =
+    findIniValue(parsed, ["XMotivo", "xMotivo", "Motivo", "Msg"], ["Status"]) ||
+    findAcbrInlineValue(rawText, "XMotivo") ||
+    findAcbrInlineValue(rawText, "Msg");
+  const cUf = findIniValue(parsed, ["CUF", "cUF"], ["Status"]) || findAcbrInlineValue(rawText, "CUF");
+  const dhRecbto =
+    findIniValue(parsed, ["DhRecbto", "dhRecbto"], ["Status"]) || findAcbrInlineValue(rawText, "DhRecbto");
+  const tpAmb =
+    findIniValue(parsed, ["TpAmb", "tpAmb"], ["Status"]) || findAcbrInlineValue(rawText, "TpAmb");
+  const verAplic =
+    findIniValue(parsed, ["VerAplic", "verAplic"], ["Status"]) || findAcbrInlineValue(rawText, "VerAplic");
+  const versao =
+    findIniValue(parsed, ["Versao", "versao"], ["Status"]) || findAcbrInlineValue(rawText, "Versao");
+  const tMed = findIniValue(parsed, ["TMed", "tMed"], ["Status"]) || findAcbrInlineValue(rawText, "TMed");
+  const statusOk = String(cStat || "").trim() === "107";
+
+  return {
+    success: statusOk,
+    operation: "status_servico",
+    raw: rawText,
+    parsed,
+    cStat: cStat || null,
+    xMotivo: xMotivo || null,
+    cUf: cUf || null,
+    uf: context.uf || null,
+    ambiente: context.ambiente || null,
+    tpAmb: tpAmb || null,
+    dhRecbto: dhRecbto || null,
+    verAplic: verAplic || null,
+    versao: versao || null,
+    tMed: tMed || null,
+    mappedStatus: statusOk ? "operacional" : "falha",
+  };
+};
+
 const mapMdfeReturnToStatus = ({ cStat }) => {
   const code = String(cStat || "").trim();
   if (["100", "150"].includes(code)) return "autorizado";
@@ -433,12 +480,10 @@ class AcbrLibMdfeProvider {
     try {
       await configureMdfeStatusSession(session);
       const rawResponse = session.acbr.statusServico();
+      const metadata = buildMdfeStatusMetadata(rawResponse, context);
 
       return {
-        success: true,
-        raw: rawResponse,
-        uf: context.uf,
-        ambiente: context.ambiente,
+        ...metadata,
       };
     } catch (error) {
       throw new AcbrLibMdfeIntegrationError(

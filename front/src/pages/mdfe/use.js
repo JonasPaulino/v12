@@ -656,10 +656,18 @@ export const useMdfePage = () => {
     try {
       setCheckingStatus(true);
       const response = await consultarStatusServicoMdfe();
+      const status = response?.data || {};
+      const details = [
+        status.cStat || status.xMotivo ? `${status.cStat || "Sem código"} - ${status.xMotivo || "Sem motivo retornado"}` : null,
+        status.uf ? `UF: ${status.uf}` : null,
+        status.tpAmb || status.ambiente ? `Ambiente: ${status.tpAmb || status.ambiente}` : null,
+        status.verAplic ? `Aplicação SEFAZ: ${status.verAplic}` : null,
+        status.dhRecbto ? `Recebido em: ${status.dhRecbto}` : null,
+      ].filter(Boolean);
       showAlert({
         title: "Status MDF-e",
-        text: response?.data?.raw || response?.message || "Consulta executada com sucesso.",
-        icon: "success",
+        text: details.join("\n") || response?.message || "Consulta executada com sucesso.",
+        icon: status.success ? "success" : "warning",
       });
     } catch (error) {
       showAlert({
