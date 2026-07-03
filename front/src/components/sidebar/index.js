@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import { MdClose, MdKeyboardArrowDown } from "react-icons/md";
 import {
   HiOutlineBanknotes,
@@ -23,6 +23,8 @@ const Sidebar = () => {
   const { mOpen, abreFechaMenu, selecionaPagina, user, business } = useContext(AppContext);
   const navigate = useNavigate();
   const location = useLocation();
+  const logoClickCountRef = useRef(0);
+  const logoClickTimerRef = useRef(null);
   const canManageUsers =
     !!user?.usuario_master || String(business?.perfil || "").toLowerCase() === "admin";
   const isNfePath =
@@ -42,6 +44,23 @@ const Sidebar = () => {
     }
   };
 
+  const handleLogoSecretClick = () => {
+    logoClickCountRef.current += 1;
+
+    if (logoClickTimerRef.current) {
+      window.clearTimeout(logoClickTimerRef.current);
+    }
+
+    logoClickTimerRef.current = window.setTimeout(() => {
+      logoClickCountRef.current = 0;
+    }, 1800);
+
+    if (logoClickCountRef.current >= 7) {
+      logoClickCountRef.current = 0;
+      navigate("/easter-egg/jesus");
+    }
+  };
+
   const toggleGroup = (groupKey) => {
     setExpandedGroups((prev) => ({
       ...prev,
@@ -58,13 +77,22 @@ const Sidebar = () => {
     }
   }, [isNfePath, location.pathname]);
 
+  useEffect(
+    () => () => {
+      if (logoClickTimerRef.current) {
+        window.clearTimeout(logoClickTimerRef.current);
+      }
+    },
+    []
+  );
+
   return (
     <C.Container $open={mOpen}>
       <C.MobileCloseButton type="button" onClick={abreFechaMenu} aria-label="Fechar menu">
         <MdClose />
       </C.MobileCloseButton>
       <C.TopArea>
-        <C.LogoContainer $open={mOpen}>
+        <C.LogoContainer $open={mOpen} onClick={handleLogoSecretClick}>
           <C.Logo $open={mOpen}>
             <C.BrandImage $open={mOpen} src={logoWhite} alt="V12 ERP" />
           </C.Logo>

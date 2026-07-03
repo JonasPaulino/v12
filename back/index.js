@@ -30,6 +30,7 @@ import mdfeRoutes from "./routes/mdfeRoutes.js";
 import paymentIntegrationRoutes from "./routes/paymentIntegrationRoutes.js";
 import messageIntegrationRoutes from "./routes/messageIntegrationRoutes.js";
 import tenantCertificateRoutes from "./routes/tenantCertificateRoutes.js";
+import gestaoDashboardRoutes from "./routes/gestaoDashboardRoutes.js";
 import gestaoPessoaRoutes from "./routes/gestaoPessoaRoutes.js";
 import gestaoFinanceiroRoutes from "./routes/gestaoFinanceiroRoutes.js";
 import gestaoUsuarioRoutes from "./routes/gestaoUsuarioRoutes.js";
@@ -86,6 +87,7 @@ app.use(
   "/gestao",
   verificarToken,
   requireMaster,
+  gestaoDashboardRoutes,
   gestaoPessoaRoutes,
   gestaoFinanceiroRoutes,
   gestaoUsuarioRoutes,
