@@ -5,7 +5,10 @@ CREATE TABLE IF NOT EXISTS gestao.pessoa (
   pessoa_tipo CHAR(1) NOT NULL DEFAULT 'F',
   nome_razao VARCHAR(180) NOT NULL,
   nome_fantasia VARCHAR(180),
-  cpf_cnpj VARCHAR(14) NOT NULL,
+  cpf_cnpj VARCHAR(14),
+  pessoa_origem VARCHAR(20) NOT NULL DEFAULT 'brasil',
+  documento_estrangeiro VARCHAR(80),
+  pais_cadastro VARCHAR(60) NOT NULL DEFAULT 'Brasil',
   inscricao_estadual VARCHAR(30),
   inscricao_municipal VARCHAR(30),
   rg VARCHAR(30),
@@ -18,7 +21,13 @@ CREATE TABLE IF NOT EXISTS gestao.pessoa (
   excluido BOOLEAN NOT NULL DEFAULT FALSE,
   criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   atualizado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  CONSTRAINT gestao_pessoa_tipo_chk CHECK (pessoa_tipo IN ('F', 'J'))
+  CONSTRAINT gestao_pessoa_tipo_chk CHECK (pessoa_tipo IN ('F', 'J')),
+  CONSTRAINT gestao_pessoa_origem_chk CHECK (pessoa_origem IN ('brasil', 'exterior')),
+  CONSTRAINT gestao_pessoa_documento_brasil_chk
+    CHECK (
+      pessoa_origem <> 'brasil'
+      OR (cpf_cnpj IS NOT NULL AND BTRIM(cpf_cnpj) <> '')
+    )
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_gestao_pessoa_documento_ativo
@@ -28,6 +37,20 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_gestao_pessoa_documento_ativo
 CREATE INDEX IF NOT EXISTS idx_gestao_pessoa_nome
   ON gestao.pessoa (nome_razao)
   WHERE excluido = FALSE;
+
+CREATE INDEX IF NOT EXISTS idx_gestao_pessoa_origem
+  ON gestao.pessoa (pessoa_origem, pais_cadastro)
+  WHERE excluido = FALSE;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_gestao_pessoa_doc_estrangeiro_ativo
+  ON gestao.pessoa (
+    LOWER(COALESCE(pais_cadastro, '')),
+    LOWER(COALESCE(documento_estrangeiro, ''))
+  )
+  WHERE excluido = FALSE
+    AND pessoa_origem = 'exterior'
+    AND documento_estrangeiro IS NOT NULL
+    AND BTRIM(documento_estrangeiro) <> '';
 
 CREATE TABLE IF NOT EXISTS gestao.pessoa_endereco (
   endereco_id SERIAL PRIMARY KEY,
@@ -39,7 +62,7 @@ CREATE TABLE IF NOT EXISTS gestao.pessoa_endereco (
   complemento VARCHAR(120),
   bairro VARCHAR(100),
   cidade VARCHAR(100),
-  uf VARCHAR(2),
+  uf VARCHAR(60),
   codigo_ibge VARCHAR(10),
   pais VARCHAR(60) NOT NULL DEFAULT 'Brasil',
   criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),

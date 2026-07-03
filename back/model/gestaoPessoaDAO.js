@@ -22,12 +22,18 @@ const normalizeDigits = (value, maxLength, { required = false, label = "Campo" }
 
 const normalizeTipo = (value) => (String(value || "F").toUpperCase() === "J" ? "J" : "F");
 
+const normalizeOrigem = (value) =>
+  String(value || "brasil").trim().toLowerCase() === "exterior" ? "exterior" : "brasil";
+
 const mapPessoa = (row = {}) => ({
   pessoa_id: row.pessoa_id,
   pessoa_tipo: row.pessoa_tipo,
   pessoa_nome_razao: row.nome_razao,
   pessoa_nome_fantasia: row.nome_fantasia,
   pessoa_cpf_cnpj: row.cpf_cnpj,
+  pessoa_origem: row.pessoa_origem || "brasil",
+  documento_estrangeiro: row.documento_estrangeiro,
+  pais_cadastro: row.pais_cadastro || "Brasil",
   pessoa_inscricao_estadual: row.inscricao_estadual,
   pessoa_inscricao_municipal: row.inscricao_municipal,
   pessoa_rg: row.rg,
@@ -56,11 +62,22 @@ const mapPessoa = (row = {}) => ({
 
 const normalizePayload = (payload = {}) => {
   const tipo = normalizeTipo(payload.pessoa_tipo);
-  const documento = normalizeDigits(payload.pessoa_cpf_cnpj, tipo === "J" ? 14 : 11, {
-    required: true,
-    label: tipo === "J" ? "CNPJ" : "CPF",
-  });
+  const origem = normalizeOrigem(payload.pessoa_origem);
   const endereco = payload.endereco || {};
+  const paisCadastro =
+    origem === "exterior"
+      ? normalizeText(payload.pais_cadastro || endereco.pais, 60, {
+          required: true,
+          label: "País",
+        })
+      : "Brasil";
+  const documento =
+    origem === "brasil"
+      ? normalizeDigits(payload.pessoa_cpf_cnpj, tipo === "J" ? 14 : 11, {
+          required: true,
+          label: tipo === "J" ? "CNPJ" : "CPF",
+        })
+      : null;
 
   return {
     pessoa_tipo: tipo,
@@ -70,6 +87,10 @@ const normalizePayload = (payload = {}) => {
     }),
     nome_fantasia: normalizeText(payload.pessoa_nome_fantasia, 180),
     cpf_cnpj: documento,
+    pessoa_origem: origem,
+    documento_estrangeiro:
+      origem === "exterior" ? normalizeText(payload.documento_estrangeiro, 80) : null,
+    pais_cadastro: paisCadastro,
     inscricao_estadual: normalizeText(payload.pessoa_inscricao_estadual, 30),
     inscricao_municipal: normalizeText(payload.pessoa_inscricao_municipal, 30),
     rg: normalizeText(payload.pessoa_rg, 30),
@@ -86,9 +107,9 @@ const normalizePayload = (payload = {}) => {
       complemento: normalizeText(endereco.complemento, 120),
       bairro: normalizeText(endereco.bairro, 100),
       cidade: normalizeText(endereco.cidade, 100),
-      uf: normalizeText(endereco.uf, 2),
+      uf: normalizeText(endereco.uf, origem === "exterior" ? 60 : 2),
       codigo_ibge: normalizeText(endereco.codigo_ibge, 10),
-      pais: normalizeText(endereco.pais, 60) || "Brasil",
+      pais: normalizeText(endereco.pais || paisCadastro, 60) || paisCadastro,
     },
   };
 };
@@ -109,6 +130,8 @@ class GestaoPessoaDAO {
           LOWER(p.nome_razao) LIKE LOWER($${values.length})
           OR LOWER(COALESCE(p.nome_fantasia, '')) LIKE LOWER($${values.length})
           OR LOWER(COALESCE(p.email, '')) LIKE LOWER($${values.length})
+          OR LOWER(COALESCE(p.documento_estrangeiro, '')) LIKE LOWER($${values.length})
+          OR LOWER(COALESCE(p.pais_cadastro, '')) LIKE LOWER($${values.length})
           OR COALESCE(p.cpf_cnpj, '') LIKE REGEXP_REPLACE($${values.length}, '\\D', '', 'g')
         )
       `;
@@ -189,6 +212,9 @@ class GestaoPessoaDAO {
             nome_razao,
             nome_fantasia,
             cpf_cnpj,
+            pessoa_origem,
+            documento_estrangeiro,
+            pais_cadastro,
             inscricao_estadual,
             inscricao_municipal,
             rg,
@@ -199,7 +225,7 @@ class GestaoPessoaDAO {
             observacao,
             ativo
           )
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
           RETURNING pessoa_id
         `,
         [
@@ -207,6 +233,9 @@ class GestaoPessoaDAO {
           data.nome_razao,
           data.nome_fantasia,
           data.cpf_cnpj,
+          data.pessoa_origem,
+          data.documento_estrangeiro,
+          data.pais_cadastro,
           data.inscricao_estadual,
           data.inscricao_municipal,
           data.rg,
@@ -245,15 +274,18 @@ class GestaoPessoaDAO {
             nome_razao = $3,
             nome_fantasia = $4,
             cpf_cnpj = $5,
-            inscricao_estadual = $6,
-            inscricao_municipal = $7,
-            rg = $8,
-            email = $9,
-            telefone = $10,
-            whatsapp = $11,
-            data_nascimento = $12,
-            observacao = $13,
-            ativo = $14
+            pessoa_origem = $6,
+            documento_estrangeiro = $7,
+            pais_cadastro = $8,
+            inscricao_estadual = $9,
+            inscricao_municipal = $10,
+            rg = $11,
+            email = $12,
+            telefone = $13,
+            whatsapp = $14,
+            data_nascimento = $15,
+            observacao = $16,
+            ativo = $17
           WHERE pessoa_id = $1
             AND excluido = FALSE
           RETURNING pessoa_id
@@ -264,6 +296,9 @@ class GestaoPessoaDAO {
           data.nome_razao,
           data.nome_fantasia,
           data.cpf_cnpj,
+          data.pessoa_origem,
+          data.documento_estrangeiro,
+          data.pais_cadastro,
           data.inscricao_estadual,
           data.inscricao_municipal,
           data.rg,

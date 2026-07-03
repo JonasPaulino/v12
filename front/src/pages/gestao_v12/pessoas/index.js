@@ -11,9 +11,12 @@ import * as C from "./style";
 
 const emptyForm = {
   pessoa_tipo: "F",
+  pessoa_origem: "brasil",
   pessoa_nome_razao: "",
   pessoa_nome_fantasia: "",
   pessoa_cpf_cnpj: "",
+  documento_estrangeiro: "",
+  pais_cadastro: "Brasil",
   pessoa_rg: "",
   pessoa_inscricao_estadual: "",
   pessoa_inscricao_municipal: "",
@@ -39,12 +42,17 @@ const emptyForm = {
 const normalizeForm = (data = {}) => ({
   ...emptyForm,
   ...data,
+  pessoa_origem: data.pessoa_origem || "brasil",
+  documento_estrangeiro: data.documento_estrangeiro || "",
+  pais_cadastro: data.pais_cadastro || data.endereco?.pais || "Brasil",
   pessoa_ativo: data.pessoa_ativo !== false,
   endereco: {
     ...emptyForm.endereco,
     ...(data.endereco || {}),
   },
 });
+
+const isPessoaExterior = (pessoa = {}) => pessoa.pessoa_origem === "exterior";
 
 export const GestaoV12Pessoas = () => {
   const { showLoading, hideLoading } = useContext(AppContext);
@@ -63,6 +71,7 @@ export const GestaoV12Pessoas = () => {
   const [anchorEl, setAnchorEl] = useState(null);
 
   const rows = useMemo(() => pessoas || [], [pessoas]);
+  const isExterior = form.pessoa_origem === "exterior";
 
   const loadPessoas = useCallback(async () => {
     setLoading(true);
@@ -147,6 +156,37 @@ export const GestaoV12Pessoas = () => {
     setForm((current) => ({
       ...current,
       [field]: value,
+    }));
+  };
+
+  const updateOrigem = (value) => {
+    setForm((current) => {
+      const origem = value === "exterior" ? "exterior" : "brasil";
+      const paisCadastro =
+        origem === "exterior" ? current.pais_cadastro || current.endereco?.pais || "" : "Brasil";
+
+      return {
+        ...current,
+        pessoa_origem: origem,
+        pessoa_cpf_cnpj: origem === "exterior" ? "" : current.pessoa_cpf_cnpj,
+        documento_estrangeiro: origem === "brasil" ? "" : current.documento_estrangeiro,
+        pais_cadastro: paisCadastro,
+        endereco: {
+          ...current.endereco,
+          pais: origem === "brasil" ? "Brasil" : current.endereco?.pais || paisCadastro,
+        },
+      };
+    });
+  };
+
+  const updatePaisCadastro = (value) => {
+    setForm((current) => ({
+      ...current,
+      pais_cadastro: value,
+      endereco: {
+        ...current.endereco,
+        pais: value,
+      },
     }));
   };
 
@@ -236,7 +276,7 @@ export const GestaoV12Pessoas = () => {
             <C.Input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Nome, documento, e-mail ou fantasia"
+              placeholder="Nome, documento, país, e-mail ou fantasia"
             />
           </C.SearchField>
 
@@ -272,7 +312,16 @@ export const GestaoV12Pessoas = () => {
                         </C.PersonMeta>
                       </C.Cell>
                       <C.Cell>
-                        <Documento value={pessoa.pessoa_cpf_cnpj} />
+                        {isPessoaExterior(pessoa) ? (
+                          <>
+                            <C.PersonName>
+                              {pessoa.documento_estrangeiro || "Documento exterior não informado"}
+                            </C.PersonName>
+                            <C.PersonMeta>{pessoa.pais_cadastro || "Exterior"}</C.PersonMeta>
+                          </>
+                        ) : (
+                          <Documento value={pessoa.pessoa_cpf_cnpj} />
+                        )}
                       </C.Cell>
                       <C.Cell $wrap>
                         <C.PersonName>{pessoa.pessoa_email || "--"}</C.PersonName>
@@ -361,6 +410,17 @@ export const GestaoV12Pessoas = () => {
             <C.ModalBody>
               <C.FormGrid>
                 <C.Field>
+                  <C.Label>Origem do cadastro</C.Label>
+                  <C.Select
+                    value={form.pessoa_origem}
+                    onChange={(event) => updateOrigem(event.target.value)}
+                  >
+                    <option value="brasil">Brasil</option>
+                    <option value="exterior">Exterior</option>
+                  </C.Select>
+                </C.Field>
+
+                <C.Field>
                   <C.Label>Tipo de pessoa</C.Label>
                   <C.Select
                     value={form.pessoa_tipo}
@@ -391,16 +451,42 @@ export const GestaoV12Pessoas = () => {
                   />
                 </C.Field>
 
-                <C.Field>
-                  <C.Label>
-                    {form.pessoa_tipo === "J" ? "CNPJ" : "CPF"} <C.Required>*</C.Required>
-                  </C.Label>
-                  <C.Input
-                    value={form.pessoa_cpf_cnpj}
-                    onChange={(event) => updateField("pessoa_cpf_cnpj", event.target.value)}
-                    required
-                  />
-                </C.Field>
+                {isExterior ? (
+                  <>
+                    <C.Field>
+                      <C.Label>
+                        País de cadastro <C.Required>*</C.Required>
+                      </C.Label>
+                      <C.Input
+                        value={form.pais_cadastro || ""}
+                        onChange={(event) => updatePaisCadastro(event.target.value)}
+                        required
+                      />
+                    </C.Field>
+
+                    <C.Field>
+                      <C.Label>Documento estrangeiro / Tax ID</C.Label>
+                      <C.Input
+                        value={form.documento_estrangeiro || ""}
+                        onChange={(event) =>
+                          updateField("documento_estrangeiro", event.target.value)
+                        }
+                        placeholder="Registro fiscal, Tax ID ou documento local"
+                      />
+                    </C.Field>
+                  </>
+                ) : (
+                  <C.Field>
+                    <C.Label>
+                      {form.pessoa_tipo === "J" ? "CNPJ" : "CPF"} <C.Required>*</C.Required>
+                    </C.Label>
+                    <C.Input
+                      value={form.pessoa_cpf_cnpj}
+                      onChange={(event) => updateField("pessoa_cpf_cnpj", event.target.value)}
+                      required
+                    />
+                  </C.Field>
+                )}
 
                 <C.Field>
                   <C.Label>RG</C.Label>
@@ -438,7 +524,7 @@ export const GestaoV12Pessoas = () => {
                 </C.Field>
 
                 <C.Field>
-                  <C.Label>CEP</C.Label>
+                  <C.Label>{isExterior ? "Código postal" : "CEP"}</C.Label>
                   <C.Input
                     value={form.endereco.cep || ""}
                     onChange={(event) => updateEndereco("cep", event.target.value)}
@@ -478,11 +564,28 @@ export const GestaoV12Pessoas = () => {
                 </C.Field>
 
                 <C.Field>
-                  <C.Label>UF</C.Label>
+                  <C.Label>{isExterior ? "Estado / província" : "UF"}</C.Label>
                   <C.Input
                     value={form.endereco.uf || ""}
-                    maxLength={2}
-                    onChange={(event) => updateEndereco("uf", event.target.value.toUpperCase())}
+                    maxLength={isExterior ? 60 : 2}
+                    onChange={(event) =>
+                      updateEndereco(
+                        "uf",
+                        isExterior ? event.target.value : event.target.value.toUpperCase()
+                      )
+                    }
+                  />
+                </C.Field>
+
+                <C.Field>
+                  <C.Label>País do endereço</C.Label>
+                  <C.Input
+                    value={form.endereco.pais || ""}
+                    onChange={(event) => {
+                      updateEndereco("pais", event.target.value);
+                      if (isExterior) updateField("pais_cadastro", event.target.value);
+                    }}
+                    disabled={!isExterior}
                   />
                 </C.Field>
 
