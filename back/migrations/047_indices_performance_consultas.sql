@@ -201,8 +201,12 @@ CREATE INDEX IF NOT EXISTS idx_fiscal_mdfe_percurso_tenant_mdfe
 CREATE INDEX IF NOT EXISTS idx_fiscal_mdfe_descarga_tenant_mdfe
   ON fiscal.mdfe_descarga (tenant_id, mdfe_id, mdfe_descarga_id);
 
-CREATE INDEX IF NOT EXISTS idx_fiscal_mdfe_documento_tenant_descarga
-  ON fiscal.mdfe_documento (tenant_id, mdfe_descarga_id, mdfe_documento_id);
+CREATE INDEX IF NOT EXISTS idx_fiscal_mdfe_documento_tenant_mdfe
+  ON fiscal.mdfe_documento (tenant_id, mdfe_id, mdfe_documento_id);
+
+CREATE INDEX IF NOT EXISTS idx_fiscal_mdfe_documento_nfe
+  ON fiscal.mdfe_documento (tenant_id, nfe_id)
+  WHERE nfe_id IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_fiscal_mdfe_seguro_tenant_mdfe
   ON fiscal.mdfe_seguro (tenant_id, mdfe_id, mdfe_seguro_id);
