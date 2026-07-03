@@ -1,6 +1,8 @@
 import express from "express";
 import { pool } from "../config/conexao.js";
 import GestaoFinanceiroDAO from "../model/gestaoFinanceiroDAO.js";
+import GestaoMensagemDAO from "../model/gestaoMensagemDAO.js";
+import { enviarWhatsAppTexto } from "../services/messageGatewayService.js";
 
 const router = express.Router();
 
@@ -12,6 +14,40 @@ const withClient = async (handler) => {
     client.release();
   }
 };
+
+const currencyFormatter = new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+});
+
+const dateFormatter = (value) => {
+  if (!value) return "--";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString("pt-BR");
+};
+
+const normalizePhoneNumber = (value) => {
+  const digits = String(value || "").replace(/\D/g, "");
+  if (digits.length === 10 || digits.length === 11) return `55${digits}`;
+  return digits.length >= 12 ? digits : "";
+};
+
+const resolveParcelaLink = (parcela = {}) =>
+  parcela.asaas_invoice_url ||
+  parcela.asaas_payload?.payment?.bankSlipUrl ||
+  parcela.asaas_payload?.payment?.invoiceUrl ||
+  parcela.asaas_payload?.boleto?.bankSlipUrl ||
+  "";
+
+const resolveLinhaDigitavel = (parcela = {}) =>
+  parcela.asaas_payload?.boleto?.identificationField ||
+  parcela.asaas_payload?.boleto?.barCode ||
+  "";
+
+const parcelaTemCobrancaAtiva = (parcela = {}) =>
+  !!parcela.asaas_charge_id &&
+  !["quitado", "cancelado"].includes(String(parcela.status || "").toLowerCase()) &&
+  Number(parcela.valor_pago || 0) <= 0;
 
 router.get("/financeiro/listar", async (req, res) => {
   try {
@@ -155,6 +191,90 @@ router.get("/financeiro/titulos/:id/carne/pdf", async (req, res) => {
     return res.status(400).json({
       success: false,
       message: error.message || "Não foi possível baixar o carnê.",
+    });
+  }
+});
+
+router.post("/financeiro/titulos/:id/carne/enviar-whatsapp", async (req, res) => {
+  try {
+    const result = await withClient(async (client) => {
+      const contexto = await GestaoFinanceiroDAO.buscarTituloContexto(client, Number(req.params.id));
+      if (!contexto) throw new Error("Título financeiro não encontrado.");
+
+      const { titulo, parcelas } = contexto;
+      if (!titulo.asaas_installment_id) {
+        throw new Error("Gere o carnê antes de enviar pelo WhatsApp.");
+      }
+
+      const parcelasAtivas = parcelas.filter(parcelaTemCobrancaAtiva);
+      if (!parcelasAtivas.length) {
+        throw new Error("Este título não possui parcelas de carnê ativas para envio.");
+      }
+
+      const toNumber = normalizePhoneNumber(titulo.pessoa_whatsapp || titulo.pessoa_telefone);
+      if (!toNumber) {
+        throw new Error("O cliente não possui WhatsApp ou telefone válido cadastrado.");
+      }
+
+      const config = await GestaoMensagemDAO.buscarConfiguracaoAtivaWhatsApp(client);
+      const nomeCliente =
+        titulo.pessoa_nome_fantasia || titulo.pessoa_nome_razao || "cliente";
+
+      const boletos = parcelasAtivas
+        .map((parcela) => {
+          const link = resolveParcelaLink(parcela);
+          const linhaDigitavel = resolveLinhaDigitavel(parcela);
+          const linhas = [
+            `Parcela ${parcela.numero_parcela}`,
+            `Valor: ${currencyFormatter.format(Number(parcela.valor || 0))}`,
+            `Vencimento: ${dateFormatter(parcela.vencimento)}`,
+          ];
+
+          if (link) linhas.push(`Link: ${link}`);
+          if (linhaDigitavel) linhas.push(`Linha digitável: ${linhaDigitavel}`);
+
+          return linhas.join("\n");
+        })
+        .join("\n\n");
+
+      const primeiroLink = resolveParcelaLink(parcelasAtivas[0]);
+      const template = config.mensagem_boleto_padrao || "";
+      const renderedText = GestaoMensagemDAO.renderTemplate(template, {
+        nome: nomeCliente,
+        titulo_id: titulo.titulo_id,
+        descricao: titulo.descricao || "",
+        documento: titulo.documento || "",
+        link_boleto: primeiroLink,
+        boletos,
+        carne: boletos,
+      });
+      const text = /\{(boletos|carne)\}/.test(template)
+        ? renderedText
+        : `${renderedText}\n\n${boletos}`;
+
+      await enviarWhatsAppTexto({
+        instanceName: config.instance_name,
+        remetenteNumero: config.remetente_numero,
+        toNumber,
+        text,
+      });
+
+      return {
+        total_parcelas: parcelasAtivas.length,
+        telefone_destino: toNumber,
+      };
+    });
+
+    return res.json({
+      success: true,
+      message: "Carnê enviado por WhatsApp com sucesso.",
+      data: result,
+    });
+  } catch (error) {
+    console.error("[gestao:financeiro] Falha ao enviar carnê por WhatsApp:", error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Não foi possível enviar o carnê por WhatsApp.",
     });
   }
 });

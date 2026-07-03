@@ -180,6 +180,15 @@ export const GestaoV12Financeiro = () => {
       request: () => api.post(`/gestao/financeiro/titulos/${parcela.titulo_id}/carne`),
     });
 
+  const enviarCarneWhatsApp = (parcela) =>
+    runAction({
+      title: "Carnê enviado",
+      successText: "Carnê enviado por WhatsApp.",
+      loadingText: "Enviando carnê...",
+      request: () =>
+        api.post(`/gestao/financeiro/titulos/${parcela.titulo_id}/carne/enviar-whatsapp`),
+    });
+
   const cancelarCarne = async (parcela) => {
     closeMenu();
     const confirmed = await askYesNoQuestion?.(
@@ -492,6 +501,11 @@ export const GestaoV12Financeiro = () => {
                                   label: "Baixar carnê",
                                   disabled: !carneTemCobrancaAtiva,
                                   onClick: () => openCarne(parcela),
+                                },
+                                {
+                                  label: "Enviar carnê WhatsApp",
+                                  disabled: !carneTemCobrancaAtiva,
+                                  onClick: () => enviarCarneWhatsApp(parcela),
                                 },
                                 {
                                   label: "Cancelar carnê",

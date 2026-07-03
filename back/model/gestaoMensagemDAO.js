@@ -1,5 +1,5 @@
 export const DEFAULT_GESTAO_WHATSAPP_BOLETO_TEMPLATE =
-  "Olá, {nome}. Segue a cobrança da V12 ERP: {link_boleto}";
+  "Olá, {nome}. Seguem as cobranças da V12 ERP:\n\n{boletos}";
 
 export const DEFAULT_GESTAO_WHATSAPP_PIX_TEMPLATE =
   "Olá, {nome}. Segue o PIX da V12 ERP. Valor: {valor}. Vencimento: {vencimento}. Copia e cola: {pix_copia_cola}";
@@ -41,6 +41,12 @@ const buildConfigView = (data = {}) => ({
 });
 
 class GestaoMensagemDAO {
+  static renderTemplate(template = "", variables = {}) {
+    return String(template || "").replace(/\{(\w+)\}/g, (_, key) =>
+      variables[key] === undefined || variables[key] === null ? "" : String(variables[key])
+    );
+  }
+
   static normalizarPayloadWhatsApp(payload = {}) {
     const provider = normalizeText(payload.provider || "evolution", 30, {
       required: true,
