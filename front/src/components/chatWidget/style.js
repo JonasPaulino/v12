@@ -164,6 +164,9 @@ export const Field = styled.label`
 `;
 
 export const FillField = styled(Field)`
+  align-content: start;
+  grid-template-rows: auto minmax(0, 1fr);
+
   textarea {
     height: 100%;
   }
