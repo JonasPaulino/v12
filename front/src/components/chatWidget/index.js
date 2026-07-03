@@ -130,12 +130,14 @@ export const ChatWidget = () => {
   );
 
   useEffect(() => {
+    if (hiddenInGestao) return;
+
     loadConfig();
     const stored = readStoredChat();
     if (stored?.client_token) {
       loadAtendimento(stored.client_token);
     }
-  }, [loadConfig, loadAtendimento]);
+  }, [hiddenInGestao, loadConfig, loadAtendimento]);
 
   useEffect(() => {
     if (!chatToken || atendimento?.status === "encerrado") return undefined;
@@ -274,7 +276,7 @@ export const ChatWidget = () => {
 
           <C.Body>
             {!atendimento ? (
-              <C.Form onSubmit={startChat}>
+              <C.Form onSubmit={startChat} $logged={isLogged}>
                 {errorMessage ? <C.Notice>{errorMessage}</C.Notice> : null}
                 {!isLogged ? (
                   <>
@@ -321,14 +323,14 @@ export const ChatWidget = () => {
                   />
                 </C.Field>
 
-                <C.Field>
+                <C.FillField>
                   Mensagem
                   <C.TextArea
                     value={form.mensagem}
                     onChange={(event) => updateForm("mensagem", event.target.value)}
                     required
                   />
-                </C.Field>
+                </C.FillField>
 
                 <C.Button type="submit" disabled={saving}>
                   {saving ? "Enviando..." : "Iniciar atendimento"}

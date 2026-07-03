@@ -17,7 +17,7 @@ export const Card = styled.section`
   border: 1px solid ${({ theme }) => theme.colors.border};
   border-radius: 24px;
   background: ${({ theme }) => theme.colors.surface};
-  box-shadow: ${({ theme }) => theme.shadows.card};
+  box-shadow: ${({ theme }) => theme.colors.shadowSoft};
   overflow: hidden;
   display: flex;
   flex-direction: column;

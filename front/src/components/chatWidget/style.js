@@ -145,17 +145,28 @@ export const Body = styled.div`
 `;
 
 export const Form = styled.form`
+  flex: 1;
+  min-height: 0;
   padding: 18px;
   display: grid;
   gap: 12px;
+  grid-template-rows: ${({ $logged }) =>
+    $logged ? "repeat(2, auto) minmax(140px, 1fr) auto" : "repeat(4, auto) minmax(140px, 1fr) auto"};
 `;
 
 export const Field = styled.label`
+  min-height: 0;
   display: grid;
   gap: 6px;
   color: ${({ theme }) => theme.colors.textSoft};
   font-size: 0.84rem;
   font-weight: 700;
+`;
+
+export const FillField = styled(Field)`
+  textarea {
+    height: 100%;
+  }
 `;
 
 export const Input = styled.input`
@@ -185,6 +196,7 @@ export const Select = styled.select`
 
 export const TextArea = styled.textarea`
   min-height: 96px;
+  height: auto;
   resize: vertical;
   border: 1px solid ${({ theme }) => theme.colors.border};
   border-radius: 16px;
