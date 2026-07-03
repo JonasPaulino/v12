@@ -43,7 +43,8 @@ export const Item = styled.button`
   align-items: center;
   gap: 8px;
   cursor: pointer;
-  color: ${({ $danger, theme }) => ($danger ? theme.colors.danger : theme.colors.text)};
+  color: ${({ $danger, $success, theme }) =>
+    $danger ? theme.colors.danger : $success ? theme.colors.success : theme.colors.text};
   transition: background 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
 
   &:hover {
@@ -61,6 +62,15 @@ export const Item = styled.button`
       }
     `}
 
+  ${({ $success }) =>
+    $success &&
+    css`
+      &:hover {
+        background: rgba(31, 157, 106, 0.1);
+        border-color: rgba(31, 157, 106, 0.18);
+      }
+    `}
+
   &:disabled {
     opacity: 0.55;
     cursor: not-allowed;
@@ -75,9 +85,14 @@ export const ItemIcon = styled.span`
   align-items: center;
   justify-content: center;
   border-radius: 10px;
-  background: ${({ $danger }) =>
-    $danger ? "rgba(212, 73, 73, 0.1)" : "rgba(11, 95, 255, 0.1)"};
-  color: ${({ $danger, theme }) => ($danger ? theme.colors.danger : theme.colors.primaryStrong)};
+  background: ${({ $danger, $success }) =>
+    $danger
+      ? "rgba(212, 73, 73, 0.1)"
+      : $success
+        ? "rgba(31, 157, 106, 0.12)"
+        : "rgba(11, 95, 255, 0.1)"};
+  color: ${({ $danger, $success, theme }) =>
+    $danger ? theme.colors.danger : $success ? theme.colors.success : theme.colors.primaryStrong};
 
   svg {
     width: 17px;

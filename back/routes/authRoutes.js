@@ -205,8 +205,10 @@ router.get("/validar-token", verificarToken, async (req, res) => {
       (item) => item.tenant_ativo && (isMaster || !item.tenant_acesso_bloqueado)
     );
     const tenant = tenants.find((item) => item.tenant_id === req.user.tenantId) || null;
+    const tenantBlocked = !!tenant?.tenant_acesso_bloqueado;
+    const blockedInCurrentMode = tenantBlocked && !isMaster;
 
-    if (!usuario || !tenant || !tenant.tenant_ativo || (!isMaster && tenant.tenant_acesso_bloqueado)) {
+    if (!usuario || !tenant || !tenant.tenant_ativo || blockedInCurrentMode) {
       return res.json({ valid: false });
     }
 

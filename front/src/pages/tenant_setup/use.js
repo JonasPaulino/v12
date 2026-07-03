@@ -874,17 +874,52 @@ export const useTenantSetupPage = ({ gestaoContext = false } = {}) => {
 
       try {
         showLoading(willBlock ? "Bloqueando acesso..." : "Desbloqueando acesso...");
-        await toggleTenantAccessBlock(
+        const result = await toggleTenantAccessBlock(
           tenant.tenant_id,
           willBlock,
           willBlock ? "Bloqueio manual pela Gestão V12" : null
         );
+        if (result?.success === false) {
+          throw new Error(result?.message || "Não foi possível alterar o bloqueio de acesso.");
+        }
+
+        const updatedTenant = result?.data;
+        if (updatedTenant?.tenant_id) {
+          setTenants((current) =>
+            current.map((item) =>
+              item.tenant_id === updatedTenant.tenant_id
+                ? {
+                    ...item,
+                    tenant_acesso_bloqueado: !!updatedTenant.tenant_acesso_bloqueado,
+                    tenant_bloqueio_motivo: updatedTenant.tenant_bloqueio_motivo || null,
+                  }
+                : item
+            )
+          );
+        }
         await loadTenants();
+        showAlert({
+          title: willBlock ? "Acesso bloqueado" : "Acesso desbloqueado",
+          text: willBlock
+            ? "Usuários comuns não poderão acessar esta filial."
+            : "Usuários comuns poderão acessar esta filial novamente.",
+          icon: "success",
+          timer: 1800,
+        });
+      } catch (error) {
+        showAlert({
+          title: "Ação não concluída",
+          text:
+            error?.response?.data?.message ||
+            error?.message ||
+            "Não foi possível alterar o bloqueio de acesso.",
+          icon: "error",
+        });
       } finally {
         hideLoading();
       }
     },
-    [askYesNoQuestion, hideLoading, loadTenants, showLoading]
+    [askYesNoQuestion, hideLoading, loadTenants, showAlert, showLoading]
   );
 
   return {

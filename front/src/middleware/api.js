@@ -1,8 +1,12 @@
 import { api } from "api/axiosConfig";
 
-export const checkTokenValidity = async () => {
+export const checkTokenValidity = async (mode = "cliente") => {
   try {
-    const { data } = await api.get("/auth/validar-token");
+    const { data } = await api.get("/auth/validar-token", {
+      params: {
+        mode: mode === "gestao" ? "gestao" : "cliente",
+      },
+    });
 
     if (data?.valid) {
       return {

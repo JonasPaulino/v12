@@ -150,12 +150,13 @@ export default function DropdownMenu({
                 onClose?.();
               }}
               $danger={!!item.danger}
+              $success={!!item.success}
               disabled={!!item.disabled}
               title={item.title || ""}
               aria-label={ariaLabel}
               role="menuitem"
             >
-              <S.ItemIcon $danger={!!item.danger}>{icon}</S.ItemIcon>
+              <S.ItemIcon $danger={!!item.danger} $success={!!item.success}>{icon}</S.ItemIcon>
               <S.ItemLabel>{item.label}</S.ItemLabel>
             </S.Item>
           );

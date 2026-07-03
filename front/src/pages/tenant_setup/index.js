@@ -714,6 +714,7 @@ export const TenantSetup = ({ embedded = false }) => {
                                           ? "Desbloquear acesso"
                                           : "Bloquear acesso",
                                         danger: !tenant.tenant_acesso_bloqueado,
+                                        success: !!tenant.tenant_acesso_bloqueado,
                                         onClick: () => handleToggleTenantAccessBlock(tenant),
                                       },
                                     ]

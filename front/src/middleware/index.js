@@ -7,7 +7,8 @@ import { useSweetAlert } from "context/sweet_alert";
 export const AuthMiddleware = ({ children }) => {
   const navigate = useNavigate();
   const { showAlert, promptPasswordChange } = useSweetAlert();
-  const { setUser, setBusiness, setBusinesses, clearSession } = useContext(AppContext);
+  const { systemMode, setUser, setBusiness, setBusinesses, clearSession } =
+    useContext(AppContext);
   const [checking, setChecking] = useState(true);
   const [valid, setValid] = useState(false);
   const alertLockRef = useRef(false);
@@ -42,7 +43,7 @@ export const AuthMiddleware = ({ children }) => {
     let mounted = true;
 
     const validate = async () => {
-      const result = await checkTokenValidity();
+      const result = await checkTokenValidity(systemMode);
       if (!mounted) return;
 
       if (result.valid) {
@@ -93,7 +94,7 @@ export const AuthMiddleware = ({ children }) => {
     return () => {
       mounted = false;
     };
-  }, [clearSession, setBusiness, setBusinesses, setUser]);
+  }, [clearSession, setBusiness, setBusinesses, setUser, systemMode]);
 
   if (checking) return null;
 
