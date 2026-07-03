@@ -8,6 +8,7 @@ import {
   HiOutlineBriefcase,
   HiOutlineBuildingOffice2,
   HiOutlineChartBarSquare,
+  HiOutlineChatBubbleLeftRight,
   HiOutlineCog8Tooth,
   HiOutlineUsers,
 } from "react-icons/hi2";
@@ -42,6 +43,11 @@ const menuItems = [
     path: "/gestao-v12/usuarios",
     title: "Usuários internos",
     icon: HiOutlineBriefcase,
+  },
+  {
+    path: "/gestao-v12/chat",
+    title: "Chat",
+    icon: HiOutlineChatBubbleLeftRight,
   },
   {
     path: "/gestao-v12/configuracoes",

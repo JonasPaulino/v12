@@ -19,11 +19,13 @@ import { Nfe } from "pages/nfe";
 import { NfeRecebidas } from "pages/nfe_recebidas";
 import { NfeManifestacao } from "pages/nfe_manifestacao";
 import { Mdfe } from "pages/mdfe";
+import { ChatWidget } from "components/chatWidget";
 import { GestaoV12Dashboard } from "pages/gestao_v12/dashboard";
 import { GestaoV12Clientes } from "pages/gestao_v12/clientes";
 import { GestaoV12Pessoas } from "pages/gestao_v12/pessoas";
 import { GestaoV12Financeiro } from "pages/gestao_v12/financeiro";
 import { GestaoV12Usuarios } from "pages/gestao_v12/usuarios";
+import { GestaoV12Chat } from "pages/gestao_v12/chat";
 import { GestaoV12Configuracoes } from "pages/gestao_v12/configuracoes";
 import { NotFound } from "pages/404";
 
@@ -211,6 +213,16 @@ export const RouteApp = () => (
         }
       />
       <Route
+        path="/gestao-v12/chat"
+        element={
+          <AuthMiddleware>
+            <MasterOnly>
+              <GestaoV12Chat />
+            </MasterOnly>
+          </AuthMiddleware>
+        }
+      />
+      <Route
         path="/gestao-v12/configuracoes"
         element={
           <AuthMiddleware>
@@ -274,5 +286,6 @@ export const RouteApp = () => (
       />
       <Route path="*" element={<NotFound />} />
     </Routes>
+    <ChatWidget />
   </BrowserRouter>
 );

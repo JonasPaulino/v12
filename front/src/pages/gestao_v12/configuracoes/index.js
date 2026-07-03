@@ -21,6 +21,13 @@ const initialWhatsAppForm = {
   mensagem_pix_padrao: "",
 };
 
+const initialChatForm = {
+  chat_ativo: true,
+  horario_inicio: "08:00",
+  horario_fim: "18:00",
+  mensagem_fora_horario: "",
+};
+
 const normalizeWhatsAppStatus = (value) => {
   const normalized = String(value || "").trim().toLowerCase();
 
@@ -118,6 +125,9 @@ export const GestaoV12Configuracoes = () => {
   const [asaasConfig, setAsaasConfig] = useState(null);
   const [asaasForm, setAsaasForm] = useState(initialAsaasForm);
   const [whatsAppForm, setWhatsAppForm] = useState(initialWhatsAppForm);
+  const [chatForm, setChatForm] = useState(initialChatForm);
+  const [chatCategorias, setChatCategorias] = useState([]);
+  const [savingChat, setSavingChat] = useState(false);
 
   const loadAsaasConfig = useCallback(async () => {
     setLoading(true);
@@ -205,6 +215,30 @@ export const GestaoV12Configuracoes = () => {
     loadWhatsAppConfig();
   }, [loadWhatsAppConfig]);
 
+  const loadChatConfig = useCallback(async () => {
+    try {
+      const { data } = await api.get("/gestao/chat/configuracao");
+      const config = data?.data?.configuracao || {};
+      setChatForm({
+        chat_ativo: config.chat_ativo !== false,
+        horario_inicio: String(config.horario_inicio || "08:00").slice(0, 5),
+        horario_fim: String(config.horario_fim || "18:00").slice(0, 5),
+        mensagem_fora_horario: config.mensagem_fora_horario || "",
+      });
+      setChatCategorias(data?.data?.categorias || []);
+    } catch (error) {
+      showAlert?.({
+        title: "Falha ao carregar chat",
+        text: error?.response?.data?.message || "Não foi possível carregar as configurações do chat.",
+        icon: "error",
+      });
+    }
+  }, [showAlert]);
+
+  useEffect(() => {
+    loadChatConfig();
+  }, [loadChatConfig]);
+
   const updateAsaasField = (field, value) => {
     setAsaasForm((current) => ({
       ...current,
@@ -217,6 +251,66 @@ export const GestaoV12Configuracoes = () => {
       ...current,
       [field]: value,
     }));
+  };
+
+  const updateChatField = (field, value) => {
+    setChatForm((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  };
+
+  const updateChatCategoria = (categoriaId, field, value) => {
+    setChatCategorias((current) =>
+      current.map((categoria) =>
+        categoria.categoria_id === categoriaId ? { ...categoria, [field]: value } : categoria
+      )
+    );
+  };
+
+  const addChatCategoria = () => {
+    setChatCategorias((current) => [
+      ...current,
+      {
+        categoria_id: `nova-${Date.now()}`,
+        slug: "",
+        nome: "",
+        descricao: "",
+        ativo: true,
+        ordem: (current.length + 1) * 10,
+      },
+    ]);
+  };
+
+  const handleSaveChat = async () => {
+    setSavingChat(true);
+    showLoading("Salvando chat...");
+    try {
+      await api.put("/gestao/chat/configuracao", chatForm);
+
+      for (const categoria of chatCategorias) {
+        await api.post("/gestao/chat/categorias", categoria);
+      }
+
+      hideLoading();
+      await loadChatConfig();
+      showAlert?.({
+        title: "Chat salvo",
+        text: "As configurações do chat foram atualizadas.",
+        icon: "success",
+        timer: 1800,
+      });
+    } catch (error) {
+      hideLoading();
+      showAlert?.({
+        title: "Falha ao salvar chat",
+        text: error?.response?.data?.message || "Não foi possível salvar o chat.",
+        icon: "error",
+      });
+    } finally {
+      setSavingChat(false);
+      hideLoading();
+    }
   };
 
   const handleSubmitAsaas = async (event) => {
@@ -556,6 +650,13 @@ export const GestaoV12Configuracoes = () => {
             >
               Mensagens
             </C.TabButton>
+            <C.TabButton
+              type="button"
+              $active={activeTab === "chat"}
+              onClick={() => setActiveTab("chat")}
+            >
+              Chat
+            </C.TabButton>
           </C.Tabs>
 
           {activeTab === "cobranca" ? (
@@ -812,6 +913,132 @@ export const GestaoV12Configuracoes = () => {
                   </C.Actions>
                 </>
               ) : null}
+            </C.SectionBody>
+          ) : null}
+
+          {activeTab === "chat" ? (
+            <C.SectionBody>
+              <C.CardHeader>
+                <C.CardTitle>Chat interno</C.CardTitle>
+                <C.CardText>
+                  Controle o atendimento flutuante exibido aos visitantes e usuários do V12.
+                  Os atendimentos são respondidos no menu Chat da Gestão V12.
+                </C.CardText>
+              </C.CardHeader>
+
+              <C.ToggleList>
+                <C.ToggleRow>
+                  <C.Checkbox
+                    type="checkbox"
+                    checked={chatForm.chat_ativo}
+                    onChange={(event) => updateChatField("chat_ativo", event.target.checked)}
+                  />
+                  <span>Exibir chat de atendimento no V12</span>
+                </C.ToggleRow>
+              </C.ToggleList>
+
+              <C.FieldsGrid>
+                <C.Field>
+                  <C.FieldSpan>Início do atendimento</C.FieldSpan>
+                  <C.Input
+                    type="time"
+                    value={chatForm.horario_inicio}
+                    onChange={(event) => updateChatField("horario_inicio", event.target.value)}
+                  />
+                </C.Field>
+
+                <C.Field>
+                  <C.FieldSpan>Fim do atendimento</C.FieldSpan>
+                  <C.Input
+                    type="time"
+                    value={chatForm.horario_fim}
+                    onChange={(event) => updateChatField("horario_fim", event.target.value)}
+                  />
+                </C.Field>
+
+                <C.Field>
+                  <C.FieldSpan>Mensagem fora do horário</C.FieldSpan>
+                  <C.Textarea
+                    value={chatForm.mensagem_fora_horario}
+                    onChange={(event) =>
+                      updateChatField("mensagem_fora_horario", event.target.value)
+                    }
+                    placeholder="Mensagem exibida quando o cliente iniciar atendimento fora do horário."
+                  />
+                </C.Field>
+              </C.FieldsGrid>
+
+              <C.CardHeader>
+                <C.CardTitle>Categorias de atendimento</C.CardTitle>
+                <C.CardText>
+                  Admin vê todas. Usuários com perfil vendedor, financeiro ou suporte veem apenas
+                  sua respectiva fila.
+                </C.CardText>
+              </C.CardHeader>
+
+              <C.Actions>
+                <C.SecondaryButton type="button" onClick={addChatCategoria}>
+                  Nova categoria
+                </C.SecondaryButton>
+              </C.Actions>
+
+              <C.ToggleList>
+                {chatCategorias.map((categoria) => (
+                  <C.ConnectionCard key={categoria.categoria_id}>
+                    <C.FieldsGrid>
+                      <C.Field>
+                        <C.FieldSpan>Nome</C.FieldSpan>
+                        <C.Input
+                          value={categoria.nome || ""}
+                          onChange={(event) =>
+                            updateChatCategoria(categoria.categoria_id, "nome", event.target.value)
+                          }
+                        />
+                      </C.Field>
+                      <C.Field>
+                        <C.FieldSpan>Slug</C.FieldSpan>
+                        <C.Input
+                          value={categoria.slug || ""}
+                          disabled={typeof categoria.categoria_id === "number"}
+                          onChange={(event) =>
+                            updateChatCategoria(
+                              categoria.categoria_id,
+                              "slug",
+                              event.target.value
+                            )
+                          }
+                        />
+                      </C.Field>
+                      <C.Field>
+                        <C.FieldSpan>Ativo</C.FieldSpan>
+                        <C.ToggleRow>
+                          <C.Checkbox
+                            type="checkbox"
+                            checked={categoria.ativo !== false}
+                            onChange={(event) =>
+                              updateChatCategoria(
+                                categoria.categoria_id,
+                                "ativo",
+                                event.target.checked
+                              )
+                            }
+                          />
+                          <span>Categoria disponível no chat</span>
+                        </C.ToggleRow>
+                      </C.Field>
+                    </C.FieldsGrid>
+                  </C.ConnectionCard>
+                ))}
+              </C.ToggleList>
+
+              <C.Actions>
+                <C.SecondaryButton type="button" onClick={loadChatConfig} disabled={savingChat}>
+                  Recarregar
+                </C.SecondaryButton>
+                <C.PrimaryButton type="button" onClick={handleSaveChat} disabled={savingChat}>
+                  {savingChat ? "Salvando..." : "Salvar chat"}
+                </C.PrimaryButton>
+              </C.Actions>
             </C.SectionBody>
           ) : null}
         </C.Card>

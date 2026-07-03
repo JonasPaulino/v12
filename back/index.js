@@ -34,6 +34,8 @@ import gestaoPessoaRoutes from "./routes/gestaoPessoaRoutes.js";
 import gestaoFinanceiroRoutes from "./routes/gestaoFinanceiroRoutes.js";
 import gestaoUsuarioRoutes from "./routes/gestaoUsuarioRoutes.js";
 import gestaoMensagemRoutes from "./routes/gestaoMensagemRoutes.js";
+import gestaoChatRoutes from "./routes/gestaoChatRoutes.js";
+import chatRoutes from "./routes/chatRoutes.js";
 import requireMaster from "./middleware/requireMaster.js";
 
 dotenv.config();
@@ -75,6 +77,7 @@ const loginLimiter = rateLimit({
 
 app.use("/auth/login", loginLimiter);
 app.use("/auth", authRoutes);
+app.use("/chat", chatRoutes);
 app.use("/tenant", verificarToken, tenantRoutes);
 app.use("/tenant-setup", verificarToken, requireMaster, tenantSetupRoutes);
 app.use("/tenant-certificate", verificarToken, requireMaster, tenantCertificateRoutes);
@@ -85,7 +88,8 @@ app.use(
   gestaoPessoaRoutes,
   gestaoFinanceiroRoutes,
   gestaoUsuarioRoutes,
-  gestaoMensagemRoutes
+  gestaoMensagemRoutes,
+  gestaoChatRoutes
 );
 app.use("/integracoes/pagamentos", paymentIntegrationRoutes);
 
