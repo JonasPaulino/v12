@@ -277,7 +277,7 @@ export const ChatWidget = () => {
 
           <C.Body>
             {!atendimento ? (
-              <C.Form onSubmit={startChat} $logged={isLogged}>
+              <C.Form onSubmit={startChat}>
                 {errorMessage ? <C.Notice>{errorMessage}</C.Notice> : null}
                 {!isLogged ? (
                   <>

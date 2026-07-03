@@ -148,12 +148,9 @@ export const Form = styled.form`
   flex: 1;
   min-height: 0;
   padding: 18px;
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 12px;
-  grid-template-rows: ${({ $logged }) =>
-    $logged
-      ? "repeat(2, auto) minmax(140px, 1fr) auto"
-      : "repeat(4, minmax(0, auto)) minmax(140px, 1fr) auto"};
 `;
 
 export const Field = styled.label`
@@ -167,6 +164,7 @@ export const Field = styled.label`
 `;
 
 export const FillField = styled(Field)`
+  flex: 1;
   align-content: start;
   grid-template-rows: auto minmax(0, 1fr);
 
