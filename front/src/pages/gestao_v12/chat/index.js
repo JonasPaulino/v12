@@ -3,6 +3,7 @@ import { api } from "api/axiosConfig";
 import { AppContext } from "context";
 import { useSweetAlert } from "context/sweet_alert";
 import { GestaoV12Layout } from "layouts/gestao_v12";
+import { linkifyText } from "utils/linkifyText";
 import * as C from "./style";
 
 const filters = [
@@ -266,7 +267,7 @@ export const GestaoV12Chat = () => {
                     $mine={item.autor_tipo === "atendente"}
                     $system={item.autor_tipo === "sistema"}
                   >
-                    {item.conteudo}
+                    {linkifyText(item.conteudo)}
                   </C.Message>
                 ))}
               </C.Messages>

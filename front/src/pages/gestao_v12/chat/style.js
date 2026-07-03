@@ -179,6 +179,13 @@ export const Message = styled.div`
     $mine || $system ? "0" : `1px solid ${theme.colors.border}`};
   white-space: pre-wrap;
   line-height: 1.45;
+
+  a {
+    color: inherit;
+    font-weight: 800;
+    text-decoration: underline;
+    overflow-wrap: anywhere;
+  }
 `;
 
 export const Composer = styled.form`

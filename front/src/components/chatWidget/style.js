@@ -259,6 +259,13 @@ export const Message = styled.div`
   font-size: ${({ $system }) => ($system ? "0.78rem" : "0.9rem")};
   line-height: 1.45;
   white-space: pre-wrap;
+
+  a {
+    color: inherit;
+    font-weight: 800;
+    text-decoration: underline;
+    overflow-wrap: anywhere;
+  }
 `;
 
 export const Composer = styled.form`

@@ -9,6 +9,7 @@ import {
 } from "react-icons/hi2";
 import { api } from "api/axiosConfig";
 import { AppContext } from "context";
+import { linkifyText } from "utils/linkifyText";
 import * as C from "./style";
 
 const STORAGE_KEY = "v12_chat_atendimento";
@@ -353,7 +354,7 @@ export const ChatWidget = () => {
                       $mine={mensagem.autor_tipo === "cliente"}
                       $system={mensagem.autor_tipo === "sistema"}
                     >
-                      {mensagem.conteudo}
+                      {linkifyText(mensagem.conteudo)}
                     </C.Message>
                   ))}
                 </C.Messages>
