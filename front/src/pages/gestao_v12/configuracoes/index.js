@@ -26,6 +26,9 @@ const initialChatForm = {
   horario_inicio: "08:00",
   horario_fim: "18:00",
   mensagem_fora_horario: "",
+  notificacao_whatsapp_ativa: false,
+  notificacao_whatsapp_numero: "",
+  notificacao_whatsapp_minutos: 10,
 };
 
 const normalizeWhatsAppStatus = (value) => {
@@ -224,6 +227,9 @@ export const GestaoV12Configuracoes = () => {
         horario_inicio: String(config.horario_inicio || "08:00").slice(0, 5),
         horario_fim: String(config.horario_fim || "18:00").slice(0, 5),
         mensagem_fora_horario: config.mensagem_fora_horario || "",
+        notificacao_whatsapp_ativa: config.notificacao_whatsapp_ativa === true,
+        notificacao_whatsapp_numero: config.notificacao_whatsapp_numero || "",
+        notificacao_whatsapp_minutos: Number(config.notificacao_whatsapp_minutos || 10),
       });
       setChatCategorias(data?.data?.categorias || []);
     } catch (error) {
@@ -967,6 +973,60 @@ export const GestaoV12Configuracoes = () => {
                   />
                 </C.Field>
               </C.FieldsGrid>
+
+              <C.CardHeader>
+                <C.CardTitle>Notificação de fila por WhatsApp</C.CardTitle>
+                <C.CardText>
+                  Envie um aviso pelo WhatsApp da Gestão V12 quando um atendimento novo
+                  ficar aguardando sem operador por mais tempo que o limite definido.
+                </C.CardText>
+              </C.CardHeader>
+
+              <C.ToggleList>
+                <C.ToggleRow>
+                  <C.Checkbox
+                    type="checkbox"
+                    checked={chatForm.notificacao_whatsapp_ativa}
+                    onChange={(event) =>
+                      updateChatField("notificacao_whatsapp_ativa", event.target.checked)
+                    }
+                  />
+                  <span>Ativar notificação de atendimento sem resposta</span>
+                </C.ToggleRow>
+              </C.ToggleList>
+
+              {chatForm.notificacao_whatsapp_ativa ? (
+                <C.FieldsGrid>
+                  <C.Field>
+                    <C.FieldSpan>Número para notificar</C.FieldSpan>
+                    <C.Input
+                      value={chatForm.notificacao_whatsapp_numero}
+                      onChange={(event) =>
+                        updateChatField("notificacao_whatsapp_numero", event.target.value)
+                      }
+                      placeholder="5581999999999"
+                    />
+                    <C.FieldHint>
+                      Número que receberá o aviso quando ninguém iniciar o atendimento.
+                    </C.FieldHint>
+                  </C.Field>
+
+                  <C.Field>
+                    <C.FieldSpan>Tempo sem atendimento</C.FieldSpan>
+                    <C.Input
+                      type="number"
+                      min="1"
+                      max="240"
+                      value={chatForm.notificacao_whatsapp_minutos}
+                      onChange={(event) =>
+                        updateChatField("notificacao_whatsapp_minutos", event.target.value)
+                      }
+                      placeholder="10"
+                    />
+                    <C.FieldHint>Tempo em minutos antes de enviar o alerta.</C.FieldHint>
+                  </C.Field>
+                </C.FieldsGrid>
+              ) : null}
 
               <C.CardHeader>
                 <C.CardTitle>Categorias de atendimento</C.CardTitle>

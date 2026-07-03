@@ -1,6 +1,7 @@
 import express from "express";
 import { pool } from "../config/conexao.js";
 import ChatDAO from "../model/chatDAO.js";
+import { enviarNotificacoesChatPendentes } from "../services/chatNotificationService.js";
 
 const router = express.Router();
 
@@ -46,6 +47,26 @@ router.put("/chat/configuracao", async (req, res) => {
     return res.status(400).json({
       success: false,
       message: error.message || "Não foi possível salvar a configuração do chat.",
+    });
+  }
+});
+
+router.post("/chat/notificacoes/pendentes", async (_req, res) => {
+  try {
+    const result = await enviarNotificacoesChatPendentes();
+
+    return res.json({
+      success: true,
+      message: result.enviados
+        ? "Notificações do chat enviadas."
+        : "Nenhuma notificação do chat para enviar.",
+      data: result,
+    });
+  } catch (error) {
+    console.error("[gestao:chat] Falha ao enviar notificações pendentes:", error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Não foi possível enviar as notificações pendentes do chat.",
     });
   }
 });

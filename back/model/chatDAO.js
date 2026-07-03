@@ -15,6 +15,12 @@ const normalizeEmail = (value) => normalizeText(value, 160).toLowerCase();
 
 const normalizePhone = (value) => String(value ?? "").replace(/\D/g, "").slice(0, 20);
 
+const normalizeNotificationMinutes = (value) => {
+  const parsed = Number(value || 10);
+  if (!Number.isFinite(parsed)) return 10;
+  return Math.max(1, Math.min(240, Math.trunc(parsed)));
+};
+
 const buildProtocol = () => {
   const now = new Date();
   const date = now.toISOString().slice(0, 10).replace(/-/g, "");
@@ -29,6 +35,9 @@ const rowToConfig = (row = {}) => ({
   horario_inicio: row.horario_inicio || "",
   horario_fim: row.horario_fim || "",
   mensagem_fora_horario: row.mensagem_fora_horario || "",
+  notificacao_whatsapp_ativa: row.notificacao_whatsapp_ativa === true,
+  notificacao_whatsapp_numero: row.notificacao_whatsapp_numero || "",
+  notificacao_whatsapp_minutos: Number(row.notificacao_whatsapp_minutos || 10),
 });
 
 const isOutsideBusinessHours = (config = {}) => {
@@ -56,7 +65,14 @@ class ChatDAO {
   static async buscarConfiguracao(client) {
     const { rows } = await client.query(
       `
-        SELECT chat_ativo, horario_inicio::text, horario_fim::text, mensagem_fora_horario
+        SELECT
+          chat_ativo,
+          horario_inicio::text,
+          horario_fim::text,
+          mensagem_fora_horario,
+          notificacao_whatsapp_ativa,
+          notificacao_whatsapp_numero,
+          notificacao_whatsapp_minutos
         FROM chat.configuracao
         WHERE configuracao_id = 1
       `
@@ -73,7 +89,14 @@ class ChatDAO {
       mensagem_fora_horario:
         normalizeText(payload.mensagem_fora_horario, 600) ||
         "Nosso atendimento está fora do horário no momento. Envie sua mensagem e retornaremos assim que possível.",
+      notificacao_whatsapp_ativa: payload.notificacao_whatsapp_ativa === true,
+      notificacao_whatsapp_numero: normalizePhone(payload.notificacao_whatsapp_numero),
+      notificacao_whatsapp_minutos: normalizeNotificationMinutes(payload.notificacao_whatsapp_minutos),
     };
+
+    if (data.notificacao_whatsapp_ativa && !data.notificacao_whatsapp_numero) {
+      throw new Error("Informe o número que receberá as notificações do chat.");
+    }
 
     await client.query(
       `
@@ -83,16 +106,22 @@ class ChatDAO {
           horario_inicio,
           horario_fim,
           mensagem_fora_horario,
+          notificacao_whatsapp_ativa,
+          notificacao_whatsapp_numero,
+          notificacao_whatsapp_minutos,
           atualizado_por,
           atualizado_em
         )
-        VALUES (1, $1, $2, $3, $4, $5, NOW())
+        VALUES (1, $1, $2, $3, $4, $5, $6, $7, $8, NOW())
         ON CONFLICT (configuracao_id) DO UPDATE
         SET
           chat_ativo = EXCLUDED.chat_ativo,
           horario_inicio = EXCLUDED.horario_inicio,
           horario_fim = EXCLUDED.horario_fim,
           mensagem_fora_horario = EXCLUDED.mensagem_fora_horario,
+          notificacao_whatsapp_ativa = EXCLUDED.notificacao_whatsapp_ativa,
+          notificacao_whatsapp_numero = EXCLUDED.notificacao_whatsapp_numero,
+          notificacao_whatsapp_minutos = EXCLUDED.notificacao_whatsapp_minutos,
           atualizado_por = EXCLUDED.atualizado_por,
           atualizado_em = NOW()
       `,
@@ -101,6 +130,9 @@ class ChatDAO {
         data.horario_inicio,
         data.horario_fim,
         data.mensagem_fora_horario,
+        data.notificacao_whatsapp_ativa,
+        data.notificacao_whatsapp_numero || null,
+        data.notificacao_whatsapp_minutos,
         usuarioId,
       ]
     );
@@ -151,6 +183,57 @@ class ChatDAO {
     );
 
     return rows[0];
+  }
+
+  static async listarAtendimentosPendentesNotificacaoWhatsApp(client, limite = 20) {
+    const config = await this.buscarConfiguracao(client);
+    if (!config.notificacao_whatsapp_ativa || !config.notificacao_whatsapp_numero) {
+      return { config, atendimentos: [] };
+    }
+
+    const minutos = Math.max(1, Math.min(240, Number(config.notificacao_whatsapp_minutos || 10)));
+    const { rows } = await client.query(
+      `
+        SELECT
+          a.atendimento_id,
+          a.protocolo,
+          a.cliente_nome,
+          a.cliente_telefone,
+          a.assunto,
+          a.criado_em,
+          c.nome AS categoria_nome,
+          (
+            SELECT m.conteudo
+            FROM chat.mensagem m
+            WHERE m.atendimento_id = a.atendimento_id
+              AND m.autor_tipo = 'cliente'
+            ORDER BY m.criado_em ASC, m.mensagem_id ASC
+            LIMIT 1
+          ) AS mensagem_inicial
+        FROM chat.atendimento a
+        JOIN chat.categoria c ON c.categoria_id = a.categoria_id
+        WHERE a.status = 'aguardando'
+          AND a.atendente_usuario_id IS NULL
+          AND a.notificacao_whatsapp_enviada_em IS NULL
+          AND a.criado_em <= NOW() - ($1::int * INTERVAL '1 minute')
+        ORDER BY a.criado_em ASC
+        LIMIT $2
+      `,
+      [minutos, Math.max(1, Math.min(100, Number(limite || 20)))]
+    );
+
+    return { config, atendimentos: rows };
+  }
+
+  static async marcarNotificacaoWhatsAppEnviada(client, atendimentoId) {
+    await client.query(
+      `
+        UPDATE chat.atendimento
+        SET notificacao_whatsapp_enviada_em = NOW()
+        WHERE atendimento_id = $1
+      `,
+      [Number(atendimentoId)]
+    );
   }
 
   static async criarAtendimento(client, payload = {}, user = null) {

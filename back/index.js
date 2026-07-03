@@ -37,6 +37,7 @@ import gestaoMensagemRoutes from "./routes/gestaoMensagemRoutes.js";
 import gestaoChatRoutes from "./routes/gestaoChatRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
 import requireMaster from "./middleware/requireMaster.js";
+import { startChatNotificationJob } from "./services/chatNotificationService.js";
 
 dotenv.config();
 
@@ -133,4 +134,5 @@ app.listen(port, () => {
     });
   }
   console.log(`[api] Servidor v12 rodando na porta ${port}`);
+  startChatNotificationJob();
 });
