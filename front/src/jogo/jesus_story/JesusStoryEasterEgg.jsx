@@ -2,220 +2,67 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { finalDecision, storyScenes } from "./storyScenes";
 import * as C from "./JesusStoryEasterEgg.styles";
 
-const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+const SCENE_STEP = 560;
+const RUNNER_OFFSET = 260;
 
-const Person = ({ light = false, arms = "open", size, height }) => (
-  <C.Figure $light={light} $arms={arms} $size={size} $height={height}>
-    {light ? <C.Halo /> : null}
-  </C.Figure>
-);
-
-const Group = ({ count = 3 }) => (
-  <div style={{ display: "flex", alignItems: "flex-end", gap: 18 }}>
-    {Array.from({ length: count }).map((_, index) => (
-      <Person key={index} size="30px" height={index % 2 ? "78px" : "70px"} arms="low" />
-    ))}
-  </div>
-);
-
-const SceneIllustration = ({ type }) => {
-  if (type === "birth") {
-    return (
-      <>
-        <C.SceneObject $wide>
-          <C.Star />
-          <div style={{ display: "flex", alignItems: "flex-end", gap: 20 }}>
-            <Person size="32px" height="74px" arms="low" />
-            <C.SimpleLine $w="96px" $h="54px" $radius="16px 16px 8px 8px" />
-            <Person size="34px" height="82px" arms="low" />
-          </div>
-        </C.SceneObject>
-        <C.SceneObject>
-          <C.SimpleLine $w="140px" $h="96px" $openTop $radius="0 0 10px 10px" />
-        </C.SceneObject>
-      </>
-    );
-  }
-
-  if (type === "disciples") {
-    return (
-      <>
-        <C.SceneObject $wide>
-          <div style={{ display: "flex", alignItems: "flex-end", gap: 26 }}>
-            <Person light />
-            <Group count={4} />
-          </div>
-        </C.SceneObject>
-        <C.SceneObject>
-          <C.SimpleLine $w="120px" $h="70px" $radius="48px 48px 10px 10px" />
-        </C.SceneObject>
-      </>
-    );
-  }
-
-  if (type === "miracles") {
-    return (
-      <>
-        <C.SceneObject $wide>
-          <div style={{ display: "flex", alignItems: "flex-end", gap: 30 }}>
-            <Person light />
-            <Person size="30px" height="50px" arms="low" />
-            <Group count={2} />
-          </div>
-        </C.SceneObject>
-        <C.SceneObject>
-          <C.Light $size="150px" />
-          <C.SimpleLine $w="130px" $h="42px" $radius="999px" />
-        </C.SceneObject>
-      </>
-    );
-  }
-
-  if (type === "teachings") {
-    return (
-      <>
-        <C.SceneObject $wide>
-          <div style={{ display: "flex", alignItems: "flex-end", gap: 28 }}>
-            <Person light />
-            <Group count={5} />
-          </div>
-        </C.SceneObject>
-        <C.SceneObject>
-          <C.SimpleLine $w="180px" $h="80px" $radius="80px 80px 8px 8px" />
-        </C.SceneObject>
-      </>
-    );
-  }
-
-  if (type === "crossJourney") {
-    return (
-      <>
-        <C.SceneObject $wide>
-          <div style={{ display: "flex", alignItems: "flex-end", gap: 30, transform: "rotate(-6deg)" }}>
-            <Person light arms="low" />
-            <C.Cross $height="112px" $bar="72px" />
-          </div>
-        </C.SceneObject>
-        <C.SceneObject>
-          <Group count={3} />
-        </C.SceneObject>
-      </>
-    );
-  }
-
-  if (type === "death") {
-    return (
-      <>
-        <C.SceneObject>
-          <C.Cross $height="150px" />
-        </C.SceneObject>
-        <C.SceneObject>
-          <C.Cross $height="116px" $bar="62px" />
-        </C.SceneObject>
-        <C.SceneObject>
-          <C.Cross $height="116px" $bar="62px" />
-        </C.SceneObject>
-      </>
-    );
-  }
-
-  if (type === "resurrection") {
-    return (
-      <>
-        <C.SceneObject $wide>
-          <C.Light />
-          <C.SimpleLine $w="160px" $h="96px" $openTop $radius="80px 80px 12px 12px" />
-          <div style={{ position: "absolute", bottom: 0, right: 50 }}>
-            <C.SimpleLine $w="58px" $h="58px" $radius="50%" $fill="#ffffff" />
-          </div>
-        </C.SceneObject>
-        <C.SceneObject>
-          <Person light />
-        </C.SceneObject>
-      </>
-    );
-  }
-
-  if (type === "appears") {
-    return (
-      <>
-        <C.SceneObject $wide>
-          <div style={{ display: "flex", alignItems: "flex-end", gap: 30 }}>
-            <Person light />
-            <Group count={4} />
-          </div>
-        </C.SceneObject>
-      </>
-    );
-  }
-
-  if (type === "mission") {
-    return (
-      <>
-        <C.SceneObject $wide>
-          <div style={{ display: "flex", alignItems: "flex-end", gap: 30 }}>
-            <Person light />
-            <Group count={5} />
-          </div>
-        </C.SceneObject>
-        <C.SceneObject>
-          <C.SimpleLine $w="34px" $h="130px" $radius="999px" />
-        </C.SceneObject>
-      </>
-    );
-  }
-
-  if (type === "ascension") {
-    return (
-      <>
-        <C.SceneObject $wide>
-          <C.Light $size="240px" />
-          <div style={{ transform: "translateY(-82px)" }}>
-            <Person light />
-          </div>
-        </C.SceneObject>
-        <C.SceneObject>
-          <Group count={5} />
-        </C.SceneObject>
-      </>
-    );
-  }
-
-  return null;
+const sceneLabels = {
+  birth: ["Maria", "José", "Belém"],
+  disciples: ["Jesus", "Discípulos"],
+  miracles: ["Cura", "Consolo"],
+  teachings: ["Ensino", "Multidão"],
+  crossJourney: ["A cruz", "Amor"],
+  death: ["Entrega", "Silêncio"],
+  resurrection: ["Túmulo vazio", "Luz"],
+  appears: ["Fé", "Paz"],
+  mission: ["Ide", "Evangelho"],
+  ascension: ["Promessa", "Voltará"],
 };
 
-export const JesusStoryEasterEgg = () => {
-  const [sceneIndex, setSceneIndex] = useState(0);
-  const [isDecision, setIsDecision] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [decision, setDecision] = useState("");
+const useJourneyClock = ({ isDecision, sceneIndex, setSceneIndex, setIsDecision }) => {
   const frameRef = useRef(null);
   const startedAtRef = useRef(0);
+  const elapsedBeforePauseRef = useRef(0);
+  const elapsedRef = useRef(0);
+  const sceneIndexRef = useRef(sceneIndex);
+  const [elapsed, setElapsed] = useState(0);
 
-  const scene = storyScenes[sceneIndex];
-  const decisionText = useMemo(() => {
-    if (decision === "wide") return finalDecision.wideMessage;
-    if (decision === "narrow") return finalDecision.narrowMessage;
-    return "Escolha um caminho para refletir sobre a decisão.";
-  }, [decision]);
+  const totalDuration = useMemo(
+    () => storyScenes.reduce((sum, scene) => sum + scene.duration, 0),
+    []
+  );
 
   useEffect(() => {
-    if (isDecision || !scene) return undefined;
+    sceneIndexRef.current = sceneIndex;
+  }, [sceneIndex]);
 
-    setProgress(0);
-    startedAtRef.current = performance.now();
+  useEffect(() => {
+    if (isDecision) return undefined;
 
-    const tick = (time) => {
-      const elapsed = time - startedAtRef.current;
-      const nextProgress = clamp((elapsed / scene.duration) * 100, 0, 100);
-      setProgress(nextProgress);
+    startedAtRef.current = performance.now() - elapsedBeforePauseRef.current;
 
-      if (elapsed >= scene.duration) {
-        if (sceneIndex >= storyScenes.length - 1) {
-          setIsDecision(true);
-          return;
+    const tick = (now) => {
+      const nextElapsed = Math.min(now - startedAtRef.current, totalDuration);
+      let cumulative = 0;
+      let nextIndex = 0;
+
+      for (let index = 0; index < storyScenes.length; index += 1) {
+        cumulative += storyScenes[index].duration;
+        if (nextElapsed <= cumulative) {
+          nextIndex = index;
+          break;
         }
-        setSceneIndex((current) => current + 1);
+      }
+
+      setElapsed(nextElapsed);
+      elapsedRef.current = nextElapsed;
+
+      if (nextIndex !== sceneIndexRef.current) {
+        sceneIndexRef.current = nextIndex;
+        setSceneIndex(nextIndex);
+      }
+
+      if (nextElapsed >= totalDuration) {
+        setIsDecision(true);
         return;
       }
 
@@ -225,21 +72,198 @@ export const JesusStoryEasterEgg = () => {
     frameRef.current = requestAnimationFrame(tick);
 
     return () => {
+      elapsedBeforePauseRef.current = elapsedRef.current;
       if (frameRef.current) cancelAnimationFrame(frameRef.current);
     };
-  }, [isDecision, scene, sceneIndex]);
+  }, [isDecision, setIsDecision, setSceneIndex, totalDuration]);
+
+  const resetClock = () => {
+    elapsedBeforePauseRef.current = 0;
+    elapsedRef.current = 0;
+    sceneIndexRef.current = 0;
+    setElapsed(0);
+  };
+
+  const finishClock = () => {
+    elapsedBeforePauseRef.current = totalDuration;
+    elapsedRef.current = totalDuration;
+    sceneIndexRef.current = storyScenes.length - 1;
+    setElapsed(totalDuration);
+  };
+
+  return { elapsed, totalDuration, resetClock, finishClock };
+};
+
+const MiniPerson = ({ $kind = "person", label }) => (
+  <C.MiniPerson $kind={$kind}>
+    <C.Head $kind={$kind} />
+    <C.Body $kind={$kind} />
+    <C.Arm $side="left" />
+    <C.Arm $side="right" />
+    <C.Leg $side="left" />
+    <C.Leg $side="right" />
+    {label ? <C.MiniLabel>{label}</C.MiniLabel> : null}
+  </C.MiniPerson>
+);
+
+const Cross = ({ small = false }) => (
+  <C.Cross $small={small}>
+    <span />
+  </C.Cross>
+);
+
+const SceneArt = ({ type }) => {
+  if (type === "birth") {
+    return (
+      <C.ArtRow>
+        <C.Stable>
+          <C.Star />
+          <MiniPerson label="Maria" />
+          <C.Manger />
+          <MiniPerson label="José" />
+        </C.Stable>
+      </C.ArtRow>
+    );
+  }
+
+  if (type === "disciples") {
+    return (
+      <C.ArtRow>
+        <MiniPerson $kind="jesus" label="Jesus" />
+        <MiniPerson label="Pedro" />
+        <MiniPerson label="João" />
+        <MiniPerson label="André" />
+      </C.ArtRow>
+    );
+  }
+
+  if (type === "miracles") {
+    return (
+      <C.ArtRow>
+        <MiniPerson $kind="jesus" label="Jesus" />
+        <C.HelpedPerson>
+          <MiniPerson label="Curado" />
+        </C.HelpedPerson>
+        <C.LightBeam />
+      </C.ArtRow>
+    );
+  }
+
+  if (type === "teachings") {
+    return (
+      <C.ArtRow>
+        <MiniPerson $kind="jesus" label="Jesus" />
+        <C.Hill />
+        <MiniPerson label="Ouvinte" />
+        <MiniPerson label="Ouvinte" />
+        <MiniPerson label="Ouvinte" />
+      </C.ArtRow>
+    );
+  }
+
+  if (type === "crossJourney") {
+    return (
+      <C.ArtRow>
+        <MiniPerson $kind="jesus" label="Jesus" />
+        <C.CarriedCross>
+          <Cross small />
+        </C.CarriedCross>
+      </C.ArtRow>
+    );
+  }
+
+  if (type === "death") {
+    return (
+      <C.ArtRow>
+        <Cross />
+        <Cross small />
+        <Cross small />
+      </C.ArtRow>
+    );
+  }
+
+  if (type === "resurrection") {
+    return (
+      <C.ArtRow>
+        <C.Tomb>
+          <C.LightBeam />
+        </C.Tomb>
+        <MiniPerson $kind="jesus" label="Vivo" />
+      </C.ArtRow>
+    );
+  }
+
+  if (type === "appears") {
+    return (
+      <C.ArtRow>
+        <MiniPerson $kind="jesus" label="Jesus" />
+        <MiniPerson label="Discípulo" />
+        <MiniPerson label="Discípulo" />
+        <MiniPerson label="Discípulo" />
+      </C.ArtRow>
+    );
+  }
+
+  if (type === "mission") {
+    return (
+      <C.ArtRow>
+        <MiniPerson $kind="jesus" label="Jesus" />
+        <C.Sign>Ide</C.Sign>
+        <MiniPerson label="Mundo" />
+      </C.ArtRow>
+    );
+  }
+
+  if (type === "ascension") {
+    return (
+      <C.ArtRow>
+        <C.AscensionLight />
+        <C.RisingPerson>
+          <MiniPerson $kind="jesus" label="Jesus" />
+        </C.RisingPerson>
+        <MiniPerson label="Discípulo" />
+        <MiniPerson label="Discípulo" />
+      </C.ArtRow>
+    );
+  }
+
+  return null;
+};
+
+export const JesusStoryEasterEgg = () => {
+  const [sceneIndex, setSceneIndex] = useState(0);
+  const [isDecision, setIsDecision] = useState(false);
+  const [decision, setDecision] = useState("");
+  const scene = storyScenes[sceneIndex];
+  const { elapsed, totalDuration, resetClock, finishClock } = useJourneyClock({
+    isDecision,
+    sceneIndex,
+    setSceneIndex,
+    setIsDecision,
+  });
+
+  const progress = totalDuration ? Math.min((elapsed / totalDuration) * 100, 100) : 0;
+  const journeyDistance = (elapsed / totalDuration) * ((storyScenes.length - 1) * SCENE_STEP);
+  const trackOffset = `calc(34vw - ${RUNNER_OFFSET + journeyDistance}px)`;
+
+  const decisionText = useMemo(() => {
+    if (decision === "wide") return finalDecision.wideMessage;
+    if (decision === "narrow") return finalDecision.narrowMessage;
+    return "Escolha um caminho para refletir sobre a decisão.";
+  }, [decision]);
 
   const restart = () => {
+    resetClock();
     setSceneIndex(0);
     setIsDecision(false);
     setDecision("");
-    setProgress(0);
   };
 
   const skipToDecision = () => {
+    finishClock();
+    setSceneIndex(storyScenes.length - 1);
     setIsDecision(true);
     setDecision("");
-    setProgress(100);
   };
 
   return (
@@ -253,7 +277,7 @@ export const JesusStoryEasterEgg = () => {
           <C.Actions>
             {!isDecision ? (
               <C.Button type="button" onClick={skipToDecision}>
-                Pular introdução
+                Ir para decisão final
               </C.Button>
             ) : null}
             <C.Button type="button" $dark onClick={restart}>
@@ -265,19 +289,46 @@ export const JesusStoryEasterEgg = () => {
         <C.Stage>
           <C.Sky>
             <C.Cloud $top="16%" $left="12%" />
-            <C.Cloud $top="26%" $left="68%" $size="104px" />
-            <C.Cloud $top="10%" $left="44%" $size="72px" />
+            <C.Cloud $top="28%" $left="68%" $size="106px" />
+            <C.Cloud $top="10%" $left="44%" $size="74px" />
           </C.Sky>
 
           {!isDecision ? (
             <>
-              <C.SceneText key={scene.id}>
+              <C.TextPanel key={scene.id}>
+                <C.SceneCounter>
+                  {sceneIndex + 1}/{storyScenes.length}
+                </C.SceneCounter>
                 <h2>{scene.title}</h2>
                 <p>{scene.text}</p>
-              </C.SceneText>
-              <C.World key={scene.id} $duration={scene.duration}>
-                <SceneIllustration type={scene.type} />
-              </C.World>
+              </C.TextPanel>
+
+              <C.Runner>
+                <C.RunnerName>Você</C.RunnerName>
+                <C.RunnerHead />
+                <C.RunnerBody />
+                <C.RunnerArm />
+                <C.RunnerLeg $side="front" />
+                <C.RunnerLeg $side="back" />
+              </C.Runner>
+
+              <C.Track style={{ transform: `translateX(${trackOffset})` }}>
+                {storyScenes.map((item, index) => (
+                  <C.SceneStation
+                    key={item.id}
+                    $active={index === sceneIndex}
+                    style={{ left: `${index * SCENE_STEP}px` }}
+                  >
+                    <C.StationMarker />
+                    <SceneArt type={item.type} />
+                    <C.StationCaption>
+                      <strong>{item.title}</strong>
+                      <span>{sceneLabels[item.type]?.join(" • ")}</span>
+                    </C.StationCaption>
+                  </C.SceneStation>
+                ))}
+              </C.Track>
+
               <C.Ground />
               <C.Progress $value={progress} />
             </>

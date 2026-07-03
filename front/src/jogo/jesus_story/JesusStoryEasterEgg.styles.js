@@ -1,11 +1,38 @@
 import styled, { keyframes } from "styled-components";
 
-const scrollWorld = keyframes`
+const groundMove = keyframes`
   from {
-    transform: translateX(0);
+    background-position: 0 0;
   }
   to {
-    transform: translateX(-50%);
+    background-position: -96px 0;
+  }
+`;
+
+const legRunFront = keyframes`
+  0%, 100% {
+    transform: rotate(22deg);
+  }
+  50% {
+    transform: rotate(-24deg);
+  }
+`;
+
+const legRunBack = keyframes`
+  0%, 100% {
+    transform: rotate(-26deg);
+  }
+  50% {
+    transform: rotate(20deg);
+  }
+`;
+
+const bob = keyframes`
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
   }
 `;
 
@@ -20,7 +47,7 @@ const float = keyframes`
 
 const glow = keyframes`
   0%, 100% {
-    opacity: 0.28;
+    opacity: 0.25;
     transform: scale(0.94);
   }
   50% {
@@ -31,7 +58,7 @@ const glow = keyframes`
 
 const rise = keyframes`
   from {
-    transform: translateY(18px);
+    transform: translateY(14px);
     opacity: 0;
   }
   to {
@@ -40,11 +67,20 @@ const rise = keyframes`
   }
 `;
 
+const ascend = keyframes`
+  0%, 100% {
+    transform: translateY(-54px);
+  }
+  50% {
+    transform: translateY(-76px);
+  }
+`;
+
 export const Page = styled.main`
   min-height: 100vh;
   background:
     radial-gradient(circle at 50% 18%, rgba(255, 255, 255, 0.92), transparent 24rem),
-    linear-gradient(180deg, #f9fafb 0%, #f0f2f5 52%, #ffffff 100%);
+    linear-gradient(180deg, #f9fafb 0%, #f1f3f6 52%, #ffffff 100%);
   color: #1f2933;
   display: flex;
   align-items: center;
@@ -53,11 +89,11 @@ export const Page = styled.main`
 `;
 
 export const Shell = styled.section`
-  width: min(1120px, 100%);
-  min-height: min(720px, calc(100vh - 44px));
+  width: min(1180px, 100%);
+  min-height: min(730px, calc(100vh - 44px));
   border: 2px solid #1f2933;
   border-radius: 22px;
-  background: rgba(255, 255, 255, 0.94);
+  background: rgba(255, 255, 255, 0.96);
   box-shadow: 0 24px 70px rgba(15, 23, 42, 0.16);
   overflow: hidden;
   display: flex;
@@ -114,8 +150,7 @@ export const Button = styled.button`
   cursor: pointer;
   transition:
     transform 0.18s ease,
-    box-shadow 0.18s ease,
-    background 0.18s ease;
+    box-shadow 0.18s ease;
 
   &:hover {
     transform: translateY(-1px);
@@ -126,14 +161,14 @@ export const Button = styled.button`
 export const Stage = styled.div`
   position: relative;
   flex: 1;
-  min-height: 520px;
+  min-height: 540px;
   overflow: hidden;
   background:
-    linear-gradient(180deg, transparent 0 74%, #e8ebef 74% 75%, #ffffff 75% 100%),
-    repeating-linear-gradient(90deg, rgba(31, 41, 51, 0.04) 0 1px, transparent 1px 56px);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.25), transparent 0 72%, #f7f8fa 72% 100%),
+    repeating-linear-gradient(90deg, rgba(31, 41, 51, 0.035) 0 1px, transparent 1px 58px);
 
   @media (max-width: 720px) {
-    min-height: 620px;
+    min-height: 650px;
   }
 `;
 
@@ -151,7 +186,7 @@ export const Cloud = styled.div`
   height: 24px;
   border: 2px solid #9aa4b2;
   border-radius: 999px;
-  opacity: 0.48;
+  opacity: 0.44;
   animation: ${float} 5.4s ease-in-out infinite;
 
   &::before,
@@ -179,43 +214,56 @@ export const Cloud = styled.div`
   }
 `;
 
-export const SceneText = styled.div`
+export const TextPanel = styled.div`
   position: absolute;
-  z-index: 5;
-  top: 30px;
-  left: 30px;
-  width: min(520px, calc(100% - 60px));
-  padding: 18px 20px;
+  z-index: 9;
+  top: 28px;
+  left: 28px;
+  width: min(550px, calc(100% - 56px));
+  padding: 16px 18px;
   border: 2px solid #1f2933;
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.93);
   box-shadow: 8px 8px 0 rgba(31, 41, 51, 0.08);
-  animation: ${rise} 0.36s ease both;
+  animation: ${rise} 0.28s ease both;
 
   h2 {
     margin: 0 0 8px;
     color: #111827;
-    font-size: clamp(1.18rem, 2.2vw, 1.7rem);
+    font-size: clamp(1.16rem, 2.2vw, 1.68rem);
   }
 
   p {
     margin: 0;
     color: #3b4653;
-    font-size: clamp(0.96rem, 1.8vw, 1.1rem);
+    font-size: clamp(0.96rem, 1.7vw, 1.08rem);
     line-height: 1.5;
-    font-weight: 700;
+    font-weight: 750;
   }
 
   @media (max-width: 720px) {
-    top: 18px;
-    left: 16px;
-    width: calc(100% - 32px);
+    top: 16px;
+    left: 14px;
+    width: calc(100% - 28px);
   }
+`;
+
+export const SceneCounter = styled.span`
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border: 2px solid #1f2933;
+  border-radius: 999px;
+  margin-bottom: 9px;
+  color: #1f2933;
+  font-size: 0.76rem;
+  font-weight: 900;
 `;
 
 export const Progress = styled.div`
   position: absolute;
-  z-index: 6;
+  z-index: 12;
   left: 0;
   bottom: 0;
   width: ${({ $value }) => `${Math.max(0, Math.min(100, $value))}%`};
@@ -224,107 +272,276 @@ export const Progress = styled.div`
   transition: width 0.08s linear;
 `;
 
-export const World = styled.div`
-  position: absolute;
-  left: 0;
-  right: -100%;
-  bottom: 96px;
-  height: 280px;
-  display: flex;
-  gap: 90px;
-  align-items: flex-end;
-  padding-left: 54%;
-  animation: ${scrollWorld} ${({ $duration }) => Math.max(4, $duration / 1000)}s linear forwards;
-
-  @media (max-width: 720px) {
-    bottom: 112px;
-    padding-left: 70%;
-    gap: 58px;
-  }
-`;
-
 export const Ground = styled.div`
   position: absolute;
+  z-index: 2;
   left: 0;
   right: 0;
-  bottom: 96px;
+  bottom: 116px;
+  height: 24px;
   border-top: 3px solid #1f2933;
+  background: repeating-linear-gradient(90deg, #c3cad4 0 18px, transparent 18px 34px);
+  background-size: 96px 2px;
+  background-repeat: repeat-x;
+  background-position: 0 9px;
+  animation: ${groundMove} 0.9s linear infinite;
 
-  &::before {
-    content: "";
-    position: absolute;
-    inset: 8px 0 auto;
-    height: 2px;
-    background: repeating-linear-gradient(90deg, #c3cad4 0 18px, transparent 18px 34px);
+  @media (max-width: 720px) {
+    bottom: 126px;
   }
 `;
 
-export const SceneObject = styled.div`
-  min-width: ${({ $wide }) => ($wide ? "350px" : "230px")};
-  height: 230px;
+export const Runner = styled.div`
+  position: absolute;
+  z-index: 7;
+  left: clamp(64px, 13vw, 150px);
+  bottom: 118px;
+  width: 74px;
+  height: 132px;
+  animation: ${bob} 0.42s ease-in-out infinite;
+
+  @media (max-width: 720px) {
+    left: 34px;
+    bottom: 128px;
+    transform: scale(0.88);
+    transform-origin: bottom left;
+  }
+`;
+
+export const RunnerName = styled.span`
+  position: absolute;
+  top: -38px;
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 58px;
+  text-align: center;
+  padding: 5px 10px;
+  border: 2px solid #1f2933;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #1f2933;
+  font-size: 0.78rem;
+  font-weight: 950;
+`;
+
+export const RunnerHead = styled.div`
+  position: absolute;
+  top: 7px;
+  left: 24px;
+  width: 28px;
+  height: 28px;
+  border: 3px solid #1f2933;
+  border-radius: 50%;
+  background: #ffffff;
+`;
+
+export const RunnerBody = styled.div`
+  position: absolute;
+  top: 37px;
+  left: 31px;
+  width: 18px;
+  height: 56px;
+  border: 3px solid #1f2933;
+  border-radius: 999px 999px 6px 6px;
+  background: #f8fafc;
+`;
+
+export const RunnerArm = styled.div`
+  position: absolute;
+  top: 47px;
+  left: 18px;
+  width: 46px;
+  height: 3px;
+  background: #1f2933;
+  transform: rotate(-18deg);
+  transform-origin: center;
+`;
+
+export const RunnerLeg = styled.div`
+  position: absolute;
+  top: 88px;
+  left: ${({ $side }) => ($side === "front" ? "38px" : "28px")};
+  width: 4px;
+  height: 42px;
+  border-radius: 999px;
+  background: #1f2933;
+  transform-origin: top center;
+  animation: ${({ $side }) => ($side === "front" ? legRunFront : legRunBack)} 0.42s linear infinite;
+`;
+
+export const Track = styled.div`
+  position: absolute;
+  z-index: 4;
+  left: 0;
+  bottom: 116px;
+  width: 6400px;
+  height: 330px;
+  transition: transform 0.08s linear;
+  will-change: transform;
+
+  @media (max-width: 720px) {
+    bottom: 126px;
+  }
+`;
+
+export const SceneStation = styled.article`
+  position: absolute;
+  bottom: 0;
+  width: 430px;
+  height: 260px;
+  opacity: ${({ $active }) => ($active ? 1 : 0.48)};
+  transform: ${({ $active }) => ($active ? "scale(1)" : "scale(0.93)")};
+  transform-origin: bottom center;
+  transition:
+    opacity 0.28s ease,
+    transform 0.28s ease;
+`;
+
+export const StationMarker = styled.div`
+  position: absolute;
+  left: 34px;
+  bottom: -7px;
+  width: 12px;
+  height: 12px;
+  border: 3px solid #1f2933;
+  border-radius: 50%;
+  background: #ffffff;
+`;
+
+export const ArtRow = styled.div`
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  min-height: 150px;
+  display: flex;
+  align-items: flex-end;
+  gap: 26px;
+`;
+
+export const MiniPerson = styled.div`
   position: relative;
+  width: 42px;
+  height: ${({ $kind }) => ($kind === "jesus" ? "110px" : "96px")};
+  flex: 0 0 auto;
+`;
+
+export const Head = styled.div`
+  position: absolute;
+  top: ${({ $kind }) => ($kind === "jesus" ? "6px" : "14px")};
+  left: 9px;
+  width: 24px;
+  height: 24px;
+  border: 3px solid #1f2933;
+  border-radius: 50%;
+  background: #ffffff;
+
+  ${({ $kind }) =>
+    $kind === "jesus"
+      ? `
+        &::after {
+          content: "";
+          position: absolute;
+          top: -10px;
+          left: 50%;
+          width: 34px;
+          height: 10px;
+          border: 2px solid #8b949e;
+          border-radius: 50%;
+          transform: translateX(-50%);
+        }
+      `
+      : ""}
+`;
+
+export const Body = styled.div`
+  position: absolute;
+  top: ${({ $kind }) => ($kind === "jesus" ? "34px" : "42px")};
+  left: 13px;
+  width: 18px;
+  height: ${({ $kind }) => ($kind === "jesus" ? "56px" : "45px")};
+  border: 3px solid #1f2933;
+  border-top: 0;
+  border-radius: 999px 999px 8px 8px;
+  background: ${({ $kind }) => ($kind === "jesus" ? "#ffffff" : "#f1f3f6")};
+`;
+
+export const Arm = styled.div`
+  position: absolute;
+  top: 54px;
+  left: ${({ $side }) => ($side === "left" ? "3px" : "22px")};
+  width: 24px;
+  height: 3px;
+  border-radius: 999px;
+  background: #1f2933;
+  transform: rotate(${({ $side }) => ($side === "left" ? "-22deg" : "22deg")});
+`;
+
+export const Leg = styled.div`
+  position: absolute;
+  bottom: 0;
+  left: ${({ $side }) => ($side === "left" ? "15px" : "25px")};
+  width: 4px;
+  height: 28px;
+  border-radius: 999px;
+  background: #1f2933;
+  transform: rotate(${({ $side }) => ($side === "left" ? "8deg" : "-8deg")});
+`;
+
+export const MiniLabel = styled.span`
+  position: absolute;
+  left: 50%;
+  bottom: -24px;
+  transform: translateX(-50%);
+  max-width: 84px;
+  padding: 3px 6px;
+  border: 1px solid #8b949e;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #52606d;
+  font-size: 0.68rem;
+  font-weight: 800;
+  white-space: nowrap;
+`;
+
+export const Stable = styled.div`
+  position: relative;
+  width: 210px;
+  height: 150px;
+  border: 3px solid #1f2933;
+  border-top: 0;
+  border-radius: 0 0 12px 12px;
   display: flex;
   align-items: flex-end;
   justify-content: center;
-`;
+  gap: 18px;
+  padding-bottom: 10px;
 
-export const Figure = styled.div`
-  position: relative;
-  width: ${({ $size }) => $size || "38px"};
-  height: ${({ $height }) => $height || "92px"};
-  border: 3px solid #1f2933;
-  border-top: 0;
-  border-radius: 22px 22px 8px 8px;
-  background: ${({ $light }) => ($light ? "#ffffff" : "#f3f4f6")};
-
-  &::before {
-    content: "";
-    position: absolute;
-    top: -32px;
-    left: 50%;
-    width: 29px;
-    height: 29px;
-    border: 3px solid #1f2933;
-    border-radius: 50%;
-    background: #ffffff;
-    transform: translateX(-50%);
-  }
-
+  &::before,
   &::after {
     content: "";
     position: absolute;
-    top: 15px;
-    left: -20px;
-    right: -20px;
-    height: 3px;
+    top: -46px;
+    width: 3px;
+    height: 88px;
     background: #1f2933;
-    transform: ${({ $arms }) => ($arms === "open" ? "rotate(0)" : "rotate(-10deg)")};
+    transform-origin: bottom;
   }
-`;
 
-export const Halo = styled.div`
-  position: absolute;
-  top: -48px;
-  left: 50%;
-  width: 44px;
-  height: 12px;
-  border: 2px solid #8b949e;
-  border-radius: 50%;
-  transform: translateX(-50%);
-`;
+  &::before {
+    left: 33px;
+    transform: rotate(52deg);
+  }
 
-export const SimpleLine = styled.div`
-  width: ${({ $w }) => $w || "92px"};
-  height: ${({ $h }) => $h || "76px"};
-  border: 3px solid #1f2933;
-  border-top: ${({ $openTop }) => ($openTop ? 0 : "3px solid #1f2933")};
-  border-radius: ${({ $radius }) => $radius || "10px"};
-  background: ${({ $fill }) => $fill || "transparent"};
+  &::after {
+    right: 33px;
+    transform: rotate(-52deg);
+  }
 `;
 
 export const Star = styled.div`
   position: absolute;
-  top: 4px;
+  top: -82px;
   left: 50%;
   width: 26px;
   height: 26px;
@@ -333,23 +550,137 @@ export const Star = styled.div`
   background: #ffffff;
 `;
 
+export const Manger = styled.div`
+  width: 58px;
+  height: 30px;
+  border: 3px solid #1f2933;
+  border-radius: 8px;
+  background: #ffffff;
+`;
+
+export const HelpedPerson = styled.div`
+  transform: translateY(22px) rotate(-90deg);
+`;
+
+export const LightBeam = styled.div`
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.96), rgba(203, 213, 225, 0.22), transparent 72%);
+  animation: ${glow} 3.4s ease-in-out infinite;
+`;
+
+export const Hill = styled.div`
+  width: 130px;
+  height: 54px;
+  border: 3px solid #1f2933;
+  border-bottom: 0;
+  border-radius: 90px 90px 0 0;
+`;
+
 export const Cross = styled.div`
   position: relative;
-  width: 20px;
-  height: ${({ $height }) => $height || "126px"};
+  width: ${({ $small }) => ($small ? "14px" : "20px")};
+  height: ${({ $small }) => ($small ? "96px" : "145px")};
   background: #1f2933;
   border-radius: 2px;
 
-  &::before {
-    content: "";
+  span {
     position: absolute;
-    top: 30px;
+    top: ${({ $small }) => ($small ? "24px" : "36px")};
     left: 50%;
-    width: ${({ $bar }) => $bar || "88px"};
-    height: 18px;
+    width: ${({ $small }) => ($small ? "58px" : "88px")};
+    height: ${({ $small }) => ($small ? "14px" : "18px")};
     background: #1f2933;
     border-radius: 2px;
     transform: translateX(-50%);
+  }
+`;
+
+export const CarriedCross = styled.div`
+  transform: translate(-8px, -28px) rotate(-34deg);
+`;
+
+export const Tomb = styled.div`
+  position: relative;
+  width: 150px;
+  height: 92px;
+  border: 3px solid #1f2933;
+  border-bottom: 0;
+  border-radius: 90px 90px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &::after {
+    content: "";
+    position: absolute;
+    right: -24px;
+    bottom: -2px;
+    width: 54px;
+    height: 54px;
+    border: 3px solid #1f2933;
+    border-radius: 50%;
+    background: #ffffff;
+  }
+`;
+
+export const Sign = styled.div`
+  min-width: 76px;
+  height: 64px;
+  border: 3px solid #1f2933;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1f2933;
+  font-size: 1.2rem;
+  font-weight: 950;
+  background: #ffffff;
+`;
+
+export const AscensionLight = styled.div`
+  position: absolute;
+  left: 8px;
+  bottom: 0;
+  width: 210px;
+  height: 240px;
+  background: radial-gradient(circle at 50% 30%, rgba(255, 255, 255, 0.98), rgba(203, 213, 225, 0.22), transparent 72%);
+  animation: ${glow} 3.4s ease-in-out infinite;
+`;
+
+export const RisingPerson = styled.div`
+  position: relative;
+  z-index: 2;
+  animation: ${ascend} 3.4s ease-in-out infinite;
+`;
+
+export const StationCaption = styled.div`
+  position: absolute;
+  left: 0;
+  bottom: -92px;
+  min-width: 210px;
+  padding: 10px 12px;
+  border: 2px solid #1f2933;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 5px 5px 0 rgba(31, 41, 51, 0.08);
+
+  strong,
+  span {
+    display: block;
+  }
+
+  strong {
+    color: #111827;
+    font-size: 0.86rem;
+  }
+
+  span {
+    margin-top: 3px;
+    color: #667085;
+    font-size: 0.74rem;
+    font-weight: 800;
   }
 `;
 
@@ -367,14 +698,14 @@ export const Light = styled.div`
 export const DecisionWrap = styled.div`
   position: absolute;
   inset: 0;
-  z-index: 10;
+  z-index: 20;
   display: grid;
   grid-template-rows: auto 1fr auto;
   gap: 18px;
   padding: 34px;
   background:
     radial-gradient(circle at 50% 18%, rgba(255, 255, 255, 0.96), transparent 18rem),
-    rgba(249, 250, 251, 0.96);
+    rgba(249, 250, 251, 0.97);
   animation: ${rise} 0.4s ease both;
 
   @media (max-width: 720px) {
