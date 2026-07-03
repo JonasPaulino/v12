@@ -151,12 +151,15 @@ export const Form = styled.form`
   display: grid;
   gap: 12px;
   grid-template-rows: ${({ $logged }) =>
-    $logged ? "repeat(2, auto) minmax(140px, 1fr) auto" : "repeat(4, auto) minmax(140px, 1fr) auto"};
+    $logged
+      ? "repeat(2, auto) minmax(140px, 1fr) auto"
+      : "repeat(4, minmax(0, auto)) minmax(140px, 1fr) auto"};
 `;
 
 export const Field = styled.label`
   min-height: 0;
   display: grid;
+  grid-template-rows: auto auto;
   gap: 6px;
   color: ${({ theme }) => theme.colors.textSoft};
   font-size: 0.84rem;
