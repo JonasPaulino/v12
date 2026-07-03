@@ -91,6 +91,14 @@ export const TicketMeta = styled.div`
   align-items: center;
 `;
 
+export const TicketPreview = styled.small`
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
 export const Badge = styled.span`
   display: inline-flex;
   align-items: center;

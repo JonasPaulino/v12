@@ -207,7 +207,9 @@ export const GestaoV12Chat = () => {
                   <small>
                     {item.categoria_nome} • {item.protocolo}
                   </small>
-                  {item.ultima_mensagem ? <small>{item.ultima_mensagem}</small> : null}
+                  {item.ultima_mensagem ? (
+                    <C.TicketPreview>{item.ultima_mensagem}</C.TicketPreview>
+                  ) : null}
                 </C.Ticket>
               ))
             ) : (
