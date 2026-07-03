@@ -1,4 +1,5 @@
-import React, { useCallback, useContext, useEffect, useState } from "react";
+import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
+import { HiOutlineChevronDown } from "react-icons/hi2";
 import { api } from "api/axiosConfig";
 import { AppContext } from "context";
 import { useSweetAlert } from "context/sweet_alert";
@@ -32,6 +33,7 @@ export const GestaoV12Chat = () => {
   const [message, setMessage] = useState("");
   const [transferTo, setTransferTo] = useState("");
   const [loading, setLoading] = useState(false);
+  const statusFilterRef = useRef(null);
 
   const loadConfig = useCallback(async () => {
     const { data } = await api.get("/gestao/chat/configuracao");
@@ -93,6 +95,19 @@ export const GestaoV12Chat = () => {
 
     return () => window.clearInterval(timer);
   }, [loadDetail, loadItems, selectedId]);
+
+  useEffect(() => {
+    if (!statusOpen) return undefined;
+
+    const handlePointerDown = (event) => {
+      if (!statusFilterRef.current?.contains(event.target)) {
+        setStatusOpen(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [statusOpen]);
 
   const sendMessage = async (event) => {
     event.preventDefault();
@@ -192,13 +207,15 @@ export const GestaoV12Chat = () => {
               placeholder="Pesquisar atendimento"
             />
             <C.FilterRow>
-              <C.StatusFilter>
+              <C.StatusFilter ref={statusFilterRef}>
                 <C.StatusFilterButton
                   type="button"
                   onClick={() => setStatusOpen((current) => !current)}
                 >
                   <span>{statusFilterLabel}</span>
-                  <strong>⌄</strong>
+                  <C.StatusFilterIcon $open={statusOpen}>
+                    <HiOutlineChevronDown />
+                  </C.StatusFilterIcon>
                 </C.StatusFilterButton>
                 {statusOpen ? (
                   <C.StatusFilterMenu>

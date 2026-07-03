@@ -76,6 +76,24 @@ export const StatusFilterButton = styled.button`
   }
 `;
 
+export const StatusFilterIcon = styled.span`
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: ${({ theme }) => theme.colors.textSoft};
+  transform: rotate(${({ $open }) => ($open ? "180deg" : "0deg")});
+  transition: transform 0.18s ease;
+  flex-shrink: 0;
+
+  svg {
+    width: 18px;
+    height: 18px;
+    stroke-width: 2;
+  }
+`;
+
 export const StatusFilterMenu = styled.div`
   position: absolute;
   z-index: 4;
