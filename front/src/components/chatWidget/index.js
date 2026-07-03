@@ -152,13 +152,41 @@ export const ChatWidget = () => {
   };
 
   const openPanel = () => {
+    setExpanded(false);
     setVisible(true);
     setUnread(false);
   };
 
   const closePanel = () => {
     setVisible(false);
+    setExpanded(false);
   };
+
+  const handleBackdropClick = () => {
+    if (!expanded) closePanel();
+  };
+
+  useEffect(() => {
+    if (!visible) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") closePanel();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [visible]);
+
+  useEffect(() => {
+    if (!visible || !expanded) return undefined;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [expanded, visible]);
 
   const startChat = async (event) => {
     event.preventDefault();
@@ -219,9 +247,16 @@ export const ChatWidget = () => {
   if (!canShow) return null;
 
   return (
-    <C.Wrapper>
+    <C.Wrapper $panelOpen={visible} $expanded={expanded}>
       {visible ? (
-        <C.Panel $expanded={expanded}>
+        <>
+          <C.Backdrop
+            type="button"
+            $expanded={expanded}
+            onClick={handleBackdropClick}
+            aria-label={expanded ? "Fundo do chat expandido" : "Fechar chat"}
+          />
+          <C.Panel $expanded={expanded} onClick={(event) => event.stopPropagation()}>
           <C.Header>
             <C.HeaderText>
               <strong>Atendimento V12</strong>
@@ -252,11 +287,11 @@ export const ChatWidget = () => {
                       />
                     </C.Field>
                     <C.Field>
-                      E-mail
+                      Telefone de contato
                       <C.Input
-                        type="email"
-                        value={form.email}
-                        onChange={(event) => updateForm("email", event.target.value)}
+                        value={form.telefone}
+                        onChange={(event) => updateForm("telefone", event.target.value)}
+                        placeholder="Ex.: 81999999999"
                       />
                     </C.Field>
                   </>
@@ -361,10 +396,11 @@ export const ChatWidget = () => {
               </>
             )}
           </C.Body>
-        </C.Panel>
+          </C.Panel>
+        </>
       ) : null}
 
-      <C.Toggle type="button" onClick={openPanel} $unread={unread}>
+      <C.Toggle type="button" onClick={openPanel} $unread={unread} $hidden={visible}>
         <HiOutlineChatBubbleLeftRight />
       </C.Toggle>
     </C.Wrapper>

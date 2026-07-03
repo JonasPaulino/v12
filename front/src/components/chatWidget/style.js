@@ -8,14 +8,31 @@ const pulse = keyframes`
 
 export const Wrapper = styled.div`
   position: fixed;
-  right: 24px;
-  bottom: 24px;
+  right: ${({ $panelOpen }) => ($panelOpen ? "0" : "24px")};
+  bottom: ${({ $panelOpen }) => ($panelOpen ? "0" : "24px")};
+  top: ${({ $panelOpen }) => ($panelOpen ? "0" : "auto")};
+  left: ${({ $panelOpen }) => ($panelOpen ? "0" : "auto")};
   z-index: 80;
+  display: flex;
+  align-items: ${({ $expanded }) => ($expanded ? "center" : "flex-end")};
+  justify-content: flex-end;
+  padding: ${({ $panelOpen }) => ($panelOpen ? "24px" : "0")};
+  pointer-events: auto;
 
   @media (max-width: 640px) {
-    right: 14px;
-    bottom: 14px;
+    right: ${({ $panelOpen }) => ($panelOpen ? "0" : "14px")};
+    bottom: ${({ $panelOpen }) => ($panelOpen ? "0" : "14px")};
+    padding: ${({ $panelOpen }) => ($panelOpen ? "14px" : "0")};
   }
+`;
+
+export const Backdrop = styled.button`
+  position: fixed;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  background: ${({ $expanded }) => ($expanded ? "rgba(6, 18, 38, 0.48)" : "transparent")};
+  cursor: ${({ $expanded }) => ($expanded ? "default" : "pointer")};
 `;
 
 export const Toggle = styled.button`
@@ -32,6 +49,8 @@ export const Toggle = styled.button`
   box-shadow: 0 18px 38px rgba(10, 31, 68, 0.22);
   opacity: 0.88;
   animation: ${({ $unread }) => ($unread ? pulse : "none")} 1.5s infinite;
+  pointer-events: auto;
+  display: ${({ $hidden }) => ($hidden ? "none" : "inline-flex")};
 
   svg {
     width: 26px;
@@ -45,11 +64,14 @@ export const Toggle = styled.button`
 `;
 
 export const Panel = styled.div`
-  width: ${({ $expanded }) => ($expanded ? "560px" : "380px")};
+  position: relative;
+  z-index: 1;
+  width: ${({ $expanded }) => ($expanded ? "min(720px, calc(100vw - 42px))" : "380px")};
   max-width: calc(100vw - 28px);
-  height: ${({ $expanded }) => ($expanded ? "min(720px, calc(100vh - 42px))" : "560px")};
-  max-height: calc(100vh - 42px);
-  margin-bottom: 14px;
+  height: ${({ $expanded }) =>
+    $expanded ? "min(680px, calc(100dvh - 56px))" : "min(560px, calc(100dvh - 104px))"};
+  max-height: calc(100dvh - 56px);
+  margin-bottom: 0;
   border: 1px solid ${({ theme }) => theme.colors.border};
   border-radius: 28px;
   background: ${({ theme }) => theme.colors.surface};
@@ -60,7 +82,9 @@ export const Panel = styled.div`
 
   @media (max-width: 640px) {
     width: calc(100vw - 28px);
-    height: calc(100vh - 92px);
+    height: ${({ $expanded }) =>
+      $expanded ? "calc(100dvh - 28px)" : "min(540px, calc(100dvh - 92px))"};
+    margin-bottom: 0;
   }
 `;
 
