@@ -13,6 +13,10 @@ export const SearchRow = styled.div`
   }
 `;
 
+export const KeySearchRow = styled(SearchRow)`
+  margin-top: 0;
+`;
+
 export const RequestTable = styled.div`
   border: 1px solid ${({ theme }) => theme.colors.border};
   border-radius: ${({ theme }) => theme.radius.md};
@@ -125,4 +129,89 @@ export const UploadBox = styled.div`
 export const UploadText = styled.div`
   display: grid;
   gap: 8px;
+`;
+
+export const PreviewPanel = styled.section`
+  display: grid;
+  gap: 16px;
+`;
+
+export const PreviewHeader = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+
+  @media (max-width: 720px) {
+    flex-direction: column;
+  }
+`;
+
+export const SummaryGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+export const SummaryCard = styled.div`
+  padding: 14px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radius.md};
+  background: ${({ theme }) => theme.colors.surfaceAlt};
+`;
+
+export const ProductTable = styled.div`
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radius.md};
+  overflow: visible;
+  background: ${({ theme }) => theme.colors.surface};
+`;
+
+export const ProductHeader = styled.div`
+  display: grid;
+  grid-template-columns: minmax(240px, 1.6fr) minmax(80px, 0.45fr) minmax(110px, 0.55fr) minmax(260px, 1.4fr);
+  gap: 12px;
+  padding: 14px 16px;
+  background: rgba(238, 244, 255, 0.86);
+  color: ${({ theme }) => theme.colors.textSoft};
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+
+  @media (max-width: 900px) {
+    display: none;
+  }
+`;
+
+export const ProductRow = styled.div`
+  display: grid;
+  grid-template-columns: minmax(240px, 1.6fr) minmax(80px, 0.45fr) minmax(110px, 0.55fr) minmax(260px, 1.4fr);
+  gap: 12px;
+  padding: 16px;
+  align-items: end;
+
+  &:not(:last-child) {
+    border-top: 1px solid ${({ theme }) => theme.colors.border};
+  }
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+`;
+
+export const PreviewActions = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+
+  @media (max-width: 640px) {
+    flex-direction: column-reverse;
+  }
 `;

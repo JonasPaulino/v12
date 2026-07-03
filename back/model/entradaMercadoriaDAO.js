@@ -1151,6 +1151,167 @@ class EntradaMercadoriaDAO {
     return new Map(rows.map((row) => [String(row.codigo_interno), row]));
   }
 
+  static async buscarProdutosPorIds(client, ids = []) {
+    const normalizedIds = [
+      ...new Set(
+        ids
+          .map((id) => Number(id))
+          .filter((id) => Number.isInteger(id) && id > 0)
+      ),
+    ];
+
+    if (!normalizedIds.length) return new Map();
+
+    const { rows } = await client.query(
+      `
+        SELECT
+          p.produto_id,
+          COALESCE(NULLIF(p.codigo_interno, ''), p.produto_id::varchar(60)) AS codigo_interno,
+          p.descricao,
+          p.controla_estoque,
+          COALESCE(um.sigla, '') AS unidade_sigla
+        FROM produto p
+        LEFT JOIN produto_unidade pu ON pu.produto_id = p.produto_id
+        LEFT JOIN unidade_medida um ON um.unidade_medida_id = pu.unidade_comercial_id
+        WHERE p.tenant_id = ${TENANT_CONTEXT_SQL}
+          AND p.ativo = TRUE
+          AND p.excluido = FALSE
+          AND p.produto_id = ANY($1::integer[])
+      `,
+      [normalizedIds]
+    );
+
+    return new Map(rows.map((row) => [Number(row.produto_id), row]));
+  }
+
+  static normalizeProdutoVinculos(produtoVinculos = {}) {
+    return Object.entries(produtoVinculos || {}).reduce((acc, [codigo, produtoId]) => {
+      const normalizedCodigo = String(codigo || "").trim();
+      const normalizedProdutoId = Number(produtoId);
+      if (normalizedCodigo && Number.isInteger(normalizedProdutoId) && normalizedProdutoId > 0) {
+        acc[normalizedCodigo] = normalizedProdutoId;
+      }
+      return acc;
+    }, {});
+  }
+
+  static async validarXmlImportavel(client, xmlContent) {
+    const xmlData = parseNfeXml(xmlContent);
+    const documentoFilial = await this.buscarDocumentoFilial(client);
+    const destinatarioDocumento = normalizeDigits(xmlData.destinatario?.documento);
+
+    if (
+      documentoFilial &&
+      destinatarioDocumento &&
+      destinatarioDocumento !== documentoFilial
+    ) {
+      throw new Error(
+        "A NF-e importada não pertence à filial ativa. O destinatário da nota é diferente do CNPJ/CPF da filial."
+      );
+    }
+
+    if (xmlData.chave_acesso) {
+      const entradaExistente = await client.query(
+        `
+          SELECT 1
+          FROM entrada_mercadoria
+          WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+            AND chave_acesso = $1
+            AND status <> 'cancelada'
+            AND excluido = FALSE
+          LIMIT 1
+        `,
+        [xmlData.chave_acesso]
+      );
+
+      if (entradaExistente.rowCount) {
+        throw new Error("Este XML já foi importado para a filial ativa.");
+      }
+    }
+
+    return xmlData;
+  }
+
+  static async montarItensXmlImportacao(
+    client,
+    xmlData,
+    { produtoVinculos = {}, validarEstoque = false } = {}
+  ) {
+    const vinculos = this.normalizeProdutoVinculos(produtoVinculos);
+    const produtosPorCodigo = await this.buscarProdutosPorCodigo(
+      client,
+      xmlData.items.map((item) => item.cProd)
+    );
+    const produtosPorId = await this.buscarProdutosPorIds(client, Object.values(vinculos));
+
+    const itens = xmlData.items.map((xmlItem) => {
+      const produtoVinculadoId = vinculos[String(xmlItem.cProd)];
+      const produto =
+        (produtoVinculadoId ? produtosPorId.get(Number(produtoVinculadoId)) : null) ||
+        produtosPorCodigo.get(String(xmlItem.cProd)) ||
+        null;
+
+      if (validarEstoque && produto && !produto.controla_estoque) {
+        throw new Error(`O produto "${produto.descricao}" não controla estoque.`);
+      }
+
+      return {
+        codigo_xml: String(xmlItem.cProd),
+        descricao_xml: xmlItem.xProd,
+        ncm: xmlItem.ncm,
+        unidade_xml: xmlItem.unidade,
+        quantidade: xmlItem.quantidade,
+        valor_unitario: xmlItem.valor_unitario,
+        valor_total: roundCurrency(xmlItem.valor_total),
+        produto: produto
+          ? {
+              produto_id: produto.produto_id,
+              codigo_interno: produto.codigo_interno,
+              descricao: produto.descricao,
+              unidade_sigla: produto.unidade_sigla,
+              controla_estoque: produto.controla_estoque,
+            }
+          : null,
+      };
+    });
+
+    return {
+      itens,
+      pendencias: itens.filter((item) => !item.produto),
+    };
+  }
+
+  static async prepararXmlImportacao(client, { xmlContent, nomeArquivo }) {
+    const xmlData = await this.validarXmlImportavel(client, xmlContent);
+    const { itens, pendencias } = await this.montarItensXmlImportacao(client, xmlData);
+    const fornecedor = await this.buscarPessoaPorDocumento(
+      client,
+      normalizeDigits(xmlData.emitente?.documento)
+    );
+
+    return {
+      chave_acesso: xmlData.chave_acesso,
+      numero_nfe: xmlData.numero_nfe,
+      serie_nfe: xmlData.serie_nfe,
+      data_emissao_nfe: xmlData.data_emissao_nfe,
+      valor_xml: xmlData.valor_xml,
+      nome_arquivo: normalizeText(nomeArquivo, 180),
+      fornecedor: {
+        pessoa_id: fornecedor?.pessoa_id || null,
+        documento: xmlData.emitente?.documento,
+        nome: fornecedor?.pessoa_nome_razao || xmlData.emitente?.nome,
+        cadastrado: !!fornecedor,
+      },
+      destinatario: xmlData.destinatario,
+      items: itens,
+      pendencias_produto: pendencias.map((item) => ({
+        codigo_xml: item.codigo_xml,
+        descricao_xml: item.descricao_xml,
+      })),
+      precisa_vinculo_produto: pendencias.length > 0,
+    };
+  }
+
   static async buscarCondicaoPagamentoPadrao(client) {
     const { rows } = await client.query(
       `
@@ -1825,68 +1986,37 @@ class EntradaMercadoriaDAO {
     }
   }
 
-  static async importarXml(client, { xmlContent, nomeArquivo, usuarioId }) {
-    const xmlData = parseNfeXml(xmlContent);
-    const documentoFilial = await this.buscarDocumentoFilial(client);
-    const destinatarioDocumento = normalizeDigits(xmlData.destinatario?.documento);
-
-    if (
-      documentoFilial &&
-      destinatarioDocumento &&
-      destinatarioDocumento !== documentoFilial
-    ) {
-      throw new Error(
-        "A NF-e importada não pertence à filial ativa. O destinatário da nota é diferente do CNPJ/CPF da filial."
-      );
-    }
-
-    if (xmlData.chave_acesso) {
-      const entradaExistente = await client.query(
-        `
-          SELECT 1
-          FROM entrada_mercadoria
-          WHERE tenant_id = ${TENANT_CONTEXT_SQL}
-            AND chave_acesso = $1
-            AND status <> 'cancelada'
-            AND excluido = FALSE
-          LIMIT 1
-        `,
-        [xmlData.chave_acesso]
-      );
-
-      if (entradaExistente.rowCount) {
-        throw new Error("Este XML já foi importado para a filial ativa.");
-      }
-    }
-
-    const produtosMap = await this.buscarProdutosPorCodigo(
-      client,
-      xmlData.items.map((item) => item.cProd)
-    );
-
-    const itensSemVinculo = xmlData.items.filter((item) => !produtosMap.get(String(item.cProd)));
-    if (itensSemVinculo.length) {
-      const codigos = itensSemVinculo.map((item) => item.cProd).join(", ");
-      throw new Error(`Produtos do XML sem vínculo pelo código interno: ${codigos}.`);
-    }
-
-    const normalizedItems = xmlData.items.map((xmlItem) => {
-      const produto = produtosMap.get(String(xmlItem.cProd));
-
-      if (!produto.controla_estoque) {
-        throw new Error(`O produto "${produto.descricao}" não controla estoque.`);
-      }
-
-      return {
-        produto_id: produto.produto_id,
-        codigo_interno: produto.codigo_interno,
-        descricao: produto.descricao,
-        unidade_sigla: produto.unidade_sigla || xmlItem.unidade,
-        quantidade_recebida: xmlItem.quantidade,
-        valor_unitario: xmlItem.valor_unitario,
-        valor_total_recebido: roundCurrency(xmlItem.valor_total),
-      };
+  static async importarXml(client, { xmlContent, nomeArquivo, usuarioId, produtoVinculos = {} }) {
+    const xmlData = await this.validarXmlImportavel(client, xmlContent);
+    const { itens, pendencias } = await this.montarItensXmlImportacao(client, xmlData, {
+      produtoVinculos,
+      validarEstoque: true,
     });
+
+    if (pendencias.length) {
+      const codigos = pendencias.map((item) => item.codigo_xml).join(", ");
+      const error = new Error(
+        `Produtos do XML sem vínculo com produto interno: ${codigos}.`
+      );
+      error.code = "XML_PRODUTO_SEM_VINCULO";
+      error.details = {
+        pendencias_produto: pendencias.map((item) => ({
+          codigo_xml: item.codigo_xml,
+          descricao_xml: item.descricao_xml,
+        })),
+      };
+      throw error;
+    }
+
+    const normalizedItems = itens.map((item) => ({
+      produto_id: item.produto.produto_id,
+      codigo_interno: item.produto.codigo_interno,
+      descricao: item.produto.descricao,
+      unidade_sigla: item.produto.unidade_sigla || item.unidade_xml,
+      quantidade_recebida: item.quantidade,
+      valor_unitario: item.valor_unitario,
+      valor_total_recebido: roundCurrency(item.valor_total),
+    }));
 
     const total = roundCurrency(
       xmlData.valor_xml ||
@@ -2042,7 +2172,40 @@ class EntradaMercadoriaDAO {
     }
   }
 
-  static async importarSolicitacaoXml(client, { solicitacaoId, usuarioId }) {
+  static async prepararSolicitacaoXml(client, { solicitacaoId }) {
+    const safeSolicitacaoId = parseInteger(solicitacaoId, {
+      label: "Solicitação",
+    });
+    const { rows } = await client.query(
+      `
+        SELECT *
+        FROM entrada_xml_solicitacao
+        WHERE tenant_id = ${TENANT_CONTEXT_SQL}
+          AND entrada_xml_solicitacao_id = $1
+        LIMIT 1
+      `,
+      [safeSolicitacaoId]
+    );
+    const solicitacao = rows[0];
+
+    if (!solicitacao) throw new Error("Solicitação de XML não encontrada.");
+    if (!solicitacao.xml_disponivel) {
+      throw new Error("A solicitação ainda não possui XML disponível para importação.");
+    }
+    if (solicitacao.entrada_mercadoria_id) {
+      throw new Error("Esta solicitação já foi importada.");
+    }
+
+    return this.prepararXmlImportacao(client, {
+      xmlContent: solicitacao.xml_disponivel,
+      nomeArquivo: `${solicitacao.chave_acesso}.xml`,
+    });
+  }
+
+  static async importarSolicitacaoXml(
+    client,
+    { solicitacaoId, usuarioId, produtoVinculos = {} }
+  ) {
     const safeSolicitacaoId = parseInteger(solicitacaoId, {
       label: "Solicitação",
     });
@@ -2070,6 +2233,7 @@ class EntradaMercadoriaDAO {
       xmlContent: solicitacao.xml_disponivel,
       nomeArquivo: `${solicitacao.chave_acesso}.xml`,
       usuarioId,
+      produtoVinculos,
     });
 
     await client.query(

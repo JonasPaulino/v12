@@ -25,6 +25,16 @@ const parseSort = (value) => {
   }
 };
 
+const parseProdutoVinculos = (value) => {
+  if (!value) return {};
+  if (typeof value === "object") return value;
+  try {
+    return JSON.parse(String(value));
+  } catch {
+    return {};
+  }
+};
+
 router.get("/", async (req, res) => {
   try {
     const result = await EntradaMercadoriaDAO.listar(req.db, {
@@ -125,11 +135,34 @@ router.post("/xml-solicitacoes/:id/consultar", async (req, res) => {
   }
 });
 
+router.get("/xml-solicitacoes/:id/preparar", async (req, res) => {
+  try {
+    const data = await EntradaMercadoriaDAO.prepararSolicitacaoXml(req.db, {
+      solicitacaoId: Number(req.params.id),
+    });
+
+    return res.json({
+      success: true,
+      message: data.precisa_vinculo_produto
+        ? "XML preparado. Existem produtos pendentes de vínculo."
+        : "XML preparado para importação.",
+      data,
+    });
+  } catch (error) {
+    console.error("[entrada-mercadoria] Falha ao preparar solicitação XML:", error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Não foi possível preparar o XML disponível.",
+    });
+  }
+});
+
 router.post("/xml-solicitacoes/:id/importar", async (req, res) => {
   try {
     const data = await EntradaMercadoriaDAO.importarSolicitacaoXml(req.db, {
       solicitacaoId: Number(req.params.id),
       usuarioId: Number(req.user?.userId) || null,
+      produtoVinculos: parseProdutoVinculos(req.body?.produto_vinculos),
     });
 
     return res.status(201).json({
@@ -274,10 +307,12 @@ router.post("/xml", (req, res) => {
         });
       }
 
+      const produtoVinculos = parseProdutoVinculos(req.body?.produto_vinculos);
       const data = await EntradaMercadoriaDAO.importarXml(req.db, {
         xmlContent: req.file.buffer.toString("utf8"),
         nomeArquivo: req.file.originalname,
         usuarioId: Number(req.user?.userId) || null,
+        produtoVinculos,
       });
 
       return res.status(201).json({
@@ -290,6 +325,48 @@ router.post("/xml", (req, res) => {
       return res.status(400).json({
         success: false,
         message: error.message || "Não foi possível importar o XML.",
+      });
+    }
+  });
+});
+
+router.post("/xml/preparar", (req, res) => {
+  uploadXml(req, res, async (uploadError) => {
+    if (uploadError) {
+      return res.status(400).json({
+        success: false,
+        message:
+          uploadError instanceof multer.MulterError && uploadError.code === "LIMIT_FILE_SIZE"
+            ? "O XML excede o tamanho permitido."
+            : uploadError.message || "Não foi possível receber o XML.",
+      });
+    }
+
+    try {
+      if (!req.file?.buffer?.length) {
+        return res.status(400).json({
+          success: false,
+          message: "Arquivo XML obrigatório.",
+        });
+      }
+
+      const data = await EntradaMercadoriaDAO.prepararXmlImportacao(req.db, {
+        xmlContent: req.file.buffer.toString("utf8"),
+        nomeArquivo: req.file.originalname,
+      });
+
+      return res.json({
+        success: true,
+        message: data.precisa_vinculo_produto
+          ? "XML preparado. Existem produtos pendentes de vínculo."
+          : "XML preparado para importação.",
+        data,
+      });
+    } catch (error) {
+      console.error("[entrada-mercadoria] Falha ao preparar XML:", error);
+      return res.status(400).json({
+        success: false,
+        message: error.message || "Não foi possível preparar o XML.",
       });
     }
   });

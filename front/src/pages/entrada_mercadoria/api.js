@@ -52,9 +52,22 @@ export const cancelarEntradaMercadoria = async (entradaMercadoriaId, payload = {
   return data;
 };
 
-export const importarXmlEntradaMercadoria = async (file) => {
+export const prepararXmlEntradaMercadoria = async (file) => {
   const formData = new FormData();
   formData.append("xml", file);
+
+  const { data } = await api.post("/entrada-mercadoria/xml/preparar", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+  return data;
+};
+
+export const importarXmlEntradaMercadoria = async (file, produtoVinculos = {}) => {
+  const formData = new FormData();
+  formData.append("xml", file);
+  formData.append("produto_vinculos", JSON.stringify(produtoVinculos || {}));
 
   const { data } = await api.post("/entrada-mercadoria/xml", formData, {
     headers: {
@@ -92,6 +105,36 @@ export const importarSolicitacaoXmlEntrada = async (solicitacaoId) => {
   const { data } = await api.post(
     `/entrada-mercadoria/xml-solicitacoes/${solicitacaoId}/importar`
   );
+  return data;
+};
+
+export const prepararSolicitacaoXmlEntrada = async (solicitacaoId) => {
+  const { data } = await api.get(
+    `/entrada-mercadoria/xml-solicitacoes/${solicitacaoId}/preparar`
+  );
+  return data;
+};
+
+export const importarSolicitacaoXmlEntradaComVinculos = async (
+  solicitacaoId,
+  produtoVinculos = {}
+) => {
+  const { data } = await api.post(
+    `/entrada-mercadoria/xml-solicitacoes/${solicitacaoId}/importar`,
+    {
+      produto_vinculos: produtoVinculos,
+    }
+  );
+  return data;
+};
+
+export const searchProdutosEntradaSelect = async (search = "", limit = 20) => {
+  const { data } = await api.get("/compra/produtos-select", {
+    params: {
+      search,
+      limit,
+    },
+  });
   return data;
 };
 

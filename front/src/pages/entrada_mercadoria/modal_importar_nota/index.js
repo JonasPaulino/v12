@@ -1,4 +1,5 @@
 import React from "react";
+import AsyncSearchSelect from "components/asyncSearchSelect";
 import { useModalImportarNota } from "./use";
 import * as C from "./style";
 
@@ -30,6 +31,16 @@ const shortKey = (value) => {
   return `${key.slice(0, 8)}...${key.slice(-8)}`;
 };
 
+const currencyFormatter = new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+});
+
+const decimalFormatter = new Intl.NumberFormat("pt-BR", {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 4,
+});
+
 export const ModalImportarNota = ({ isOpen, onClose }) => {
   const {
     activeTab,
@@ -42,12 +53,19 @@ export const ModalImportarNota = ({ isOpen, onClose }) => {
     loading,
     submitting,
     importingFile,
+    preview,
+    produtoVinculos,
+    produtosSelecionados,
     fileInputRef,
     loadSolicitacoes,
     handleBuscarChave,
     handleAtualizarSolicitacao,
     handleImportarSolicitacao,
     handleSelectXml,
+    handleSelectProdutoVinculo,
+    loadProdutosOptions,
+    handleConfirmarImportacao,
+    closePreview,
   } = useModalImportarNota({ isOpen, onClose });
 
   if (!isOpen) return null;
@@ -86,9 +104,106 @@ export const ModalImportarNota = ({ isOpen, onClose }) => {
         </C.Tabs>
 
         <C.Body>
-          {activeTab === "chave" ? (
+          {preview ? (
+            <C.PreviewPanel>
+              <C.PreviewHeader>
+                <div>
+                  <C.Title>Conferir XML da NF-e</C.Title>
+                  <C.Hint>
+                    Confirme o fornecedor e vincule os produtos do XML aos produtos internos antes
+                    de gerar a entrada.
+                  </C.Hint>
+                </div>
+                <C.StatusChip $tone={preview.data?.precisa_vinculo_produto ? "warning" : "success"}>
+                  {preview.data?.precisa_vinculo_produto ? "Vínculo pendente" : "Pronto"}
+                </C.StatusChip>
+              </C.PreviewHeader>
+
+              <C.SummaryGrid>
+                <C.SummaryCard>
+                  <C.MetaText>Fornecedor</C.MetaText>
+                  <C.MainText>{preview.data?.fornecedor?.nome || "--"}</C.MainText>
+                  <C.MetaText>
+                    {preview.data?.fornecedor?.documento || "--"} ·{" "}
+                    {preview.data?.fornecedor?.cadastrado
+                      ? "já cadastrado"
+                      : "será cadastrado automaticamente"}
+                  </C.MetaText>
+                </C.SummaryCard>
+                <C.SummaryCard>
+                  <C.MetaText>NF-e</C.MetaText>
+                  <C.MainText>
+                    {preview.data?.serie_nfe || "--"}/{preview.data?.numero_nfe || "--"}
+                  </C.MainText>
+                  <C.MetaText>{shortKey(preview.data?.chave_acesso)}</C.MetaText>
+                </C.SummaryCard>
+                <C.SummaryCard>
+                  <C.MetaText>Total XML</C.MetaText>
+                  <C.MainText>{currencyFormatter.format(Number(preview.data?.valor_xml || 0))}</C.MainText>
+                  <C.MetaText>{preview.data?.data_emissao_nfe || "Sem data de emissão"}</C.MetaText>
+                </C.SummaryCard>
+              </C.SummaryGrid>
+
+              <C.ProductTable>
+                <C.ProductHeader>
+                  <div>Produto no XML</div>
+                  <div>Qtde</div>
+                  <div>Total</div>
+                  <div>Produto interno</div>
+                </C.ProductHeader>
+
+                {(preview.data?.items || []).map((item) => (
+                  <C.ProductRow key={item.codigo_xml}>
+                    <div>
+                      <C.MainText>{item.descricao_xml || "--"}</C.MainText>
+                      <C.MetaText>
+                        Código XML: {item.codigo_xml} · NCM: {item.ncm || "--"} ·{" "}
+                        {item.unidade_xml || "--"}
+                      </C.MetaText>
+                    </div>
+                    <C.MainText>{decimalFormatter.format(Number(item.quantidade || 0))}</C.MainText>
+                    <C.MainText>{currencyFormatter.format(Number(item.valor_total || 0))}</C.MainText>
+                    <AsyncSearchSelect
+                      value={produtoVinculos[item.codigo_xml] || ""}
+                      selectedOption={produtosSelecionados[item.codigo_xml] || item.produto || null}
+                      onSelect={(value, produto) =>
+                        handleSelectProdutoVinculo(item.codigo_xml, value, produto)
+                      }
+                      loadOptions={loadProdutosOptions}
+                      placeholder="Vincule um produto"
+                      searchPlaceholder="Digite código ou descrição"
+                      emptyMessage="Nenhum produto encontrado."
+                      minChars={0}
+                      getOptionValue={(option) => option.produto_id}
+                      getOptionLabel={(option) =>
+                        `${option.codigo_interno} - ${option.descricao}`
+                      }
+                      getOptionMeta={(option) =>
+                        `${option.unidade_sigla || "--"} · ${currencyFormatter.format(
+                          Number(option.preco_compra || 0)
+                        )}`
+                      }
+                    />
+                  </C.ProductRow>
+                ))}
+              </C.ProductTable>
+
+              <C.PreviewActions>
+                <C.SecondaryButton type="button" onClick={closePreview} disabled={submitting}>
+                  Voltar
+                </C.SecondaryButton>
+                <C.PrimaryButton
+                  type="button"
+                  onClick={handleConfirmarImportacao}
+                  disabled={submitting}
+                >
+                  {submitting ? "Importando..." : "Confirmar entrada"}
+                </C.PrimaryButton>
+              </C.PreviewActions>
+            </C.PreviewPanel>
+          ) : activeTab === "chave" ? (
             <>
-              <C.SearchRow>
+              <C.KeySearchRow>
                 <C.Field>
                   <C.FieldSpan>Chave de acesso da NF-e</C.FieldSpan>
                   <C.Input
@@ -100,7 +215,7 @@ export const ModalImportarNota = ({ isOpen, onClose }) => {
                 <C.PrimaryButton type="button" onClick={handleBuscarChave} disabled={submitting}>
                   Buscar
                 </C.PrimaryButton>
-              </C.SearchRow>
+              </C.KeySearchRow>
 
               <C.RequestPanel>
                 <C.RequestPanelHeader>

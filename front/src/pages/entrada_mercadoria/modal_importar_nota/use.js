@@ -4,8 +4,11 @@ import { useSweetAlert } from "context/sweet_alert";
 import {
   atualizarSolicitacaoXmlEntrada,
   getSolicitacoesXmlEntrada,
-  importarSolicitacaoXmlEntrada,
+  importarSolicitacaoXmlEntradaComVinculos,
   importarXmlEntradaMercadoria,
+  prepararSolicitacaoXmlEntrada,
+  prepararXmlEntradaMercadoria,
+  searchProdutosEntradaSelect,
   solicitarXmlEntradaPorChave,
 } from "../api";
 
@@ -47,6 +50,36 @@ export const useModalImportarNota = ({ isOpen, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [importingFile, setImportingFile] = useState(false);
+  const [preview, setPreview] = useState(null);
+  const [produtoVinculos, setProdutoVinculos] = useState({});
+  const [produtosSelecionados, setProdutosSelecionados] = useState({});
+
+  const openPreview = useCallback((source, response, extra = {}) => {
+    const data = response?.data || {};
+    const initialVinculos = {};
+    const initialProdutos = {};
+
+    (data.items || []).forEach((item) => {
+      if (item.produto?.produto_id) {
+        initialVinculos[item.codigo_xml] = item.produto.produto_id;
+        initialProdutos[item.codigo_xml] = item.produto;
+      }
+    });
+
+    setProdutoVinculos(initialVinculos);
+    setProdutosSelecionados(initialProdutos);
+    setPreview({
+      source,
+      data,
+      ...extra,
+    });
+  }, []);
+
+  const closePreview = useCallback(() => {
+    setPreview(null);
+    setProdutoVinculos({});
+    setProdutosSelecionados({});
+  }, []);
 
   const loadSolicitacoes = useCallback(async () => {
     try {
@@ -135,25 +168,19 @@ export const useModalImportarNota = ({ isOpen, onClose }) => {
     async (solicitacaoId) => {
       try {
         setSubmitting(true);
-        const response = await importarSolicitacaoXmlEntrada(solicitacaoId);
-        showAlert({
-          title: "XML importado",
-          text: response?.message || "Entrada registrada com sucesso.",
-          icon: "success",
-          timer: 1800,
-        });
-        onClose(true);
+        const response = await prepararSolicitacaoXmlEntrada(solicitacaoId);
+        openPreview("solicitacao", response, { solicitacaoId });
       } catch (error) {
         showAlert({
-          title: "Falha ao importar XML",
-          text: error?.response?.data?.message || "Não foi possível importar o XML disponível.",
+          title: "Falha ao preparar XML",
+          text: error?.response?.data?.message || "Não foi possível preparar o XML disponível.",
           icon: "error",
         });
       } finally {
         setSubmitting(false);
       }
     },
-    [onClose, showAlert]
+    [openPreview, showAlert]
   );
 
   const handleSelectXml = useCallback(
@@ -164,26 +191,79 @@ export const useModalImportarNota = ({ isOpen, onClose }) => {
 
       try {
         setImportingFile(true);
-        const response = await importarXmlEntradaMercadoria(file);
-        showAlert({
-          title: "XML importado",
-          text: response?.message || "Entrada registrada com sucesso.",
-          icon: "success",
-          timer: 1800,
-        });
-        onClose(true);
+        const response = await prepararXmlEntradaMercadoria(file);
+        openPreview("arquivo", response, { file });
       } catch (error) {
         showAlert({
-          title: "Falha ao importar XML",
-          text: error?.response?.data?.message || "Não foi possível importar o XML informado.",
+          title: "Falha ao preparar XML",
+          text: error?.response?.data?.message || "Não foi possível preparar o XML informado.",
           icon: "error",
         });
       } finally {
         setImportingFile(false);
       }
     },
-    [onClose, showAlert]
+    [openPreview, showAlert]
   );
+
+  const handleSelectProdutoVinculo = useCallback((codigoXml, produtoId, produto) => {
+    setProdutoVinculos((prev) => ({
+      ...prev,
+      [codigoXml]: produtoId,
+    }));
+    setProdutosSelecionados((prev) => ({
+      ...prev,
+      [codigoXml]: produto,
+    }));
+  }, []);
+
+  const loadProdutosOptions = useCallback(async (search = "") => {
+    const response = await searchProdutosEntradaSelect(search, 20);
+    return response?.data || [];
+  }, []);
+
+  const handleConfirmarImportacao = useCallback(async () => {
+    if (!preview) return;
+
+    const items = preview.data?.items || [];
+    const semVinculo = items.filter((item) => !produtoVinculos[item.codigo_xml]);
+
+    if (semVinculo.length) {
+      showAlert({
+        title: "Vínculo obrigatório",
+        text: "Vincule todos os produtos do XML antes de confirmar a entrada.",
+        icon: "warning",
+      });
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const response =
+        preview.source === "solicitacao"
+          ? await importarSolicitacaoXmlEntradaComVinculos(
+              preview.solicitacaoId,
+              produtoVinculos
+            )
+          : await importarXmlEntradaMercadoria(preview.file, produtoVinculos);
+
+      showAlert({
+        title: "XML importado",
+        text: response?.message || "Entrada registrada com sucesso.",
+        icon: "success",
+        timer: 1800,
+      });
+      onClose(true);
+    } catch (error) {
+      showAlert({
+        title: "Falha ao importar XML",
+        text: error?.response?.data?.message || "Não foi possível importar o XML confirmado.",
+        icon: "error",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  }, [onClose, preview, produtoVinculos, showAlert]);
 
   return {
     activeTab,
@@ -196,11 +276,18 @@ export const useModalImportarNota = ({ isOpen, onClose }) => {
     loading,
     submitting,
     importingFile,
+    preview,
+    produtoVinculos,
+    produtosSelecionados,
     fileInputRef,
     loadSolicitacoes,
     handleBuscarChave,
     handleAtualizarSolicitacao,
     handleImportarSolicitacao,
     handleSelectXml,
+    handleSelectProdutoVinculo,
+    loadProdutosOptions,
+    handleConfirmarImportacao,
+    closePreview,
   };
 };
