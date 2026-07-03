@@ -6,6 +6,16 @@ import AcbrLibMDFeMT from "./mdfeNative.js";
 const DEFAULT_MDFE_LIB_PATH = "./lib/ACBrLibMDFe/Linux/CONSOLE-MT/libacbrmdfe64.so";
 const DEFAULT_MDFE_SCHEMA_PATH = "./lib/ACBrLibMDFe/dep/Schemas/MDFe";
 const DEFAULT_MDFE_SERVICOS_PATH = "./lib/ACBrLibMDFe/dep/ACBrMDFeServicos.ini";
+const MDFE_SERVICE_ALIAS_KEYS = [
+  "RecepcaoEvento",
+  "MDFeRecepcao",
+  "MDFeRetRecepcao",
+  "MDFeConsultaProtocolo",
+  "MDFeStatusServico",
+  "MDFeConsNaoEnc",
+  "MDFeDistDFeInt",
+  "MDFeRecepcaoSinc",
+];
 const DEFAULT_SSL_CONFIG = {
   sslCryptLib: "1",
   sslHttpLib: "3",
@@ -55,6 +65,69 @@ const resolveMdfeServicosPath = () => {
 
   if (resolvedConfiguredPath && existsSync(resolvedConfiguredPath)) return resolvedConfiguredPath;
   return fallbackPath;
+};
+
+const mdfeCompatibleServicosPath = () =>
+  path.join(mdfeRuntimePaths.configDir(), "ACBrMDFeServicos.compat.ini");
+
+const addMdfeServiceAliasesToSection = (sectionLines) => {
+  const values = new Map();
+  const existing = new Set();
+
+  for (const line of sectionLines) {
+    const match = line.match(/^([^=]+)=(.*)$/);
+    if (!match) continue;
+    const key = match[1].trim();
+    const value = match[2];
+    existing.add(key);
+    values.set(key, value);
+  }
+
+  const aliases = [];
+  for (const key of MDFE_SERVICE_ALIAS_KEYS) {
+    if (existing.has(key)) continue;
+    const versionedValue = values.get(`${key}_3.00`) ?? values.get(`${key}_1.00`);
+    if (versionedValue) aliases.push(`${key}=${versionedValue}`);
+  }
+
+  return aliases.length ? [...sectionLines, ...aliases] : sectionLines;
+};
+
+const buildMdfeCompatibleServicosIni = (content) => {
+  const lines = String(content || "").split(/\r?\n/);
+  const output = [];
+  let sectionName = "";
+  let sectionLines = [];
+
+  const flushSection = () => {
+    if (!sectionLines.length) return;
+    const shouldPatch = /^MDFe_/i.test(sectionName);
+    output.push(...(shouldPatch ? addMdfeServiceAliasesToSection(sectionLines) : sectionLines));
+    sectionLines = [];
+  };
+
+  for (const line of lines) {
+    const sectionMatch = line.match(/^\s*\[([^\]]+)]\s*$/);
+    if (sectionMatch) {
+      flushSection();
+      sectionName = sectionMatch[1].trim();
+      sectionLines = [line];
+      continue;
+    }
+
+    sectionLines.push(line);
+  }
+
+  flushSection();
+  return output.join("\n");
+};
+
+const prepareMdfeServicosFile = async () => {
+  const sourcePath = mdfeRuntimePaths.servicosPath();
+  const targetPath = mdfeCompatibleServicosPath();
+  const content = await fs.readFile(sourcePath, "utf8");
+  await writeFile(targetPath, buildMdfeCompatibleServicosIni(content));
+  return targetPath;
 };
 
 const ensureDir = async (targetPath) => {
@@ -148,6 +221,7 @@ export const getMdfeRuntimeDiagnostics = () => {
   const libPath = mdfeRuntimePaths.libPath();
   const schemaDir = mdfeRuntimePaths.schemaDir();
   const servicosPath = mdfeRuntimePaths.servicosPath();
+  const servicosRuntimePath = mdfeCompatibleServicosPath();
 
   return {
     enabled: String(process.env.ACBRLIB_ENABLED || "").toLowerCase() === "true",
@@ -157,6 +231,8 @@ export const getMdfeRuntimeDiagnostics = () => {
     schemaExists: existsSync(schemaDir),
     servicosPath,
     servicosExists: existsSync(servicosPath),
+    servicosRuntimePath,
+    servicosRuntimeExists: existsSync(servicosRuntimePath),
     configDir: mdfeRuntimePaths.configDir(),
     tempDir: mdfeRuntimePaths.tempDir(),
     sslConfig: mdfeSslConfig(),
@@ -191,6 +267,7 @@ export const createMdfeStatusSession = async ({
   await ensureDir(xmlDir);
   await ensureDir(pdfDir);
   await ensureDir(logDir);
+  const servicosPath = await prepareMdfeServicosFile();
 
   if (certificadoBuffer?.length) {
     await writeFile(certPath, certificadoBuffer);
@@ -201,7 +278,7 @@ export const createMdfeStatusSession = async ({
     buildBaseMdfeConfig({
       logDir,
       schemaDir: mdfeRuntimePaths.schemaDir(),
-      servicosPath: mdfeRuntimePaths.servicosPath(),
+      servicosPath,
       certPath,
       certificadoSenha,
       xmlDir,
@@ -222,7 +299,7 @@ export const createMdfeStatusSession = async ({
     pdfDir,
     logDir,
     schemaDir: mdfeRuntimePaths.schemaDir(),
-    servicosPath: mdfeRuntimePaths.servicosPath(),
+    servicosPath,
     certificadoSenha: certificadoSenha || "",
     uf,
     ambiente,
@@ -249,6 +326,7 @@ export const createMdfeEmissionSession = async ({
   await ensureDir(xmlDir);
   await ensureDir(pdfDir);
   await ensureDir(logDir);
+  const servicosPath = await prepareMdfeServicosFile();
 
   if (certificadoBuffer?.length) {
     await writeFile(certPath, certificadoBuffer);
@@ -259,7 +337,7 @@ export const createMdfeEmissionSession = async ({
     buildBaseMdfeConfig({
       logDir,
       schemaDir: mdfeRuntimePaths.schemaDir(),
-      servicosPath: mdfeRuntimePaths.servicosPath(),
+      servicosPath,
       certPath,
       certificadoSenha,
       xmlDir,
@@ -279,7 +357,7 @@ export const createMdfeEmissionSession = async ({
     pdfDir,
     logDir,
     schemaDir: mdfeRuntimePaths.schemaDir(),
-    servicosPath: mdfeRuntimePaths.servicosPath(),
+    servicosPath,
     certificadoSenha: certificadoSenha || "",
   };
 };
