@@ -1434,10 +1434,13 @@ class TenantSetupDAO {
       `
         UPDATE tenant
         SET
-          tenant_acesso_bloqueado = $2,
-          tenant_bloqueio_motivo = CASE WHEN $2 THEN NULLIF(TRIM($4), '') ELSE NULL END,
-          tenant_bloqueado_em = CASE WHEN $2 THEN NOW() ELSE NULL END,
-          tenant_bloqueado_por = CASE WHEN $2 THEN $3 ELSE NULL END
+          tenant_acesso_bloqueado = $2::BOOLEAN,
+          tenant_bloqueio_motivo = CASE
+            WHEN $2::BOOLEAN THEN NULLIF(TRIM($4::TEXT), '')
+            ELSE NULL
+          END,
+          tenant_bloqueado_em = CASE WHEN $2::BOOLEAN THEN NOW() ELSE NULL END,
+          tenant_bloqueado_por = CASE WHEN $2::BOOLEAN THEN $3::INTEGER ELSE NULL END
         WHERE tenant_id = $1
         RETURNING
           tenant_id,
