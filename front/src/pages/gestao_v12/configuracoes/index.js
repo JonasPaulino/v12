@@ -25,9 +25,40 @@ const normalizeWhatsAppStatus = (value) => {
   const normalized = String(value || "").trim().toLowerCase();
 
   if (normalized === "open") return "open";
+  if (/connected|online|session_connected|logged/.test(normalized)) return "open";
   if (normalized === "connecting") return "connecting";
+  if (/qr|pair|scan|pending|pairing/.test(normalized)) return "connecting";
   if (normalized === "close") return "close";
+  if (/closed|disconnected|offline|logout/.test(normalized)) return "close";
   if (normalized === "not_found") return "not_found";
+
+  return "unknown";
+};
+
+const extractWhatsAppState = (payload = {}) => {
+  const candidates = [
+    payload?.state,
+    payload?.connection,
+    payload?.status,
+    payload?.instance?.state,
+    payload?.instance?.status,
+    payload?.data?.state,
+    payload?.data?.connection,
+    payload?.data?.status,
+    payload?.data?.data?.state,
+    payload?.data?.data?.connection,
+    payload?.data?.data?.status,
+    payload?.raw?.state,
+    payload?.raw?.connection,
+    payload?.raw?.status,
+    payload?.raw?.instance?.state,
+    payload?.raw?.instance?.status,
+  ];
+
+  for (const candidate of candidates) {
+    const normalized = normalizeWhatsAppStatus(candidate);
+    if (normalized !== "unknown") return normalized;
+  }
 
   return "unknown";
 };
@@ -154,7 +185,7 @@ export const GestaoV12Configuracoes = () => {
           const statusResponse = await api.get("/gestao/mensagens/whatsapp/status", {
             params: { instance_name: config.instance_name },
           });
-          applyWhatsAppConnection({ state: statusResponse?.data?.data?.state });
+          applyWhatsAppConnection({ state: extractWhatsAppState(statusResponse?.data) });
         } catch {
           applyWhatsAppConnection({ state: "unknown" });
         }
@@ -255,8 +286,12 @@ export const GestaoV12Configuracoes = () => {
     const { data } = await api.get("/gestao/mensagens/whatsapp/status", {
       params: { instance_name: instanceName },
     });
-    applyWhatsAppConnection({ state: data?.data?.state });
-    return data?.data || null;
+    const state = extractWhatsAppState(data);
+    applyWhatsAppConnection({ state });
+    return {
+      ...(data?.data || {}),
+      state,
+    };
   }, [applyWhatsAppConnection, whatsAppForm.instance_name]);
 
   const handleConnectWhatsApp = useCallback(async () => {
@@ -331,6 +366,13 @@ export const GestaoV12Configuracoes = () => {
               const nextState = normalizeWhatsAppStatus(liveStatus?.state);
 
               if (nextState === "open") {
+                if (pollingId) {
+                  window.clearInterval(pollingId);
+                  pollingId = null;
+                }
+
+                Swal.close();
+
                 const connectedResponse = await api.post(
                   "/gestao/mensagens/whatsapp/instance",
                   {
@@ -340,12 +382,6 @@ export const GestaoV12Configuracoes = () => {
                 );
                 applyWhatsAppConfig(connectedResponse?.data?.config);
 
-                if (pollingId) {
-                  window.clearInterval(pollingId);
-                  pollingId = null;
-                }
-
-                Swal.close();
                 showAlert?.({
                   title: "WhatsApp conectado",
                   text: "A instância da Gestão V12 foi conectada com sucesso.",
