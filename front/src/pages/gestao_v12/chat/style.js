@@ -187,6 +187,8 @@ export const Message = styled.div`
     $mine || $system ? "0" : `1px solid ${theme.colors.border}`};
   white-space: pre-wrap;
   line-height: 1.45;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 
   a {
     color: inherit;

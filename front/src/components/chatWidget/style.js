@@ -259,6 +259,8 @@ export const Message = styled.div`
   font-size: ${({ $system }) => ($system ? "0.78rem" : "0.9rem")};
   line-height: 1.45;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 
   a {
     color: inherit;
