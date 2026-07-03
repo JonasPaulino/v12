@@ -151,6 +151,7 @@ export const Form = styled.form`
   display: flex;
   flex-direction: column;
   gap: 12px;
+  overflow: hidden;
 `;
 
 export const Field = styled.label`
@@ -165,8 +166,10 @@ export const Field = styled.label`
 
 export const FillField = styled(Field)`
   flex: 1;
+  min-height: 120px;
   align-content: start;
   grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
 
   textarea {
     height: 100%;
@@ -201,7 +204,7 @@ export const Select = styled.select`
 export const TextArea = styled.textarea`
   min-height: 96px;
   height: auto;
-  resize: vertical;
+  resize: none;
   border: 1px solid ${({ theme }) => theme.colors.border};
   border-radius: 16px;
   background: ${({ theme }) => theme.colors.surfaceAlt};
@@ -211,6 +214,7 @@ export const TextArea = styled.textarea`
 `;
 
 export const Button = styled.button`
+  flex: 0 0 auto;
   height: 44px;
   border: 0;
   border-radius: ${({ theme }) => theme.radius.pill};
