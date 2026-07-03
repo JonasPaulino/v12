@@ -400,6 +400,12 @@ const assertConfigured = () => {
       `Schemas MDF-e não encontrados em ${diagnostics.schemaDir}. Ajuste ACBRLIB_MDFE_SCHEMA_PATH no .env.`
     );
   }
+
+  if (!diagnostics.servicosExists) {
+    throw new AcbrLibMdfeNotConfiguredError(
+      `Arquivo de serviços MDF-e não encontrado em ${diagnostics.servicosPath}. Ajuste ACBRLIB_MDFE_SERVICOS_PATH no .env.`
+    );
+  }
 };
 
 class AcbrLibMdfeProvider {

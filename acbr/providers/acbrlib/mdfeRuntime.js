@@ -5,6 +5,7 @@ import AcbrLibMDFeMT from "./mdfeNative.js";
 
 const DEFAULT_MDFE_LIB_PATH = "./lib/ACBrLibMDFe/Linux/CONSOLE-MT/libacbrmdfe64.so";
 const DEFAULT_MDFE_SCHEMA_PATH = "./lib/ACBrLibMDFe/dep/Schemas/MDFe";
+const DEFAULT_MDFE_SERVICOS_PATH = "./lib/ACBrLibMDFe/dep/ACBrMDFeServicos.ini";
 const DEFAULT_SSL_CONFIG = {
   sslCryptLib: "1",
   sslHttpLib: "3",
@@ -47,6 +48,15 @@ const resolveMdfeSchemaDir = () => {
   return fallbackPath;
 };
 
+const resolveMdfeServicosPath = () => {
+  const configuredPath = String(process.env.ACBRLIB_MDFE_SERVICOS_PATH || "").trim();
+  const fallbackPath = path.resolve(process.cwd(), DEFAULT_MDFE_SERVICOS_PATH);
+  const resolvedConfiguredPath = configuredPath ? path.resolve(process.cwd(), configuredPath) : "";
+
+  if (resolvedConfiguredPath && existsSync(resolvedConfiguredPath)) return resolvedConfiguredPath;
+  return fallbackPath;
+};
+
 const ensureDir = async (targetPath) => {
   await fs.mkdir(targetPath, { recursive: true });
 };
@@ -73,6 +83,7 @@ const setConfigValue = (acbr, sessao, chave, valor, { optional = false } = {}) =
 const buildBaseMdfeConfig = ({
   logDir,
   schemaDir,
+  servicosPath,
   certPath = "",
   certificadoSenha = "",
   xmlDir = "",
@@ -102,6 +113,7 @@ FormaEmissao=0
 VersaoDF=3
 SSLType=${ssl.sslType}
 PathSchemas=${escapeIniValue(schemaDir)}
+IniServicos=${escapeIniValue(servicosPath)}
 PathSalvar=${escapeIniValue(xmlDir)}
 PathMDFe=${escapeIniValue(xmlDir)}
 SepararPorCNPJ=1
@@ -116,6 +128,7 @@ PathSchemas=${escapeIniValue(schemaDir)}
 
 [Geral]
 PathSchemas=${escapeIniValue(schemaDir)}
+IniServicos=${escapeIniValue(servicosPath)}
 
 [Certificado]
 ArquivoPFX=${escapeIniValue(certPath)}
@@ -128,11 +141,13 @@ export const mdfeRuntimePaths = {
   configDir: () => resolveAppPath(process.env.ACBRLIB_MDFE_CONFIG_DIR, "./config/acbrlib-mdfe"),
   tempDir: () => resolveAppPath(process.env.ACBRLIB_MDFE_TEMP_DIR, "./temp-mdfe"),
   schemaDir: resolveMdfeSchemaDir,
+  servicosPath: resolveMdfeServicosPath,
 };
 
 export const getMdfeRuntimeDiagnostics = () => {
   const libPath = mdfeRuntimePaths.libPath();
   const schemaDir = mdfeRuntimePaths.schemaDir();
+  const servicosPath = mdfeRuntimePaths.servicosPath();
 
   return {
     enabled: String(process.env.ACBRLIB_ENABLED || "").toLowerCase() === "true",
@@ -140,6 +155,8 @@ export const getMdfeRuntimeDiagnostics = () => {
     libExists: existsSync(libPath),
     schemaDir,
     schemaExists: existsSync(schemaDir),
+    servicosPath,
+    servicosExists: existsSync(servicosPath),
     configDir: mdfeRuntimePaths.configDir(),
     tempDir: mdfeRuntimePaths.tempDir(),
     sslConfig: mdfeSslConfig(),
@@ -149,6 +166,7 @@ export const getMdfeRuntimeDiagnostics = () => {
 export const ensureMdfeRuntimePrerequisites = async () => {
   await fs.access(mdfeRuntimePaths.libPath());
   await fs.access(mdfeRuntimePaths.schemaDir());
+  await fs.access(mdfeRuntimePaths.servicosPath());
   await ensureDir(mdfeRuntimePaths.configDir());
   await ensureDir(mdfeRuntimePaths.tempDir());
 };
@@ -183,6 +201,7 @@ export const createMdfeStatusSession = async ({
     buildBaseMdfeConfig({
       logDir,
       schemaDir: mdfeRuntimePaths.schemaDir(),
+      servicosPath: mdfeRuntimePaths.servicosPath(),
       certPath,
       certificadoSenha,
       xmlDir,
@@ -203,6 +222,7 @@ export const createMdfeStatusSession = async ({
     pdfDir,
     logDir,
     schemaDir: mdfeRuntimePaths.schemaDir(),
+    servicosPath: mdfeRuntimePaths.servicosPath(),
     certificadoSenha: certificadoSenha || "",
     uf,
     ambiente,
@@ -239,6 +259,7 @@ export const createMdfeEmissionSession = async ({
     buildBaseMdfeConfig({
       logDir,
       schemaDir: mdfeRuntimePaths.schemaDir(),
+      servicosPath: mdfeRuntimePaths.servicosPath(),
       certPath,
       certificadoSenha,
       xmlDir,
@@ -258,6 +279,7 @@ export const createMdfeEmissionSession = async ({
     pdfDir,
     logDir,
     schemaDir: mdfeRuntimePaths.schemaDir(),
+    servicosPath: mdfeRuntimePaths.servicosPath(),
     certificadoSenha: certificadoSenha || "",
   };
 };
@@ -275,9 +297,11 @@ export const configureMdfeStatusSession = async (session) => {
   acbr.configGravarValor("DFe", "UF", String(session.uf || "").toUpperCase());
   acbr.configGravarValor("DFe", "ArquivoPFX", session.certPath);
   acbr.configGravarValor("DFe", "Senha", session.certificadoSenha);
+  setConfigValue(acbr, "DFe", "IniServicos", session.servicosPath, { optional: true });
   acbr.configGravarValor("MDFe", "Ambiente", mapAmbiente(session.ambiente));
   acbr.configGravarValor("MDFe", "SSLType", ssl.sslType);
   acbr.configGravarValor("MDFe", "PathSchemas", session.schemaDir);
+  setConfigValue(acbr, "MDFe", "IniServicos", session.servicosPath, { optional: true });
   acbr.configGravarValor("MDFe", "PathSalvar", session.xmlDir);
   acbr.configGravarValor("Arquivos", "Salvar", "1");
   acbr.configGravarValor("Arquivos", "PathSalvar", session.xmlDir);
@@ -298,10 +322,12 @@ export const configureMdfeEmissionSession = async (session, context) => {
   setConfigValue(acbr, "DFe", "UF", String(context.emitente.uf || context.mdfe.uf_inicio || "").toUpperCase());
   setConfigValue(acbr, "DFe", "ArquivoPFX", session.certPath);
   setConfigValue(acbr, "DFe", "Senha", session.certificadoSenha);
+  setConfigValue(acbr, "DFe", "IniServicos", session.servicosPath, { optional: true });
   setConfigValue(acbr, "Arquivos", "Salvar", "1", { optional: true });
   setConfigValue(acbr, "Arquivos", "PathSalvar", session.xmlDir, { optional: true });
   setConfigValue(acbr, "Arquivos", "PathSchemas", session.schemaDir, { optional: true });
   setConfigValue(acbr, "Geral", "PathSchemas", session.schemaDir, { optional: true });
+  setConfigValue(acbr, "Geral", "IniServicos", session.servicosPath, { optional: true });
   setConfigValue(acbr, "Certificado", "ArquivoPFX", session.certPath, { optional: true });
   setConfigValue(acbr, "Certificado", "Senha", session.certificadoSenha, { optional: true });
   setConfigValue(acbr, "MDFe", "Ambiente", mapAmbiente(context.mdfe.ambiente));
@@ -309,6 +335,7 @@ export const configureMdfeEmissionSession = async (session, context) => {
   setConfigValue(acbr, "MDFe", "VersaoDF", "3", { optional: true });
   setConfigValue(acbr, "MDFe", "SSLType", ssl.sslType, { optional: true });
   setConfigValue(acbr, "MDFe", "PathSchemas", session.schemaDir);
+  setConfigValue(acbr, "MDFe", "IniServicos", session.servicosPath, { optional: true });
   setConfigValue(acbr, "MDFe", "PathSalvar", session.xmlDir, { optional: true });
   setConfigValue(acbr, "MDFe", "PathMDFe", session.xmlDir, { optional: true });
   setConfigValue(acbr, "DAMDFE", "PathPDF", session.pdfDir, { optional: true });
