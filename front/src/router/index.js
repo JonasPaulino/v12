@@ -1,5 +1,5 @@
 import React, { useContext } from "react";
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthMiddleware } from "middleware";
 import { AppContext } from "context";
 import PageWrapper from "./PageWrapper";
@@ -20,7 +20,6 @@ import { NfeRecebidas } from "pages/nfe_recebidas";
 import { NfeManifestacao } from "pages/nfe_manifestacao";
 import { Mdfe } from "pages/mdfe";
 import { ChatWidget } from "components/chatWidget";
-import { EasterEggActivator, JesusStoryEasterEgg } from "../jogo/jesus_story";
 import { GestaoV12Dashboard } from "pages/gestao_v12/dashboard";
 import { GestaoV12Clientes } from "pages/gestao_v12/clientes";
 import { GestaoV12Pessoas } from "pages/gestao_v12/pessoas";
@@ -53,24 +52,11 @@ const AdminOnly = ({ children }) => {
   return children;
 };
 
-const RouteHelpers = () => {
-  const location = useLocation();
-  const isEasterEgg = location.pathname.startsWith("/easter-egg");
-
-  return (
-    <>
-      <EasterEggActivator />
-      {!isEasterEgg ? <ChatWidget /> : null}
-    </>
-  );
-};
-
 export const RouteApp = () => (
   <BrowserRouter>
     <Routes>
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="/login" element={<Login />} />
-      <Route path="/easter-egg/jesus" element={<JesusStoryEasterEgg />} />
       <Route
         path="/dashboard"
         element={
@@ -300,6 +286,6 @@ export const RouteApp = () => (
       />
       <Route path="*" element={<NotFound />} />
     </Routes>
-    <RouteHelpers />
+    <ChatWidget />
   </BrowserRouter>
 );
