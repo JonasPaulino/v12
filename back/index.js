@@ -33,6 +33,7 @@ import tenantCertificateRoutes from "./routes/tenantCertificateRoutes.js";
 import gestaoPessoaRoutes from "./routes/gestaoPessoaRoutes.js";
 import gestaoFinanceiroRoutes from "./routes/gestaoFinanceiroRoutes.js";
 import gestaoUsuarioRoutes from "./routes/gestaoUsuarioRoutes.js";
+import gestaoMensagemRoutes from "./routes/gestaoMensagemRoutes.js";
 import requireMaster from "./middleware/requireMaster.js";
 
 dotenv.config();
@@ -83,7 +84,8 @@ app.use(
   requireMaster,
   gestaoPessoaRoutes,
   gestaoFinanceiroRoutes,
-  gestaoUsuarioRoutes
+  gestaoUsuarioRoutes,
+  gestaoMensagemRoutes
 );
 app.use("/integracoes/pagamentos", paymentIntegrationRoutes);
 

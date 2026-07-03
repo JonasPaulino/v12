@@ -1,4 +1,5 @@
 import React, { useCallback, useContext, useEffect, useState } from "react";
+import Swal from "sweetalert2";
 import { api } from "api/axiosConfig";
 import { AppContext } from "context";
 import { useSweetAlert } from "context/sweet_alert";
@@ -11,14 +12,81 @@ const initialAsaasForm = {
   api_key: "",
 };
 
+const initialWhatsAppForm = {
+  provider: "evolution",
+  whatsapp_ativo: false,
+  instance_name: "",
+  remetente_numero: "",
+  mensagem_boleto_padrao: "",
+  mensagem_pix_padrao: "",
+};
+
+const normalizeWhatsAppStatus = (value) => {
+  const normalized = String(value || "").trim().toLowerCase();
+
+  if (normalized === "open") return "open";
+  if (normalized === "connecting") return "connecting";
+  if (normalized === "close") return "close";
+  if (normalized === "not_found") return "not_found";
+
+  return "unknown";
+};
+
+const escapeHtml = (value) =>
+  String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
+const buildWhatsAppQrHtml = ({ image = "", pairingCode = "" } = {}) => `
+  <div style="display:grid;gap:14px;justify-items:center;text-align:center;">
+    ${
+      image
+        ? `<img src="${image}" alt="QR Code do WhatsApp" style="width:240px;height:240px;object-fit:contain;border:1px solid #d8e1f0;border-radius:20px;padding:12px;background:#fff;" />`
+        : ""
+    }
+    ${
+      pairingCode
+        ? `<div style="display:grid;gap:6px;justify-items:center;">
+             <span style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#6b7a96;">Código</span>
+             <strong style="font-size:18px;color:#13233f;">${escapeHtml(pairingCode)}</strong>
+           </div>`
+        : ""
+    }
+    <p style="margin:0;color:#667085;font-size:14px;line-height:1.5;">
+      Abra o WhatsApp no celular, escaneie o QR Code e aguarde a confirmação.
+    </p>
+  </div>
+`;
+
+const statusLabel = (status) => {
+  if (status === "open") return "Conectado";
+  if (status === "connecting") return "Aguardando leitura";
+  if (status === "not_found") return "Instância não encontrada";
+  if (status === "close") return "Desconectado";
+
+  return "Sem status";
+};
+
 export const GestaoV12Configuracoes = () => {
   const { showLoading, hideLoading } = useContext(AppContext);
-  const { showAlert } = useSweetAlert();
+  const { showAlert, askYesNoQuestion } = useSweetAlert();
   const [activeTab, setActiveTab] = useState("cobranca");
+  const [activeMensagemTab, setActiveMensagemTab] = useState("conectar");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [savingWhatsApp, setSavingWhatsApp] = useState(false);
+  const [whatsAppState, setWhatsAppState] = useState({
+    loading: false,
+    state: "unknown",
+    image: "",
+    pairingCode: "",
+  });
   const [asaasConfig, setAsaasConfig] = useState(null);
   const [asaasForm, setAsaasForm] = useState(initialAsaasForm);
+  const [whatsAppForm, setWhatsAppForm] = useState(initialWhatsAppForm);
 
   const loadAsaasConfig = useCallback(async () => {
     setLoading(true);
@@ -49,8 +117,72 @@ export const GestaoV12Configuracoes = () => {
     loadAsaasConfig();
   }, [loadAsaasConfig]);
 
+  const applyWhatsAppConfig = useCallback((config = {}) => {
+    if (!config || typeof config !== "object") return;
+
+    setWhatsAppForm({
+      provider: config.provider || "evolution",
+      whatsapp_ativo: config.whatsapp_ativo === true,
+      instance_name: config.instance_name || "",
+      remetente_numero: config.remetente_numero || "",
+      mensagem_boleto_padrao: config.mensagem_boleto_padrao || "",
+      mensagem_pix_padrao: config.mensagem_pix_padrao || "",
+    });
+  }, []);
+
+  const applyWhatsAppConnection = useCallback((payload = {}) => {
+    const nextState = normalizeWhatsAppStatus(payload.state);
+
+    setWhatsAppState((current) => ({
+      ...current,
+      state: nextState,
+      image: nextState === "open" ? "" : payload.image || current.image || "",
+      pairingCode: nextState === "open" ? "" : payload.pairingCode || current.pairingCode || "",
+    }));
+
+    return nextState;
+  }, []);
+
+  const loadWhatsAppConfig = useCallback(async () => {
+    try {
+      const { data } = await api.get("/gestao/mensagens/whatsapp/configuracao");
+      const config = data.data || {};
+      applyWhatsAppConfig(config);
+
+      if (config.instance_name) {
+        try {
+          const statusResponse = await api.get("/gestao/mensagens/whatsapp/status", {
+            params: { instance_name: config.instance_name },
+          });
+          applyWhatsAppConnection({ state: statusResponse?.data?.data?.state });
+        } catch {
+          applyWhatsAppConnection({ state: "unknown" });
+        }
+      }
+    } catch (error) {
+      showAlert?.({
+        title: "Falha ao carregar WhatsApp",
+        text:
+          error?.response?.data?.message ||
+          "Não foi possível carregar a configuração de mensagens da V12.",
+        icon: "error",
+      });
+    }
+  }, [applyWhatsAppConfig, applyWhatsAppConnection, showAlert]);
+
+  useEffect(() => {
+    loadWhatsAppConfig();
+  }, [loadWhatsAppConfig]);
+
   const updateAsaasField = (field, value) => {
     setAsaasForm((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  };
+
+  const updateWhatsAppField = (field, value) => {
+    setWhatsAppForm((current) => ({
       ...current,
       [field]: value,
     }));
@@ -88,13 +220,276 @@ export const GestaoV12Configuracoes = () => {
     }
   };
 
+  const handleSaveWhatsApp = useCallback(async () => {
+    setSavingWhatsApp(true);
+    try {
+      const { data } = await api.put(
+        "/gestao/mensagens/whatsapp/configuracao",
+        whatsAppForm
+      );
+      applyWhatsAppConfig(data.data);
+
+      showAlert?.({
+        title: "Configuração salva",
+        text: "As mensagens da Gestão V12 foram atualizadas.",
+        icon: "success",
+        timer: 1800,
+      });
+    } catch (error) {
+      showAlert?.({
+        title: "Falha ao salvar WhatsApp",
+        text:
+          error?.response?.data?.message ||
+          "Não foi possível salvar a configuração de mensagens.",
+        icon: "error",
+      });
+    } finally {
+      setSavingWhatsApp(false);
+    }
+  }, [applyWhatsAppConfig, showAlert, whatsAppForm]);
+
+  const fetchWhatsAppStatus = useCallback(async () => {
+    const instanceName = String(whatsAppForm.instance_name || "").trim();
+    if (!instanceName) return null;
+
+    const { data } = await api.get("/gestao/mensagens/whatsapp/status", {
+      params: { instance_name: instanceName },
+    });
+    applyWhatsAppConnection({ state: data?.data?.state });
+    return data?.data || null;
+  }, [applyWhatsAppConnection, whatsAppForm.instance_name]);
+
+  const handleConnectWhatsApp = useCallback(async () => {
+    const instanceName = String(whatsAppForm.instance_name || "").trim();
+    if (!instanceName) {
+      showAlert?.({
+        title: "Instância obrigatória",
+        text: "Informe o nome da instância do WhatsApp da Gestão V12.",
+        icon: "warning",
+      });
+      return;
+    }
+
+    try {
+      setWhatsAppState((current) => ({ ...current, loading: true }));
+
+      let currentState = "unknown";
+      try {
+        const statusData = await fetchWhatsAppStatus();
+        currentState = normalizeWhatsAppStatus(statusData?.state);
+      } catch {
+        currentState = "unknown";
+      }
+
+      if (currentState === "open") {
+        const { data } = await api.post("/gestao/mensagens/whatsapp/instance", {
+          ...whatsAppForm,
+          whatsapp_ativo: true,
+        });
+        applyWhatsAppConfig(data?.config);
+
+        showAlert?.({
+          title: "WhatsApp conectado",
+          text: "A instância da Gestão V12 já está conectada e pronta para uso.",
+          icon: "success",
+        });
+        return;
+      }
+
+      const { data } = await api.post("/gestao/mensagens/whatsapp/instance", {
+        ...whatsAppForm,
+        whatsapp_ativo: false,
+      });
+      applyWhatsAppConfig(data?.config);
+
+      const qrResponse = await api.get("/gestao/mensagens/whatsapp/qrcode", {
+        params: { instance_name: instanceName },
+      });
+      const qrImage = qrResponse?.data?.data?.image || "";
+      const pairingCode = qrResponse?.data?.data?.pairingCode || "";
+
+      applyWhatsAppConnection({
+        state: currentState === "unknown" ? "connecting" : currentState,
+        image: qrImage,
+        pairingCode,
+      });
+
+      let pollingId = null;
+
+      await Swal.fire({
+        title: "Escaneie o QR Code",
+        html: buildWhatsAppQrHtml({ image: qrImage, pairingCode }),
+        showConfirmButton: false,
+        showCancelButton: true,
+        cancelButtonText: "Cancelar",
+        cancelButtonColor: "#0b5fff",
+        width: 520,
+        didOpen: () => {
+          pollingId = window.setInterval(async () => {
+            try {
+              const liveStatus = await fetchWhatsAppStatus();
+              const nextState = normalizeWhatsAppStatus(liveStatus?.state);
+
+              if (nextState === "open") {
+                const connectedResponse = await api.post(
+                  "/gestao/mensagens/whatsapp/instance",
+                  {
+                    ...whatsAppForm,
+                    whatsapp_ativo: true,
+                  }
+                );
+                applyWhatsAppConfig(connectedResponse?.data?.config);
+
+                if (pollingId) {
+                  window.clearInterval(pollingId);
+                  pollingId = null;
+                }
+
+                Swal.close();
+                showAlert?.({
+                  title: "WhatsApp conectado",
+                  text: "A instância da Gestão V12 foi conectada com sucesso.",
+                  icon: "success",
+                });
+              }
+            } catch {}
+          }, 4000);
+        },
+        willClose: () => {
+          if (pollingId) window.clearInterval(pollingId);
+        },
+      });
+    } catch (error) {
+      showAlert?.({
+        title: "Falha no WhatsApp",
+        text:
+          error?.response?.data?.message ||
+          "Não foi possível iniciar a conexão do WhatsApp da Gestão V12.",
+        icon: "error",
+      });
+    } finally {
+      setWhatsAppState((current) => ({ ...current, loading: false }));
+    }
+  }, [
+    applyWhatsAppConfig,
+    applyWhatsAppConnection,
+    fetchWhatsAppStatus,
+    showAlert,
+    whatsAppForm,
+  ]);
+
+  const handleDisconnectWhatsApp = useCallback(async () => {
+    try {
+      setWhatsAppState((current) => ({ ...current, loading: true }));
+      const { data } = await api.delete("/gestao/mensagens/whatsapp/logout", {
+        data: { instance_name: whatsAppForm.instance_name },
+      });
+      applyWhatsAppConfig(data?.config);
+      applyWhatsAppConnection({ state: "close", image: "", pairingCode: "" });
+
+      showAlert?.({
+        title: "WhatsApp desconectado",
+        text: "A instância da Gestão V12 foi desconectada.",
+        icon: "success",
+      });
+    } catch (error) {
+      showAlert?.({
+        title: "Falha no WhatsApp",
+        text:
+          error?.response?.data?.message ||
+          "Não foi possível desconectar a instância do WhatsApp.",
+        icon: "error",
+      });
+    } finally {
+      setWhatsAppState((current) => ({ ...current, loading: false }));
+    }
+  }, [
+    applyWhatsAppConfig,
+    applyWhatsAppConnection,
+    showAlert,
+    whatsAppForm.instance_name,
+  ]);
+
+  const handleRestartWhatsApp = useCallback(async () => {
+    try {
+      setWhatsAppState((current) => ({ ...current, loading: true }));
+      await api.put("/gestao/mensagens/whatsapp/restart", {
+        instance_name: whatsAppForm.instance_name,
+      });
+      await fetchWhatsAppStatus();
+
+      showAlert?.({
+        title: "Instância reiniciada",
+        text: "A conexão do WhatsApp da Gestão V12 foi reiniciada.",
+        icon: "success",
+      });
+    } catch (error) {
+      showAlert?.({
+        title: "Falha no WhatsApp",
+        text:
+          error?.response?.data?.message ||
+          "Não foi possível reiniciar a instância do WhatsApp.",
+        icon: "error",
+      });
+    } finally {
+      setWhatsAppState((current) => ({ ...current, loading: false }));
+    }
+  }, [fetchWhatsAppStatus, showAlert, whatsAppForm.instance_name]);
+
+  const handleDeleteWhatsApp = useCallback(async () => {
+    const confirmed = await askYesNoQuestion?.(
+      "Excluir instância",
+      "Deseja realmente excluir a instância do WhatsApp da Gestão V12?"
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setWhatsAppState((current) => ({ ...current, loading: true }));
+      const { data } = await api.delete("/gestao/mensagens/whatsapp/instance", {
+        data: { instance_name: whatsAppForm.instance_name },
+      });
+      applyWhatsAppConfig(data?.config);
+      applyWhatsAppConnection({ state: "not_found", image: "", pairingCode: "" });
+
+      showAlert?.({
+        title: "Instância excluída",
+        text: "A instância do WhatsApp da Gestão V12 foi removida.",
+        icon: "success",
+      });
+    } catch (error) {
+      showAlert?.({
+        title: "Falha no WhatsApp",
+        text:
+          error?.response?.data?.message ||
+          "Não foi possível excluir a instância do WhatsApp.",
+        icon: "error",
+      });
+    } finally {
+      setWhatsAppState((current) => ({ ...current, loading: false }));
+    }
+  }, [
+    applyWhatsAppConfig,
+    applyWhatsAppConnection,
+    askYesNoQuestion,
+    showAlert,
+    whatsAppForm.instance_name,
+  ]);
+
+  const whatsAppStatus = normalizeWhatsAppStatus(whatsAppState.state);
+  const isWhatsAppConnected = whatsAppStatus === "open";
+  const canRestartWhatsApp = isWhatsAppConnected;
+  const canDeleteWhatsApp =
+    !!String(whatsAppForm.instance_name || "").trim() &&
+    !["not_found", "unknown"].includes(whatsAppStatus);
+
   return (
     <GestaoV12Layout
       title="Configurações"
       subtitle="Parâmetros próprios da empresa V12, separados das filiais dos clientes."
     >
       <C.Stack>
-        <C.Card as="form" onSubmit={handleSubmitAsaas}>
+        <C.Card>
           <C.CardHeader>
             <C.CardTitle>Configurações da Gestão V12</C.CardTitle>
             <C.CardText>
@@ -128,7 +523,7 @@ export const GestaoV12Configuracoes = () => {
           </C.Tabs>
 
           {activeTab === "cobranca" ? (
-            <C.SectionBody>
+            <C.SectionBody as="form" onSubmit={handleSubmitAsaas}>
               <C.CardHeader>
                 <C.CardTitle>Gateway de cobrança</C.CardTitle>
                 <C.CardText>
@@ -216,10 +611,172 @@ export const GestaoV12Configuracoes = () => {
           ) : null}
 
           {activeTab === "mensagens" ? (
-            <C.Placeholder>
-              Configurações de mensagens administrativas da V12 ficarão aqui, separadas das
-              conexões WhatsApp das filiais dos clientes.
-            </C.Placeholder>
+            <C.SectionBody>
+              <C.CardHeader>
+                <C.CardTitle>WhatsApp da Gestão V12</C.CardTitle>
+                <C.CardText>
+                  Conexão usada apenas pela gestão interna para enviar cobranças e avisos aos
+                  clientes da V12. Ela não interfere no WhatsApp configurado nas filiais.
+                </C.CardText>
+              </C.CardHeader>
+
+              <C.SubTabs>
+                <C.SubTabButton
+                  type="button"
+                  $active={activeMensagemTab === "conectar"}
+                  onClick={() => setActiveMensagemTab("conectar")}
+                >
+                  Conexão
+                </C.SubTabButton>
+                <C.SubTabButton
+                  type="button"
+                  $active={activeMensagemTab === "mensagens"}
+                  onClick={() => setActiveMensagemTab("mensagens")}
+                >
+                  Mensagens padrão
+                </C.SubTabButton>
+              </C.SubTabs>
+
+              {activeMensagemTab === "conectar" ? (
+                <C.ConnectionCard>
+                  <C.FieldsGrid>
+                    <C.Field>
+                      <C.FieldSpan>Nome da instância</C.FieldSpan>
+                      <C.Input
+                        value={whatsAppForm.instance_name}
+                        onChange={(event) =>
+                          updateWhatsAppField("instance_name", event.target.value)
+                        }
+                        placeholder="Ex.: v12-gestao"
+                      />
+                    </C.Field>
+
+                    <C.Field>
+                      <C.FieldSpan>Status</C.FieldSpan>
+                      <C.StatusPill $status={whatsAppStatus}>
+                        <C.StatusDot $status={whatsAppStatus} />
+                        <span>{statusLabel(whatsAppStatus)}</span>
+                      </C.StatusPill>
+                    </C.Field>
+                  </C.FieldsGrid>
+
+                  <C.FieldsGrid>
+                    <C.Field>
+                      <C.FieldSpan>Número do WhatsApp</C.FieldSpan>
+                      <C.Input
+                        value={whatsAppForm.remetente_numero}
+                        onChange={(event) =>
+                          updateWhatsAppField("remetente_numero", event.target.value)
+                        }
+                        placeholder="5581999999999"
+                      />
+                      <C.FieldHint>Informe o número que será conectado ao WhatsApp Web.</C.FieldHint>
+                    </C.Field>
+
+                    <C.Field>
+                      <C.FieldSpan>Ação</C.FieldSpan>
+                      <C.ConnectionActions>
+                        <C.PrimaryInlineButton
+                          type="button"
+                          onClick={
+                            isWhatsAppConnected ? handleDisconnectWhatsApp : handleConnectWhatsApp
+                          }
+                          disabled={whatsAppState.loading}
+                        >
+                          {whatsAppState.loading
+                            ? "Processando..."
+                            : isWhatsAppConnected
+                            ? "Desconectar"
+                            : "Salvar e conectar"}
+                        </C.PrimaryInlineButton>
+
+                        {canRestartWhatsApp ? (
+                          <C.IconButton
+                            type="button"
+                            title="Reiniciar conexão"
+                            aria-label="Reiniciar conexão"
+                            onClick={handleRestartWhatsApp}
+                            disabled={whatsAppState.loading}
+                          >
+                            ↻
+                          </C.IconButton>
+                        ) : null}
+
+                        {canDeleteWhatsApp ? (
+                          <C.IconButton
+                            type="button"
+                            title="Excluir instância"
+                            aria-label="Excluir instância"
+                            onClick={handleDeleteWhatsApp}
+                            disabled={whatsAppState.loading}
+                          >
+                            ×
+                          </C.IconButton>
+                        ) : null}
+                      </C.ConnectionActions>
+                    </C.Field>
+                  </C.FieldsGrid>
+                </C.ConnectionCard>
+              ) : null}
+
+              {activeMensagemTab === "mensagens" ? (
+                <>
+                  <C.ToggleList>
+                    <C.ToggleRow>
+                      <C.Checkbox
+                        type="checkbox"
+                        checked={whatsAppForm.whatsapp_ativo}
+                        onChange={(event) =>
+                          updateWhatsAppField("whatsapp_ativo", event.target.checked)
+                        }
+                      />
+                      <span>Ativar envio de mensagens por WhatsApp na Gestão V12</span>
+                    </C.ToggleRow>
+                  </C.ToggleList>
+
+                  <C.FieldsGrid>
+                    <C.Field>
+                      <C.FieldSpan>Mensagem padrão do boleto</C.FieldSpan>
+                      <C.Textarea
+                        value={whatsAppForm.mensagem_boleto_padrao}
+                        onChange={(event) =>
+                          updateWhatsAppField("mensagem_boleto_padrao", event.target.value)
+                        }
+                        placeholder="Use {nome} e {link_boleto}"
+                      />
+                    </C.Field>
+
+                    <C.Field>
+                      <C.FieldSpan>Mensagem padrão do PIX</C.FieldSpan>
+                      <C.Textarea
+                        value={whatsAppForm.mensagem_pix_padrao}
+                        onChange={(event) =>
+                          updateWhatsAppField("mensagem_pix_padrao", event.target.value)
+                        }
+                        placeholder="Use {nome}, {valor}, {vencimento} e {pix_copia_cola}"
+                      />
+                    </C.Field>
+                  </C.FieldsGrid>
+
+                  <C.Actions>
+                    <C.SecondaryButton
+                      type="button"
+                      onClick={loadWhatsAppConfig}
+                      disabled={savingWhatsApp}
+                    >
+                      Recarregar
+                    </C.SecondaryButton>
+                    <C.PrimaryButton
+                      type="button"
+                      onClick={handleSaveWhatsApp}
+                      disabled={savingWhatsApp}
+                    >
+                      {savingWhatsApp ? "Salvando..." : "Salvar mensagens"}
+                    </C.PrimaryButton>
+                  </C.Actions>
+                </>
+              ) : null}
+            </C.SectionBody>
           ) : null}
         </C.Card>
       </C.Stack>

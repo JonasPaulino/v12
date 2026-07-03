@@ -42,6 +42,26 @@ export const Tabs = styled(TabPillGroupBase)``;
 
 export const TabButton = styled(TabPillButtonBase)``;
 
+export const SubTabs = styled.div`
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+`;
+
+export const SubTabButton = styled.button`
+  height: 38px;
+  padding: 0 16px;
+  border-radius: ${({ theme }) => theme.radius.pill};
+  border: 1px solid
+    ${({ theme, $active }) => ($active ? theme.colors.primary : theme.colors.border)};
+  background: ${({ theme, $active }) =>
+    $active ? "rgba(11, 95, 255, 0.08)" : theme.colors.surface};
+  color: ${({ theme, $active }) =>
+    $active ? theme.colors.primaryStrong : theme.colors.textSoft};
+  font-weight: 800;
+  cursor: pointer;
+`;
+
 export const SectionBody = styled.div`
   display: grid;
   gap: 18px;
@@ -98,6 +118,24 @@ export const Select = styled.select`
   border-radius: ${({ theme }) => theme.radius.md};
   background: ${({ theme }) => theme.colors.surfaceAlt};
   color: ${({ theme }) => theme.colors.text};
+  outline: none;
+
+  &:focus {
+    border-color: ${({ theme }) => theme.colors.primary};
+    box-shadow: 0 0 0 4px rgba(11, 95, 255, 0.12);
+  }
+`;
+
+export const Textarea = styled.textarea`
+  width: 100%;
+  min-height: 112px;
+  padding: 14px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radius.md};
+  background: ${({ theme }) => theme.colors.surfaceAlt};
+  color: ${({ theme }) => theme.colors.text};
+  font: inherit;
+  resize: vertical;
   outline: none;
 
   &:focus {
@@ -174,6 +212,91 @@ export const Actions = styled.div`
     button {
       width: 100%;
     }
+  }
+`;
+
+export const ConnectionCard = styled.div`
+  display: grid;
+  gap: 18px;
+  padding: 18px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radius.md};
+  background: rgba(248, 251, 255, 0.72);
+`;
+
+export const ConnectionActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+`;
+
+export const StatusPill = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  width: fit-content;
+  padding: 0 14px;
+  border-radius: ${({ theme }) => theme.radius.pill};
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  background: ${({ $status }) =>
+    $status === "open"
+      ? "rgba(31, 157, 106, 0.1)"
+      : $status === "connecting"
+      ? "rgba(214, 145, 24, 0.12)"
+      : "rgba(226, 232, 240, 0.72)"};
+  color: ${({ theme }) => theme.colors.text};
+  font-weight: 800;
+`;
+
+export const StatusDot = styled.span`
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: ${({ theme, $status }) =>
+    $status === "open"
+      ? theme.colors.success
+      : $status === "connecting"
+      ? "#d69118"
+      : theme.colors.textSoft};
+  flex: 0 0 10px;
+`;
+
+export const IconButton = styled.button`
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radius.pill};
+  background: ${({ theme }) => theme.colors.surface};
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 1.2rem;
+  font-weight: 800;
+  cursor: pointer;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.68;
+  }
+`;
+
+export const PrimaryInlineButton = styled.button`
+  min-width: 156px;
+  height: 42px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: ${({ theme }) => theme.radius.pill};
+  background: linear-gradient(135deg, #0b5fff 0%, #083b9a 100%);
+  color: #ffffff;
+  font-weight: 800;
+  cursor: pointer;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.68;
   }
 `;
 
