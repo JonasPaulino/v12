@@ -1,9 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
-import { FiBox, FiRefreshCcw, FiShoppingCart, FiWifi } from "react-icons/fi";
+import {
+  FiChevronDown,
+  FiFileText,
+  FiMenu,
+  FiPower,
+  FiRefreshCcw,
+  FiSettings,
+  FiShoppingCart,
+  FiWifi,
+} from "react-icons/fi";
 import { api } from "./api.js";
 import { CaixaPanel } from "./components/CaixaPanel.jsx";
 import { ProdutoSearch } from "./components/ProdutoSearch.jsx";
 import { VendaResumo } from "./components/VendaResumo.jsx";
+import logoWhite from "./assets/v12-erp-logo-white.png";
 
 export default function App() {
   const [health, setHealth] = useState(null);
@@ -60,42 +70,95 @@ export default function App() {
   }
 
   return (
-    <div className="app-shell">
-      <aside className="sidebar">
-        <div className="brand">V12 PDV</div>
-        <nav>
-          <button className="nav-active"><FiShoppingCart /> Venda</button>
-          <button><FiBox /> Produtos</button>
-          <button><FiWifi /> Sync</button>
-        </nav>
-      </aside>
-
-      <main className="content">
-        <header className="topbar">
-          <div>
-            <strong>{health?.station || "Caixa local"}</strong>
-            <span>{health?.service || "Servidor local aguardando"}</span>
+    <div className="pdv-shell">
+      <header className="pdv-topbar">
+        <div className="menu-group">
+          <button className="top-menu">
+            <FiMenu />
+            Menu <small>F2</small>
+            <FiChevronDown className="chevron" />
+          </button>
+          <div className="top-dropdown">
+            <button><FiShoppingCart /> Nova venda</button>
+            <button><FiFileText /> Relatorio de caixa</button>
+            <button><FiSettings /> Configuracoes locais</button>
           </div>
-          <button onClick={() => loadInitialData()}><FiRefreshCcw /> Atualizar</button>
-        </header>
+        </div>
 
-        {message ? <div className="notice">{message}</div> : null}
+        <div className="operator-info">
+          <span>PDV: 01</span>
+          <span>Operador: {caixa?.operador_nome || "Caixa fechado"}</span>
+          <span>{health?.station || "Caixa 01"}</span>
+        </div>
 
-        <section className="grid">
-          <div className="card products-card">
-            <h2>Venda balcão</h2>
+        <div className="menu-group align-right">
+          <button className="top-menu fiscal">
+            Menu fiscal <small>F12</small>
+            <FiChevronDown className="chevron" />
+          </button>
+          <div className="top-dropdown">
+            <button>Status SEFAZ</button>
+            <button>Enviar contingencias</button>
+            <button>Consultar NFC-e</button>
+          </div>
+        </div>
+      </header>
+
+      <main className="pdv-main">
+        <section className="left-panel">
+          <div className="logo-card">
+            <img src={logoWhite} alt="V12 ERP" />
+          </div>
+
+          <div className="shortcut-grid">
+            <button className="shortcut primary">Registro de item <small>F3</small></button>
+            <button className="shortcut">Cliente / CPF <small>F4</small></button>
+            <button className="shortcut">Cancelar item <small>F5</small></button>
+            <button className="shortcut">Orcamento <small>F6</small></button>
+            <button className="shortcut">Desconto <small>F7</small></button>
+            <button className="shortcut">Consultar produto <small>F8</small></button>
+          </div>
+
+          <div className="entry-card">
+            <div className="breadcrumb">Vendas &gt; Registro de item</div>
             <ProdutoSearch onSelect={addProduto} disabled={!caixa} />
           </div>
 
-          <div className="card">
+          <div className="caixa-card">
             <CaixaPanel caixa={caixa} onChange={setCaixa} />
           </div>
+        </section>
 
-          <div className="card sale-card">
-            <VendaResumo cart={cart} total={total} onChange={setCart} onFinish={finalizarVenda} disabled={!caixa || !cart.length} />
+        <section className="right-panel">
+          <div className="receipt-header">
+            <strong>V12 ERP</strong>
+            <span>PDV Local - NFC-e modelo 65</span>
+            <small>{new Date().toLocaleString("pt-BR")}</small>
           </div>
+
+          <VendaResumo
+            cart={cart}
+            total={total}
+            onChange={setCart}
+            onFinish={finalizarVenda}
+            disabled={!caixa || !cart.length}
+          />
         </section>
       </main>
+
+      <footer className="pdv-footer">
+        <div className="footer-status">
+          <span className={caixa ? "dot online" : "dot offline"} />
+          {caixa ? "Caixa aberto" : "Caixa fechado"}
+          <button onClick={() => loadInitialData()}><FiRefreshCcw /> Atualizar</button>
+          <span><FiWifi /> Sync local</span>
+        </div>
+        {message ? <strong className="footer-message">{message}</strong> : null}
+        <div className="footer-brand">
+          <FiPower />
+          V12 ERP
+        </div>
+      </footer>
     </div>
   );
 }

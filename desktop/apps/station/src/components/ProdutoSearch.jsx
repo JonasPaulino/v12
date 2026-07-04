@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { FiSearch } from "react-icons/fi";
 import { api } from "../api.js";
 
 export function ProdutoSearch({ onSelect, disabled }) {
@@ -11,15 +12,31 @@ export function ProdutoSearch({ onSelect, disabled }) {
   }
 
   return (
-    <div>
-      <div className="inline-form">
-        <input
-          placeholder="Buscar produto por codigo ou descricao"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          disabled={disabled}
-        />
-        <button onClick={pesquisar} disabled={disabled}>Buscar</button>
+    <div className="entry-module">
+      <label className="product-code-label">
+        Codigo do produto
+        <div className="product-input-row">
+          <input
+            placeholder="Quantidade / codigo do produto"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") pesquisar();
+            }}
+            disabled={disabled}
+            autoFocus
+          />
+          <button onClick={pesquisar} disabled={disabled} title="Consultar produto">
+            <FiSearch />
+          </button>
+        </div>
+      </label>
+
+      <div className="selected-product-preview">
+        <span>Nome do produto</span>
+        <strong>{produtos[0]?.descricao || "Aguardando leitura"}</strong>
+        <small>Valor</small>
+        <b>{produtos[0] ? `R$ ${Number(produtos[0].preco_venda || 0).toFixed(2)}` : "R$ 0,00"}</b>
       </div>
 
       <div className="product-list">

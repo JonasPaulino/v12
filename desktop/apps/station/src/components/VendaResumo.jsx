@@ -12,31 +12,47 @@ export function VendaResumo({ cart, total, onChange, onFinish, disabled }) {
   }
 
   return (
-    <div>
-      <h2>Carrinho</h2>
-      <div className="cart-list">
+    <div className="receipt">
+      <div className="receipt-table">
+        <div className="receipt-row receipt-head">
+          <span>Item</span>
+          <span>Cod.</span>
+          <span>Descricao</span>
+          <span>Preco Un.</span>
+          <span>Qtd</span>
+          <span>Valor</span>
+        </div>
         {cart.map((item) => (
-          <div className="cart-row" key={item.produto_id}>
-            <div>
-              <strong>{item.descricao}</strong>
-              <span>R$ {Number(item.valor_unitario).toFixed(2)}</span>
-            </div>
+          <div className="receipt-row" key={item.produto_id}>
+            <span>{String(cart.indexOf(item) + 1).padStart(3, "0")}</span>
+            <span>{item.codigo_produto || item.produto_id}</span>
+            <strong>{item.descricao}</strong>
+            <span>{Number(item.valor_unitario).toFixed(2)}</span>
             <input
               type="number"
               min="1"
               value={item.quantidade}
               onChange={(event) => updateQuantity(item.produto_id, event.target.value)}
             />
-            <button className="ghost" onClick={() => removeItem(item.produto_id)}>Remover</button>
+            <button className="remove-line" onClick={() => removeItem(item.produto_id)}>
+              {(Number(item.quantidade) * Number(item.valor_unitario)).toFixed(2)}
+            </button>
           </div>
         ))}
       </div>
 
-      <footer className="sale-footer">
-        <span>Total</span>
-        <strong>R$ {Number(total).toFixed(2)}</strong>
+      <footer className="receipt-footer">
+        <div>
+          <span>Quantidade: {cart.reduce((acc, item) => acc + Number(item.quantidade || 0), 0)} itens</span>
+          <span>Subtotal: R$ {Number(total).toFixed(2)}</span>
+          <span>Desconto: R$ 0,00</span>
+        </div>
+        <div className="grand-total">
+          <small>Total</small>
+          <strong>{Number(total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong>
+        </div>
       </footer>
-      <button className="finish" disabled={disabled} onClick={onFinish}>Finalizar venda local</button>
+      <button className="finish" disabled={disabled} onClick={onFinish}>Finalizar venda (Ctrl + F)</button>
     </div>
   );
 }

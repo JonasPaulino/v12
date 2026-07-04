@@ -16,12 +16,14 @@ export function CaixaPanel({ caixa, onChange }) {
   }
 
   return (
-    <div>
-      <h2>Caixa</h2>
+    <div className="cash-module">
       {caixa ? (
         <>
-          <p className="status open">Aberto por {caixa.operador_nome}</p>
-          <p>Valor abertura: R$ {Number(caixa.valor_abertura || 0).toFixed(2)}</p>
+          <div className="cash-summary">
+            <strong>Caixa aberto</strong>
+            <span>{caixa.operador_nome}</span>
+            <small>Abertura: R$ {Number(caixa.valor_abertura || 0).toFixed(2)}</small>
+          </div>
           <label>
             Valor fechamento
             <input value={valor} onChange={(event) => setValor(event.target.value)} />
@@ -30,7 +32,10 @@ export function CaixaPanel({ caixa, onChange }) {
         </>
       ) : (
         <>
-          <p className="status closed">Caixa fechado</p>
+          <div className="cash-summary closed-summary">
+            <strong>Caixa fechado</strong>
+            <span>Abra o caixa para iniciar vendas.</span>
+          </div>
           <label>
             Operador
             <input value={operador} onChange={(event) => setOperador(event.target.value)} />
