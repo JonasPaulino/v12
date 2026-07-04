@@ -156,6 +156,14 @@ label {
   background: #e6f3fb;
 }
 
+.top-dropdown .danger-menu {
+  color: #b42332;
+}
+
+.top-dropdown .danger-menu:hover {
+  background: #fff1f2;
+}
+
 .operator-info {
   display: flex;
   align-items: center;

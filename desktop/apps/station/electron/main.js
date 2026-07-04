@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, Menu, globalShortcut, ipcMain } from "electron";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -14,9 +14,12 @@ function createWindow() {
     minWidth: 1024,
     minHeight: 680,
     title: "V12 PDV",
+    fullscreen: true,
+    autoHideMenuBar: true,
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
+      preload: path.resolve(__dirname, "preload.js"),
     },
   });
 
@@ -28,7 +31,35 @@ function createWindow() {
   win.loadFile(path.resolve(__dirname, "../dist/index.html"));
 }
 
-app.whenReady().then(createWindow);
+ipcMain.handle("app:quit", () => {
+  app.quit();
+});
+
+ipcMain.handle("window:toggle-fullscreen", () => {
+  const win = BrowserWindow.getFocusedWindow();
+  if (!win) return false;
+  win.setFullScreen(!win.isFullScreen());
+  return win.isFullScreen();
+});
+
+app.whenReady().then(() => {
+  Menu.setApplicationMenu(null);
+  createWindow();
+
+  globalShortcut.register("F11", () => {
+    const win = BrowserWindow.getFocusedWindow();
+    if (win) win.setFullScreen(!win.isFullScreen());
+  });
+
+  globalShortcut.register("Escape", () => {
+    const win = BrowserWindow.getFocusedWindow();
+    if (win?.isFullScreen()) win.setFullScreen(false);
+  });
+});
+
+app.on("will-quit", () => {
+  globalShortcut.unregisterAll();
+});
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();

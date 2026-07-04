@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   FiChevronDown,
   FiFileText,
+  FiMaximize2,
   FiMenu,
   FiPower,
   FiRefreshCcw,
@@ -69,6 +70,24 @@ export default function App() {
     setMessage(result.fiscal?.message || "Venda registrada localmente.");
   }
 
+  function sairDoSistema() {
+    if (window.v12Desktop?.quit) {
+      window.v12Desktop.quit();
+      return;
+    }
+
+    setMessage("Opcao de sair disponivel somente no app Electron.");
+  }
+
+  function alternarTelaCheia() {
+    if (window.v12Desktop?.toggleFullscreen) {
+      window.v12Desktop.toggleFullscreen();
+      return;
+    }
+
+    setMessage("Tela cheia disponivel somente no app Electron.");
+  }
+
   return (
     <div className="pdv-shell">
       <header className="pdv-topbar">
@@ -82,6 +101,8 @@ export default function App() {
             <button><FiShoppingCart /> Nova venda</button>
             <button><FiFileText /> Relatorio de caixa</button>
             <button><FiSettings /> Configuracoes locais</button>
+            <button onClick={alternarTelaCheia}><FiMaximize2 /> Alternar tela cheia</button>
+            <button className="danger-menu" onClick={sairDoSistema}><FiPower /> Sair do sistema</button>
           </div>
         </div>
 
