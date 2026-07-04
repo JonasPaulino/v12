@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { listPendingSync } from "../services/syncQueueService.js";
 import { processSyncQueue } from "../services/erpSyncService.js";
+import { syncProdutosFromErp } from "../services/produtoSyncService.js";
 
 const router = Router();
 
@@ -12,6 +13,15 @@ router.get("/pendencias", (req, res) => {
 router.post("/processar", async (_req, res) => {
   const data = await processSyncQueue();
   res.json(data);
+});
+
+router.post("/produtos", async (req, res, next) => {
+  try {
+    const data = await syncProdutosFromErp({ full: req.body?.full === true });
+    res.json(data);
+  } catch (error) {
+    next(error);
+  }
 });
 
 export default router;

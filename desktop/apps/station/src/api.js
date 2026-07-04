@@ -29,4 +29,6 @@ export const api = {
   criarVenda: (payload) => request("/vendas", { method: "POST", body: JSON.stringify(payload) }),
   syncPendencias: () => request("/sync/pendencias"),
   processarSync: () => request("/sync/processar", { method: "POST" }),
+  sincronizarProdutos: (payload = {}) =>
+    request("/sync/produtos", { method: "POST", body: JSON.stringify(payload) }),
 };

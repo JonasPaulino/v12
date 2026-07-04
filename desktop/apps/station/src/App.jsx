@@ -106,6 +106,26 @@ export default function App() {
     }
   }
 
+  async function sincronizarProdutos(full = false) {
+    try {
+      showLoading("Sincronizando produtos...");
+      const result = await api.sincronizarProdutos({ full });
+      showAlert({
+        title: "Produtos sincronizados",
+        text: `${result.imported || 0} produto(s) importado(s) ou atualizado(s).`,
+        icon: "success",
+      });
+    } catch (error) {
+      showAlert({
+        title: "Falha na sincronização",
+        text: error.message,
+        icon: "error",
+      });
+    } finally {
+      hideLoading();
+    }
+  }
+
   async function sairDoSistema() {
     const confirmed = await askYesNoQuestion(
       "Sair do sistema",
@@ -152,6 +172,7 @@ export default function App() {
             <button><FiShoppingCart /> Nova venda</button>
             <button><FiFileText /> Relatorio de caixa</button>
             <button><FiSettings /> Configuracoes locais</button>
+            <button onClick={() => sincronizarProdutos(true)}><FiRefreshCcw /> Sincronizar produtos</button>
             <button onClick={alternarTelaCheia}><FiMaximize2 /> Alternar tela cheia</button>
             <button className="danger-menu" onClick={sairDoSistema}><FiPower /> Sair do sistema</button>
           </div>
@@ -223,7 +244,7 @@ export default function App() {
           <span className={caixa ? "dot online" : "dot offline"} />
           {caixa ? "Caixa aberto" : "Caixa fechado"}
           <button onClick={() => loadInitialData()}><FiRefreshCcw /> Atualizar</button>
-          <span><FiWifi /> Sync local</span>
+          <button onClick={() => sincronizarProdutos(false)}><FiWifi /> Sync produtos</button>
         </div>
         <span />
         <button className="footer-brand" onClick={sairDoSistema} title="Sair do sistema">

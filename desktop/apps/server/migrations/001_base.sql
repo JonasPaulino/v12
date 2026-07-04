@@ -102,6 +102,7 @@ CREATE TABLE IF NOT EXISTS sync_queue (
 
 CREATE INDEX IF NOT EXISTS idx_produto_codigo ON produto(codigo);
 CREATE INDEX IF NOT EXISTS idx_produto_erp_id ON produto(erp_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_produto_erp_id_unique ON produto(erp_id) WHERE erp_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_pessoa_documento ON pessoa(documento);
 CREATE INDEX IF NOT EXISTS idx_venda_caixa_status ON venda(caixa_id, status);
 CREATE INDEX IF NOT EXISTS idx_nfce_status ON nfce(status);
