@@ -2,4 +2,4 @@
 set -eu
 
 ROOT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
-exec "$ROOT_DIR/web/deploy_frio.sh" "$@"
+exec "$ROOT_DIR/deploy.sh" up

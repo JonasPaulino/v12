@@ -10,9 +10,9 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-v12_password}
       POSTGRES_DB: ${POSTGRES_DB:-db_v12}
     volumes:
-      - ./db_data:/var/lib/postgresql/data
-      - ./web/back/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-      - ./web/back/migrations/001_base_schema.sql:/docker-entrypoint-initdb.d/001_base_schema.sql:ro
+      - ../db_data:/var/lib/postgresql/data
+      - ./back/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./back/migrations/001_base_schema.sql:/docker-entrypoint-initdb.d/001_base_schema.sql:ro
     ports:
       - "${POSTGRES_EXPOSE_PORT:-5435}:5432"
     healthcheck:
@@ -24,7 +24,7 @@ services:
       - v12-net
 
   backend:
-    build: ./web/back
+    build: ./back
     container_name: v12-backend
     restart: always
     depends_on:
@@ -57,7 +57,7 @@ services:
       - v12-net
 
   payments:
-    build: ./web/payments
+    build: ./payments
     container_name: v12-payments
     restart: always
     depends_on:
@@ -158,7 +158,7 @@ services:
       - v12-net
 
   message:
-    build: ./web/message
+    build: ./message
     container_name: v12-message
     restart: always
     depends_on:
@@ -177,7 +177,7 @@ services:
       - v12-net
 
   acbr:
-    build: ./web/acbr
+    build: ./acbr
     container_name: v12-acbr
     restart: always
     depends_on:
@@ -209,7 +209,7 @@ services:
       - v12-net
 
   reports:
-    build: ./web/reports
+    build: ./reports
     container_name: v12-reports
     restart: always
     depends_on:
@@ -232,7 +232,7 @@ services:
 
   frontend:
     build:
-      context: ./web/front
+      context: ./front
       args:
         VITE_API_URL: ${VITE_API_URL:-/api}
         VITE_ACBR_API_URL: ${VITE_ACBR_API_URL:-/acbr}

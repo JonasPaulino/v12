@@ -1,4 +1,5 @@
 #!/bin/sh
 set -eu
 
-exec ./deploy.sh up
+ROOT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+exec "$ROOT_DIR/web/deploy_quente.sh" "$@"
