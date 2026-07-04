@@ -1,18 +1,44 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { api } from "../api.js";
+import { AppContext } from "../context/AppContext.jsx";
+import { useSweetAlert } from "../context/SweetAlertContext.jsx";
 
 export function CaixaPanel({ caixa, onChange }) {
   const [operador, setOperador] = useState("Operador");
   const [valor, setValor] = useState("0.00");
+  const { showLoading, hideLoading } = useContext(AppContext);
+  const { showAlert, askYesNoQuestion } = useSweetAlert();
 
   async function abrir() {
-    const data = await api.abrirCaixa({ operador_nome: operador, valor_abertura: valor });
-    onChange(data);
+    try {
+      showLoading("Abrindo caixa...");
+      const data = await api.abrirCaixa({ operador_nome: operador, valor_abertura: valor });
+      onChange(data);
+      showAlert({ title: "Caixa aberto", text: "Caixa aberto com sucesso.", icon: "success" });
+    } catch (error) {
+      showAlert({ title: "Falha ao abrir caixa", text: error.message, icon: "error" });
+    } finally {
+      hideLoading();
+    }
   }
 
   async function fechar() {
-    const data = await api.fecharCaixa({ valor_fechamento: valor });
-    onChange(data);
+    const confirmed = await askYesNoQuestion(
+      "Fechar caixa",
+      "Deseja realmente fechar o caixa atual?",
+    );
+    if (!confirmed) return;
+
+    try {
+      showLoading("Fechando caixa...");
+      const data = await api.fecharCaixa({ valor_fechamento: valor });
+      onChange(data);
+      showAlert({ title: "Caixa fechado", text: "Caixa fechado com sucesso.", icon: "success" });
+    } catch (error) {
+      showAlert({ title: "Falha ao fechar caixa", text: error.message, icon: "error" });
+    } finally {
+      hideLoading();
+    }
   }
 
   return (

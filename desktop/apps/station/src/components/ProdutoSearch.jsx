@@ -1,14 +1,32 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { FiSearch } from "react-icons/fi";
 import { api } from "../api.js";
+import { AppContext } from "../context/AppContext.jsx";
+import { useSweetAlert } from "../context/SweetAlertContext.jsx";
 
 export function ProdutoSearch({ onSelect, disabled }) {
   const [search, setSearch] = useState("");
   const [produtos, setProdutos] = useState([]);
+  const { showLoading, hideLoading } = useContext(AppContext);
+  const { showAlert } = useSweetAlert();
 
   async function pesquisar() {
-    const data = await api.produtos(search);
-    setProdutos(data);
+    try {
+      showLoading("Consultando produto...");
+      const data = await api.produtos(search);
+      setProdutos(data);
+      if (!data.length) {
+        showAlert({
+          title: "Produto nao encontrado",
+          text: "Nenhum produto local encontrado para a busca informada.",
+          icon: "info",
+        });
+      }
+    } catch (error) {
+      showAlert({ title: "Falha na consulta", text: error.message, icon: "error" });
+    } finally {
+      hideLoading();
+    }
   }
 
   return (

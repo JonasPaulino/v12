@@ -552,17 +552,17 @@ label {
   font-size: 0.72rem;
 }
 
-.footer-message {
-  color: #ffdf99;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 52vw;
-}
-
 .footer-brand {
   justify-content: flex-end;
   color: #fff;
+  background: transparent;
+  padding: 0;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.footer-brand:hover {
+  color: #ffdf99;
 }
 
 .dot {
@@ -580,6 +580,47 @@ label {
 .offline {
   background: #f43f5e;
   box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.18);
+}
+
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  background: rgba(3, 16, 30, 0.42);
+  backdrop-filter: blur(4px);
+}
+
+.loading-card {
+  min-width: 260px;
+  padding: 26px 30px;
+  background: #f8fbff;
+  border: 1px solid #b9d3e5;
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.34);
+  text-align: center;
+}
+
+.loading-spinner {
+  width: 42px;
+  height: 42px;
+  margin: 0 auto 16px;
+  border: 4px solid #c8d7e3;
+  border-top-color: #075985;
+  border-radius: 999px;
+  animation: loading-spin 0.78s linear infinite;
+}
+
+.loading-card p {
+  margin: 0;
+  color: #42526a;
+  font-weight: 800;
+}
+
+@keyframes loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @media (max-width: 980px) {

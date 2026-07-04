@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import {
   FiChevronDown,
   FiFileText,
@@ -14,22 +14,44 @@ import { api } from "./api.js";
 import { CaixaPanel } from "./components/CaixaPanel.jsx";
 import { ProdutoSearch } from "./components/ProdutoSearch.jsx";
 import { VendaResumo } from "./components/VendaResumo.jsx";
+import { AppContext } from "./context/AppContext.jsx";
+import { useSweetAlert } from "./context/SweetAlertContext.jsx";
 import logoWhite from "./assets/v12-erp-logo-white.png";
 
 export default function App() {
   const [health, setHealth] = useState(null);
   const [caixa, setCaixa] = useState(null);
   const [cart, setCart] = useState([]);
-  const [message, setMessage] = useState("");
+  const { showLoading, hideLoading } = useContext(AppContext);
+  const { showAlert, askYesNoQuestion } = useSweetAlert();
 
-  async function loadInitialData() {
-    const [healthData, caixaData] = await Promise.all([api.health(), api.caixaAtual()]);
-    setHealth(healthData);
-    setCaixa(caixaData);
+  async function loadInitialData({ silent = false } = {}) {
+    try {
+      if (!silent) showLoading("Atualizando PDV...");
+      const [healthData, caixaData] = await Promise.all([api.health(), api.caixaAtual()]);
+      setHealth(healthData);
+      setCaixa(caixaData);
+      if (!silent) {
+        showAlert({
+          title: "PDV atualizado",
+          text: "Dados locais atualizados com sucesso.",
+          icon: "success",
+        });
+      }
+    } catch (error) {
+      showAlert({
+        title: "Falha ao atualizar",
+        text: error.message,
+        icon: "error",
+      });
+    } finally {
+      hideLoading();
+    }
   }
 
   useEffect(() => {
-    loadInitialData().catch((error) => setMessage(error.message));
+    loadInitialData({ silent: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const total = useMemo(() => {
@@ -61,22 +83,47 @@ export default function App() {
   }
 
   async function finalizarVenda() {
-    setMessage("");
-    const result = await api.criarVenda({
-      items: cart,
-      pagamentos: [{ forma: "dinheiro", valor: total }],
-    });
-    setCart([]);
-    setMessage(result.fiscal?.message || "Venda registrada localmente.");
+    try {
+      showLoading("Finalizando venda...");
+      const result = await api.criarVenda({
+        items: cart,
+        pagamentos: [{ forma: "dinheiro", valor: total }],
+      });
+      setCart([]);
+      showAlert({
+        title: "Venda registrada",
+        text: result.fiscal?.message || "Venda registrada localmente.",
+        icon: result.fiscal?.success ? "success" : "info",
+      });
+    } catch (error) {
+      showAlert({
+        title: "Falha na venda",
+        text: error.message,
+        icon: "error",
+      });
+    } finally {
+      hideLoading();
+    }
   }
 
-  function sairDoSistema() {
+  async function sairDoSistema() {
+    const confirmed = await askYesNoQuestion(
+      "Sair do sistema",
+      "Deseja realmente fechar o V12 PDV?",
+    );
+
+    if (!confirmed) return;
+
     if (window.v12Desktop?.quit) {
       window.v12Desktop.quit();
       return;
     }
 
-    setMessage("Opcao de sair disponivel somente no app Electron.");
+    showAlert({
+      title: "Opcao indisponivel",
+      text: "Sair do sistema esta disponivel somente no app Electron.",
+      icon: "info",
+    });
   }
 
   function alternarTelaCheia() {
@@ -85,7 +132,11 @@ export default function App() {
       return;
     }
 
-    setMessage("Tela cheia disponivel somente no app Electron.");
+    showAlert({
+      title: "Opcao indisponivel",
+      text: "Tela cheia esta disponivel somente no app Electron.",
+      icon: "info",
+    });
   }
 
   return (
@@ -174,11 +225,11 @@ export default function App() {
           <button onClick={() => loadInitialData()}><FiRefreshCcw /> Atualizar</button>
           <span><FiWifi /> Sync local</span>
         </div>
-        {message ? <strong className="footer-message">{message}</strong> : null}
-        <div className="footer-brand">
+        <span />
+        <button className="footer-brand" onClick={sairDoSistema} title="Sair do sistema">
           <FiPower />
           V12 ERP
-        </div>
+        </button>
       </footer>
     </div>
   );
