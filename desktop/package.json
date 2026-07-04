@@ -1,0 +1,16 @@
+{
+  "name": "v12-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:server": "npm --workspace @v12-desktop/server run dev",
+    "dev:station": "npm --workspace @v12-desktop/station run dev",
+    "start:server": "npm --workspace @v12-desktop/server start",
+    "start:station": "npm --workspace @v12-desktop/station start"
+  }
+}
