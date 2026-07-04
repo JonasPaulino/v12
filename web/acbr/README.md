@@ -1,4 +1,4 @@
-# v12/acbr
+# v12/web/acbr
 
 Servico fiscal isolado do ERP `v12`, pensado para concentrar a integracao com o ACBr na emissao de NF-e modelo 55.
 
@@ -62,7 +62,7 @@ O provider da ACBrLib fica isolado em `providers/acbrlib/` e usa:
 
 ## Instalacao recomendada da lib
 
-- manter a estrutura original do download dentro de `acbr/lib/`
-- usar a biblioteca em `acbr/lib/ACBrLibNFE/linux/CONSOLE-MT/libacbrnfe64.so`
-- usar os schemas em `acbr/lib/ACBrLibNFE/dep/Schemas/NFe`
+- manter a estrutura original do download dentro de `web/acbr/lib/`
+- usar a biblioteca em `web/acbr/lib/ACBrLibNFE/linux/CONSOLE-MT/libacbrnfe64.so`
+- usar os schemas em `web/acbr/lib/ACBrLibNFE/dep/Schemas/NFe`
 - se o pacote vier separado em `CONSOLE-MT/`, `mt/` e `st/`, usar a `CONSOLE-MT`

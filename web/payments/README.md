@@ -1,4 +1,4 @@
-# v12/payments
+# v12/web/payments
 
 Serviço de cobranças e webhooks bancários do ERP `v12`.
 
@@ -26,11 +26,11 @@ Serviço de cobranças e webhooks bancários do ERP `v12`.
 ## Setup mínimo
 
 1. Rodar as migrations principais do `back`.
-2. Rodar a migration `v12/payments/migrations/001_payments_schema.sql`.
-3. Configurar `v12/back/.env`:
+2. Rodar a migration `v12/web/payments/migrations/001_payments_schema.sql`.
+3. Configurar `v12/web/back/.env`:
    - `PAYMENTS_SERVICE_URL=http://localhost:4200`
    - `PAYMENTS_SERVICE_TOKEN=seu_token_interno`
-4. Configurar `v12/payments/.env`:
+4. Configurar `v12/web/payments/.env`:
    - `SERVICE_TOKEN=seu_token_interno`
    - `BACKEND_URL=http://localhost:4000`
    - `BACKEND_SERVICE_TOKEN=seu_token_interno`

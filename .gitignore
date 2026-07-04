@@ -3,7 +3,7 @@ node_modules
 dist
 .env
 *.log
-acbr/lib/Demos/
+web/acbr/lib/Demos/
 
 * text=auto eol=lf
 
