@@ -622,11 +622,11 @@ class TenantSetupDAO {
         email: normalizeText(usuario.email, 150, {
           required: true,
           label: "E-mail do usuário admin",
-        }),
-        username: normalizeText(usuario.username, 80, {
+        }).toLowerCase(),
+        username: normalizeText(usuario.email, 150, {
           required: true,
-          label: "Login do usuário admin",
-        }),
+          label: "E-mail do usuário admin",
+        }).toLowerCase(),
         password: senha,
       },
       certificado: {
@@ -747,11 +747,10 @@ class TenantSetupDAO {
           WHERE usuario_excluido = FALSE
             AND (
               UPPER(usuario_email) = UPPER($1)
-              OR UPPER(usuario_username) = UPPER($2)
             )
           LIMIT 1
         `,
-        [data.usuario.email, data.usuario.username]
+        [data.usuario.email]
       ),
     ]);
 
@@ -764,7 +763,7 @@ class TenantSetupDAO {
     }
 
     if (checks[2].rows[0]) {
-      throw new Error("O e-mail ou login do usuário admin já está em uso.");
+      throw new Error("O e-mail do usuário admin já está em uso.");
     }
   }
 

@@ -1,7 +1,7 @@
 import { TENANT_CONTEXT_SQL } from "../utils/sql.js";
 
 class LoginDAO {
-  static async buscarUsuarioPorLogin(client, login) {
+  static async buscarUsuarioPorEmail(client, email) {
     const sql = `
       SELECT
         usuario_id,
@@ -16,14 +16,11 @@ class LoginDAO {
       FROM usuario
       WHERE
         usuario_excluido = FALSE
-        AND (
-          UPPER(TRIM(usuario_username)) = UPPER(TRIM($1))
-          OR UPPER(TRIM(usuario_email)) = UPPER(TRIM($1))
-        )
+        AND LOWER(TRIM(usuario_email)) = LOWER(TRIM($1))
       LIMIT 1
     `;
 
-    const { rows } = await client.query(sql, [login]);
+    const { rows } = await client.query(sql, [email]);
     return rows[0] || null;
   }
 

@@ -62,16 +62,16 @@ export const Login = () => {
             <>
               <C.Title>Entrar no sistema</C.Title>
               <C.Subtitle>
-                Informe login e senha. A filial padrão do usuário será carregada e poderá ser alterada depois no menu superior.
+                Informe e-mail e senha. A filial padrão do usuário será carregada e poderá ser alterada depois no menu superior.
               </C.Subtitle>
 
-              <C.Label>Login ou e-mail</C.Label>
+              <C.Label>E-mail</C.Label>
               <C.Input
                 value={username}
                 onChange={(event) => setUsername(event.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="admin ou admin@mail.com"
-                autoComplete="username"
+                placeholder="seuemail@empresa.com.br"
+                autoComplete="email"
               />
 
               <C.Label>Senha</C.Label>

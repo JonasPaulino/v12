@@ -37,6 +37,7 @@ import gestaoUsuarioRoutes from "./routes/gestaoUsuarioRoutes.js";
 import gestaoMensagemRoutes from "./routes/gestaoMensagemRoutes.js";
 import gestaoChatRoutes from "./routes/gestaoChatRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
+import desktopSyncRoutes from "./routes/desktopSyncRoutes.js";
 import requireMaster from "./middleware/requireMaster.js";
 import { startChatNotificationJob } from "./services/chatNotificationService.js";
 
@@ -80,6 +81,7 @@ const loginLimiter = rateLimit({
 app.use("/auth/login", loginLimiter);
 app.use("/auth", authRoutes);
 app.use("/chat", chatRoutes);
+app.use(desktopSyncRoutes);
 app.use("/tenant", verificarToken, tenantRoutes);
 app.use("/tenant-setup", verificarToken, requireMaster, tenantSetupRoutes);
 app.use("/tenant-certificate", verificarToken, requireMaster, tenantCertificateRoutes);

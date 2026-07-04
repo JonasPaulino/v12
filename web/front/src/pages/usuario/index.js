@@ -49,7 +49,7 @@ export const Usuario = () => {
               <C.SearchInput
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Pesquisar por nome, e-mail ou login"
+                placeholder="Pesquisar por nome ou e-mail"
               />
             </C.ToolbarGroup>
           </C.Toolbar>

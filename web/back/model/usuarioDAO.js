@@ -204,7 +204,7 @@ class UsuarioDAO {
   static async criar(client, { actorUserId, currentTenantId, payload }) {
     const usuarioNome = String(payload.usuario_nome || "").trim();
     const usuarioEmail = String(payload.usuario_email || "").trim().toLowerCase();
-    const usuarioUsername = String(payload.usuario_username || "").trim();
+    const usuarioUsername = usuarioEmail;
     const usuarioSenha = String(payload.usuario_senha || "");
     const usuarioAtivo = payload.usuario_ativo !== false;
     const manageableTenants = await this.listarFiliaisGerenciaveis(client, actorUserId);
@@ -214,8 +214,8 @@ class UsuarioDAO {
       throw new Error("Usuário atual sem acesso para cadastrar nesta filial.");
     }
 
-    if (!usuarioNome || !usuarioEmail || !usuarioUsername || !usuarioSenha) {
-      throw new Error("Preencha nome, e-mail, login e senha.");
+    if (!usuarioNome || !usuarioEmail || !usuarioSenha) {
+      throw new Error("Preencha nome, e-mail e senha.");
     }
 
     if (usuarioSenha.length < 6) {
@@ -241,15 +241,14 @@ class UsuarioDAO {
           WHERE usuario_excluido = FALSE
             AND (
               LOWER(usuario_email) = LOWER($1)
-              OR LOWER(usuario_username) = LOWER($2)
             )
           LIMIT 1
         `,
-        [usuarioEmail, usuarioUsername]
+        [usuarioEmail]
       );
 
       if (duplicateUser.rowCount > 0) {
-        throw new Error("Já existe um usuário com este e-mail ou login.");
+        throw new Error("Já existe um usuário com este e-mail.");
       }
 
       const passwordHash = hashPassword(usuarioSenha);
@@ -321,13 +320,13 @@ class UsuarioDAO {
 
     const usuarioNome = String(payload.usuario_nome || "").trim();
     const usuarioEmail = String(payload.usuario_email || "").trim().toLowerCase();
-    const usuarioUsername = String(payload.usuario_username || "").trim();
+    const usuarioUsername = usuarioEmail;
     const usuarioSenha = String(payload.usuario_senha || "");
     const usuarioAtivo = payload.usuario_ativo !== false;
     const manageableIds = existing.manageableTenants.map((item) => Number(item.tenant_id));
 
-    if (!usuarioNome || !usuarioEmail || !usuarioUsername) {
-      throw new Error("Preencha nome, e-mail e login.");
+    if (!usuarioNome || !usuarioEmail) {
+      throw new Error("Preencha nome e e-mail.");
     }
 
     if (actorUserId === Number(usuarioId) && !usuarioAtivo) {
@@ -369,19 +368,18 @@ class UsuarioDAO {
         `
           SELECT usuario_id
           FROM usuario
-          WHERE usuario_id <> $3
+          WHERE usuario_id <> $2
             AND usuario_excluido = FALSE
             AND (
               LOWER(usuario_email) = LOWER($1)
-              OR LOWER(usuario_username) = LOWER($2)
             )
           LIMIT 1
         `,
-        [usuarioEmail, usuarioUsername, usuarioId]
+        [usuarioEmail, usuarioId]
       );
 
       if (duplicateUser.rowCount > 0) {
-        throw new Error("Já existe um usuário com este e-mail ou login.");
+        throw new Error("Já existe um usuário com este e-mail.");
       }
 
       const passwordHash = usuarioSenha ? hashPassword(usuarioSenha) : null;

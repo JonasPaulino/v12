@@ -42,7 +42,8 @@ const buildTenantPayload = (tenant) => ({
 
 router.post("/login", async (req, res) => {
   try {
-    const { username, password } = req.body || {};
+    const { email, username, password } = req.body || {};
+    const loginEmail = String(email || username || "").trim().toLowerCase();
 
     if (authDebugEnabled) {
       const { rows } = await pool.query(`
@@ -54,7 +55,7 @@ router.post("/login", async (req, res) => {
       `);
 
       authDebugLog("login:start", {
-        username: username || null,
+        email: loginEmail || null,
         passwordLength: password ? String(password).length : 0,
         dbHost: process.env.DB_HOST || null,
         dbPort: process.env.DB_PORT || null,
@@ -63,12 +64,12 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    if (!username || !password) {
+    if (!loginEmail || !password) {
       authDebugLog("login:denied", { reason: "missing-credentials" });
-      return res.status(400).json({ error: "Credenciais não informadas." });
+      return res.status(400).json({ error: "E-mail e senha não informados." });
     }
 
-    const usuario = await loginDAO.buscarUsuarioPorLogin(pool, username);
+    const usuario = await loginDAO.buscarUsuarioPorEmail(pool, loginEmail);
     authDebugLog("login:user-loaded", {
       found: !!usuario,
       usuarioId: usuario?.usuario_id || null,
@@ -93,7 +94,7 @@ router.post("/login", async (req, res) => {
       authDebugLog("login:denied", {
         reason: !usuario ? "user-not-found" : "password-mismatch",
       });
-      return res.status(401).json({ error: "Usuário ou senha incorretos." });
+      return res.status(401).json({ error: "E-mail ou senha incorretos." });
     }
 
     if (!usuario.usuario_ativo) {

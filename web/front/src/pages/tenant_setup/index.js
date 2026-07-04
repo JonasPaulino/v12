@@ -377,16 +377,6 @@ const Wizard = ({
           </C.Field>
           <C.Field>
             <C.FieldSpan>
-              Login do usuário admin
-              <C.RequiredMark title={REQUIRED_TITLE}>*</C.RequiredMark>
-            </C.FieldSpan>
-            <C.Input
-              value={form.usuario_username}
-              onChange={(event) => updateField("usuario_username", event.target.value)}
-            />
-          </C.Field>
-          <C.Field>
-            <C.FieldSpan>
               Senha
               <C.RequiredMark title={REQUIRED_TITLE}>*</C.RequiredMark>
             </C.FieldSpan>

@@ -46,7 +46,6 @@ const createInitialForm = () => ({
   pais: "Brasil",
   usuario_nome: "",
   usuario_email: "",
-  usuario_username: "",
   usuario_password: "",
   usuario_confirm_password: "",
   financeiro_plano_nome: "V12 ERP",
@@ -499,7 +498,6 @@ export const useTenantSetupPage = ({ gestaoContext = false } = {}) => {
       const requiredUserFields = [
         ["usuario_nome", "Nome do usuário admin"],
         ["usuario_email", "E-mail do usuário admin"],
-        ["usuario_username", "Login do usuário admin"],
         ["usuario_password", "Senha do usuário admin"],
       ];
 
@@ -572,7 +570,6 @@ export const useTenantSetupPage = ({ gestaoContext = false } = {}) => {
       const requiredUserFields = [
         ["usuario_nome", "Nome do usuário admin"],
         ["usuario_email", "E-mail do usuário admin"],
-        ["usuario_username", "Login do usuário admin"],
         ["usuario_password", "Senha do usuário admin"],
       ];
 
@@ -669,7 +666,7 @@ export const useTenantSetupPage = ({ gestaoContext = false } = {}) => {
         payload.usuario = {
           nome: form.usuario_nome,
           email: form.usuario_email,
-          username: form.usuario_username,
+          username: form.usuario_email,
           password: form.usuario_password,
         };
         payload.certificado = {

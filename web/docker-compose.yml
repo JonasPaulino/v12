@@ -51,6 +51,7 @@ services:
       MESSAGE_SERVICE_URL: http://message:${MESSAGE_PORT:-4300}
       MESSAGE_SERVICE_TOKEN: ${MESSAGE_SERVICE_TOKEN:-troque-este-token-message}
       ACBR_SERVICE_URL: http://acbr:4100
+      DESKTOP_SYNC_TOKEN: ${DESKTOP_SYNC_TOKEN:-troque-este-token-desktop}
     ports:
       - "${API_EXPOSE_PORT:-4000}:4000"
     networks:

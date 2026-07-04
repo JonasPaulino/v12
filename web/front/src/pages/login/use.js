@@ -24,7 +24,7 @@ export const useLogin = () => {
     if (!username || !password) {
       showAlert({
         title: "Campos obrigatórios",
-        text: "Informe login e senha para continuar.",
+        text: "Informe e-mail e senha para continuar.",
         icon: "info",
       });
       return;

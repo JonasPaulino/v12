@@ -87,17 +87,6 @@ export const ModalUsuario = ({ isOpen, usuarioId, onClose }) => {
 
                 <C.Grid>
                   <C.Field>
-                    <C.FieldSpan>Login</C.FieldSpan>
-                    <C.Input
-                      value={form.usuario_username}
-                      onChange={(event) =>
-                        updateField("usuario_username", event.target.value)
-                      }
-                      required
-                    />
-                  </C.Field>
-
-                  <C.Field>
                     <C.FieldSpan>
                       {usuarioId ? "Nova senha opcional" : "Senha inicial"}
                     </C.FieldSpan>

@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS usuario (
   tenant_id_default INTEGER REFERENCES tenant(tenant_id),
   usuario_nome VARCHAR(150) NOT NULL,
   usuario_email VARCHAR(150) NOT NULL UNIQUE,
-  usuario_username VARCHAR(80) NOT NULL UNIQUE,
+  usuario_username VARCHAR(150) NOT NULL,
   usuario_senha TEXT NOT NULL,
   usuario_ativo BOOLEAN NOT NULL DEFAULT TRUE,
   usuario_primeiro_login BOOLEAN NOT NULL DEFAULT FALSE,

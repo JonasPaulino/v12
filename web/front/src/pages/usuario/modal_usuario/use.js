@@ -11,7 +11,6 @@ import {
 const buildInitialForm = (currentTenantId = null) => ({
   usuario_nome: "",
   usuario_email: "",
-  usuario_username: "",
   usuario_senha: "",
   usuario_ativo: true,
   tenant_ids: currentTenantId ? [currentTenantId] : [],
@@ -66,7 +65,6 @@ export const useModalUsuario = ({ isOpen, usuarioId, onClose }) => {
           setForm({
             usuario_nome: data?.usuario?.usuario_nome || "",
             usuario_email: data?.usuario?.usuario_email || "",
-            usuario_username: data?.usuario?.usuario_username || "",
             usuario_senha: "",
             usuario_ativo: data?.usuario?.usuario_ativo ?? true,
             tenant_ids: Array.from(

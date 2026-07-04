@@ -1,0 +1,82 @@
+class DesktopSyncDAO {
+  static async validarTenantAtivo(client, tenantId) {
+    const { rows } = await client.query(
+      `
+        SELECT tenant_id
+        FROM tenant
+        WHERE tenant_id = $1
+          AND tenant_ativo = TRUE
+          AND COALESCE(tenant_acesso_bloqueado, FALSE) = FALSE
+        LIMIT 1
+      `,
+      [tenantId],
+    );
+
+    return !!rows[0];
+  }
+
+  static async listarProdutos(client, { tenantId, since = null, limit = 1000 }) {
+    const safeLimit = Number(limit) > 0 ? Math.min(Number(limit), 5000) : 1000;
+    const values = [tenantId];
+    let sinceWhere = "";
+
+    if (since) {
+      values.push(since);
+      sinceWhere = `AND p.atualizado_em > $${values.length}`;
+    }
+
+    values.push(safeLimit);
+
+    const { rows } = await client.query(
+      `
+        SELECT
+          p.produto_id AS erp_id,
+          COALESCE(NULLIF(p.codigo_interno, ''), p.produto_id::varchar(60)) AS codigo,
+          p.descricao,
+          COALESCE(um.sigla, 'UN') AS unidade,
+          pf.ncm,
+          pf.cest,
+          COALESCE(pp.preco_venda, 0) AS preco_venda,
+          COALESCE(pe.estoque_atual, 0) AS estoque_atual,
+          p.ativo,
+          p.atualizado_em
+        FROM produto p
+        LEFT JOIN produto_fiscal pf ON pf.produto_id = p.produto_id
+        LEFT JOIN produto_unidade pu ON pu.produto_id = p.produto_id
+        LEFT JOIN unidade_medida um ON um.unidade_medida_id = pu.unidade_comercial_id
+        LEFT JOIN tabela_preco tp
+          ON tp.tenant_id = p.tenant_id
+         AND tp.padrao = TRUE
+         AND tp.excluido = FALSE
+        LEFT JOIN produto_preco pp
+          ON pp.produto_id = p.produto_id
+         AND pp.tabela_preco_id = tp.tabela_preco_id
+         AND pp.ativo = TRUE
+         AND (pp.data_fim IS NULL OR pp.data_fim >= CURRENT_DATE)
+        LEFT JOIN deposito d
+          ON d.tenant_id = p.tenant_id
+         AND d.padrao = TRUE
+         AND d.excluido = FALSE
+        LEFT JOIN produto_estoque pe
+          ON pe.produto_id = p.produto_id
+         AND pe.deposito_id = d.deposito_id
+         AND pe.tenant_id = p.tenant_id
+        WHERE p.tenant_id = $1
+          AND p.excluido = FALSE
+          ${sinceWhere}
+        ORDER BY p.atualizado_em ASC, p.produto_id ASC
+        LIMIT $${values.length}
+      `,
+      values,
+    );
+
+    return rows.map((row) => ({
+      ...row,
+      preco_venda: Number(row.preco_venda || 0),
+      estoque_atual: Number(row.estoque_atual || 0),
+      ativo: !!row.ativo,
+    }));
+  }
+}
+
+export default DesktopSyncDAO;

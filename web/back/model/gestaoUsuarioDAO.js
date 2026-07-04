@@ -17,7 +17,6 @@ class GestaoUsuarioDAO {
         AND (
           LOWER(u.usuario_nome) LIKE LOWER('%' || $1 || '%')
           OR LOWER(u.usuario_email) LIKE LOWER('%' || $1 || '%')
-          OR LOWER(u.usuario_username) LIKE LOWER('%' || $1 || '%')
           OR LOWER(COALESCE(gi.perfil, '')) LIKE LOWER('%' || $1 || '%')
         )
       `;
@@ -80,15 +79,15 @@ class GestaoUsuarioDAO {
   static async criar(client, payload = {}) {
     const usuarioNome = String(payload.usuario_nome || "").trim();
     const usuarioEmail = String(payload.usuario_email || "").trim().toLowerCase();
-    const usuarioUsername = String(payload.usuario_username || "").trim();
+    const usuarioUsername = usuarioEmail;
     const usuarioSenha = String(payload.usuario_senha || "");
     const perfil = ALLOWED_PROFILES.has(String(payload.perfil || "").trim())
       ? String(payload.perfil).trim()
       : "suporte";
     const usuarioAtivo = payload.usuario_ativo !== false;
 
-    if (!usuarioNome || !usuarioEmail || !usuarioUsername || !usuarioSenha) {
-      throw new Error("Preencha nome, e-mail, login e senha.");
+    if (!usuarioNome || !usuarioEmail || !usuarioSenha) {
+      throw new Error("Preencha nome, e-mail e senha.");
     }
 
     if (usuarioSenha.length < 6) {
@@ -105,15 +104,14 @@ class GestaoUsuarioDAO {
           WHERE usuario_excluido = FALSE
             AND (
               LOWER(usuario_email) = LOWER($1)
-              OR LOWER(usuario_username) = LOWER($2)
             )
           LIMIT 1
         `,
-        [usuarioEmail, usuarioUsername]
+        [usuarioEmail]
       );
 
       if (duplicateUser.rowCount > 0) {
-        throw new Error("Já existe um usuário com este e-mail ou login.");
+        throw new Error("Já existe um usuário com este e-mail.");
       }
 
       const tenantResult = await client.query(

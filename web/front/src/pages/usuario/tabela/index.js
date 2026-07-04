@@ -50,12 +50,6 @@ const Tabela = ({ search, refreshKey, onEditar, onDeleted }) => {
                   {sort.usuario_nome === "ASC" ? "▲" : sort.usuario_nome === "DESC" ? "▼" : "•"}
                 </C.SortFlag>
               </C.HeaderCell>
-              <C.HeaderCell $sortable onClick={() => toggleSort("usuario_username")}>
-                Login
-                <C.SortFlag $active={!!sort.usuario_username}>
-                  {sort.usuario_username === "ASC" ? "▲" : sort.usuario_username === "DESC" ? "▼" : "•"}
-                </C.SortFlag>
-              </C.HeaderCell>
               <C.HeaderCell $sortable onClick={() => toggleSort("tenant_nome_default")}>
                 Filial padrão
                 <C.SortFlag $active={!!sort.tenant_nome_default}>
@@ -88,7 +82,6 @@ const Tabela = ({ search, refreshKey, onEditar, onDeleted }) => {
                       <C.FirstAccessBadge>Primeiro acesso pendente</C.FirstAccessBadge>
                     )}
                   </C.Cell>
-                  <C.Cell>{usuario.usuario_username}</C.Cell>
                   <C.Cell>{usuario.tenant_nome_default || "--"}</C.Cell>
                   <C.Cell>
                     <C.Status $active={usuario.usuario_ativo}>
@@ -130,7 +123,7 @@ const Tabela = ({ search, refreshKey, onEditar, onDeleted }) => {
               ))
             ) : (
               <C.Row>
-                <C.Cell colSpan={6}>
+                <C.Cell colSpan={5}>
                   <C.Empty>Nenhum usuário encontrado para a filial ativa.</C.Empty>
                 </C.Cell>
               </C.Row>

@@ -17,7 +17,6 @@ const perfilLabel = {
 const emptyForm = {
   usuario_nome: "",
   usuario_email: "",
-  usuario_username: "",
   usuario_senha: "",
   perfil: "suporte",
   usuario_ativo: true,
@@ -145,7 +144,7 @@ export const GestaoV12Usuarios = () => {
             <C.Input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Nome, e-mail, login ou perfil"
+              placeholder="Nome, e-mail ou perfil"
             />
           </C.SearchField>
 
@@ -161,7 +160,6 @@ export const GestaoV12Usuarios = () => {
                 <C.Row>
                   <C.HeaderCell>Código</C.HeaderCell>
                   <C.HeaderCell>Usuário</C.HeaderCell>
-                  <C.HeaderCell>Login</C.HeaderCell>
                   <C.HeaderCell>Perfil</C.HeaderCell>
                   <C.HeaderCell>Acesso</C.HeaderCell>
                   <C.HeaderCell>Status</C.HeaderCell>
@@ -177,7 +175,6 @@ export const GestaoV12Usuarios = () => {
                         <C.Strong>{usuario.usuario_nome}</C.Strong>
                         <C.Meta>{usuario.usuario_email || "--"}</C.Meta>
                       </C.Cell>
-                      <C.Cell>{usuario.usuario_username || "--"}</C.Cell>
                       <C.Cell>
                         <C.ProfileBadge>{perfilLabel[usuario.perfil] || usuario.perfil}</C.ProfileBadge>
                       </C.Cell>
@@ -227,7 +224,7 @@ export const GestaoV12Usuarios = () => {
                   ))
                 ) : (
                   <C.Row>
-                    <C.Cell colSpan={7}>
+                    <C.Cell colSpan={6}>
                       <C.Empty>
                         {loading
                           ? "Carregando usuários..."
@@ -283,17 +280,6 @@ export const GestaoV12Usuarios = () => {
                     type="email"
                     value={form.usuario_email}
                     onChange={(event) => updateField("usuario_email", event.target.value)}
-                    required
-                  />
-                </C.Field>
-
-                <C.Field>
-                  <C.Label>
-                    Login <C.Required>*</C.Required>
-                  </C.Label>
-                  <C.Input
-                    value={form.usuario_username}
-                    onChange={(event) => updateField("usuario_username", event.target.value)}
                     required
                   />
                 </C.Field>
