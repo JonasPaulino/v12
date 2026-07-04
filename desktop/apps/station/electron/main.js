@@ -6,6 +6,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const isDev = !app.isPackaged;
+const appIconPath = path.resolve(__dirname, "../src/assets/favicon.png");
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -14,6 +15,7 @@ function createWindow() {
     minWidth: 1024,
     minHeight: 680,
     title: "V12 PDV",
+    icon: appIconPath,
     fullscreen: true,
     autoHideMenuBar: true,
     webPreferences: {

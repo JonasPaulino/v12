@@ -16,7 +16,7 @@ import { ProdutoSearch } from "./components/ProdutoSearch.jsx";
 import { VendaResumo } from "./components/VendaResumo.jsx";
 import { AppContext } from "./context/AppContext.jsx";
 import { useSweetAlert } from "./context/SweetAlertContext.jsx";
-import logoWhite from "./assets/v12-erp-logo-white.png";
+import logoPdvWhite from "./assets/logo_pdv_branca.png";
 
 export default function App() {
   const [health, setHealth] = useState(null);
@@ -179,7 +179,7 @@ export default function App() {
       <main className="pdv-main">
         <section className="left-panel">
           <div className="logo-card">
-            <img src={logoWhite} alt="V12 ERP" />
+            <img src={logoPdvWhite} alt="V12 PDV" />
           </div>
 
           <div className="shortcut-grid">
