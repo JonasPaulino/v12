@@ -25,7 +25,8 @@ body {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
 }
 
@@ -35,12 +36,14 @@ button {
 }
 
 button:disabled,
-input:disabled {
+input:disabled,
+select:disabled {
   opacity: 0.55;
   cursor: not-allowed;
 }
 
-input {
+input,
+select {
   width: 100%;
   border: 1px solid #a7b6c4;
   border-radius: 3px;
@@ -50,7 +53,8 @@ input {
   background: #fff;
 }
 
-input:focus {
+input:focus,
+select:focus {
   border-color: #1688bd;
   box-shadow: 0 0 0 2px rgba(22, 136, 189, 0.18);
 }
@@ -87,8 +91,34 @@ label {
   gap: 16px;
 }
 
+.setup-card-login {
+  width: min(460px, 100%);
+  justify-items: stretch;
+  text-align: center;
+}
+
 .login-card {
   width: min(420px, 100%);
+}
+
+.setup-badge {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 10px;
+  border: 1px solid rgba(7, 89, 133, 0.22);
+  border-radius: 999px;
+  background: rgba(14, 165, 233, 0.1);
+  color: #075985;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.setup-card-login .setup-badge {
+  justify-self: center;
 }
 
 .setup-card img,
@@ -96,6 +126,15 @@ label {
   max-width: 210px;
   max-height: 78px;
   object-fit: contain;
+}
+
+.setup-card-login img {
+  justify-self: center;
+}
+
+.setup-card-login p {
+  max-width: 360px;
+  justify-self: center;
 }
 
 .setup-card h1,
@@ -110,6 +149,21 @@ label {
   margin: 0;
   color: #64748b;
   line-height: 1.45;
+}
+
+.setup-form {
+  display: grid;
+  gap: 18px;
+  margin-top: 4px;
+}
+
+.setup-login-form {
+  width: 100%;
+}
+
+.setup-login-form .setup-grid {
+  grid-template-columns: 1fr;
+  gap: 16px;
 }
 
 .setup-grid {
@@ -130,9 +184,35 @@ label {
   letter-spacing: 0.03em;
 }
 
+.setup-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.setup-card .secondary-button {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.setup-note {
+  font-weight: 700;
+  color: #0f172a !important;
+}
+
 @media (max-width: 720px) {
   .setup-grid {
     grid-template-columns: 1fr;
+  }
+
+  .setup-actions {
+    flex-direction: column-reverse;
+  }
+
+  .setup-actions button {
+    width: 100%;
   }
 }
 

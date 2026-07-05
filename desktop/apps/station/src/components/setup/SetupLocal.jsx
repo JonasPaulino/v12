@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useContext, useMemo, useState } from "react";
 import { api } from "../../api.js";
 import { AppContext } from "../../context/AppContext.jsx";
 import { useSweetAlert } from "../../context/SweetAlertContext.jsx";
@@ -7,45 +7,82 @@ import logoPdvColor from "../../assets/logo_pdv_cor.png";
 export function SetupLocal({ onConfigured }) {
   const { showLoading, hideLoading } = useContext(AppContext);
   const { showAlert } = useSweetAlert();
-  const [form, setForm] = useState({
-    tenant_erp_id: "1",
-    tenant_nome: "",
-    tenant_documento: "",
+  const [login, setLogin] = useState({
+    email: "",
+    senha: "",
+  });
+  const [webUser, setWebUser] = useState(null);
+  const [tenants, setTenants] = useState([]);
+  const [selectedTenantId, setSelectedTenantId] = useState("");
+  const [terminal, setTerminal] = useState({
     terminal_codigo: "PDV-01",
     terminal_nome: "Caixa 01",
-    operador_nome: "",
-    operador_email: "",
-    operador_senha: "",
   });
 
-  const update = (field, value) => {
-    setForm((current) => ({ ...current, [field]: value }));
+  const selectedTenant = useMemo(() => {
+    return tenants.find((tenant) => String(tenant.tenant_id) === String(selectedTenantId)) || null;
+  }, [selectedTenantId, tenants]);
+
+  const updateLogin = (field, value) => {
+    setLogin((current) => ({ ...current, [field]: value }));
   };
 
-  async function submit(event) {
+  const updateTerminal = (field, value) => {
+    setTerminal((current) => ({ ...current, [field]: value }));
+  };
+
+  async function autenticarNoWeb(event) {
     event.preventDefault();
-    showLoading("Configurando PDV local...");
+    showLoading("Validando acesso no ERP web...");
     try {
-      const result = await api.setupLocal({
-        filial: {
-          tenant_erp_id: form.tenant_erp_id,
-          tenant_nome: form.tenant_nome,
-          tenant_documento: form.tenant_documento,
-          terminal_codigo: form.terminal_codigo,
-          terminal_nome: form.terminal_nome,
-          tenant_ativo: true,
-          tenant_acesso_bloqueado: false,
-        },
-        operador: {
-          nome: form.operador_nome,
-          email: form.operador_email,
-          senha: form.operador_senha,
-        },
+      const result = await api.loginWeb(login);
+      const availableTenants = Array.isArray(result.tenants) ? result.tenants : [];
+      setWebUser(result.user || null);
+      setTenants(availableTenants);
+      setSelectedTenantId(availableTenants[0]?.tenant_id || "");
+
+      if (!availableTenants.length) {
+        showAlert({
+          title: "Nenhuma filial disponível",
+          text: "Este usuário não possui filiais ativas disponíveis no ERP web.",
+          icon: "warning",
+        });
+      }
+    } catch (error) {
+      showAlert({
+        title: "Falha no login web",
+        text: error.message,
+        icon: "error",
+      });
+    } finally {
+      hideLoading();
+    }
+  }
+
+  async function configurarTerminal(event) {
+    event.preventDefault();
+    if (!selectedTenant) {
+      showAlert({
+        title: "Selecione uma filial",
+        text: "Escolha a filial do ERP web que ficará vinculada a este terminal.",
+        icon: "warning",
+      });
+      return;
+    }
+
+    showLoading("Pareando filial e sincronizando dados...");
+    try {
+      const result = await api.setupWeb({
+        tenant: selectedTenant,
+        terminal_codigo: terminal.terminal_codigo,
+        terminal_nome: terminal.terminal_nome,
       });
 
       showAlert({
         title: "PDV configurado",
-        text: "Este terminal foi vinculado a uma filial local.",
+        text: `Filial pareada. ${result.usuarios?.imported || 0} operador(es) e ${
+          result.produtos?.imported || 0
+        } produto(s) sincronizados.`,
         icon: "success",
       });
       onConfigured(result);
@@ -62,55 +99,92 @@ export function SetupLocal({ onConfigured }) {
 
   return (
     <div className="setup-shell">
-      <form className="setup-card" onSubmit={submit}>
+      <div className={`setup-card ${!webUser ? "setup-card-login" : ""}`}>
+        <span className="setup-badge">Setup inicial</span>
         <img src={logoPdvColor} alt="V12 PDV" />
-        <h1>Configurar terminal</h1>
+        <h1>Conectar ao ERP web</h1>
         <p>
-          Esta etapa simula o pareamento com o ERP web. Depois ela será substituída
-          pelo login online e seleção da filial permitida.
+          Use seu acesso do ERP apenas para configurar este caixa. Depois da filial
+          ser selecionada, o login será feito somente com os operadores sincronizados.
         </p>
 
-        <div className="setup-grid">
-          <label>
-            ID da filial no ERP
-            <input value={form.tenant_erp_id} onChange={(event) => update("tenant_erp_id", event.target.value)} />
-          </label>
-          <label>
-            Nome da filial
-            <input value={form.tenant_nome} onChange={(event) => update("tenant_nome", event.target.value)} />
-          </label>
-          <label>
-            Documento da filial
-            <input value={form.tenant_documento} onChange={(event) => update("tenant_documento", event.target.value)} />
-          </label>
-          <label>
-            Código do terminal
-            <input value={form.terminal_codigo} onChange={(event) => update("terminal_codigo", event.target.value)} />
-          </label>
-          <label>
-            Nome do terminal
-            <input value={form.terminal_nome} onChange={(event) => update("terminal_nome", event.target.value)} />
-          </label>
-        </div>
+        {!webUser ? (
+          <form className="setup-form setup-login-form" onSubmit={autenticarNoWeb}>
+            <div className="setup-grid">
+              <label>
+                E-mail do ERP
+                <input
+                  type="email"
+                  value={login.email}
+                  onChange={(event) => updateLogin("email", event.target.value)}
+                  autoComplete="username"
+                />
+              </label>
+              <label>
+                Senha
+                <input
+                  type="password"
+                  value={login.senha}
+                  onChange={(event) => updateLogin("senha", event.target.value)}
+                  autoComplete="current-password"
+                />
+              </label>
+            </div>
 
-        <h2>Primeiro operador local</h2>
-        <div className="setup-grid">
-          <label>
-            Nome
-            <input value={form.operador_nome} onChange={(event) => update("operador_nome", event.target.value)} />
-          </label>
-          <label>
-            E-mail
-            <input type="email" value={form.operador_email} onChange={(event) => update("operador_email", event.target.value)} />
-          </label>
-          <label>
-            Senha local
-            <input type="password" value={form.operador_senha} onChange={(event) => update("operador_senha", event.target.value)} />
-          </label>
-        </div>
+            <button type="submit">Entrar no ERP web</button>
+          </form>
+        ) : (
+          <form className="setup-form" onSubmit={configurarTerminal}>
+            <h2>Filial do terminal</h2>
+            <p className="setup-note">Usuário validado: {webUser.usuario_nome}</p>
 
-        <button type="submit">Configurar PDV</button>
-      </form>
+            <div className="setup-grid">
+              <label>
+                Filial
+                <select
+                  value={selectedTenantId}
+                  onChange={(event) => setSelectedTenantId(event.target.value)}
+                >
+                  {tenants.map((tenant) => (
+                    <option key={tenant.tenant_id} value={tenant.tenant_id}>
+                      {tenant.tenant_nome} - {tenant.tenant_documento || "sem documento"}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Código do terminal
+                <input
+                  value={terminal.terminal_codigo}
+                  onChange={(event) => updateTerminal("terminal_codigo", event.target.value)}
+                />
+              </label>
+              <label>
+                Nome do terminal
+                <input
+                  value={terminal.terminal_nome}
+                  onChange={(event) => updateTerminal("terminal_nome", event.target.value)}
+                />
+              </label>
+            </div>
+
+            <div className="setup-actions">
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => {
+                  setWebUser(null);
+                  setTenants([]);
+                  setSelectedTenantId("");
+                }}
+              >
+                Trocar login
+              </button>
+              <button type="submit">Parear e sincronizar</button>
+            </div>
+          </form>
+        )}
+      </div>
     </div>
   );
 }

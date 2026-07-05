@@ -57,14 +57,13 @@ npm --workspace @v12-desktop/station run dev:electron
 
 O servidor local expõe a API em `http://127.0.0.1:5100/api/local`.
 
-## Sincronizacao de Produtos
+## Setup e Sincronizacao
 
 Configure no `.env` do desktop:
 
 ```bash
 V12_ERP_API_URL=https://v12.jhes.com.br/api
 V12_ERP_SYNC_TOKEN=mesmo-token-do-DESKTOP_SYNC_TOKEN-do-ERP
-V12_LOJA_ID=id-da-filial-no-ERP
 ```
 
 Configure no `.env` do ERP web:
@@ -73,4 +72,6 @@ Configure no `.env` do ERP web:
 DESKTOP_SYNC_TOKEN=token-forte-para-pdv-local
 ```
 
-No PDV, use `Menu > Sincronizar produtos` para carregar produtos/precos/estoque do ERP para o SQLite local.
+No primeiro acesso, o PDV faz login no ERP web, seleciona a filial real e grava o mesmo `tenant_id` no SQLite local. Depois disso, use o login local com os operadores sincronizados. Usuários master não são baixados para o PDV.
+
+No PDV, use `Menu > Sincronizar produtos` para recarregar produtos/precos/estoque do ERP para o SQLite local.

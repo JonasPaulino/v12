@@ -1,65 +1,78 @@
 import { getDb } from "../../db/connection.js";
-import { hashPassword, verifyPassword } from "../../utils/password.js";
+import { verifyPassword } from "../../utils/password.js";
 
 export const OPERADOR_PERFIS = Object.freeze({
   PDV_OPERADOR: "pdv_operador",
   PDV_SUPERVISOR: "pdv_supervisor",
+  GERENTE: "gerente",
   ADMIN_LOCAL: "admin_local",
 });
 
-export function salvarOperadorLocal(payload = {}) {
-  const nome = String(payload.nome || "").trim();
-  const email = String(payload.email || "").trim().toLowerCase();
-  const senha = String(payload.senha || "");
-  const perfis = Array.isArray(payload.perfis) && payload.perfis.length
-    ? payload.perfis
-    : [OPERADOR_PERFIS.PDV_OPERADOR];
-
-  if (!nome || !email || !senha) {
-    throw new Error("Informe nome, e-mail e senha do operador local.");
-  }
-
-  if (senha.length < 6) {
-    throw new Error("A senha do operador precisa ter pelo menos 6 caracteres.");
-  }
-
+export function sincronizarOperadoresErp(usuarios = []) {
   const db = getDb();
-  const save = db.transaction(() => {
-    const existing = db
-      .prepare("SELECT operador_id FROM operador_local WHERE LOWER(TRIM(email)) = LOWER(TRIM(?))")
-      .get(email);
+  const sync = db.transaction((items) => {
+    db.prepare(
+      `UPDATE operador_local
+       SET ativo = 0, atualizado_em = CURRENT_TIMESTAMP
+       WHERE erp_usuario_id IS NOT NULL`,
+    ).run();
 
-    let operadorId = existing?.operador_id;
-    const senhaHash = hashPassword(senha);
+    const upsertOperador = db.prepare(
+      `INSERT INTO operador_local (
+        erp_usuario_id,
+        nome,
+        email,
+        senha_hash,
+        ativo,
+        primeiro_acesso,
+        sincronizado_em
+      )
+      VALUES (@erp_usuario_id, @nome, @email, @senha_hash, @ativo, 0, CURRENT_TIMESTAMP)
+      ON CONFLICT(erp_usuario_id) WHERE erp_usuario_id IS NOT NULL DO UPDATE SET
+        nome = excluded.nome,
+        email = excluded.email,
+        senha_hash = excluded.senha_hash,
+        ativo = excluded.ativo,
+        sincronizado_em = CURRENT_TIMESTAMP,
+        atualizado_em = CURRENT_TIMESTAMP`,
+    );
 
-    if (operadorId) {
-      db.prepare(
-        `UPDATE operador_local
-         SET nome = ?, senha_hash = ?, ativo = 1, atualizado_em = CURRENT_TIMESTAMP
-         WHERE operador_id = ?`,
-      ).run(nome, senhaHash, operadorId);
-    } else {
-      const result = db.prepare(
-        `INSERT INTO operador_local (erp_usuario_id, nome, email, senha_hash, ativo)
-         VALUES (?, ?, ?, ?, 1)`,
-      ).run(payload.erp_usuario_id || null, nome, email, senhaHash);
-      operadorId = result.lastInsertRowid;
-    }
-
-    const insertPerfil = db.prepare(
+    const findOperador = db.prepare("SELECT operador_id FROM operador_local WHERE erp_usuario_id = ?");
+    const disablePerfis = db.prepare(
+      `UPDATE operador_perfil
+       SET ativo = 0
+       WHERE operador_id = ?`,
+    );
+    const upsertPerfil = db.prepare(
       `INSERT INTO operador_perfil (operador_id, perfil, ativo)
        VALUES (?, ?, 1)
        ON CONFLICT(operador_id, perfil) DO UPDATE SET ativo = 1`,
     );
 
-    for (const perfil of perfis) {
-      insertPerfil.run(operadorId, perfil);
-    }
+    for (const usuario of items) {
+      const perfis = Array.isArray(usuario.perfis) ? usuario.perfis : [];
+      upsertOperador.run({
+        erp_usuario_id: Number(usuario.erp_usuario_id),
+        nome: String(usuario.nome || "").trim(),
+        email: String(usuario.email || "").trim().toLowerCase(),
+        senha_hash: usuario.senha_hash,
+        ativo: usuario.ativo === false ? 0 : 1,
+      });
 
-    return getOperadorById(operadorId);
+      const operador = findOperador.get(Number(usuario.erp_usuario_id));
+      if (!operador) continue;
+
+      disablePerfis.run(operador.operador_id);
+      for (const perfil of perfis) {
+        if (Object.values(OPERADOR_PERFIS).includes(perfil)) {
+          upsertPerfil.run(operador.operador_id, perfil);
+        }
+      }
+    }
   });
 
-  return save();
+  sync(usuarios);
+  return usuarios.length;
 }
 
 export function getOperadorById(operadorId) {

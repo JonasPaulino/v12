@@ -90,3 +90,15 @@ export function salvarTerminalConfig(payload = {}) {
 
   return getTerminalConfig();
 }
+
+export function limparTerminalConfigInicial() {
+  const db = getDb();
+  const clear = db.transaction(() => {
+    db.prepare("DELETE FROM operador_perfil").run();
+    db.prepare("DELETE FROM operador_local").run();
+    db.prepare("DELETE FROM produto").run();
+    db.prepare("DELETE FROM terminal_config WHERE config_id = 1").run();
+  });
+
+  clear();
+}

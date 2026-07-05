@@ -77,6 +77,53 @@ class DesktopSyncDAO {
       ativo: !!row.ativo,
     }));
   }
+
+  static async listarUsuariosPdv(client, { tenantId }) {
+    const { rows } = await client.query(
+      `
+        SELECT
+          u.usuario_id AS erp_usuario_id,
+          u.usuario_nome AS nome,
+          u.usuario_email AS email,
+          u.usuario_senha AS senha_hash,
+          u.usuario_ativo AS ativo,
+          u.atualizado_em,
+          COALESCE(
+            JSON_AGG(DISTINCT utp.perfil)
+              FILTER (WHERE utp.perfil IS NOT NULL),
+            '[]'::json
+          ) AS perfis
+        FROM usuario u
+        JOIN usuario_tenant ut
+          ON ut.usuario_id = u.usuario_id
+         AND ut.tenant_id = $1
+         AND ut.ativo = TRUE
+        JOIN usuario_tenant_perfil utp
+          ON utp.usuario_id = u.usuario_id
+         AND utp.tenant_id = ut.tenant_id
+         AND utp.ativo = TRUE
+        WHERE u.usuario_excluido = FALSE
+          AND u.usuario_ativo = TRUE
+          AND COALESCE(u.usuario_master, FALSE) = FALSE
+          AND utp.perfil IN ('pdv_operador', 'pdv_supervisor', 'gerente')
+        GROUP BY
+          u.usuario_id,
+          u.usuario_nome,
+          u.usuario_email,
+          u.usuario_senha,
+          u.usuario_ativo,
+          u.atualizado_em
+        ORDER BY u.usuario_nome
+      `,
+      [tenantId],
+    );
+
+    return rows.map((row) => ({
+      ...row,
+      ativo: !!row.ativo,
+      perfis: Array.isArray(row.perfis) ? row.perfis : [],
+    }));
+  }
 }
 
 export default DesktopSyncDAO;

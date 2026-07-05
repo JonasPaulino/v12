@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { getTerminalConfig, salvarTerminalConfig } from "../modules/configuracao/localConfigRepository.js";
-import { OPERADOR_PERFIS, salvarOperadorLocal } from "../modules/operadores/operadorRepository.js";
+import { getTerminalConfig } from "../modules/configuracao/localConfigRepository.js";
+import { configurarTerminalPorTenant, loginErpWeb } from "../services/erpSetupService.js";
 
 const router = Router();
 
@@ -15,21 +15,28 @@ router.get("/status", (_req, res) => {
   });
 });
 
-router.post("/setup-local", (req, res, next) => {
+router.post("/login-web", async (req, res, next) => {
   try {
-    const config = salvarTerminalConfig(req.body?.filial || {});
-    const operador = salvarOperadorLocal({
-      ...(req.body?.operador || {}),
-      perfis: [OPERADOR_PERFIS.PDV_OPERADOR, OPERADOR_PERFIS.PDV_SUPERVISOR, OPERADOR_PERFIS.ADMIN_LOCAL],
+    const data = await loginErpWeb({
+      email: req.body?.email,
+      senha: req.body?.senha,
     });
 
-    res.json({
-      success: true,
-      data: {
-        config,
-        operador,
-      },
+    res.json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/setup-web", async (req, res, next) => {
+  try {
+    const data = await configurarTerminalPorTenant({
+      tenant: req.body?.tenant,
+      terminal_codigo: req.body?.terminal_codigo,
+      terminal_nome: req.body?.terminal_nome,
     });
+
+    res.json({ success: true, data });
   } catch (error) {
     next(error);
   }

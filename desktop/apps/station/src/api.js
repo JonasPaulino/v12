@@ -21,8 +21,10 @@ async function request(path, options = {}) {
 export const api = {
   health: () => request("/healthz"),
   configuracaoStatus: () => request("/configuracao/status"),
-  setupLocal: (payload) =>
-    request("/configuracao/setup-local", { method: "POST", body: JSON.stringify(payload) }),
+  loginWeb: (payload) =>
+    request("/configuracao/login-web", { method: "POST", body: JSON.stringify(payload) }),
+  setupWeb: (payload) =>
+    request("/configuracao/setup-web", { method: "POST", body: JSON.stringify(payload) }),
   loginOperador: (payload) =>
     request("/operadores/login", { method: "POST", body: JSON.stringify(payload) }),
   caixaAtual: () => request("/caixa/atual"),
@@ -39,4 +41,5 @@ export const api = {
   processarSync: () => request("/sync/processar", { method: "POST" }),
   sincronizarProdutos: (payload = {}) =>
     request("/sync/produtos", { method: "POST", body: JSON.stringify(payload) }),
+  sincronizarUsuarios: () => request("/sync/usuarios", { method: "POST" }),
 };
