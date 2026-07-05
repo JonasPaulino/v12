@@ -101,24 +101,31 @@ label {
   width: min(420px, 100%);
 }
 
+.setup-brand-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.setup-card-login .setup-brand-row {
+  justify-content: center;
+}
+
 .setup-badge {
-  justify-self: start;
   display: inline-flex;
   align-items: center;
-  min-height: 26px;
-  padding: 0 10px;
-  border: 1px solid rgba(7, 89, 133, 0.22);
+  min-height: 54px;
+  padding: 0 18px;
+  border: 1px solid rgba(7, 89, 133, 0.28);
   border-radius: 999px;
   background: rgba(14, 165, 233, 0.1);
   color: #075985;
-  font-size: 0.72rem;
+  font-size: 0.9rem;
   font-weight: 900;
-  letter-spacing: 0.09em;
+  letter-spacing: 0.11em;
   text-transform: uppercase;
-}
-
-.setup-card-login .setup-badge {
-  justify-self: center;
+  white-space: nowrap;
 }
 
 .setup-card img,
@@ -126,10 +133,6 @@ label {
   max-width: 210px;
   max-height: 78px;
   object-fit: contain;
-}
-
-.setup-card-login img {
-  justify-self: center;
 }
 
 .setup-card-login p {
@@ -213,6 +216,17 @@ label {
 
   .setup-actions button {
     width: 100%;
+  }
+
+  .setup-brand-row {
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .setup-badge {
+    min-height: 42px;
+    font-size: 0.78rem;
   }
 }
 

@@ -111,26 +111,6 @@ export const ModalUsuario = ({ isOpen, usuarioId, onClose }) => {
                   Usuário ativo
                 </C.CheckboxLine>
 
-                <C.Hint>
-                  O usuário novo entra com a senha inicial cadastrada e será obrigado a
-                  definir uma nova senha no primeiro acesso.
-                </C.Hint>
-              </>
-            ) : (
-              <>
-                {hiddenAssignmentsCount > 0 && (
-                  <C.AlertBox>
-                    Este usuário possui {hiddenAssignmentsCount} filiais adicionais fora do seu
-                    escopo atual. Elas serão preservadas, mas não podem ser gerenciadas nesta
-                    sessão.
-                  </C.AlertBox>
-                )}
-
-                <C.Hint>
-                  A filial ativa permanece obrigatória para garantir que o usuário apareça nesta
-                  tela e possa operar na loja corrente.
-                </C.Hint>
-
                 <C.ProfileBox>
                   <C.ProfileTitle>Perfis de operação</C.ProfileTitle>
                   <C.ProfileGrid>
@@ -152,6 +132,26 @@ export const ModalUsuario = ({ isOpen, usuarioId, onClose }) => {
                     ))}
                   </C.ProfileGrid>
                 </C.ProfileBox>
+
+                <C.Hint>
+                  O usuário novo entra com a senha inicial cadastrada e será obrigado a
+                  definir uma nova senha no primeiro acesso.
+                </C.Hint>
+              </>
+            ) : (
+              <>
+                {hiddenAssignmentsCount > 0 && (
+                  <C.AlertBox>
+                    Este usuário possui {hiddenAssignmentsCount} filiais adicionais fora do seu
+                    escopo atual. Elas serão preservadas, mas não podem ser gerenciadas nesta
+                    sessão.
+                  </C.AlertBox>
+                )}
+
+                <C.Hint>
+                  A filial ativa permanece obrigatória para garantir que o usuário apareça nesta
+                  tela e possa operar na loja corrente.
+                </C.Hint>
 
                 <C.TenantList>
                   {manageableTenants.map((tenant) => {

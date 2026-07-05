@@ -100,8 +100,10 @@ export function SetupLocal({ onConfigured }) {
   return (
     <div className="setup-shell">
       <div className={`setup-card ${!webUser ? "setup-card-login" : ""}`}>
-        <span className="setup-badge">Setup inicial</span>
-        <img src={logoPdvColor} alt="V12 PDV" />
+        <div className="setup-brand-row">
+          <img src={logoPdvColor} alt="V12 PDV" />
+          <span className="setup-badge">Setup inicial</span>
+        </div>
         <h1>Conectar ao ERP web</h1>
         <p>
           Use seu acesso do ERP apenas para configurar este caixa. Depois da filial
