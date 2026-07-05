@@ -15,7 +15,11 @@ async function request(path, options = {}) {
     throw new Error(data.message || `Falha local ${response.status}`);
   }
 
-  return data.data ?? data;
+  if (Object.prototype.hasOwnProperty.call(data, "data")) {
+    return data.data;
+  }
+
+  return data;
 }
 
 export const api = {

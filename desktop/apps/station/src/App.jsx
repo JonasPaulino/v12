@@ -22,6 +22,11 @@ import { AppContext } from "./context/AppContext.jsx";
 import { useSweetAlert } from "./context/SweetAlertContext.jsx";
 import logoPdvWhite from "./assets/logo_pdv_branca.png";
 
+function getModuleForCaixa(caixaData) {
+  if (caixaData?.caixa_pendente_dia_anterior) return "fechamento";
+  return caixaData ? "venda" : "abertura";
+}
+
 export default function App() {
   const [health, setHealth] = useState(null);
   const [configStatus, setConfigStatus] = useState(null);
@@ -43,13 +48,7 @@ export default function App() {
       setHealth(healthData);
       setConfigStatus(statusData);
       setCaixa(caixaData);
-      setActiveModule(
-        caixaData?.caixa_pendente_dia_anterior
-          ? "fechamento"
-          : caixaData
-          ? "venda"
-          : "abertura",
-      );
+      setActiveModule(getModuleForCaixa(caixaData));
       if (!silent) {
         showAlert({
           title: "PDV atualizado",
@@ -75,13 +74,7 @@ export default function App() {
 
   useEffect(() => {
     if (!operador) return;
-    setActiveModule(
-      caixa?.caixa_pendente_dia_anterior
-        ? "fechamento"
-        : caixa
-        ? "venda"
-        : "abertura",
-    );
+    setActiveModule(getModuleForCaixa(caixa));
   }, [caixa, operador]);
 
   const total = useMemo(() => {
@@ -166,13 +159,7 @@ export default function App() {
 
     setCart([]);
     setOperador(null);
-    setActiveModule(
-      caixa?.caixa_pendente_dia_anterior
-        ? "fechamento"
-        : caixa
-        ? "venda"
-        : "abertura",
-    );
+    setActiveModule(getModuleForCaixa(caixa));
   }
 
   function alternarTelaCheia() {
@@ -211,7 +198,25 @@ export default function App() {
   }
 
   if (configStatus?.configurado && !operador) {
-    return <LoginOperador config={configStatus.config} onLogin={setOperador} />;
+    return <LoginOperador config={configStatus.config} onLogin={handleOperadorLogin} />;
+  }
+
+  async function handleOperadorLogin(operadorData) {
+    try {
+      showLoading("Verificando caixa...");
+      const caixaData = await api.caixaAtual();
+      setCaixa(caixaData);
+      setActiveModule(getModuleForCaixa(caixaData));
+      setOperador(operadorData);
+    } catch (error) {
+      showAlert({
+        title: "Falha ao carregar caixa",
+        text: error.message,
+        icon: "error",
+      });
+    } finally {
+      hideLoading();
+    }
   }
 
   function openModule(module) {

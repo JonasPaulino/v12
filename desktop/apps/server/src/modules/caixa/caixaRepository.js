@@ -1,11 +1,18 @@
 import { caixaStatus, syncEventTypes } from "@v12-desktop/shared";
 import { getDb } from "../../db/connection.js";
-import { assertTerminalConfigurado } from "../configuracao/localConfigRepository.js";
+import { assertTerminalConfigurado, getTerminalConfig } from "../configuracao/localConfigRepository.js";
 import { OPERADOR_PERFIS, getOperadorById, operadorTemPerfil } from "../operadores/operadorRepository.js";
 import { enqueueSyncEvent } from "../../services/syncQueueService.js";
 
 export function getCaixaAberto() {
   const db = getDb();
+  const config = getTerminalConfig();
+  const scopedWhere = config
+    ? "AND tenant_erp_id = ? AND terminal_codigo = ?"
+    : "";
+  const params = config
+    ? [caixaStatus.ABERTO, config.tenant_erp_id, config.terminal_codigo]
+    : [caixaStatus.ABERTO];
   const caixa = db
     .prepare(
       `SELECT
@@ -25,21 +32,29 @@ export function getCaixaAberto() {
         fechado_em
        FROM caixa
        WHERE status = ?
+         ${scopedWhere}
        ORDER BY caixa_id DESC
        LIMIT 1`,
     )
-    .get(caixaStatus.ABERTO);
+    .get(...params);
 
   return enrichCaixaDiaOperacional(caixa);
 }
 
 function localDateOnly(value = new Date()) {
+  const dateValue =
+    typeof value === "string" && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/.test(value)
+      ? new Date(`${value.replace(" ", "T")}Z`)
+      : value instanceof Date
+      ? value
+      : new Date(value);
+
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Sao_Paulo",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).format(value instanceof Date ? value : new Date(value));
+  }).format(dateValue);
 }
 
 function enrichCaixaDiaOperacional(caixa) {
@@ -73,7 +88,9 @@ export function abrirCaixa({ operadorId, valorAbertura, observacao }) {
     );
   }
 
-  if (aberto) return aberto;
+  if (aberto) {
+    throw new Error("Já existe um caixa aberto para este terminal.");
+  }
 
   const operador = getOperadorById(Number(operadorId));
   if (!operador || !Number(operador.ativo)) {
