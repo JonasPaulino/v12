@@ -13,6 +13,8 @@ import {
 import { api } from "./api.js";
 import { CaixaPanel } from "./components/CaixaPanel.jsx";
 import { ProdutoSearch } from "./components/ProdutoSearch.jsx";
+import { LoginOperador } from "./components/setup/LoginOperador.jsx";
+import { SetupLocal } from "./components/setup/SetupLocal.jsx";
 import { VendaResumo } from "./components/VendaResumo.jsx";
 import { AppContext } from "./context/AppContext.jsx";
 import { useSweetAlert } from "./context/SweetAlertContext.jsx";
@@ -20,6 +22,8 @@ import logoPdvWhite from "./assets/logo_pdv_branca.png";
 
 export default function App() {
   const [health, setHealth] = useState(null);
+  const [configStatus, setConfigStatus] = useState(null);
+  const [operador, setOperador] = useState(null);
   const [caixa, setCaixa] = useState(null);
   const [cart, setCart] = useState([]);
   const { showLoading, hideLoading } = useContext(AppContext);
@@ -28,8 +32,13 @@ export default function App() {
   async function loadInitialData({ silent = false } = {}) {
     try {
       if (!silent) showLoading("Atualizando PDV...");
-      const [healthData, caixaData] = await Promise.all([api.health(), api.caixaAtual()]);
+      const [healthData, statusData, caixaData] = await Promise.all([
+        api.health(),
+        api.configuracaoStatus(),
+        api.caixaAtual(),
+      ]);
       setHealth(healthData);
+      setConfigStatus(statusData);
       setCaixa(caixaData);
       if (!silent) {
         showAlert({
@@ -159,6 +168,32 @@ export default function App() {
     });
   }
 
+  if (!configStatus) {
+    return (
+      <div className="setup-shell">
+        <div className="login-card">
+          <img src={logoPdvWhite} alt="V12 PDV" />
+          <h1>Carregando PDV</h1>
+          <p>Verificando configuração local do terminal.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (configStatus && !configStatus.configurado) {
+    return (
+      <SetupLocal
+        onConfigured={() => {
+          loadInitialData({ silent: true });
+        }}
+      />
+    );
+  }
+
+  if (configStatus?.configurado && !operador) {
+    return <LoginOperador config={configStatus.config} onLogin={setOperador} />;
+  }
+
   return (
     <div className="pdv-shell">
       <header className="pdv-topbar">
@@ -179,9 +214,9 @@ export default function App() {
         </div>
 
         <div className="operator-info">
-          <span>PDV: 01</span>
-          <span>Operador: {caixa?.operador_nome || "Caixa fechado"}</span>
-          <span>{health?.station || "Caixa 01"}</span>
+          <span>{configStatus?.config?.terminal_codigo || "PDV: 01"}</span>
+          <span>Operador: {operador?.nome || caixa?.operador_nome || "Caixa fechado"}</span>
+          <span>{configStatus?.config?.tenant_nome || health?.station || "Caixa 01"}</span>
         </div>
 
         <div className="menu-group align-right">
@@ -218,7 +253,7 @@ export default function App() {
           </div>
 
           <div className="caixa-card">
-            <CaixaPanel caixa={caixa} onChange={setCaixa} />
+            <CaixaPanel caixa={caixa} operador={operador} onChange={setCaixa} />
           </div>
         </section>
 

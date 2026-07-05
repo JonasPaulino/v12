@@ -20,6 +20,11 @@ async function request(path, options = {}) {
 
 export const api = {
   health: () => request("/healthz"),
+  configuracaoStatus: () => request("/configuracao/status"),
+  setupLocal: (payload) =>
+    request("/configuracao/setup-local", { method: "POST", body: JSON.stringify(payload) }),
+  loginOperador: (payload) =>
+    request("/operadores/login", { method: "POST", body: JSON.stringify(payload) }),
   caixaAtual: () => request("/caixa/atual"),
   abrirCaixa: (payload) => request("/caixa/abrir", { method: "POST", body: JSON.stringify(payload) }),
   fecharCaixa: (payload) => request("/caixa/fechar", { method: "POST", body: JSON.stringify(payload) }),

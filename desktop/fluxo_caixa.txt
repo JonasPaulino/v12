@@ -1,0 +1,426 @@
+Pensando como um ERP moderno (Bling, Omie, Tiny, MarketUP, Linx, Alterdata, TOTVS etc.), o Fluxo de Caixa Operacional (PDV) deve ser completamente separado do Financeiro (Contas a Receber/Pagar).
+
+O operador do caixa não deve se preocupar com contas a pagar, boletos ou fluxo financeiro da empresa. Ele deve apenas administrar o dinheiro físico (ou eletrônico) que passou pelo caixa naquele turno.
+
+Eu desenharia o fluxo do V12 PDV desta forma.
+
+1. Login
+
+O operador acessa o sistema.
+
+Login
+   │
+Seleciona Empresa
+   │
+Seleciona Filial
+   │
+Entrar
+2. Verificação do Caixa
+
+Ao entrar, o sistema verifica:
+
+Existe caixa aberto para este operador?
+
+SIM
+ ↓
+Vai direto para o PDV
+
+NÃO
+ ↓
+Tela de abertura de caixa
+
+Essa tela deve ser obrigatória.
+
+3. Abertura do Caixa
+
+A tela deve ser extremamente simples.
+
+----------------------------------------
+
+ABERTURA DO CAIXA
+
+Operador:
+Jonas Paulino
+
+Data
+04/07/2026
+
+Número do Caixa
+000125
+
+Saldo Inicial
+
+[R$ 150,00]
+
+Observação
+
+_____________________
+
+[ Abrir Caixa ]
+
+----------------------------------------
+
+O operador informa apenas o dinheiro existente na gaveta.
+
+Esse valor será o Fundo de Troco.
+
+Exemplo:
+
+20 notas de 5
+10 notas de 10
+5 moedas
+
+Total
+
+R$ 250,00
+
+Ou simplesmente
+
+Saldo Inicial
+
+250,00
+4. Caixa Aberto
+
+Após abrir.
+
+O PDV fica disponível.
+
+CAIXA ABERTO
+
+↓
+
+Vender
+
+↓
+
+Receber pagamentos
+
+↓
+
+Cancelar venda
+
+↓
+
+Emitir NFC-e
+
+↓
+
+Imprimir cupom
+
+↓
+
+Sangria
+
+↓
+
+Suprimento
+
+↓
+
+Consulta de vendas
+
+↓
+
+Fechamento
+5. Venda
+
+Fluxo tradicional.
+
+Ler código
+
+↓
+
+Produto
+
+↓
+
+Quantidade
+
+↓
+
+Desconto
+
+↓
+
+Forma de pagamento
+
+↓
+
+Finalizar
+
+↓
+
+Emitir NFCe
+6. Pagamentos
+
+O pagamento pode ser dividido.
+
+Exemplo.
+
+Total
+
+R$ 480
+
+Dinheiro
+100
+
+PIX
+200
+
+Cartão
+180
+
+Total
+
+480
+7. Sangria
+
+Muito importante.
+
+Imagine.
+
+O caixa possui
+
+R$ 6.800
+
+Não faz sentido deixar isso na gaveta.
+
+O gerente retira.
+
+SANGRIA
+
+Valor
+
+5000
+
+Motivo
+
+Retirada para cofre
+
+Confirmar
+
+O sistema registra.
+
+Caixa
+
+-5000
+8. Suprimento
+
+O contrário da sangria.
+
+Exemplo.
+
+Começou o dia sem troco.
+
+Gerente entrega
+
+R$ 200
+
+Então
+
+SUPRIMENTO
+
+Valor
+
+200
+
+Motivo
+
+Troco
+
+Confirmar
+
+Resultado
+
+Saldo Caixa
+
++200
+9. Cancelamentos
+
+Durante o expediente.
+
+Localizar Venda
+
+↓
+
+Cancelar
+
+↓
+
+Motivo
+
+↓
+
+Senha Supervisor
+10. Consulta
+
+O operador pode consultar.
+
+Últimas vendas
+
+Venda por CPF
+
+Venda por horário
+
+Venda por produto
+
+Sem alterar.
+
+11. Fechamento
+
+No final do expediente.
+
+O operador clica
+
+Fechar Caixa
+
+O sistema mostra.
+
+Dinheiro esperado
+Saldo Inicial
+
+150
+
++
+
+Vendas Dinheiro
+
+5.200
+
++
+
+Suprimentos
+
+200
+
+-
+
+Sangrias
+
+5.000
+
+=
+
+550
+
+Então pede a conferência.
+
+Quanto existe na gaveta?
+
+[550]
+
+Se houver diferença.
+
+Esperado
+
+550
+
+Informado
+
+540
+
+Diferença
+
+-10
+
+O operador informa.
+
+Motivo
+
+________________
+
+Também exibe.
+
+PIX
+
+4.250
+
+Cartão Crédito
+
+8.540
+
+Cartão Débito
+
+2.120
+
+Convênio
+
+300
+
+Voucher
+
+150
+
+Como esses valores não ficam na gaveta, apenas aparecem como conferência.
+
+12. Encerrar Caixa
+
+Após conferir.
+
+Gerar Resumo
+
+↓
+
+Fechar Caixa
+
+↓
+
+Imprimir
+
+↓
+
+Logout
+Fluxo completo
+LOGIN
+   │
+   ▼
+Existe caixa aberto?
+   │
+ ┌───────┐
+ │  NÃO  │
+ └───┬───┘
+     ▼
+Abrir Caixa
+     │
+     ▼
+PDV
+     │
+     ├───────────────┐
+     │               │
+Venda           Consulta
+     │               │
+     ├───────────────┤
+     │               │
+Sangria        Suprimento
+     │               │
+     ├───────────────┤
+     │               │
+Cancelar      Reimprimir
+     │
+     ▼
+Fechar Caixa
+     │
+Conferência
+     │
+Resumo
+     │
+Encerrar
+Eu adicionaria um recurso que poucos ERPs possuem
+
+Como o V12 terá integração entre o ERP online e o V12 PDV offline, eu criaria o conceito de Sessão de Caixa, que identifica todo o movimento de um turno. Cada abertura gera uma sessão única, por exemplo:
+
+Sessão: CX-20260704-0001
+
+Operador: Jonas
+Filial: Matriz
+Terminal: PDV 01
+
+08:00 - Abertura
+08:10 - Venda
+08:15 - Venda
+09:00 - Sangria
+10:20 - Venda
+12:15 - Suprimento
+17:55 - Fechamento
+
+Todas as vendas, NFC-e, recebimentos, cancelamentos, sangrias e suprimentos ficam vinculados a essa sessão. Isso facilita auditoria, sincronização entre o PDV offline e o ERP online, reprocessamento de dados em caso de falhas e rastreabilidade completa das operações por operador, terminal e turno. Para a arquitetura que você está desenvolvendo para o V12, essa abordagem tende a tornar a sincronização muito mais robusta e simplifica a conferência e investigação de divergências.

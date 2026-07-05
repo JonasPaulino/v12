@@ -10,8 +10,9 @@ router.get("/atual", (_req, res) => {
 router.post("/abrir", (req, res, next) => {
   try {
     const data = abrirCaixa({
-      operadorNome: req.body.operador_nome || "Operador",
+      operadorId: req.body.operador_id,
       valorAbertura: req.body.valor_abertura || 0,
+      observacao: req.body.observacao,
     });
     res.json({ success: true, data });
   } catch (error) {
@@ -21,7 +22,10 @@ router.post("/abrir", (req, res, next) => {
 
 router.post("/fechar", (req, res, next) => {
   try {
-    const data = fecharCaixa({ valorFechamento: req.body.valor_fechamento || 0 });
+    const data = fecharCaixa({
+      valorFechamento: req.body.valor_fechamento || 0,
+      observacao: req.body.observacao,
+    });
     res.json({ success: true, data });
   } catch (error) {
     next(error);
