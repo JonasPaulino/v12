@@ -27,6 +27,8 @@ export const api = {
     request("/configuracao/setup-web", { method: "POST", body: JSON.stringify(payload) }),
   loginOperador: (payload) =>
     request("/operadores/login", { method: "POST", body: JSON.stringify(payload) }),
+  trocarSenhaPrimeiroAcesso: (payload) =>
+    request("/operadores/primeiro-acesso", { method: "POST", body: JSON.stringify(payload) }),
   caixaAtual: () => request("/caixa/atual"),
   caixaResumo: () => request("/caixa/resumo"),
   abrirCaixa: (payload) => request("/caixa/abrir", { method: "POST", body: JSON.stringify(payload) }),

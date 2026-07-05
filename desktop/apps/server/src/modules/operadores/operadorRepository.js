@@ -27,12 +27,13 @@ export function sincronizarOperadoresErp(usuarios = []) {
         primeiro_acesso,
         sincronizado_em
       )
-      VALUES (@erp_usuario_id, @nome, @email, @senha_hash, @ativo, 0, CURRENT_TIMESTAMP)
+      VALUES (@erp_usuario_id, @nome, @email, @senha_hash, @ativo, @primeiro_acesso, CURRENT_TIMESTAMP)
       ON CONFLICT(erp_usuario_id) WHERE erp_usuario_id IS NOT NULL DO UPDATE SET
         nome = excluded.nome,
         email = excluded.email,
         senha_hash = excluded.senha_hash,
         ativo = excluded.ativo,
+        primeiro_acesso = excluded.primeiro_acesso,
         sincronizado_em = CURRENT_TIMESTAMP,
         atualizado_em = CURRENT_TIMESTAMP`,
     );
@@ -57,6 +58,7 @@ export function sincronizarOperadoresErp(usuarios = []) {
         email: String(usuario.email || "").trim().toLowerCase(),
         senha_hash: usuario.senha_hash,
         ativo: usuario.ativo === false ? 0 : 1,
+        primeiro_acesso: usuario.primeiro_acesso ? 1 : 0,
       });
 
       const operador = findOperador.get(Number(usuario.erp_usuario_id));
@@ -111,6 +113,21 @@ export function autenticarOperador({ email, senha }) {
   }
 
   return getOperadorById(operador.operador_id);
+}
+
+export function atualizarSenhaOperadorLocal({ operadorId, senhaHash }) {
+  const db = getDb();
+  db.prepare(
+    `UPDATE operador_local
+     SET
+       senha_hash = ?,
+       primeiro_acesso = 0,
+       sincronizado_em = CURRENT_TIMESTAMP,
+       atualizado_em = CURRENT_TIMESTAMP
+     WHERE operador_id = ?`,
+  ).run(senhaHash, operadorId);
+
+  return getOperadorById(operadorId);
 }
 
 export function operadorTemPerfil(operadorId, perfis = []) {

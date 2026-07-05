@@ -38,6 +38,46 @@ export function SweetAlertProvider({ children }) {
 
         return result.isConfirmed;
       },
+      promptPasswordChange: async () => {
+        hideGlobalLoading();
+        const result = await Swal.fire({
+          title: "Primeiro acesso",
+          html: `
+            <div style="display:grid;gap:12px;text-align:left;">
+              <p style="margin:0;color:#64748b;">
+                Defina uma nova senha para concluir o primeiro login neste caixa.
+              </p>
+              <input id="swal-password" type="password" class="swal2-input" placeholder="Nova senha" style="margin:0;" />
+              <input id="swal-password-confirm" type="password" class="swal2-input" placeholder="Confirmar nova senha" style="margin:0;" />
+            </div>
+          `,
+          focusConfirm: false,
+          allowOutsideClick: false,
+          allowEscapeKey: false,
+          confirmButtonText: "Salvar senha",
+          confirmButtonColor: "#075985",
+          background: "#f8fbff",
+          preConfirm: () => {
+            const password = document.getElementById("swal-password")?.value || "";
+            const confirmPassword =
+              document.getElementById("swal-password-confirm")?.value || "";
+
+            if (password.length < 6) {
+              Swal.showValidationMessage("A nova senha precisa ter pelo menos 6 caracteres.");
+              return false;
+            }
+
+            if (password !== confirmPassword) {
+              Swal.showValidationMessage("As senhas informadas não conferem.");
+              return false;
+            }
+
+            return { password };
+          },
+        });
+
+        return result.isConfirmed ? result.value : null;
+      },
     }),
     [],
   );

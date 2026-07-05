@@ -87,6 +87,7 @@ class DesktopSyncDAO {
           u.usuario_email AS email,
           u.usuario_senha AS senha_hash,
           u.usuario_ativo AS ativo,
+          u.usuario_primeiro_login AS primeiro_acesso,
           u.atualizado_em,
           COALESCE(
             JSON_AGG(DISTINCT utp.perfil)
@@ -112,6 +113,7 @@ class DesktopSyncDAO {
           u.usuario_email,
           u.usuario_senha,
           u.usuario_ativo,
+          u.usuario_primeiro_login,
           u.atualizado_em
         ORDER BY u.usuario_nome
       `,
@@ -121,8 +123,48 @@ class DesktopSyncDAO {
     return rows.map((row) => ({
       ...row,
       ativo: !!row.ativo,
+      primeiro_acesso: !!row.primeiro_acesso,
       perfis: Array.isArray(row.perfis) ? row.perfis : [],
     }));
+  }
+
+  static async atualizarSenhaUsuarioPdv(client, { tenantId, usuarioId, senhaHash }) {
+    const { rows } = await client.query(
+      `
+        UPDATE usuario u
+        SET
+          usuario_senha = $3,
+          usuario_primeiro_login = FALSE,
+          atualizado_em = NOW()
+        FROM usuario_tenant ut
+        WHERE u.usuario_id = $1
+          AND u.usuario_excluido = FALSE
+          AND u.usuario_ativo = TRUE
+          AND COALESCE(u.usuario_master, FALSE) = FALSE
+          AND ut.usuario_id = u.usuario_id
+          AND ut.tenant_id = $2
+          AND ut.ativo = TRUE
+          AND EXISTS (
+            SELECT 1
+            FROM usuario_tenant_perfil p
+            WHERE p.usuario_id = u.usuario_id
+              AND p.tenant_id = ut.tenant_id
+              AND p.ativo = TRUE
+              AND p.perfil IN ('pdv_operador', 'pdv_supervisor', 'gerente')
+          )
+        RETURNING
+          u.usuario_id AS erp_usuario_id,
+          u.usuario_nome AS nome,
+          u.usuario_email AS email,
+          u.usuario_senha AS senha_hash,
+          u.usuario_ativo AS ativo,
+          u.usuario_primeiro_login AS primeiro_acesso,
+          u.atualizado_em
+      `,
+      [usuarioId, tenantId, senhaHash],
+    );
+
+    return rows[0] || null;
   }
 }
 

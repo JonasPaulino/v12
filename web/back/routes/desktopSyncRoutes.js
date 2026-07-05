@@ -3,7 +3,7 @@ import { pool } from "../config/conexao.js";
 import desktopSyncAuth from "../middleware/desktopSyncAuth.js";
 import DesktopSyncDAO from "../model/desktopSyncDAO.js";
 import loginDAO from "../model/loginDAO.js";
-import { verifyPassword } from "../utils/password.js";
+import { hashPassword, verifyPassword } from "../utils/password.js";
 
 const router = express.Router();
 
@@ -160,6 +160,64 @@ router.get("/desktop/sync/usuarios", async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Não foi possível sincronizar usuários do PDV.",
+    });
+  }
+});
+
+router.post("/desktop/sync/usuarios/:usuarioId/senha", async (req, res) => {
+  try {
+    const tenantId = Number(req.body?.tenant_id);
+    const usuarioId = Number(req.params.usuarioId);
+    const senha = String(req.body?.senha || "").trim();
+
+    if (!Number.isInteger(tenantId) || tenantId <= 0 || !Number.isInteger(usuarioId) || usuarioId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "tenant_id e usuário são obrigatórios.",
+      });
+    }
+
+    if (senha.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: "A nova senha precisa ter pelo menos 6 caracteres.",
+      });
+    }
+
+    const tenantAtivo = await DesktopSyncDAO.validarTenantAtivo(pool, tenantId);
+    if (!tenantAtivo) {
+      return res.status(403).json({
+        success: false,
+        message: "Filial inativa, bloqueada ou não encontrada.",
+      });
+    }
+
+    const usuario = await DesktopSyncDAO.atualizarSenhaUsuarioPdv(pool, {
+      tenantId,
+      usuarioId,
+      senhaHash: hashPassword(senha),
+    });
+
+    if (!usuario) {
+      return res.status(404).json({
+        success: false,
+        message: "Operador não encontrado para esta filial.",
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        ...usuario,
+        ativo: !!usuario.ativo,
+        primeiro_acesso: !!usuario.primeiro_acesso,
+      },
+    });
+  } catch (error) {
+    console.error("[desktop-sync] Falha ao atualizar senha do operador:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Não foi possível atualizar a senha do operador.",
     });
   }
 });

@@ -6,7 +6,7 @@ import logoPdvColor from "../../assets/logo_pdv_cor.png";
 
 export function LoginOperador({ config, onLogin }) {
   const { showLoading, hideLoading } = useContext(AppContext);
-  const { showAlert } = useSweetAlert();
+  const { showAlert, promptPasswordChange } = useSweetAlert();
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
 
@@ -14,7 +14,28 @@ export function LoginOperador({ config, onLogin }) {
     event.preventDefault();
     showLoading("Validando operador...");
     try {
-      const operador = await api.loginOperador({ email, senha });
+      let operador = await api.loginOperador({ email, senha });
+
+      if (operador?.primeiro_acesso_pendente) {
+        hideLoading();
+        const passwordResult = await promptPasswordChange();
+        if (!passwordResult?.password) return;
+
+        showLoading("Atualizando senha no ERP...");
+        operador = await api.trocarSenhaPrimeiroAcesso({
+          email,
+          senha_atual: senha,
+          nova_senha: passwordResult.password,
+        });
+
+        setSenha("");
+        showAlert({
+          title: "Senha atualizada",
+          text: "Seu acesso foi liberado com a nova senha.",
+          icon: "success",
+        });
+      }
+
       onLogin(operador);
     } catch (error) {
       showAlert({
