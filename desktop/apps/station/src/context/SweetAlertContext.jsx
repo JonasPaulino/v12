@@ -41,11 +41,11 @@ export function SweetAlertProvider({ children }) {
       promptPasswordChange: async () => {
         hideGlobalLoading();
         const result = await Swal.fire({
-          title: "Primeiro acesso",
+          title: "Alterar senha temporária",
           html: `
             <div style="display:grid;gap:12px;text-align:left;">
               <p style="margin:0;color:#64748b;">
-                Defina uma nova senha para concluir o primeiro login neste caixa.
+                Este é seu primeiro acesso. Crie uma nova senha para liberar o caixa e sincronizar a alteração com o ERP.
               </p>
               <input id="swal-password" type="password" class="swal2-input" placeholder="Nova senha" style="margin:0;" />
               <input id="swal-password-confirm" type="password" class="swal2-input" placeholder="Confirmar nova senha" style="margin:0;" />

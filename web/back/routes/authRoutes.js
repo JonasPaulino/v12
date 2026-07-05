@@ -113,17 +113,27 @@ router.post("/login", async (req, res) => {
     });
 
     const isMaster = !!usuario.usuario_master;
+    const erpTenantIds = isMaster
+      ? null
+      : new Set(await loginDAO.listarTenantIdsComPerfil(pool, usuario.usuario_id, "usuario"));
     const activeTenants = tenants.filter(
-      (item) => item.tenant_ativo && (isMaster || !item.tenant_acesso_bloqueado)
+      (item) =>
+        item.tenant_ativo &&
+        (isMaster || !item.tenant_acesso_bloqueado) &&
+        (isMaster || erpTenantIds.has(Number(item.tenant_id)))
     );
     const loginTenants = activeTenants;
 
     if (!loginTenants.length) {
       authDebugLog("login:denied", {
-        reason: "no-active-tenants",
+        reason: tenants.length ? "no-erp-profile" : "no-active-tenants",
         usuarioId: usuario.usuario_id,
       });
-      return res.status(403).json({ error: "Usuário sem filiais ativas disponíveis." });
+      return res.status(403).json({
+        error: tenants.length
+          ? "Seu usuário não tem acesso ao ERP web. Use o PDV ou solicite liberação ao administrador."
+          : "Usuário sem filiais ativas disponíveis.",
+      });
     }
     const activeTenant =
       loginTenants.find((item) => item.tenant_id === usuario.tenant_id_default) ||
@@ -200,16 +210,27 @@ router.post("/logout", async (req, res) => {
 router.get("/validar-token", verificarToken, async (req, res) => {
   try {
     const usuario = await loginDAO.buscarUsuarioPorId(pool, req.user.userId);
+    if (!usuario) {
+      return res.json({ valid: false });
+    }
+
     const tenants = await loginDAO.listarTenantsDoUsuario(pool, req.user.userId);
-    const isMaster = !!usuario?.usuario_master;
+    const isMaster = !!usuario.usuario_master;
+    const erpTenantIds = !isMaster
+      ? new Set(await loginDAO.listarTenantIdsComPerfil(pool, usuario.usuario_id, "usuario"))
+      : null;
     const activeTenants = tenants.filter(
-      (item) => item.tenant_ativo && (isMaster || !item.tenant_acesso_bloqueado)
+      (item) =>
+        item.tenant_ativo &&
+        (isMaster || !item.tenant_acesso_bloqueado) &&
+        (isMaster || erpTenantIds.has(Number(item.tenant_id)))
     );
     const tenant = tenants.find((item) => item.tenant_id === req.user.tenantId) || null;
     const tenantBlocked = !!tenant?.tenant_acesso_bloqueado;
+    const missingErpProfile = !isMaster && !erpTenantIds?.has(Number(req.user.tenantId));
     const blockedInCurrentMode = tenantBlocked && !isMaster;
 
-    if (!usuario || !tenant || !tenant.tenant_ativo || blockedInCurrentMode) {
+    if (!usuario || !tenant || !tenant.tenant_ativo || blockedInCurrentMode || missingErpProfile) {
       return res.json({ valid: false });
     }
 

@@ -68,6 +68,21 @@ class LoginDAO {
     return rows;
   }
 
+  static async listarTenantIdsComPerfil(client, usuarioId, perfil) {
+    const { rows } = await client.query(
+      `
+        SELECT DISTINCT tenant_id
+        FROM usuario_tenant_perfil
+        WHERE usuario_id = $1
+          AND perfil = $2
+          AND ativo = TRUE
+      `,
+      [usuarioId, perfil]
+    );
+
+    return rows.map((row) => Number(row.tenant_id));
+  }
+
   static async usuarioPossuiTenant(client, usuarioId, tenantId) {
     const sql = `
       SELECT 1

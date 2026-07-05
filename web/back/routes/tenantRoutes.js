@@ -31,10 +31,18 @@ router.get("/", async (req, res) => {
   try {
     const tenants = await loginDAO.listarTenantsDoUsuario(pool, req.user.userId);
     const isMaster = await loginDAO.usuarioEhMaster(pool, req.user.userId);
+    const erpTenantIds = isMaster
+      ? null
+      : new Set(await loginDAO.listarTenantIdsComPerfil(pool, req.user.userId, "usuario"));
     const includeAll = req.query.include_all === "true" && isMaster;
     const visibleTenants = includeAll
       ? tenants
-      : tenants.filter((item) => item.tenant_ativo && (isMaster || !item.tenant_acesso_bloqueado));
+      : tenants.filter(
+          (item) =>
+            item.tenant_ativo &&
+            (isMaster || !item.tenant_acesso_bloqueado) &&
+            (isMaster || erpTenantIds.has(Number(item.tenant_id)))
+        );
 
     return res.json({
       success: true,
@@ -62,10 +70,20 @@ router.post("/switch", async (req, res) => {
     }
 
     const usuario = await loginDAO.buscarUsuarioPorId(pool, req.user.userId);
+    if (!usuario) {
+      return res.status(403).json({ error: "Usuário sem acesso ao ERP web." });
+    }
+
     const tenants = await loginDAO.listarTenantsDoUsuario(pool, req.user.userId);
-    const isMaster = !!usuario?.usuario_master;
+    const isMaster = !!usuario.usuario_master;
+    const erpTenantIds = isMaster
+      ? null
+      : new Set(await loginDAO.listarTenantIdsComPerfil(pool, req.user.userId, "usuario"));
     const activeTenants = tenants.filter(
-      (item) => item.tenant_ativo && (isMaster || !item.tenant_acesso_bloqueado)
+      (item) =>
+        item.tenant_ativo &&
+        (isMaster || !item.tenant_acesso_bloqueado) &&
+        (isMaster || erpTenantIds.has(Number(item.tenant_id)))
     );
     const activeTenant = tenants.find((item) => item.tenant_id === Number(tenantId));
 
@@ -75,6 +93,12 @@ router.post("/switch", async (req, res) => {
 
     if (!isMaster && activeTenant.tenant_acesso_bloqueado) {
       return res.status(403).json({ error: "Acesso bloqueado para esta filial." });
+    }
+
+    if (!isMaster && !erpTenantIds.has(Number(tenantId))) {
+      return res.status(403).json({
+        error: "Seu usuário não tem acesso ao ERP web nesta filial.",
+      });
     }
 
     const token = jwt.sign(
