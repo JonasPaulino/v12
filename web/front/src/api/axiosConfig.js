@@ -1,4 +1,5 @@
 import axios from "axios";
+import { isLogoutInProgress } from "./authSessionState";
 
 const createApiClient = (baseURL) => {
   const client = axios.create({
@@ -21,7 +22,12 @@ const createApiClient = (baseURL) => {
         "";
       const authRelatedMessage = /token|sess[aã]o|autentic|expir/i.test(String(message));
 
-      if (status === 401 && !url.includes("/auth/validar-token") && authRelatedMessage) {
+      if (
+        status === 401 &&
+        !isLogoutInProgress() &&
+        !url.includes("/auth/validar-token") &&
+        authRelatedMessage
+      ) {
         document.dispatchEvent(
           new CustomEvent("app:unauthorized", {
             detail: {

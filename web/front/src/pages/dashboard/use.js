@@ -63,6 +63,10 @@ export const useDashboard = () => {
         if (mounted) {
           setData(response.data || null);
         }
+      } catch {
+        if (mounted) {
+          setData(null);
+        }
       } finally {
         if (mounted) {
           setLoading(false);

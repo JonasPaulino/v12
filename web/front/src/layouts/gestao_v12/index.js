@@ -15,6 +15,7 @@ import {
 import { AppContext } from "context";
 import { useSweetAlert } from "context/sweet_alert";
 import { logout } from "components/sidebar/components/profile/api";
+import { markLogoutInProgress } from "api/authSessionState";
 import * as C from "./style";
 
 const menuItems = [
@@ -91,7 +92,8 @@ export const GestaoV12Layout = ({ title = "Gestão V12", subtitle, children }) =
     const confirmed = await askYesNoQuestion("Sair do sistema?", "Deseja encerrar a sessão atual?");
     if (!confirmed) return;
 
-    await logout();
+    markLogoutInProgress();
+    await logout().catch(() => null);
     clearSession();
     navigate("/login", { replace: true });
   }, [askYesNoQuestion, clearSession, navigate]);

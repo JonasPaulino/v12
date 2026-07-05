@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { AppContext } from "context";
 import { useSweetAlert } from "context/sweet_alert";
 import { getFirstName } from "utils";
+import { markLogoutInProgress } from "api/authSessionState";
 import { logout } from "./api";
 
 export const useToggleOptions = () => {
@@ -55,7 +56,8 @@ export const useProfileActions = () => {
     const confirmed = await askYesNoQuestion("Sair do sistema?", "Deseja encerrar a sessão atual?");
     if (!confirmed) return;
 
-    await logout();
+    markLogoutInProgress();
+    await logout().catch(() => null);
     clearSession();
     navigate("/login", { replace: true });
   };

@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { changeFirstPassword, checkTokenValidity } from "./api";
 import { AppContext } from "context";
 import { useSweetAlert } from "context/sweet_alert";
+import { isLogoutInProgress } from "api/authSessionState";
 
 export const AuthMiddleware = ({ children }) => {
   const navigate = useNavigate();
@@ -17,6 +18,11 @@ export const AuthMiddleware = ({ children }) => {
   useEffect(() => {
     const handleUnauthorized = () => {
       clearSession();
+
+      if (isLogoutInProgress()) {
+        navigate("/login", { replace: true });
+        return;
+      }
 
       if (!alertLockRef.current) {
         alertLockRef.current = true;

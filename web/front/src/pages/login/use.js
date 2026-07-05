@@ -2,6 +2,7 @@ import { useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppContext } from "context";
 import { useSweetAlert } from "context/sweet_alert";
+import { clearLogoutInProgress } from "api/authSessionState";
 import { loginRequest } from "./api";
 
 export const useLogin = () => {
@@ -32,6 +33,7 @@ export const useLogin = () => {
 
     showLoading("Validando credenciais...");
     try {
+      clearLogoutInProgress();
       const response = await loginRequest(username, password);
       const canEnter =
         response?.success === true &&
@@ -73,6 +75,7 @@ export const useLogin = () => {
   const enterClientMode = () => {
     if (!pendingAccess) return;
 
+    clearLogoutInProgress();
     setUser(pendingAccess.user || null);
     setBusiness(pendingAccess.tenant || null);
     setBusinesses(pendingAccess.tenants || []);
@@ -83,6 +86,7 @@ export const useLogin = () => {
   const enterGestaoMode = () => {
     if (!pendingAccess) return;
 
+    clearLogoutInProgress();
     setUser(pendingAccess.user || null);
     setBusiness(pendingAccess.tenant || null);
     setBusinesses(pendingAccess.tenants || []);
