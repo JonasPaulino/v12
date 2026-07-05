@@ -43,7 +43,13 @@ export default function App() {
       setHealth(healthData);
       setConfigStatus(statusData);
       setCaixa(caixaData);
-      setActiveModule(caixaData ? "venda" : "abertura");
+      setActiveModule(
+        caixaData?.caixa_pendente_dia_anterior
+          ? "fechamento"
+          : caixaData
+          ? "venda"
+          : "abertura",
+      );
       if (!silent) {
         showAlert({
           title: "PDV atualizado",
@@ -69,7 +75,13 @@ export default function App() {
 
   useEffect(() => {
     if (!operador) return;
-    setActiveModule(caixa ? "venda" : "abertura");
+    setActiveModule(
+      caixa?.caixa_pendente_dia_anterior
+        ? "fechamento"
+        : caixa
+        ? "venda"
+        : "abertura",
+    );
   }, [caixa, operador]);
 
   const total = useMemo(() => {
@@ -154,7 +166,13 @@ export default function App() {
 
     setCart([]);
     setOperador(null);
-    setActiveModule(caixa ? "venda" : "abertura");
+    setActiveModule(
+      caixa?.caixa_pendente_dia_anterior
+        ? "fechamento"
+        : caixa
+        ? "venda"
+        : "abertura",
+    );
   }
 
   function alternarTelaCheia() {
@@ -197,6 +215,16 @@ export default function App() {
   }
 
   function openModule(module) {
+    if (caixa?.caixa_pendente_dia_anterior && module !== "fechamento") {
+      showAlert({
+        title: "Fechamento pendente",
+        text: `Existe um caixa aberto do dia ${caixa.data_operacional}. Feche esse caixa antes de continuar.`,
+        icon: "warning",
+      });
+      setActiveModule("fechamento");
+      return;
+    }
+
     if (!caixa && module !== "abertura") {
       showAlert({
         title: "Caixa fechado",
@@ -212,7 +240,7 @@ export default function App() {
 
   function handleCaixaAberto(data) {
     setCaixa(data);
-    setActiveModule("venda");
+    setActiveModule(data?.caixa_pendente_dia_anterior ? "fechamento" : "venda");
   }
 
   function handleCaixaFechado() {
@@ -228,7 +256,8 @@ export default function App() {
     suprimento: "Caixa > Suprimento",
     fechamento: "Caixa > Fechamento",
   };
-  const showSaleShortcuts = !["abertura", "fechamento"].includes(activeModule);
+  const caixaPendenteDiaAnterior = !!caixa?.caixa_pendente_dia_anterior;
+  const showSaleShortcuts = !caixaPendenteDiaAnterior && !["abertura", "fechamento"].includes(activeModule);
 
   return (
     <div className="pdv-shell">
@@ -291,7 +320,12 @@ export default function App() {
             <div className="entry-card-top">
               <div className="breadcrumb">{breadcrumbByModule[activeModule]}</div>
               {activeModule === "fechamento" && caixa ? (
-                <button className="back-to-sale" type="button" onClick={() => openModule("venda")}>
+                <button
+                  className="back-to-sale"
+                  type="button"
+                  disabled={caixaPendenteDiaAnterior}
+                  onClick={() => openModule("venda")}
+                >
                   Voltar para venda
                 </button>
               ) : null}
@@ -326,7 +360,7 @@ export default function App() {
             total={total}
             onChange={setCart}
             onFinish={finalizarVenda}
-            disabled={!caixa || !cart.length}
+            disabled={!caixa || caixaPendenteDiaAnterior || !cart.length}
           />
         </section>
       </main>

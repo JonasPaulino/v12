@@ -6,7 +6,7 @@ import { enqueueSyncEvent } from "../../services/syncQueueService.js";
 
 export function getCaixaAberto() {
   const db = getDb();
-  return db
+  const caixa = db
     .prepare(
       `SELECT
         caixa_id,
@@ -29,6 +29,30 @@ export function getCaixaAberto() {
        LIMIT 1`,
     )
     .get(caixaStatus.ABERTO);
+
+  return enrichCaixaDiaOperacional(caixa);
+}
+
+function localDateOnly(value = new Date()) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(value instanceof Date ? value : new Date(value));
+}
+
+function enrichCaixaDiaOperacional(caixa) {
+  if (!caixa) return null;
+
+  const dataAbertura = localDateOnly(caixa.aberto_em);
+  const dataAtual = localDateOnly();
+  return {
+    ...caixa,
+    data_operacional: dataAbertura,
+    data_atual: dataAtual,
+    caixa_pendente_dia_anterior: dataAbertura !== dataAtual,
+  };
 }
 
 function buildSessaoCodigo({ tenantErpId, terminalCodigo }) {
@@ -43,6 +67,12 @@ export function abrirCaixa({ operadorId, valorAbertura, observacao }) {
   const db = getDb();
   const config = assertTerminalConfigurado();
   const aberto = getCaixaAberto();
+  if (aberto?.caixa_pendente_dia_anterior) {
+    throw new Error(
+      `Existe um caixa aberto do dia ${aberto.data_operacional}. Feche esse caixa antes de abrir o caixa de hoje.`,
+    );
+  }
+
   if (aberto) return aberto;
 
   const operador = getOperadorById(Number(operadorId));

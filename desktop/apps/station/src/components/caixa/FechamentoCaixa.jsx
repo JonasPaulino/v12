@@ -59,11 +59,17 @@ export function FechamentoCaixa({ onClosed }) {
     }
   }
 
+  const caixaPendenteDiaAnterior = !!resumo?.caixa?.caixa_pendente_dia_anterior;
+
   return (
     <form className="cash-flow-module" onSubmit={fechar}>
       <div className="cash-flow-head">
         <strong>Fechamento do caixa</strong>
-        <span>Confira o dinheiro físico da gaveta e encerre a sessão.</span>
+        <span>
+          {caixaPendenteDiaAnterior
+            ? `Caixa aberto em ${new Date(`${resumo.caixa.data_operacional}T00:00:00`).toLocaleDateString("pt-BR")}. Feche este caixa antes de iniciar o dia atual.`
+            : "Confira o dinheiro físico da gaveta e encerre a sessão."}
+        </span>
       </div>
 
       <div className="cash-resume-list">
