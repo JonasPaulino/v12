@@ -1,19 +1,43 @@
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
+import { FiEye, FiEyeOff } from "react-icons/fi";
 import { api } from "../../api.js";
 import { AppContext } from "../../context/AppContext.jsx";
 import { useSweetAlert } from "../../context/SweetAlertContext.jsx";
 import logoPdvColor from "../../assets/logo_pdv_cor.png";
+
+const REMEMBER_OPERATOR_KEY = "v12_pdv_remember_operator_email";
 
 export function LoginOperador({ config, onLogin }) {
   const { showLoading, hideLoading } = useContext(AppContext);
   const { showAlert, promptPasswordChange } = useSweetAlert();
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
+  const [lembrarUsuario, setLembrarUsuario] = useState(false);
+  const [mostrarSenha, setMostrarSenha] = useState(false);
+
+  useEffect(() => {
+    const savedEmail = window.localStorage.getItem(REMEMBER_OPERATOR_KEY) || "";
+    if (savedEmail) {
+      setEmail(savedEmail);
+      setLembrarUsuario(true);
+    }
+  }, []);
+
+  function persistRememberedEmail(value) {
+    const normalizedEmail = String(value || "").trim().toLowerCase();
+    if (lembrarUsuario && normalizedEmail) {
+      window.localStorage.setItem(REMEMBER_OPERATOR_KEY, normalizedEmail);
+      return;
+    }
+
+    window.localStorage.removeItem(REMEMBER_OPERATOR_KEY);
+  }
 
   async function submit(event) {
     event.preventDefault();
     showLoading("Validando operador...");
     try {
+      persistRememberedEmail(email);
       await api.sincronizarUsuarios().catch(() => null);
       const operador = await api.loginOperador({ email, senha });
 
@@ -29,7 +53,6 @@ export function LoginOperador({ config, onLogin }) {
           nova_senha: passwordResult.password,
         });
 
-        setEmail("");
         setSenha("");
         showAlert({
           title: "Senha atualizada",
@@ -65,7 +88,29 @@ export function LoginOperador({ config, onLogin }) {
         </label>
         <label>
           Senha local
-          <input type="password" value={senha} onChange={(event) => setSenha(event.target.value)} />
+          <span className="password-field">
+            <input
+              type={mostrarSenha ? "text" : "password"}
+              value={senha}
+              onChange={(event) => setSenha(event.target.value)}
+            />
+            <button
+              type="button"
+              className="password-toggle"
+              onClick={() => setMostrarSenha((current) => !current)}
+              aria-label={mostrarSenha ? "Ocultar senha" : "Mostrar senha"}
+            >
+              {mostrarSenha ? <FiEyeOff /> : <FiEye />}
+            </button>
+          </span>
+        </label>
+        <label className="remember-operator">
+          <input
+            type="checkbox"
+            checked={lembrarUsuario}
+            onChange={(event) => setLembrarUsuario(event.target.checked)}
+          />
+          Lembrar usuário neste caixa
         </label>
         <button type="submit">Entrar</button>
       </form>

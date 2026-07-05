@@ -187,6 +187,56 @@ label {
   letter-spacing: 0.03em;
 }
 
+.password-field {
+  position: relative;
+  display: block;
+}
+
+.password-field input {
+  padding-right: 46px;
+}
+
+.login-card .password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  width: 34px;
+  min-height: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #64748b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-transform: none;
+  letter-spacing: 0;
+  transform: translateY(-50%);
+}
+
+.login-card .password-toggle:hover {
+  background: #e2e8f0;
+  color: #075985;
+}
+
+.remember-operator {
+  display: flex;
+  grid-template-columns: none;
+  align-items: center;
+  gap: 9px;
+  color: #334155;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.remember-operator input {
+  width: 16px;
+  height: 16px;
+  accent-color: #075985;
+  cursor: pointer;
+}
+
 .setup-actions {
   display: flex;
   justify-content: flex-end;
