@@ -14,6 +14,7 @@ export function LoginOperador({ config, onLogin }) {
     event.preventDefault();
     showLoading("Validando operador...");
     try {
+      await api.sincronizarUsuarios().catch(() => null);
       const operador = await api.loginOperador({ email, senha });
 
       if (operador?.primeiro_acesso_pendente) {
