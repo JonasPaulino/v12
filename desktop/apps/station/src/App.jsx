@@ -147,21 +147,14 @@ export default function App() {
   async function sairDoSistema() {
     const confirmed = await askYesNoQuestion(
       "Sair do sistema",
-      "Deseja realmente fechar o V12 PDV?",
+      "Deseja encerrar a sessão do operador atual?",
     );
 
     if (!confirmed) return;
 
-    if (window.v12Desktop?.quit) {
-      window.v12Desktop.quit();
-      return;
-    }
-
-    showAlert({
-      title: "Opcao indisponivel",
-      text: "Sair do sistema esta disponivel somente no app Electron.",
-      icon: "info",
-    });
+    setCart([]);
+    setOperador(null);
+    setActiveModule(caixa ? "venda" : "abertura");
   }
 
   function alternarTelaCheia() {
@@ -235,6 +228,7 @@ export default function App() {
     suprimento: "Caixa > Suprimento",
     fechamento: "Caixa > Fechamento",
   };
+  const showSaleShortcuts = !["abertura", "fechamento"].includes(activeModule);
 
   return (
     <div className="pdv-shell">
@@ -277,22 +271,31 @@ export default function App() {
       </header>
 
       <main className="pdv-main">
-        <section className="left-panel">
+        <section className={`left-panel ${showSaleShortcuts ? "" : "without-shortcuts"}`}>
           <div className="logo-card">
             <img src={logoPdvWhite} alt="V12 PDV" />
           </div>
 
-          <div className="shortcut-grid">
-            <button className="shortcut primary" onClick={() => openModule("venda")}>Registro de item <small>F3</small></button>
-            <button className="shortcut">Cliente / CPF <small>F4</small></button>
-            <button className="shortcut">Cancelar item <small>F5</small></button>
-            <button className="shortcut" onClick={() => openModule("sangria")}>Sangria <small>F6</small></button>
-            <button className="shortcut" onClick={() => openModule("suprimento")}>Suprimento <small>F7</small></button>
-            <button className="shortcut">Consultar produto <small>F8</small></button>
-          </div>
+          {showSaleShortcuts ? (
+            <div className="shortcut-grid">
+              <button className="shortcut primary" onClick={() => openModule("venda")}>Registro de item <small>F3</small></button>
+              <button className="shortcut">Cliente / CPF <small>F4</small></button>
+              <button className="shortcut" onClick={() => openModule("fechamento")}>Fechamento <small>F5</small></button>
+              <button className="shortcut" onClick={() => openModule("sangria")}>Sangria <small>F6</small></button>
+              <button className="shortcut" onClick={() => openModule("suprimento")}>Suprimento <small>F7</small></button>
+              <button className="shortcut">Consultar produto <small>F8</small></button>
+            </div>
+          ) : null}
 
           <div className="entry-card">
-            <div className="breadcrumb">{breadcrumbByModule[activeModule]}</div>
+            <div className="entry-card-top">
+              <div className="breadcrumb">{breadcrumbByModule[activeModule]}</div>
+              {activeModule === "fechamento" && caixa ? (
+                <button className="back-to-sale" type="button" onClick={() => openModule("venda")}>
+                  Voltar para venda
+                </button>
+              ) : null}
+            </div>
             {activeModule === "abertura" ? (
               <AberturaCaixa operador={operador} onOpened={handleCaixaAberto} />
             ) : null}

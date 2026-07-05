@@ -274,6 +274,10 @@ label {
   grid-template-rows: 126px auto 1fr;
 }
 
+.left-panel.without-shortcuts {
+  grid-template-rows: 126px 1fr;
+}
+
 .right-panel {
   grid-template-rows: 82px 1fr;
   background: #f7f8fa;
@@ -340,11 +344,30 @@ label {
   overflow: auto;
 }
 
+.entry-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
 .breadcrumb {
   color: #8994a3;
   font-size: 0.9rem;
   font-weight: 700;
-  margin-bottom: 18px;
+}
+
+.back-to-sale {
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 3px;
+  background: #e6f3fb;
+  color: #075985;
+  border: 1px solid #b9d3e5;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
 }
 
 .entry-module {
