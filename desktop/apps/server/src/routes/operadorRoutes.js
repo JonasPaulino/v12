@@ -34,12 +34,18 @@ router.post("/primeiro-acesso", async (req, res, next) => {
       senha: req.body?.senha_atual,
     });
 
-    const data = await trocarSenhaPrimeiroAcesso({
+    await trocarSenhaPrimeiroAcesso({
       operador,
       novaSenha: req.body?.nova_senha,
     });
 
-    res.json({ success: true, data });
+    res.json({
+      success: true,
+      data: {
+        senha_atualizada: true,
+        primeiro_acesso: false,
+      },
+    });
   } catch (error) {
     next(error);
   }

@@ -14,7 +14,7 @@ export function LoginOperador({ config, onLogin }) {
     event.preventDefault();
     showLoading("Validando operador...");
     try {
-      let operador = await api.loginOperador({ email, senha });
+      const operador = await api.loginOperador({ email, senha });
 
       if (operador?.primeiro_acesso_pendente) {
         hideLoading();
@@ -22,18 +22,20 @@ export function LoginOperador({ config, onLogin }) {
         if (!passwordResult?.password) return;
 
         showLoading("Atualizando senha no ERP...");
-        operador = await api.trocarSenhaPrimeiroAcesso({
+        await api.trocarSenhaPrimeiroAcesso({
           email,
           senha_atual: senha,
           nova_senha: passwordResult.password,
         });
 
+        setEmail("");
         setSenha("");
         showAlert({
           title: "Senha atualizada",
-          text: "Seu acesso foi liberado com a nova senha.",
+          text: "Entre novamente usando a nova senha.",
           icon: "success",
         });
+        return;
       }
 
       onLogin(operador);
