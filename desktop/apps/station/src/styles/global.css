@@ -271,7 +271,7 @@ label {
 }
 
 .left-panel {
-  grid-template-rows: 126px auto 1fr auto;
+  grid-template-rows: 126px auto 1fr;
 }
 
 .right-panel {
@@ -283,7 +283,6 @@ label {
 
 .logo-card,
 .entry-card,
-.caixa-card,
 .shortcut-grid {
   background: #f8f9fb;
   border: 1px solid #c9d5df;
@@ -337,7 +336,8 @@ label {
 
 .entry-card {
   padding: 20px 20px 14px;
-  min-height: 310px;
+  min-height: 0;
+  overflow: auto;
 }
 
 .breadcrumb {
@@ -421,57 +421,97 @@ label {
   margin-top: 3px;
 }
 
-.caixa-card {
-  padding: 14px;
-}
-
-.cash-module {
+.cash-flow-module {
   display: grid;
-  grid-template-columns: 1fr 170px 130px;
-  align-items: end;
-  gap: 12px;
+  gap: 14px;
+  max-width: 620px;
 }
 
-.cash-summary {
-  min-height: 58px;
-  padding: 10px 12px;
-  background: #e8f7ee;
-  color: #14532d;
-  border: 1px solid #bbebcc;
+.cash-flow-head {
   display: grid;
-  gap: 2px;
+  gap: 5px;
+  padding: 16px;
+  background: #edf7fc;
+  border: 1px solid #c7e4f3;
+  color: #0f3a55;
 }
 
-.closed-summary {
-  background: #fff1f2;
-  border-color: #fecdd3;
-  color: #9f1239;
+.cash-flow-head strong {
+  font-size: 1rem;
 }
 
-.cash-summary strong {
-  font-size: 0.9rem;
+.cash-flow-head span {
+  color: #5f7182;
+  font-size: 0.86rem;
+  line-height: 1.4;
 }
 
-.cash-summary span,
-.cash-summary small {
-  font-size: 0.76rem;
+.cash-flow-grid,
+.payment-resume-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
 }
 
-.cash-module label {
-  margin: 0;
+.cash-flow-info,
+.payment-resume-grid span {
+  min-height: 60px;
+  padding: 11px 12px;
+  background: #fff;
+  border: 1px solid #d7e1ea;
+  display: grid;
+  gap: 3px;
 }
 
-.cash-module button {
-  min-height: 39px;
-  background: #0a5d89;
-  color: #fff;
-  border-radius: 3px;
-  font-size: 0.8rem;
+.cash-flow-info small,
+.payment-resume-grid span {
+  color: #748194;
+  font-size: 0.78rem;
   font-weight: 800;
 }
 
-.cash-module .danger {
-  background: #b42332;
+.cash-flow-info strong,
+.payment-resume-grid b {
+  color: #263548;
+}
+
+.cash-flow-module button {
+  min-height: 44px;
+  background: #0a5d89;
+  color: #fff;
+  border-radius: 3px;
+  font-size: 0.82rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.cash-resume-list {
+  display: grid;
+  border: 1px solid #d7e1ea;
+  background: #fff;
+}
+
+.cash-resume-list span,
+.cash-resume-list strong {
+  min-height: 38px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #eef2f6;
+  color: #536172;
+  font-size: 0.84rem;
+}
+
+.cash-resume-list strong {
+  border-bottom: 0;
+  color: #183349;
+  background: #f1f7fb;
+}
+
+.payment-resume-grid b {
+  display: block;
+  margin-top: 5px;
 }
 
 .receipt-header {
@@ -733,8 +773,12 @@ label {
     overflow: auto;
   }
 
-  .cash-module,
   .receipt-row {
+    grid-template-columns: 1fr;
+  }
+
+  .cash-flow-grid,
+  .payment-resume-grid {
     grid-template-columns: 1fr;
   }
 

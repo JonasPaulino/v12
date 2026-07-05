@@ -26,7 +26,10 @@ export const api = {
   loginOperador: (payload) =>
     request("/operadores/login", { method: "POST", body: JSON.stringify(payload) }),
   caixaAtual: () => request("/caixa/atual"),
+  caixaResumo: () => request("/caixa/resumo"),
   abrirCaixa: (payload) => request("/caixa/abrir", { method: "POST", body: JSON.stringify(payload) }),
+  movimentoCaixa: (payload) =>
+    request("/caixa/movimento", { method: "POST", body: JSON.stringify(payload) }),
   fecharCaixa: (payload) => request("/caixa/fechar", { method: "POST", body: JSON.stringify(payload) }),
   produtos: (search = "") => request(`/produtos?search=${encodeURIComponent(search)}`),
   pessoas: (search = "") => request(`/pessoas?search=${encodeURIComponent(search)}`),

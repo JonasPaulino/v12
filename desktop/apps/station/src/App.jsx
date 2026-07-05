@@ -11,7 +11,9 @@ import {
   FiWifi,
 } from "react-icons/fi";
 import { api } from "./api.js";
-import { CaixaPanel } from "./components/CaixaPanel.jsx";
+import { AberturaCaixa } from "./components/caixa/AberturaCaixa.jsx";
+import { FechamentoCaixa } from "./components/caixa/FechamentoCaixa.jsx";
+import { MovimentoCaixa } from "./components/caixa/MovimentoCaixa.jsx";
 import { ProdutoSearch } from "./components/ProdutoSearch.jsx";
 import { LoginOperador } from "./components/setup/LoginOperador.jsx";
 import { SetupLocal } from "./components/setup/SetupLocal.jsx";
@@ -25,6 +27,7 @@ export default function App() {
   const [configStatus, setConfigStatus] = useState(null);
   const [operador, setOperador] = useState(null);
   const [caixa, setCaixa] = useState(null);
+  const [activeModule, setActiveModule] = useState("abertura");
   const [cart, setCart] = useState([]);
   const { showLoading, hideLoading } = useContext(AppContext);
   const { showAlert, askYesNoQuestion } = useSweetAlert();
@@ -40,6 +43,7 @@ export default function App() {
       setHealth(healthData);
       setConfigStatus(statusData);
       setCaixa(caixaData);
+      setActiveModule(caixaData ? "venda" : "abertura");
       if (!silent) {
         showAlert({
           title: "PDV atualizado",
@@ -62,6 +66,11 @@ export default function App() {
     loadInitialData({ silent: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!operador) return;
+    setActiveModule(caixa ? "venda" : "abertura");
+  }, [caixa, operador]);
 
   const total = useMemo(() => {
     return cart.reduce((acc, item) => acc + Number(item.quantidade) * Number(item.valor_unitario), 0);
@@ -194,6 +203,39 @@ export default function App() {
     return <LoginOperador config={configStatus.config} onLogin={setOperador} />;
   }
 
+  function openModule(module) {
+    if (!caixa && module !== "abertura") {
+      showAlert({
+        title: "Caixa fechado",
+        text: "Abra o caixa antes de acessar esta operação.",
+        icon: "info",
+      });
+      setActiveModule("abertura");
+      return;
+    }
+
+    setActiveModule(module);
+  }
+
+  function handleCaixaAberto(data) {
+    setCaixa(data);
+    setActiveModule("venda");
+  }
+
+  function handleCaixaFechado() {
+    setCart([]);
+    setCaixa(null);
+    setActiveModule("abertura");
+  }
+
+  const breadcrumbByModule = {
+    abertura: "Caixa > Abertura",
+    venda: "Vendas > Registro de item",
+    sangria: "Caixa > Sangria",
+    suprimento: "Caixa > Suprimento",
+    fechamento: "Caixa > Fechamento",
+  };
+
   return (
     <div className="pdv-shell">
       <header className="pdv-topbar">
@@ -204,8 +246,10 @@ export default function App() {
             <FiChevronDown className="chevron" />
           </button>
           <div className="top-dropdown">
-            <button><FiShoppingCart /> Nova venda</button>
-            <button><FiFileText /> Relatorio de caixa</button>
+            <button onClick={() => openModule("venda")}><FiShoppingCart /> Nova venda</button>
+            <button onClick={() => openModule("sangria")}><FiFileText /> Sangria</button>
+            <button onClick={() => openModule("suprimento")}><FiFileText /> Suprimento</button>
+            <button onClick={() => openModule("fechamento")}><FiFileText /> Fechamento de caixa</button>
             <button><FiSettings /> Configuracoes locais</button>
             <button onClick={() => sincronizarProdutos(true)}><FiRefreshCcw /> Sincronizar produtos</button>
             <button onClick={alternarTelaCheia}><FiMaximize2 /> Alternar tela cheia</button>
@@ -239,21 +283,31 @@ export default function App() {
           </div>
 
           <div className="shortcut-grid">
-            <button className="shortcut primary">Registro de item <small>F3</small></button>
+            <button className="shortcut primary" onClick={() => openModule("venda")}>Registro de item <small>F3</small></button>
             <button className="shortcut">Cliente / CPF <small>F4</small></button>
             <button className="shortcut">Cancelar item <small>F5</small></button>
-            <button className="shortcut">Orcamento <small>F6</small></button>
-            <button className="shortcut">Desconto <small>F7</small></button>
+            <button className="shortcut" onClick={() => openModule("sangria")}>Sangria <small>F6</small></button>
+            <button className="shortcut" onClick={() => openModule("suprimento")}>Suprimento <small>F7</small></button>
             <button className="shortcut">Consultar produto <small>F8</small></button>
           </div>
 
           <div className="entry-card">
-            <div className="breadcrumb">Vendas &gt; Registro de item</div>
-            <ProdutoSearch onSelect={addProduto} disabled={!caixa} />
-          </div>
-
-          <div className="caixa-card">
-            <CaixaPanel caixa={caixa} operador={operador} onChange={setCaixa} />
+            <div className="breadcrumb">{breadcrumbByModule[activeModule]}</div>
+            {activeModule === "abertura" ? (
+              <AberturaCaixa operador={operador} onOpened={handleCaixaAberto} />
+            ) : null}
+            {activeModule === "venda" ? (
+              <ProdutoSearch onSelect={addProduto} disabled={!caixa} />
+            ) : null}
+            {activeModule === "sangria" ? (
+              <MovimentoCaixa tipo="sangria" operador={operador} onDone={() => openModule("venda")} />
+            ) : null}
+            {activeModule === "suprimento" ? (
+              <MovimentoCaixa tipo="suprimento" operador={operador} onDone={() => openModule("venda")} />
+            ) : null}
+            {activeModule === "fechamento" ? (
+              <FechamentoCaixa onClosed={handleCaixaFechado} />
+            ) : null}
           </div>
         </section>
 

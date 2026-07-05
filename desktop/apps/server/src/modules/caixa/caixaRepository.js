@@ -93,6 +93,93 @@ export function abrirCaixa({ operadorId, valorAbertura, observacao }) {
   return caixa;
 }
 
+export function registrarMovimentoCaixa({ operadorId, tipo, valor, motivo }) {
+  const caixa = getCaixaAberto();
+  if (!caixa) {
+    throw new Error("Nao existe caixa aberto.");
+  }
+
+  const normalizedTipo = String(tipo || "").trim().toLowerCase();
+  if (!["sangria", "suprimento"].includes(normalizedTipo)) {
+    throw new Error("Tipo de movimento de caixa invalido.");
+  }
+
+  const valorMovimento = Number(valor || 0);
+  if (valorMovimento <= 0) {
+    throw new Error("Informe um valor maior que zero.");
+  }
+
+  const operador = getOperadorById(Number(operadorId || caixa.operador_id));
+  if (!operador || !Number(operador.ativo)) {
+    throw new Error("Operador local invalido ou inativo.");
+  }
+
+  const result = getDb()
+    .prepare(
+      `INSERT INTO caixa_movimento (caixa_id, operador_id, tipo, valor, motivo)
+       VALUES (?, ?, ?, ?, ?)`,
+    )
+    .run(caixa.caixa_id, operador.operador_id, normalizedTipo, valorMovimento, motivo || null);
+
+  const movimento = getDb()
+    .prepare("SELECT * FROM caixa_movimento WHERE movimento_id = ?")
+    .get(result.lastInsertRowid);
+
+  enqueueSyncEvent(syncEventTypes.CAIXA_MOVIMENTO, movimento);
+  return movimento;
+}
+
+export function getResumoCaixa() {
+  const caixa = getCaixaAberto();
+  if (!caixa) return null;
+
+  const db = getDb();
+  const pagamentos = db
+    .prepare(
+      `SELECT
+        LOWER(vp.forma) AS forma,
+        COALESCE(SUM(vp.valor), 0) AS total
+       FROM venda_pagamento vp
+       JOIN venda v ON v.venda_id = vp.venda_id
+       WHERE v.caixa_id = ?
+         AND v.status = 'concluida'
+       GROUP BY LOWER(vp.forma)`,
+    )
+    .all(caixa.caixa_id);
+
+  const movimentos = db
+    .prepare(
+      `SELECT tipo, COALESCE(SUM(valor), 0) AS total
+       FROM caixa_movimento
+       WHERE caixa_id = ?
+       GROUP BY tipo`,
+    )
+    .all(caixa.caixa_id);
+
+  const totalPorForma = Object.fromEntries(
+    pagamentos.map((row) => [row.forma, Number(row.total || 0)]),
+  );
+  const totalMovimento = Object.fromEntries(
+    movimentos.map((row) => [row.tipo, Number(row.total || 0)]),
+  );
+
+  const dinheiroVendas = Number(totalPorForma.dinheiro || 0);
+  const suprimentos = Number(totalMovimento.suprimento || 0);
+  const sangrias = Number(totalMovimento.sangria || 0);
+  const dinheiroEsperado =
+    Number(caixa.valor_abertura || 0) + dinheiroVendas + suprimentos - sangrias;
+
+  return {
+    caixa,
+    pagamentos: totalPorForma,
+    movimentos: totalMovimento,
+    dinheiro_vendas: dinheiroVendas,
+    suprimentos,
+    sangrias,
+    dinheiro_esperado: dinheiroEsperado,
+  };
+}
+
 export function fecharCaixa({ valorFechamento, observacao }) {
   const db = getDb();
   assertTerminalConfigurado();
@@ -100,7 +187,8 @@ export function fecharCaixa({ valorFechamento, observacao }) {
   if (!caixa) return null;
 
   const valorFinal = Number(valorFechamento || 0);
-  const diferenca = valorFinal - Number(caixa.valor_abertura || 0);
+  const resumo = getResumoCaixa();
+  const diferenca = valorFinal - Number(resumo?.dinheiro_esperado || 0);
 
   db.prepare(
     `UPDATE caixa

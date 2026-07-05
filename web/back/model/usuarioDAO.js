@@ -14,6 +14,22 @@ const normalizeIds = (values = []) =>
     .map((value) => Number(value))
     .filter((value) => Number.isInteger(value) && value > 0))];
 
+const ALLOWED_PROFILES = new Set([
+  "usuario",
+  "vendedor",
+  "pdv_operador",
+  "pdv_supervisor",
+  "gerente",
+]);
+
+const normalizeProfiles = (values = []) => {
+  const profiles = [...new Set((Array.isArray(values) ? values : [])
+    .map((value) => String(value || "").trim())
+    .filter((value) => ALLOWED_PROFILES.has(value)))];
+
+  return profiles.length ? profiles : ["usuario"];
+};
+
 const buildOrderBy = (sort = {}) => {
   const entries = Object.entries(sort)
     .map(([column, direction]) => {
@@ -192,10 +208,22 @@ class UsuarioDAO {
     const assignedIds = tenantRows.rows.map((item) => Number(item.tenant_id));
     const manageableAssignedIds = assignedIds.filter((id) => manageableIds.includes(id));
     const hiddenAssignments = assignedIds.filter((id) => !manageableIds.includes(id));
+    const profileRows = await client.query(
+      `
+        SELECT DISTINCT perfil
+        FROM usuario_tenant_perfil
+        WHERE usuario_id = $1
+          AND tenant_id = ANY($2::int[])
+          AND ativo = TRUE
+        ORDER BY perfil
+      `,
+      [usuarioId, manageableAssignedIds.length ? manageableAssignedIds : [0]]
+    );
 
     return {
       usuario,
       tenantIds: manageableAssignedIds,
+      perfis: profileRows.rows.map((item) => item.perfil),
       hiddenAssignmentsCount: hiddenAssignments.length,
       manageableTenants,
     };
@@ -207,6 +235,7 @@ class UsuarioDAO {
     const usuarioUsername = usuarioEmail;
     const usuarioSenha = String(payload.usuario_senha || "");
     const usuarioAtivo = payload.usuario_ativo !== false;
+    const perfis = normalizeProfiles(payload.perfis);
     const manageableTenants = await this.listarFiliaisGerenciaveis(client, actorUserId);
     const manageableIds = manageableTenants.map((item) => Number(item.tenant_id));
 
@@ -294,6 +323,18 @@ class UsuarioDAO {
           `,
           [tenantId, usuario.usuario_id]
         );
+
+        for (const perfil of perfis) {
+          await client.query(
+            `
+              INSERT INTO usuario_tenant_perfil (tenant_id, usuario_id, perfil, ativo)
+              VALUES ($1, $2, $3, TRUE)
+              ON CONFLICT (tenant_id, usuario_id, perfil)
+              DO UPDATE SET ativo = TRUE, atualizado_em = NOW()
+            `,
+            [tenantId, usuario.usuario_id, perfil]
+          );
+        }
       }
 
       await client.query("COMMIT");
@@ -323,6 +364,7 @@ class UsuarioDAO {
     const usuarioUsername = usuarioEmail;
     const usuarioSenha = String(payload.usuario_senha || "");
     const usuarioAtivo = payload.usuario_ativo !== false;
+    const perfis = normalizeProfiles(payload.perfis);
     const manageableIds = existing.manageableTenants.map((item) => Number(item.tenant_id));
 
     if (!usuarioNome || !usuarioEmail) {
@@ -431,6 +473,16 @@ class UsuarioDAO {
         [usuarioId, manageableIds]
       );
 
+      await client.query(
+        `
+          UPDATE usuario_tenant_perfil
+          SET ativo = FALSE, atualizado_em = NOW()
+          WHERE usuario_id = $1
+            AND tenant_id = ANY($2::int[])
+        `,
+        [usuarioId, manageableIds]
+      );
+
       for (const tenantId of allowedTenantIds) {
         await client.query(
           `
@@ -441,6 +493,18 @@ class UsuarioDAO {
           `,
           [tenantId, usuarioId]
         );
+
+        for (const perfil of perfis) {
+          await client.query(
+            `
+              INSERT INTO usuario_tenant_perfil (tenant_id, usuario_id, perfil, ativo)
+              VALUES ($1, $2, $3, TRUE)
+              ON CONFLICT (tenant_id, usuario_id, perfil)
+              DO UPDATE SET ativo = TRUE, atualizado_em = NOW()
+            `,
+            [tenantId, usuarioId, perfil]
+          );
+        }
       }
 
       await client.query("COMMIT");

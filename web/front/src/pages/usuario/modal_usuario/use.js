@@ -13,6 +13,7 @@ const buildInitialForm = (currentTenantId = null) => ({
   usuario_email: "",
   usuario_senha: "",
   usuario_ativo: true,
+  perfis: ["usuario"],
   tenant_ids: currentTenantId ? [currentTenantId] : [],
   tenant_id_default: currentTenantId || "",
 });
@@ -67,6 +68,7 @@ export const useModalUsuario = ({ isOpen, usuarioId, onClose }) => {
             usuario_email: data?.usuario?.usuario_email || "",
             usuario_senha: "",
             usuario_ativo: data?.usuario?.usuario_ativo ?? true,
+            perfis: data?.perfis?.length ? data.perfis : ["usuario"],
             tenant_ids: Array.from(
               new Set([...(data?.tenantIds || []), tenantAtualId].filter(Boolean))
             ),
@@ -136,6 +138,21 @@ export const useModalUsuario = ({ isOpen, usuarioId, onClose }) => {
     });
   };
 
+  const togglePerfil = (perfil) => {
+    setForm((prev) => {
+      const selected = prev.perfis || [];
+      const exists = selected.includes(perfil);
+      const next = exists
+        ? selected.filter((item) => item !== perfil)
+        : [...selected, perfil];
+
+      return {
+        ...prev,
+        perfis: next.length ? next : ["usuario"],
+      };
+    });
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (submitting) return;
@@ -187,6 +204,7 @@ export const useModalUsuario = ({ isOpen, usuarioId, onClose }) => {
     form,
     updateField,
     toggleTenant,
+    togglePerfil,
     selectedTenantIds,
     handleSubmit,
     submitting,

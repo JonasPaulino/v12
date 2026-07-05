@@ -12,6 +12,7 @@ export const ModalUsuario = ({ isOpen, usuarioId, onClose }) => {
     form,
     updateField,
     toggleTenant,
+    togglePerfil,
     selectedTenantIds,
     handleSubmit,
     submitting,
@@ -129,6 +130,28 @@ export const ModalUsuario = ({ isOpen, usuarioId, onClose }) => {
                   A filial ativa permanece obrigatória para garantir que o usuário apareça nesta
                   tela e possa operar na loja corrente.
                 </C.Hint>
+
+                <C.ProfileBox>
+                  <C.ProfileTitle>Perfis de operação</C.ProfileTitle>
+                  <C.ProfileGrid>
+                    {[
+                      ["usuario", "Usuário ERP"],
+                      ["vendedor", "Vendedor"],
+                      ["pdv_operador", "Operador de caixa"],
+                      ["pdv_supervisor", "Supervisor de caixa"],
+                      ["gerente", "Gerente"],
+                    ].map(([value, label]) => (
+                      <C.ProfileOption key={value} $checked={(form.perfis || []).includes(value)}>
+                        <input
+                          type="checkbox"
+                          checked={(form.perfis || []).includes(value)}
+                          onChange={() => togglePerfil(value)}
+                        />
+                        {label}
+                      </C.ProfileOption>
+                    ))}
+                  </C.ProfileGrid>
+                </C.ProfileBox>
 
                 <C.TenantList>
                   {manageableTenants.map((tenant) => {

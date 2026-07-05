@@ -27,6 +27,7 @@ export const nfceStatus = Object.freeze({
 export const syncEventTypes = Object.freeze({
   CAIXA_ABERTO: "CAIXA_ABERTO",
   CAIXA_FECHADO: "CAIXA_FECHADO",
+  CAIXA_MOVIMENTO: "CAIXA_MOVIMENTO",
   VENDA_CRIADA: "VENDA_CRIADA",
   NFCE_EMITIDA: "NFCE_EMITIDA",
   NFCE_CONTINGENCIA: "NFCE_CONTINGENCIA",

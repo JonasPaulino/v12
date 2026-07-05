@@ -145,6 +145,43 @@ export const TenantList = styled.div`
   gap: 12px;
 `;
 
+export const ProfileBox = styled.div`
+  display: grid;
+  gap: 12px;
+  padding: 16px 18px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radius.md};
+  background: rgba(248, 251, 255, 0.76);
+`;
+
+export const ProfileTitle = styled.strong`
+  color: ${({ theme }) => theme.colors.text};
+`;
+
+export const ProfileGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+export const ProfileOption = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 12px;
+  border: 1px solid ${({ theme, $checked }) =>
+    $checked ? theme.colors.primary : theme.colors.border};
+  border-radius: ${({ theme }) => theme.radius.md};
+  background: ${({ $checked }) =>
+    $checked ? "rgba(11, 95, 255, 0.06)" : "#ffffff"};
+  color: ${({ theme }) => theme.colors.text};
+  font-weight: 700;
+`;
+
 export const TenantCard = styled.label`
   display: grid;
   grid-template-columns: auto 1fr;
