@@ -53,7 +53,8 @@ export function VendaResumo({ cart, total, onChange, onFinish, disabled }) {
             <span>{Number(item.valor_unitario).toFixed(2)}</span>
             <input
               type="number"
-              min="1"
+              min="0"
+              step="1"
               value={item.quantidade}
               onChange={(event) => updateQuantity(item.produto_id, event.target.value)}
             />
