@@ -89,6 +89,15 @@ export function ProdutoSearch({ onSelect, disabled }) {
         return;
       }
 
+      if (Number(produto.preco_venda || 0) <= 0) {
+        showAlert({
+          title: "Produto sem valor",
+          text: "Não é possível adicionar produto com valor zero.",
+          icon: "warning",
+        });
+        return;
+      }
+
       onSelect(produto);
       setSearch("");
       setProdutos([]);
