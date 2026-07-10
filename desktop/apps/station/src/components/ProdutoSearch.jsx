@@ -137,7 +137,7 @@ export function ProdutoSearch({ onSelect, disabled }) {
                       onMouseDown={(event) => event.preventDefault()}
                       onClick={() => {
                         setSelectedProduto(produto);
-                        setSearch(produto.codigo || produto.descricao);
+                        setSearch(produto.descricao || produto.codigo || "");
                         setIsOpen(false);
                       }}
                     >

@@ -1,12 +1,35 @@
+import { useSweetAlert } from "../context/SweetAlertContext.jsx";
+
 export function VendaResumo({ cart, total, onChange, onFinish, disabled }) {
+  const { askYesNoQuestion } = useSweetAlert();
+
   function removeItem(produtoId) {
     onChange(cart.filter((item) => item.produto_id !== produtoId));
   }
 
-  function updateQuantity(produtoId, quantidade) {
+  async function updateQuantity(produtoId, quantidade) {
+    const nextQuantity = Number(quantidade || 0);
+    const currentItem = cart.find((item) => item.produto_id === produtoId);
+
+    if (!currentItem) return;
+
+    if (nextQuantity <= 0) {
+      const confirmed = await askYesNoQuestion(
+        "Remover item",
+        `Deseja remover ${currentItem.descricao} do cupom?`,
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
+      removeItem(produtoId);
+      return;
+    }
+
     onChange(
       cart.map((item) =>
-        item.produto_id === produtoId ? { ...item, quantidade: Number(quantidade || 0) } : item,
+        item.produto_id === produtoId ? { ...item, quantidade: nextQuantity } : item,
       ),
     );
   }
