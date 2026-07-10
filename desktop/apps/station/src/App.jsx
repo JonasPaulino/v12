@@ -7,7 +7,9 @@ import {
   FiPower,
   FiRefreshCcw,
   FiSettings,
+  FiUser,
   FiShoppingCart,
+  FiX,
   FiWifi,
 } from "react-icons/fi";
 import { api } from "./api.js";
@@ -27,6 +29,8 @@ function getModuleForCaixa(caixaData) {
   return caixaData ? "venda" : "abertura";
 }
 
+const LIMITE_IDENTIFICACAO_CLIENTE = 10000;
+
 export default function App() {
   const [health, setHealth] = useState(null);
   const [configStatus, setConfigStatus] = useState(null);
@@ -34,6 +38,14 @@ export default function App() {
   const [caixa, setCaixa] = useState(null);
   const [activeModule, setActiveModule] = useState("abertura");
   const [cart, setCart] = useState([]);
+  const [clienteIdentificado, setClienteIdentificado] = useState(null);
+  const [clienteModalAberto, setClienteModalAberto] = useState(false);
+  const [clienteForm, setClienteForm] = useState({
+    tipoDocumento: "CPF",
+    documento: "",
+    nome: "",
+    email: "",
+  });
   const { showLoading, hideLoading } = useContext(AppContext);
   const { showAlert, askYesNoQuestion } = useSweetAlert();
 
@@ -77,6 +89,22 @@ export default function App() {
     setActiveModule(getModuleForCaixa(caixa));
   }, [caixa, operador]);
 
+  const caixaPendenteDiaAnterior = !!caixa?.caixa_pendente_dia_anterior;
+
+  useEffect(() => {
+    const handleKeyboardShortcut = (event) => {
+      if (event.key !== "F4") return;
+      if (!caixa || caixaPendenteDiaAnterior) return;
+      if (clienteModalAberto || activeModule !== "venda") return;
+
+      event.preventDefault();
+      abrirModalCliente();
+    };
+
+    window.addEventListener("keydown", handleKeyboardShortcut);
+    return () => window.removeEventListener("keydown", handleKeyboardShortcut);
+  }, [activeModule, caixa, caixaPendenteDiaAnterior, clienteModalAberto]);
+
   const total = useMemo(() => {
     return cart.reduce((acc, item) => acc + Number(item.quantidade) * Number(item.valor_unitario), 0);
   }, [cart]);
@@ -107,12 +135,26 @@ export default function App() {
 
   async function finalizarVenda() {
     try {
+      if (total >= LIMITE_IDENTIFICACAO_CLIENTE && !clienteIdentificado) {
+        const wantsToIdentify = await askYesNoQuestion(
+          "Identificar cliente",
+          "Esta venda está acima de R$ 10.000,00. Deseja identificar o cliente antes de finalizar?",
+        );
+
+        if (wantsToIdentify) {
+          abrirModalCliente();
+          return;
+        }
+      }
+
       showLoading("Finalizando venda...");
       const result = await api.criarVenda({
+        cliente: clienteIdentificado,
         items: cart,
         pagamentos: [{ forma: "dinheiro", valor: total }],
       });
       setCart([]);
+      setClienteIdentificado(null);
       showAlert({
         title: "Venda registrada",
         text: result.fiscal?.message || "Venda registrada localmente.",
@@ -158,6 +200,7 @@ export default function App() {
     if (!confirmed) return;
 
     setCart([]);
+    setClienteIdentificado(null);
     setOperador(null);
     setActiveModule(getModuleForCaixa(caixa));
   }
@@ -250,8 +293,80 @@ export default function App() {
 
   function handleCaixaFechado() {
     setCart([]);
+    setClienteIdentificado(null);
     setCaixa(null);
     setActiveModule("abertura");
+  }
+
+  function abrirModalCliente() {
+    setClienteForm({
+      tipoDocumento: clienteIdentificado?.tipoDocumento || "CPF",
+      documento: clienteIdentificado?.documento || "",
+      nome: clienteIdentificado?.nome || "",
+      email: clienteIdentificado?.email || "",
+    });
+    setClienteModalAberto(true);
+  }
+
+  function fecharModalCliente() {
+    setClienteModalAberto(false);
+  }
+
+  function salvarClienteIdentificado() {
+    const tipoDocumento = String(clienteForm.tipoDocumento || "CPF").toUpperCase();
+    const documentoBruto = String(clienteForm.documento || "").trim();
+    const documento = tipoDocumento === "ESTRANGEIRO" ? documentoBruto : documentoBruto.replace(/\D/g, "");
+    const nome = String(clienteForm.nome || "").trim();
+    const email = String(clienteForm.email || "").trim().toLowerCase();
+
+    if (!documento) {
+      showAlert({
+        title: "Documento obrigatório",
+        text: "Informe o documento do cliente para identificar a venda.",
+        icon: "warning",
+      });
+      return;
+    }
+
+    if (!nome) {
+      showAlert({
+        title: "Nome obrigatório",
+        text: "Informe o nome do cliente para continuar.",
+        icon: "warning",
+      });
+      return;
+    }
+
+    if (tipoDocumento === "CPF" && documento.length !== 11) {
+      showAlert({
+        title: "CPF inválido",
+        text: "O CPF precisa ter 11 dígitos.",
+        icon: "warning",
+      });
+      return;
+    }
+
+    if (tipoDocumento === "CNPJ" && documento.length !== 14) {
+      showAlert({
+        title: "CNPJ inválido",
+        text: "O CNPJ precisa ter 14 dígitos.",
+        icon: "warning",
+      });
+      return;
+    }
+
+    setClienteIdentificado({
+      tipoDocumento,
+      documento,
+      nome,
+      email: email || null,
+    });
+    setClienteModalAberto(false);
+    showAlert({
+      title: "Cliente identificado",
+      text: `${nome} foi vinculado à venda atual.`,
+      icon: "success",
+    });
   }
 
   const breadcrumbByModule = {
@@ -261,8 +376,16 @@ export default function App() {
     suprimento: "Caixa > Suprimento",
     fechamento: "Caixa > Fechamento",
   };
-  const caixaPendenteDiaAnterior = !!caixa?.caixa_pendente_dia_anterior;
   const showSaleShortcuts = !caixaPendenteDiaAnterior && !["abertura", "fechamento"].includes(activeModule);
+  const breadcrumbAtivo =
+    activeModule === "venda" && clienteModalAberto
+      ? "Venda > Informar cliente"
+      : activeModule === "venda" && clienteIdentificado
+        ? "Venda > Cliente identificado"
+        : breadcrumbByModule[activeModule];
+  const clienteResumo = clienteIdentificado
+    ? `${clienteIdentificado.tipoDocumento}: ${clienteIdentificado.documento} - ${clienteIdentificado.nome}`
+    : null;
 
   return (
     <div className="pdv-shell">
@@ -313,7 +436,9 @@ export default function App() {
           {showSaleShortcuts ? (
             <div className="shortcut-grid">
               <button className="shortcut primary" onClick={() => openModule("venda")}>Registro de item <small>F3</small></button>
-              <button className="shortcut">Cliente / CPF <small>F4</small></button>
+              <button className="shortcut" onClick={abrirModalCliente}>
+                Informar cliente <small>F4</small>
+              </button>
               <button className="shortcut" onClick={() => openModule("fechamento")}>Fechamento <small>F5</small></button>
               <button className="shortcut" onClick={() => openModule("sangria")}>Sangria <small>F6</small></button>
               <button className="shortcut" onClick={() => openModule("suprimento")}>Suprimento <small>F7</small></button>
@@ -321,9 +446,9 @@ export default function App() {
             </div>
           ) : null}
 
-          <div className="entry-card">
+            <div className="entry-card">
             <div className="entry-card-top">
-              <div className="breadcrumb">{breadcrumbByModule[activeModule]}</div>
+              <div className="breadcrumb">{breadcrumbAtivo}</div>
               {activeModule === "fechamento" && caixa ? (
                 <button
                   className="back-to-sale"
@@ -335,6 +460,17 @@ export default function App() {
                 </button>
               ) : null}
             </div>
+            {clienteResumo ? (
+              <div className="customer-chip-row">
+                <span className="customer-chip">
+                  <FiUser />
+                  {clienteResumo}
+                </span>
+                <button type="button" className="clear-customer" onClick={() => setClienteIdentificado(null)}>
+                  Limpar
+                </button>
+              </div>
+            ) : null}
             {activeModule === "abertura" ? (
               <AberturaCaixa operador={operador} onOpened={handleCaixaAberto} />
             ) : null}
@@ -369,6 +505,82 @@ export default function App() {
           />
         </section>
       </main>
+
+      {clienteModalAberto ? (
+        <div className="customer-modal-backdrop" onClick={fecharModalCliente}>
+          <div className="customer-modal" onClick={(event) => event.stopPropagation()}>
+              <div className="customer-modal-header">
+              <div>
+                <strong>Identificar cliente</strong>
+                <p>Use CPF, CNPJ ou documento estrangeiro. O dado fica salvo na venda e já prepara orçamento e NFC-e futura.</p>
+              </div>
+              <button type="button" className="customer-modal-close" onClick={fecharModalCliente} aria-label="Fechar">
+                <FiX />
+              </button>
+            </div>
+
+            <div className="customer-modal-grid">
+              <label>
+                Tipo de documento
+                <select
+                  value={clienteForm.tipoDocumento}
+                  onChange={(event) =>
+                    setClienteForm((current) => ({ ...current, tipoDocumento: event.target.value }))
+                  }
+                >
+                  <option value="CPF">CPF</option>
+                  <option value="CNPJ">CNPJ</option>
+                  <option value="ESTRANGEIRO">Estrangeiro</option>
+                </select>
+              </label>
+
+              <label>
+                Documento
+                <input
+                  value={clienteForm.documento}
+                  onChange={(event) =>
+                    setClienteForm((current) => ({ ...current, documento: event.target.value }))
+                  }
+                  placeholder={
+                    clienteForm.tipoDocumento === "CPF"
+                      ? "000.000.000-00"
+                      : clienteForm.tipoDocumento === "CNPJ"
+                        ? "00.000.000/0000-00"
+                        : "Documento estrangeiro"
+                  }
+                />
+              </label>
+
+              <label className="customer-modal-full">
+                Nome
+                <input
+                  value={clienteForm.nome}
+                  onChange={(event) => setClienteForm((current) => ({ ...current, nome: event.target.value }))}
+                  placeholder="Nome do cliente ou razão social"
+                />
+              </label>
+
+              <label className="customer-modal-full">
+                Email
+                <input
+                  value={clienteForm.email}
+                  onChange={(event) => setClienteForm((current) => ({ ...current, email: event.target.value }))}
+                  placeholder="opcional"
+                />
+              </label>
+            </div>
+
+            <div className="customer-modal-actions">
+              <button type="button" className="secondary-action" onClick={fecharModalCliente}>
+                Cancelar
+              </button>
+              <button type="button" onClick={salvarClienteIdentificado}>
+                Salvar identificação
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <footer className="pdv-footer">
         <div className="footer-status">
