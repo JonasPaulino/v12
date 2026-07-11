@@ -166,14 +166,15 @@ const seedFormasPagamento = async (client, tenantId) => {
         tipo,
         ativo,
         padrao,
+        sincronizar_pdv,
         ordem
       )
       VALUES
-        ($1, 'Dinheiro', 'ambos', TRUE, TRUE, 1),
-        ($1, 'Pix', 'ambos', TRUE, FALSE, 2),
-        ($1, 'Cartao de debito', 'receber', TRUE, FALSE, 3),
-        ($1, 'Cartao de credito', 'receber', TRUE, FALSE, 4),
-        ($1, 'Transferencia', 'ambos', TRUE, FALSE, 5)
+        ($1, 'Dinheiro', 'ambos', TRUE, TRUE, TRUE, 1),
+        ($1, 'Pix', 'ambos', TRUE, FALSE, TRUE, 2),
+        ($1, 'Cartao de debito', 'receber', TRUE, FALSE, TRUE, 3),
+        ($1, 'Cartao de credito', 'receber', TRUE, FALSE, TRUE, 4),
+        ($1, 'Transferencia', 'ambos', TRUE, FALSE, TRUE, 5)
     `,
     [tenantId]
   );

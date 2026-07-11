@@ -169,6 +169,7 @@ router.get("/desktop/sync/financeiro/support-data", async (req, res) => {
   try {
     const data = await FinanceiroDAO.obterSupportData(req.db, {
       tipo: String(req.query.tipo || "receber"),
+      syncOnly: true,
     });
 
     return res.json({

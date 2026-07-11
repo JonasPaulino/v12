@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS financeiro_forma_pagamento (
     CHECK (tipo IN ('receber', 'pagar', 'ambos')),
   ativo BOOLEAN NOT NULL DEFAULT TRUE,
   padrao BOOLEAN NOT NULL DEFAULT FALSE,
+  sincronizar_pdv BOOLEAN NOT NULL DEFAULT FALSE,
   ordem INTEGER NOT NULL DEFAULT 1,
   criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   atualizado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -124,6 +125,7 @@ CREATE TABLE IF NOT EXISTS financeiro_titulo_baixa (
 
 CREATE INDEX IF NOT EXISTS idx_fin_cond_pagamento_tenant ON financeiro_condicao_pagamento (tenant_id, ativo, tipo);
 CREATE INDEX IF NOT EXISTS idx_fin_forma_pagamento_tenant ON financeiro_forma_pagamento (tenant_id, ativo, tipo);
+CREATE INDEX IF NOT EXISTS idx_fin_forma_pagamento_tenant_pdv ON financeiro_forma_pagamento (tenant_id, ativo, tipo, sincronizar_pdv);
 CREATE INDEX IF NOT EXISTS idx_pedido_venda_tenant ON pedido_venda (tenant_id, excluido, data_emissao DESC);
 CREATE INDEX IF NOT EXISTS idx_pedido_venda_pessoa ON pedido_venda (tenant_id, pessoa_id, excluido);
 CREATE INDEX IF NOT EXISTS idx_pedido_venda_item_pedido ON pedido_venda_item (pedido_venda_id);
@@ -265,6 +267,7 @@ INSERT INTO financeiro_forma_pagamento (
   tipo,
   ativo,
   padrao,
+  sincronizar_pdv,
   ordem
 )
 SELECT
@@ -273,6 +276,7 @@ SELECT
   seed.tipo,
   TRUE,
   seed.padrao,
+  TRUE,
   seed.ordem
 FROM tenant t
 CROSS JOIN (

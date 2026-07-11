@@ -127,13 +127,17 @@ const buildStatusParcela = (dataVencimento) => {
 };
 
 class FinanceiroDAO {
-  static async listarFormasPagamento(client, { tipo = "receber" } = {}) {
+  static async listarFormasPagamento(client, { tipo = "receber", syncOnly = false } = {}) {
     const values = [];
     let where = `
       WHERE tenant_id = ${TENANT_CONTEXT_SQL}
         AND ativo = TRUE
         AND LOWER(unaccent(descricao)) NOT LIKE '%boleto%'
     `;
+
+    if (syncOnly) {
+      where += ` AND sincronizar_pdv = TRUE`;
+    }
 
     if (tipo) {
       values.push(tipo);
@@ -147,6 +151,7 @@ class FinanceiroDAO {
           descricao,
           tipo,
           padrao,
+          sincronizar_pdv,
           ordem
         FROM financeiro_forma_pagamento
         ${where}
@@ -155,7 +160,10 @@ class FinanceiroDAO {
       values
     );
 
-    return rows;
+    return rows.map((row) => ({
+      ...row,
+      sincronizar_pdv: !!row.sincronizar_pdv,
+    }));
   }
 
   static async listarPessoasSelect(client, { search = "", limit = 20 } = {}) {
@@ -239,9 +247,9 @@ class FinanceiroDAO {
     }));
   }
 
-  static async obterSupportData(client, { tipo = "receber" } = {}) {
+  static async obterSupportData(client, { tipo = "receber", syncOnly = false } = {}) {
     const condicoesPagamento = await this.listarCondicoesPagamento(client, { tipo });
-    const formasPagamento = await this.listarFormasPagamento(client, { tipo });
+    const formasPagamento = await this.listarFormasPagamento(client, { tipo, syncOnly });
 
     return {
       condicoesPagamento,
