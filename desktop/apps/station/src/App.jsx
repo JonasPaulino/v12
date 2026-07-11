@@ -246,6 +246,7 @@ export default function App() {
           produto_id: produto.produto_id,
           codigo_produto: produto.codigo,
           descricao: produto.descricao,
+          unidade: produto.unidade || "UN",
           quantidade: quantidadeAdicionar,
           valor_unitario: Number(produto.preco_venda || 0),
         },
@@ -372,21 +373,42 @@ export default function App() {
     });
   }
 
+  function buildBudgetPayload(itemsOverride = cart.map((item) => ({ ...item }))) {
+    const config = configStatus?.config || {};
+
+    return {
+      items: itemsOverride,
+      subtotal,
+      desconto: descontoCalculado,
+      total,
+      pagamentos: Array.isArray(pagamentosConfirmados)
+        ? pagamentosConfirmados.map((item) => {
+            const forma = formasPagamento.find((formaPagamento) => formaPagamento.codigo === item.forma);
+            return {
+              ...item,
+              descricao: forma?.descricao || item.forma,
+            };
+          })
+        : [],
+      cliente: clienteResumo || "Consumidor nao identificado",
+      operador: operador?.nome || caixa?.operador_nome || "Operador",
+      data: new Date().toLocaleString("pt-BR"),
+      terminal: config.terminal_codigo || config.terminal_nome || "PDV",
+      emitente: {
+        nome: config.tenant_nome || "V12 ERP",
+        documento: config.tenant_documento || "",
+      },
+      numeroDocumento: `ORC-${Date.now()}`,
+    };
+  }
+
   async function finalizarVenda(modoFinalizacao = "finalizar") {
     try {
       if (!Array.isArray(pagamentosConfirmados) || !pagamentosConfirmados.length) {
         throw new Error("Informe as formas de pagamento antes de concluir a venda.");
       }
 
-      const snapshotOrcamento = {
-        items: cart.map((item) => ({ ...item })),
-        subtotal,
-        desconto: descontoCalculado,
-        total,
-        cliente: clienteResumo || "Cliente não identificado",
-        operador: operador?.nome || caixa?.operador_nome || "Operador",
-        data: new Date().toLocaleString("pt-BR"),
-      };
+      const snapshotOrcamento = buildBudgetPayload(cart.map((item) => ({ ...item })));
 
       showLoading("Finalizando venda...");
       const result = await api.criarVenda({
@@ -426,16 +448,7 @@ export default function App() {
 
   async function imprimirOrcamento(payloadBase = null) {
     try {
-      const payload =
-        payloadBase || {
-          items: cart,
-          subtotal,
-          desconto: descontoCalculado,
-          total,
-          cliente: clienteResumo || "Cliente não identificado",
-          operador: operador?.nome || caixa?.operador_nome || "Operador",
-          data: new Date().toLocaleString("pt-BR"),
-        };
+      const payload = payloadBase || buildBudgetPayload();
 
       const printerConfig = await api.obterConfiguracaoImpressora().catch(() => null);
 

@@ -145,46 +145,79 @@ function normalizePrinterConfig(config = {}) {
   };
 }
 
+function formatCurrency(value) {
+  return Number(value || 0).toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+function formatDocument(value = "") {
+  const digits = String(value || "").replace(/\D/g, "");
+  if (digits.length === 14) {
+    return digits.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
+  }
+
+  if (digits.length === 11) {
+    return digits.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4");
+  }
+
+  return String(value || "").trim();
+}
+
 function buildBudgetHtml(payload = {}, config = {}) {
   const printerConfig = normalizePrinterConfig(config);
   const items = Array.isArray(payload.items) ? payload.items : [];
-  const subtotal = Number(payload.subtotal || 0).toLocaleString("pt-BR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-  const desconto = Number(payload.desconto || 0).toLocaleString("pt-BR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-  const total = Number(payload.total || 0).toLocaleString("pt-BR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+  const pagamentos = Array.isArray(payload.pagamentos) ? payload.pagamentos : [];
+  const subtotal = formatCurrency(payload.subtotal || 0);
+  const desconto = formatCurrency(payload.desconto || 0);
+  const total = formatCurrency(payload.total || 0);
   const operador = escapeHtml(payload.operador || "Operador");
   const cliente = escapeHtml(payload.cliente || "Cliente não identificado");
   const data = escapeHtml(payload.data || new Date().toLocaleString("pt-BR"));
+  const emitente = escapeHtml(payload.emitente?.nome || payload.empresa?.nome || "V12 ERP");
+  const documentoEmitente = escapeHtml(
+    formatDocument(payload.emitente?.documento || payload.empresa?.documento || ""),
+  );
+  const enderecoEmitente = escapeHtml(payload.emitente?.endereco || payload.empresa?.endereco || "");
+  const terminal = escapeHtml(payload.terminal || "PDV");
+  const numeroDocumento = escapeHtml(payload.numeroDocumento || "ORCAMENTO");
   const isThermal = printerConfig.layout !== "a4";
   const pageWidth = printerConfig.layout === "thermal-58" ? "58mm" : printerConfig.layout === "thermal-80" ? "80mm" : "210mm";
+  const separator = isThermal ? "-".repeat(printerConfig.layout === "thermal-58" ? 32 : 46) : "";
   const rows = items
     .map((item, index) => {
       const quantidade = Number(item.quantidade || 0);
-      const valorUnitario = Number(item.valor_unitario || 0).toLocaleString("pt-BR", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      });
-      const valorTotal = Number(quantidade * Number(item.valor_unitario || 0)).toLocaleString("pt-BR", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      });
+      const valorUnitario = formatCurrency(item.valor_unitario || 0);
+      const valorTotal = formatCurrency(quantidade * Number(item.valor_unitario || 0));
+      const codigo = escapeHtml(item.codigo_produto || item.codigo || String(index + 1).padStart(3, "0"));
+      const descricao = escapeHtml(String(item.descricao || "").toUpperCase());
+      const unidade = escapeHtml(String(item.unidade || "UN").toUpperCase());
 
       return `
-        <tr>
-          <td>${String(index + 1).padStart(3, "0")}</td>
-          <td>${escapeHtml(item.descricao || "")}</td>
-          <td>${escapeHtml(String(quantidade))}</td>
-          <td>R$ ${valorUnitario}</td>
-          <td>R$ ${valorTotal}</td>
-        </tr>
+        <div class="item-line">
+          <div class="item-head">${codigo} ${descricao}</div>
+          <div class="item-detail">
+            <span>${escapeHtml(String(quantidade))} ${unidade} x ${valorUnitario}</span>
+            <strong>${valorTotal}</strong>
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+  const paymentRows = pagamentos
+    .map((pagamento) => {
+      const descricao = escapeHtml(
+        pagamento.descricao ||
+          pagamento.forma_descricao ||
+          pagamento.forma ||
+          "Pagamento",
+      );
+      return `
+        <div class="payment-row">
+          <span>${descricao}</span>
+          <strong>${formatCurrency(pagamento.valor || 0)}</strong>
+        </div>
       `;
     })
     .join("");
@@ -215,108 +248,158 @@ function buildBudgetHtml(payload = {}, config = {}) {
             border: ${isThermal ? "0" : "1px solid #d7dde6"};
             padding: ${isThermal ? "0" : "18px"};
           }
-          .head {
-            display: flex;
-            justify-content: space-between;
-            gap: ${isThermal ? "8px" : "16px"};
-            border-bottom: 2px solid #0a5d89;
-            padding-bottom: ${isThermal ? "8px" : "12px"};
-            margin-bottom: ${isThermal ? "10px" : "16px"};
+          .coupon {
+            display: grid;
+            gap: ${isThermal ? "6px" : "10px"};
+            font-size: ${isThermal ? "11px" : "12px"};
+            color: #111827;
           }
-          .brand strong {
-            display: block;
-            font-size: ${isThermal ? "16px" : "22px"};
+          .center {
+            text-align: center;
           }
-          .brand span,
-          .meta {
-            color: #64748b;
-            font-size: ${isThermal ? "10px" : "12px"};
-          }
-          h1 {
-            margin: 0 0 12px;
+          .title {
+            font-weight: 700;
             font-size: ${isThermal ? "13px" : "18px"};
           }
-          table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
+          .muted {
+            color: #475569;
           }
-          th,
-          td {
-            padding: ${isThermal ? "5px 4px" : "8px 6px"};
-            border-bottom: 1px solid #e5e7eb;
-            text-align: left;
-            font-size: ${isThermal ? "10px" : "12px"};
+          .stripe {
+            padding: 6px 4px;
+            border-top: 1px dashed #000;
+            border-bottom: 1px dashed #000;
+            text-align: center;
+            font-weight: 700;
+            text-transform: uppercase;
           }
-          th {
-            background: #f3f6f9;
+          .separator {
+            white-space: pre;
+            overflow: hidden;
+            color: #475569;
           }
-          .totals {
+          .meta-row,
+          .total-row,
+          .payment-row,
+          .consumer-row,
+          .foot-row {
             display: flex;
             justify-content: space-between;
-            gap: 12px;
-            margin-top: ${isThermal ? "10px" : "16px"};
-            font-size: ${isThermal ? "11px" : "13px"};
+            gap: 10px;
           }
-          .totals strong {
-            font-size: ${isThermal ? "16px" : "20px"};
+          .item-header {
+            display: grid;
+            gap: 2px;
+            font-size: ${isThermal ? "10px" : "12px"};
           }
-          .summary {
-            margin-top: ${isThermal ? "8px" : "14px"};
+          .item-line {
+            display: grid;
+            gap: 2px;
+            padding: 3px 0;
+            border-bottom: 1px dotted #9ca3af;
+          }
+          .item-head {
+            font-weight: 700;
+            word-break: break-word;
+          }
+          .item-detail {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            align-items: baseline;
+          }
+          .totals {
             display: grid;
             gap: 4px;
-            font-size: ${isThermal ? "10px" : "12px"};
-            color: #334155;
           }
-          .footer {
-            margin-top: ${isThermal ? "12px" : "20px"};
-            color: #64748b;
-            font-size: ${isThermal ? "9px" : "11px"};
-            text-align: center;
+          .grand-total {
+            font-size: ${isThermal ? "14px" : "18px"};
+            font-weight: 700;
+          }
+          .payments {
+            display: grid;
+            gap: 3px;
+          }
+          .block {
+            display: grid;
+            gap: 3px;
+          }
+          .small {
+            font-size: ${isThermal ? "10px" : "11px"};
+          }
+          .thanks {
+            margin-top: 4px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
           }
         </style>
       </head>
       <body>
         <div class="sheet">
-          <div class="head">
-            <div class="brand">
-              <strong>V12 ERP</strong>
-              <span>Orçamento sem valor fiscal</span>
+          <div class="coupon">
+            <div class="center block">
+              <div class="title">${emitente}</div>
+              ${documentoEmitente ? `<div>CNPJ/CPF: ${documentoEmitente}</div>` : ""}
+              ${enderecoEmitente ? `<div class="small">${enderecoEmitente}</div>` : ""}
+              <div class="small muted">${terminal}  ${data}</div>
             </div>
-            <div class="meta">
-              <div><b>Data:</b> ${data}</div>
-              <div><b>Operador:</b> ${operador}</div>
+
+            <div class="stripe">Cupom de orçamento - sem valor fiscal</div>
+
+            <div class="center small muted">
+              Documento auxiliar interno inspirado no DANFE NFC-e para conferência e apresentação ao cliente
+            </div>
+
+            <div class="separator">${separator}</div>
+
+            <div class="item-header">
+              <strong>ITENS</strong>
+              <span class="muted small">COD  DESCRIÇÃO / QTDE UN X VL.UN .......... VL.TOTAL</span>
+            </div>
+
+            <div class="items">
+              ${rows || `<div class="item-line"><div class="item-head">SEM ITENS INFORMADOS</div></div>`}
+            </div>
+
+            <div class="separator">${separator}</div>
+
+            <div class="totals">
+              <div class="total-row"><span>QTD TOTAL DE ITENS</span><strong>${items.reduce((acc, item) => acc + Number(item.quantidade || 0), 0)}</strong></div>
+              <div class="total-row"><span>VALOR TOTAL R$</span><strong>${subtotal}</strong></div>
+              <div class="total-row"><span>DESCONTO TOTAL R$</span><strong>${desconto}</strong></div>
+              <div class="total-row grand-total"><span>VALOR A PAGAR R$</span><strong>${total}</strong></div>
+            </div>
+
+            <div class="separator">${separator}</div>
+
+            <div class="payments">
+              <strong>FORMA DE PAGAMENTO</strong>
+              ${paymentRows || `<div class="payment-row"><span>NÃO INFORMADA</span><strong>${total}</strong></div>`}
+            </div>
+
+            <div class="separator">${separator}</div>
+
+            <div class="block">
+              <div class="consumer-row"><span>ORÇAMENTO Nº</span><strong>${numeroDocumento}</strong></div>
+              <div class="consumer-row"><span>OPERADOR</span><strong>${operador}</strong></div>
+              <div class="consumer-row"><span>CONSUMIDOR</span><strong>${cliente}</strong></div>
+            </div>
+
+            <div class="separator">${separator}</div>
+
+            <div class="center block small">
+              <div>NAO E DOCUMENTO FISCAL</div>
+              <div>NAO SUBSTITUI NFC-E / NF-E</div>
+              <div>NAO PERMITE APROVEITAMENTO DE CREDITO DE ICMS</div>
+            </div>
+
+            <div class="separator">${separator}</div>
+
+            <div class="center block small muted">
+              <div>V12 ERP PDV</div>
+              <div>Emitido por ${terminal}</div>
+              <div class="thanks">OBRIGADO!</div>
             </div>
           </div>
-          <h1>Cliente: ${cliente}</h1>
-          <table>
-            <thead>
-              <tr>
-                <th>Item</th>
-                <th>Descrição</th>
-                <th>Qtd</th>
-                <th>Valor un.</th>
-                <th>Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rows || "<tr><td colspan='5'>Sem itens</td></tr>"}
-            </tbody>
-          </table>
-          <div class="summary">
-            <div><b>Subtotal:</b> R$ ${subtotal}</div>
-            <div><b>Desconto:</b> R$ ${desconto}</div>
-            <div><b>Total líquido:</b> R$ ${total}</div>
-          </div>
-          <div class="totals">
-            <div>
-              <div><b>Total de itens:</b> ${items.length}</div>
-              <div><b>Condição:</b> Orçamento</div>
-              <div><b>Formato:</b> ${escapeHtml(printerConfig.layout.toUpperCase())}</div>
-            </div>
-            <div><b>Total:</b> <strong>R$ ${total}</strong></div>
-          </div>
-          <div class="footer">Documento interno para conferência e apresentação ao cliente.</div>
         </div>
       </body>
     </html>
