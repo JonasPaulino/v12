@@ -16,6 +16,7 @@ import { api } from "./api.js";
 import { AberturaCaixa } from "./components/caixa/AberturaCaixa.jsx";
 import { FechamentoCaixa } from "./components/caixa/FechamentoCaixa.jsx";
 import { MovimentoCaixa } from "./components/caixa/MovimentoCaixa.jsx";
+import { ConfiguracaoLocal } from "./components/configuracao/ConfiguracaoLocal.jsx";
 import { ProdutoSearch } from "./components/ProdutoSearch.jsx";
 import { LoginOperador } from "./components/setup/LoginOperador.jsx";
 import { SetupLocal } from "./components/setup/SetupLocal.jsx";
@@ -201,13 +202,15 @@ export default function App() {
     setPagamentosConfirmados(null);
   }
 
-  async function carregarFinanceiroSupportData({ silent = false } = {}) {
+  async function carregarFinanceiroSupportData({ silent = false, refresh = false } = {}) {
     try {
       if (!silent) {
         showLoading("Carregando formas de pagamento...");
       }
 
-      const result = await api.financeiroSupportData({ tipo: "receber" });
+      const result = refresh
+        ? await api.sincronizarFinanceiroSupportData({ tipo: "receber", refresh: true })
+        : await api.financeiroSupportData({ tipo: "receber" });
       const supportData = result || FALLBACK_FINANCEIRO_SUPPORT_DATA;
       const formasPagamento = Array.isArray(supportData.formasPagamento)
         ? supportData.formasPagamento.filter(Boolean)
@@ -229,6 +232,35 @@ export default function App() {
         success: true,
       };
     } catch (error) {
+      if (refresh) {
+        try {
+          const cachedResult = await api.financeiroSupportData({ tipo: "receber" });
+          const cachedSupportData = cachedResult || FALLBACK_FINANCEIRO_SUPPORT_DATA;
+          const formasPagamento = Array.isArray(cachedSupportData.formasPagamento)
+            ? cachedSupportData.formasPagamento.filter(Boolean)
+            : [];
+
+          setFinanceiroSupportData({
+            ...FALLBACK_FINANCEIRO_SUPPORT_DATA,
+            ...cachedSupportData,
+            formasPagamento: formasPagamento.length
+              ? formasPagamento
+              : FALLBACK_FINANCEIRO_SUPPORT_DATA.formasPagamento,
+            formaPagamentoPadrao:
+              cachedSupportData.formaPagamentoPadrao ||
+              formasPagamento.find((item) => item.padrao) ||
+              FALLBACK_FINANCEIRO_SUPPORT_DATA.formaPagamentoPadrao,
+          });
+
+          return {
+            success: true,
+            cached: true,
+          };
+        } catch {
+          // segue para o fallback local padrao
+        }
+      }
+
       setFinanceiroSupportData(FALLBACK_FINANCEIRO_SUPPORT_DATA);
       return {
         success: false,
@@ -353,8 +385,10 @@ export default function App() {
           data: new Date().toLocaleString("pt-BR"),
         };
 
+      const printerConfig = await api.obterConfiguracaoImpressora().catch(() => null);
+
       if (window.v12Desktop?.printBudget) {
-        await window.v12Desktop.printBudget(payload);
+        await window.v12Desktop.printBudget(payload, printerConfig);
         return;
       }
 
@@ -503,6 +537,7 @@ export default function App() {
       setCaixa(caixaData);
       setActiveModule(getModuleForCaixa(caixaData));
       setOperador(operadorData);
+      await carregarFinanceiroSupportData({ silent: true, refresh: true });
     } catch (error) {
       showAlert({
         title: "Falha ao carregar caixa",
@@ -515,7 +550,7 @@ export default function App() {
   }
 
   function openModule(module) {
-    if (caixa?.caixa_pendente_dia_anterior && module !== "fechamento") {
+    if (module !== "configuracao" && caixa?.caixa_pendente_dia_anterior && module !== "fechamento") {
       showAlert({
         title: "Fechamento pendente",
         text: `Existe um caixa aberto do dia ${caixa.data_operacional}. Feche esse caixa antes de continuar.`,
@@ -525,7 +560,7 @@ export default function App() {
       return;
     }
 
-    if (!caixa && module !== "abertura") {
+    if (!caixa && !["abertura", "configuracao"].includes(module)) {
       showAlert({
         title: "Caixa fechado",
         text: "Abra o caixa antes de acessar esta operação.",
@@ -642,8 +677,9 @@ export default function App() {
     sangria: "Caixa > Sangria",
     suprimento: "Caixa > Suprimento",
     fechamento: "Caixa > Fechamento",
+    configuracao: "Sistema > Configuracoes locais",
   };
-  const showSaleShortcuts = !caixaPendenteDiaAnterior && !["abertura", "fechamento"].includes(activeModule);
+  const showSaleShortcuts = !caixaPendenteDiaAnterior && !["abertura", "fechamento", "configuracao"].includes(activeModule);
   const breadcrumbAtivo =
     activeModule === "venda" && clienteModalAberto
       ? "Venda > Informar cliente"
@@ -672,7 +708,7 @@ export default function App() {
             <button onClick={() => openModule("sangria")}><FiFileText /> Sangria</button>
             <button onClick={() => openModule("suprimento")}><FiFileText /> Suprimento</button>
             <button onClick={() => openModule("fechamento")}><FiFileText /> Fechamento de caixa</button>
-            <button><FiSettings /> Configuracoes locais</button>
+            <button onClick={() => openModule("configuracao")}><FiSettings /> Configuracoes locais</button>
             <button onClick={() => sincronizarProdutos(true)}><FiRefreshCcw /> Sincronizar produtos</button>
             <button onClick={alternarTelaCheia}><FiMaximize2 /> Alternar tela cheia</button>
             <button className="danger-menu" onClick={sairDoSistema}><FiPower /> Sair do sistema</button>
@@ -765,6 +801,7 @@ export default function App() {
             {activeModule === "fechamento" ? (
               <FechamentoCaixa onClosed={handleCaixaFechado} />
             ) : null}
+            {activeModule === "configuracao" ? <ConfiguracaoLocal /> : null}
           </div>
         </section>
 

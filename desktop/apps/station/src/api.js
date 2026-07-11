@@ -25,6 +25,9 @@ async function request(path, options = {}) {
 export const api = {
   health: () => request("/healthz"),
   configuracaoStatus: () => request("/configuracao/status"),
+  obterConfiguracaoImpressora: () => request("/configuracao/impressora"),
+  salvarConfiguracaoImpressora: (payload) =>
+    request("/configuracao/impressora", { method: "PUT", body: JSON.stringify(payload) }),
   loginWeb: (payload) =>
     request("/configuracao/login-web", { method: "POST", body: JSON.stringify(payload) }),
   setupWeb: (payload) =>

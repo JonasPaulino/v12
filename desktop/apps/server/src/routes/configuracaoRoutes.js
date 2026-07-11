@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { getTerminalConfig } from "../modules/configuracao/localConfigRepository.js";
 import { configurarTerminalPorTenant, loginErpWeb } from "../services/erpSetupService.js";
+import { getPrinterConfig, savePrinterConfig } from "../services/printerConfigService.js";
 
 const router = Router();
 
@@ -13,6 +14,22 @@ router.get("/status", (_req, res) => {
       config,
     },
   });
+});
+
+router.get("/impressora", (_req, res) => {
+  res.json({
+    success: true,
+    data: getPrinterConfig(),
+  });
+});
+
+router.put("/impressora", (req, res, next) => {
+  try {
+    const data = savePrinterConfig(req.body || {});
+    res.json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
 });
 
 router.post("/login-web", async (req, res, next) => {

@@ -16,8 +16,36 @@ function escapeHtml(value = "") {
     .replace(/"/g, "&quot;");
 }
 
-function buildBudgetHtml(payload = {}) {
+function getPrintWindow() {
+  return BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0] || null;
+}
+
+function normalizePrinterConfig(config = {}) {
+  const layout = ["thermal-58", "thermal-80", "a4"].includes(config.layout)
+    ? config.layout
+    : "thermal-80";
+
+  return {
+    enabled: config.enabled === true,
+    deviceName: String(config.deviceName || "").trim(),
+    layout,
+    paperWidth: layout === "thermal-58" ? 58 : layout === "thermal-80" ? 80 : 210,
+    silent: config.silent === true,
+    copies: Number.isInteger(Number(config.copies)) ? Math.max(1, Math.min(10, Number(config.copies))) : 1,
+  };
+}
+
+function buildBudgetHtml(payload = {}, config = {}) {
+  const printerConfig = normalizePrinterConfig(config);
   const items = Array.isArray(payload.items) ? payload.items : [];
+  const subtotal = Number(payload.subtotal || 0).toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  const desconto = Number(payload.desconto || 0).toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
   const total = Number(payload.total || 0).toLocaleString("pt-BR", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -25,6 +53,8 @@ function buildBudgetHtml(payload = {}) {
   const operador = escapeHtml(payload.operador || "Operador");
   const cliente = escapeHtml(payload.cliente || "Cliente não identificado");
   const data = escapeHtml(payload.data || new Date().toLocaleString("pt-BR"));
+  const isThermal = printerConfig.layout !== "a4";
+  const pageWidth = printerConfig.layout === "thermal-58" ? "58mm" : printerConfig.layout === "thermal-80" ? "80mm" : "210mm";
   const rows = items
     .map((item, index) => {
       const quantidade = Number(item.quantidade || 0);
@@ -58,39 +88,43 @@ function buildBudgetHtml(payload = {}) {
         <style>
           :root {
             color: #1f2937;
-            font-family: Arial, Helvetica, sans-serif;
+            font-family: ${isThermal ? '"Courier New", monospace' : 'Arial, Helvetica, sans-serif'};
+          }
+          @page {
+            size: ${pageWidth} auto;
+            margin: ${isThermal ? "4mm" : "12mm"};
           }
           body {
             margin: 0;
-            padding: 20px;
+            padding: ${isThermal ? "0" : "20px"};
             background: #fff;
           }
           .sheet {
-            max-width: 780px;
+            max-width: ${isThermal ? pageWidth : "780px"};
             margin: 0 auto;
-            border: 1px solid #d7dde6;
-            padding: 18px;
+            border: ${isThermal ? "0" : "1px solid #d7dde6"};
+            padding: ${isThermal ? "0" : "18px"};
           }
           .head {
             display: flex;
             justify-content: space-between;
-            gap: 16px;
+            gap: ${isThermal ? "8px" : "16px"};
             border-bottom: 2px solid #0a5d89;
-            padding-bottom: 12px;
-            margin-bottom: 16px;
+            padding-bottom: ${isThermal ? "8px" : "12px"};
+            margin-bottom: ${isThermal ? "10px" : "16px"};
           }
           .brand strong {
             display: block;
-            font-size: 22px;
+            font-size: ${isThermal ? "16px" : "22px"};
           }
           .brand span,
           .meta {
             color: #64748b;
-            font-size: 12px;
+            font-size: ${isThermal ? "10px" : "12px"};
           }
           h1 {
             margin: 0 0 12px;
-            font-size: 18px;
+            font-size: ${isThermal ? "13px" : "18px"};
           }
           table {
             width: 100%;
@@ -99,10 +133,10 @@ function buildBudgetHtml(payload = {}) {
           }
           th,
           td {
-            padding: 8px 6px;
+            padding: ${isThermal ? "5px 4px" : "8px 6px"};
             border-bottom: 1px solid #e5e7eb;
             text-align: left;
-            font-size: 12px;
+            font-size: ${isThermal ? "10px" : "12px"};
           }
           th {
             background: #f3f6f9;
@@ -111,16 +145,23 @@ function buildBudgetHtml(payload = {}) {
             display: flex;
             justify-content: space-between;
             gap: 12px;
-            margin-top: 16px;
-            font-size: 13px;
+            margin-top: ${isThermal ? "10px" : "16px"};
+            font-size: ${isThermal ? "11px" : "13px"};
           }
           .totals strong {
-            font-size: 20px;
+            font-size: ${isThermal ? "16px" : "20px"};
+          }
+          .summary {
+            margin-top: ${isThermal ? "8px" : "14px"};
+            display: grid;
+            gap: 4px;
+            font-size: ${isThermal ? "10px" : "12px"};
+            color: #334155;
           }
           .footer {
-            margin-top: 20px;
+            margin-top: ${isThermal ? "12px" : "20px"};
             color: #64748b;
-            font-size: 11px;
+            font-size: ${isThermal ? "9px" : "11px"};
             text-align: center;
           }
         </style>
@@ -152,10 +193,16 @@ function buildBudgetHtml(payload = {}) {
               ${rows || "<tr><td colspan='5'>Sem itens</td></tr>"}
             </tbody>
           </table>
+          <div class="summary">
+            <div><b>Subtotal:</b> R$ ${subtotal}</div>
+            <div><b>Desconto:</b> R$ ${desconto}</div>
+            <div><b>Total líquido:</b> R$ ${total}</div>
+          </div>
           <div class="totals">
             <div>
               <div><b>Total de itens:</b> ${items.length}</div>
               <div><b>Condição:</b> Orçamento</div>
+              <div><b>Formato:</b> ${escapeHtml(printerConfig.layout.toUpperCase())}</div>
             </div>
             <div><b>Total:</b> <strong>R$ ${total}</strong></div>
           </div>
@@ -202,7 +249,22 @@ ipcMain.handle("window:toggle-fullscreen", () => {
   return win.isFullScreen();
 });
 
-ipcMain.handle("sale:print-budget", async (_event, payload = {}) => {
+ipcMain.handle("printer:list", async () => {
+  const win = getPrintWindow();
+  if (!win) return [];
+
+  const printers = await win.webContents.getPrintersAsync();
+  return printers.map((printer) => ({
+    name: printer.name,
+    displayName: printer.displayName || printer.name,
+    description: printer.description || "",
+    isDefault: !!printer.isDefault,
+    status: Number(printer.status || 0),
+  }));
+});
+
+ipcMain.handle("sale:print-budget", async (_event, payload = {}, config = {}) => {
+  const printerConfig = normalizePrinterConfig(config);
   const budgetWindow = new BrowserWindow({
     show: false,
     width: 900,
@@ -214,13 +276,24 @@ ipcMain.handle("sale:print-budget", async (_event, payload = {}) => {
   });
 
   try {
-    const html = buildBudgetHtml(payload);
+    const html = buildBudgetHtml(payload, printerConfig);
     await budgetWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
     await new Promise((resolve, reject) => {
       budgetWindow.webContents.print(
         {
-          silent: false,
+          silent: printerConfig.enabled && printerConfig.silent,
+          deviceName: printerConfig.enabled && printerConfig.deviceName ? printerConfig.deviceName : undefined,
+          copies: printerConfig.copies,
           printBackground: true,
+          margins: {
+            marginType: "none",
+          },
+          pageSize:
+            printerConfig.layout === "thermal-58"
+              ? { width: 58000, height: 200000 }
+              : printerConfig.layout === "thermal-80"
+                ? { width: 80000, height: 200000 }
+                : undefined,
         },
         (success, errorType) => {
           if (!success) {
