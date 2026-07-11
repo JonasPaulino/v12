@@ -7,6 +7,116 @@ const __dirname = path.dirname(__filename);
 
 const isDev = !app.isPackaged;
 const appIconPath = path.resolve(__dirname, "../src/assets/favicon.png");
+const DEFAULT_DEV_PORT = "5174";
+
+function getCandidateDevUrls() {
+  const envUrl = String(process.env.VITE_DEV_SERVER_URL || "").trim();
+  const urls = [
+    envUrl,
+    `http://127.0.0.1:${DEFAULT_DEV_PORT}`,
+    `http://localhost:${DEFAULT_DEV_PORT}`,
+  ].filter(Boolean);
+
+  return [...new Set(urls)];
+}
+
+async function wait(ms) {
+  await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function canReachUrl(url) {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 1200);
+    const response = await fetch(url, {
+      method: "GET",
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function loadDevServer(win) {
+  const candidates = getCandidateDevUrls();
+
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    for (const url of candidates) {
+      const reachable = await canReachUrl(url);
+      if (reachable) {
+        await win.loadURL(url);
+        return;
+      }
+    }
+
+    await wait(500);
+  }
+
+  throw new Error("Servidor Vite do PDV não respondeu.");
+}
+
+function buildDevServerErrorHtml() {
+  const urls = getCandidateDevUrls()
+    .map((url) => `<li>${escapeHtml(url)}</li>`)
+    .join("");
+
+  return `
+    <!doctype html>
+    <html lang="pt-BR">
+      <head>
+        <meta charset="utf-8" />
+        <title>V12 PDV - Servidor não encontrado</title>
+        <style>
+          body {
+            margin: 0;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            background: #0f172a;
+            color: #e2e8f0;
+            font-family: Arial, Helvetica, sans-serif;
+          }
+          .card {
+            width: min(560px, calc(100vw - 48px));
+            padding: 28px;
+            border-radius: 16px;
+            background: #111f35;
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+          }
+          h1 {
+            margin: 0 0 12px;
+            color: #f8fafc;
+            font-size: 24px;
+          }
+          p, li {
+            color: #cbd5e1;
+            line-height: 1.5;
+            font-size: 14px;
+          }
+          ul {
+            margin: 14px 0;
+            padding-left: 18px;
+          }
+          code {
+            color: #7dd3fc;
+            font-family: "Courier New", monospace;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <h1>Servidor do PDV não encontrado</h1>
+          <p>O Electron abriu, mas não conseguiu acessar o front da estação.</p>
+          <p>Antes de abrir o Electron, deixe o Vite da estação rodando em uma destas URLs:</p>
+          <ul>${urls}</ul>
+          <p>Comando esperado: <code>cd v12/desktop && npm run dev:station</code></p>
+        </div>
+      </body>
+    </html>
+  `;
+}
 
 function escapeHtml(value = "") {
   return String(value)
@@ -213,7 +323,7 @@ function buildBudgetHtml(payload = {}, config = {}) {
   `;
 }
 
-function createWindow() {
+async function createWindow() {
   const win = new BrowserWindow({
     width: 1280,
     height: 800,
@@ -231,7 +341,11 @@ function createWindow() {
   });
 
   if (isDev) {
-    win.loadURL(process.env.VITE_DEV_SERVER_URL || "http://127.0.0.1:5174");
+    try {
+      await loadDevServer(win);
+    } catch {
+      await win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(buildDevServerErrorHtml())}`);
+    }
     return;
   }
 
