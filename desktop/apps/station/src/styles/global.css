@@ -795,7 +795,7 @@ label {
 
 .receipt-row {
   display: grid;
-  grid-template-columns: 54px 80px minmax(180px, 1fr) 96px 72px 100px;
+  grid-template-columns: 54px 80px minmax(180px, 1fr) 96px 118px 100px;
   align-items: center;
   gap: 8px;
   min-height: 38px;
@@ -821,10 +821,48 @@ label {
   font-weight: 900;
 }
 
-.receipt-row input {
+.quantity-control {
+  display: grid;
+  grid-template-columns: 30px minmax(30px, 1fr) 30px;
+  align-items: center;
+  gap: 6px;
+}
+
+.quantity-step {
+  width: 30px;
+  height: 30px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #f8fafc, #e2e8f0);
+  color: #334155;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.quantity-step:hover:not(:disabled) {
+  border-color: #1688bd;
+  background: #e0f2fe;
+  color: #075985;
+}
+
+.quantity-step svg {
+  font-size: 0.9rem;
+}
+
+.quantity-value {
+  min-width: 0;
   padding: 6px 8px;
-  border-radius: 2px;
+  border: 1px solid #dbe3eb;
+  border-radius: 4px;
+  background: #fff;
+  color: #1f2937;
   text-align: center;
+  font-weight: 800;
 }
 
 .remove-line {

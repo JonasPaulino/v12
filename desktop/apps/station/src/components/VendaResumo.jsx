@@ -1,3 +1,4 @@
+import { FiMinus, FiPlus } from "react-icons/fi";
 import { useSweetAlert } from "../context/SweetAlertContext.jsx";
 
 export function VendaResumo({
@@ -64,14 +65,27 @@ export function VendaResumo({
             <span>{item.codigo_produto || item.produto_id}</span>
             <strong>{item.descricao}</strong>
             <span>{Number(item.valor_unitario).toFixed(2)}</span>
-            <input
-              type="number"
-              min="0"
-              step="1"
-              value={item.quantidade}
-              disabled={disabled || paymentReady}
-              onChange={(event) => updateQuantity(item.produto_id, event.target.value)}
-            />
+            <div className="quantity-control">
+              <button
+                type="button"
+                className="quantity-step"
+                disabled={disabled || paymentReady}
+                onClick={() => updateQuantity(item.produto_id, Number(item.quantidade) - 1)}
+                aria-label={`Diminuir quantidade de ${item.descricao}`}
+              >
+                <FiMinus />
+              </button>
+              <span className="quantity-value">{Number(item.quantidade)}</span>
+              <button
+                type="button"
+                className="quantity-step"
+                disabled={disabled || paymentReady}
+                onClick={() => updateQuantity(item.produto_id, Number(item.quantidade) + 1)}
+                aria-label={`Aumentar quantidade de ${item.descricao}`}
+              >
+                <FiPlus />
+              </button>
+            </div>
             <button
               className="remove-line"
               onClick={() => removeItem(item.produto_id)}
