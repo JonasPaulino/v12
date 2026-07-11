@@ -887,6 +887,42 @@ label {
   box-shadow: 0 4px 14px rgba(5, 59, 93, 0.26);
 }
 
+.finish.secondary {
+  background: linear-gradient(180deg, #e8edf3, #dce4ec);
+  color: #1f2937;
+  box-shadow: 0 4px 14px rgba(148, 163, 184, 0.18);
+}
+
+.finish-actions {
+  display: grid;
+  gap: 8px;
+  margin: 10px 22px 18px;
+}
+
+.finish-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.finish-actions-grid .finish {
+  margin: 0;
+}
+
+.finish-actions-grid .finish:last-child {
+  grid-column: 1 / -1;
+}
+
+.finish-link {
+  justify-self: end;
+  padding: 0;
+  background: transparent;
+  color: #0a5d89;
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
 .customer-modal-backdrop {
   position: fixed;
   inset: 0;
@@ -1317,5 +1353,18 @@ label {
   .payment-actions button,
   .payment-actions .secondary-action {
     width: 100%;
+  }
+
+  .finish-actions-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .finish-actions-grid .finish:last-child {
+    grid-column: auto;
+  }
+
+  .finish-link {
+    justify-self: stretch;
+    text-align: center;
   }
 }

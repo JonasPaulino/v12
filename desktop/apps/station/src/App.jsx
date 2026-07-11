@@ -60,6 +60,7 @@ export default function App() {
     email: "",
   });
   const [pagamentoModalAberto, setPagamentoModalAberto] = useState(false);
+  const [pagamentosConfirmados, setPagamentosConfirmados] = useState(null);
   const [financeiroSupportData, setFinanceiroSupportData] = useState(null);
   const { showLoading, hideLoading } = useContext(AppContext);
   const { showAlert, askYesNoQuestion } = useSweetAlert();
@@ -160,6 +161,7 @@ export default function App() {
         },
       ];
     });
+    setPagamentosConfirmados(null);
   }
 
   async function carregarFinanceiroSupportData({ silent = false } = {}) {
@@ -232,8 +234,22 @@ export default function App() {
     }
   }
 
-  async function confirmarPagamentoVenda(pagamentos, modoFinalizacao = "finalizar") {
+  function confirmarRecebimentoVenda(pagamentos) {
+    setPagamentosConfirmados(pagamentos);
+    setPagamentoModalAberto(false);
+    showAlert({
+      title: "Pagamento informado",
+      text: "Agora escolha se deseja imprimir orçamento, emitir cupom fiscal ou apenas finalizar a venda.",
+      icon: "success",
+    });
+  }
+
+  async function finalizarVenda(modoFinalizacao = "finalizar") {
     try {
+      if (!Array.isArray(pagamentosConfirmados) || !pagamentosConfirmados.length) {
+        throw new Error("Informe as formas de pagamento antes de concluir a venda.");
+      }
+
       const snapshotOrcamento = {
         items: cart.map((item) => ({ ...item })),
         total,
@@ -246,10 +262,11 @@ export default function App() {
       const result = await api.criarVenda({
         cliente: clienteIdentificado,
         items: cart,
-        pagamentos,
+        pagamentos: pagamentosConfirmados,
       });
       setCart([]);
       setClienteIdentificado(null);
+      setPagamentosConfirmados(null);
       setPagamentoModalAberto(false);
 
       if (modoFinalizacao === "orcamento") {
@@ -307,6 +324,25 @@ export default function App() {
     }
   }
 
+  async function imprimirOrcamentoComRecebimento() {
+    if (!Array.isArray(pagamentosConfirmados) || !pagamentosConfirmados.length) {
+      showAlert({
+        title: "Pagamento pendente",
+        text: "Informe as formas de pagamento antes de imprimir o orçamento.",
+        icon: "warning",
+      });
+      return;
+    }
+
+    await imprimirOrcamento({
+      items: cart.map((item) => ({ ...item })),
+      total,
+      cliente: clienteResumo || "Cliente não identificado",
+      operador: operador?.nome || caixa?.operador_nome || "Operador",
+      data: new Date().toLocaleString("pt-BR"),
+    });
+  }
+
   async function sincronizarProdutos(full = false) {
     try {
       showLoading("Sincronizando produtos...");
@@ -339,6 +375,7 @@ export default function App() {
     setClienteIdentificado(null);
     setClienteModalAberto(false);
     setPagamentoModalAberto(false);
+    setPagamentosConfirmados(null);
     setOperador(null);
     setActiveModule(getModuleForCaixa(caixa));
   }
@@ -434,6 +471,7 @@ export default function App() {
     setClienteIdentificado(null);
     setClienteModalAberto(false);
     setPagamentoModalAberto(false);
+    setPagamentosConfirmados(null);
     setCaixa(null);
     setActiveModule("abertura");
   }
@@ -501,6 +539,7 @@ export default function App() {
       nome,
       email: email || null,
     });
+    setPagamentosConfirmados(null);
     setClienteModalAberto(false);
     showAlert({
       title: "Cliente identificado",
@@ -526,6 +565,7 @@ export default function App() {
   const clienteResumo = clienteIdentificado
     ? `${clienteIdentificado.tipoDocumento}: ${clienteIdentificado.documento} - ${clienteIdentificado.nome}`
     : null;
+  const vendaProntaParaConclusao = Array.isArray(pagamentosConfirmados) && pagamentosConfirmados.length > 0;
   const formasPagamento = financeiroSupportData?.formasPagamento?.length
     ? financeiroSupportData.formasPagamento
     : FALLBACK_FINANCEIRO_SUPPORT_DATA.formasPagamento;
@@ -609,7 +649,14 @@ export default function App() {
                   <FiUser />
                   {clienteResumo}
                 </span>
-                <button type="button" className="clear-customer" onClick={() => setClienteIdentificado(null)}>
+                <button
+                  type="button"
+                  className="clear-customer"
+                  onClick={() => {
+                    setClienteIdentificado(null);
+                    setPagamentosConfirmados(null);
+                  }}
+                >
                   Limpar
                 </button>
               </div>
@@ -642,8 +689,16 @@ export default function App() {
           <VendaResumo
             cart={cart}
             total={total}
-            onChange={setCart}
+            onChange={(nextCart) => {
+              setCart(nextCart);
+              setPagamentosConfirmados(null);
+            }}
             onFinish={iniciarFinalizacaoVenda}
+            onPrintBudget={imprimirOrcamentoComRecebimento}
+            onIssueCupom={() => finalizarVenda("cupom")}
+            onFinalizeSale={() => finalizarVenda("finalizar")}
+            onEditPayment={() => setPagamentoModalAberto(true)}
+            paymentReady={vendaProntaParaConclusao}
             disabled={!caixa || caixaPendenteDiaAnterior || !cart.length}
           />
         </section>
@@ -732,7 +787,7 @@ export default function App() {
         clienteResumo={clienteResumo}
         supportLoading={!financeiroSupportData}
         onClose={() => setPagamentoModalAberto(false)}
-        onConfirm={confirmarPagamentoVenda}
+        onReceive={confirmarRecebimentoVenda}
       />
 
       <footer className="pdv-footer">

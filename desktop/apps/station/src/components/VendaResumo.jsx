@@ -1,6 +1,17 @@
 import { useSweetAlert } from "../context/SweetAlertContext.jsx";
 
-export function VendaResumo({ cart, total, onChange, onFinish, disabled }) {
+export function VendaResumo({
+  cart,
+  total,
+  onChange,
+  onFinish,
+  onPrintBudget,
+  onIssueCupom,
+  onFinalizeSale,
+  onEditPayment,
+  paymentReady = false,
+  disabled,
+}) {
   const { askYesNoQuestion } = useSweetAlert();
 
   function removeItem(produtoId) {
@@ -76,9 +87,28 @@ export function VendaResumo({ cart, total, onChange, onFinish, disabled }) {
           <strong>{Number(total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong>
         </div>
       </footer>
-      <button className="finish" disabled={disabled} onClick={onFinish}>
-        Ir para pagamento (Ctrl + F)
-      </button>
+      {paymentReady ? (
+        <div className="finish-actions">
+          <div className="finish-actions-grid">
+            <button className="finish secondary" disabled={disabled} onClick={onPrintBudget}>
+              Imprimir orçamento
+            </button>
+            <button className="finish secondary" disabled={disabled} onClick={onIssueCupom}>
+              Emitir cupom fiscal
+            </button>
+            <button className="finish" disabled={disabled} onClick={onFinalizeSale}>
+              Finalizar venda
+            </button>
+          </div>
+          <button className="finish-link" type="button" disabled={disabled} onClick={onEditPayment}>
+            Alterar pagamento
+          </button>
+        </div>
+      ) : (
+        <button className="finish" disabled={disabled} onClick={onFinish}>
+          Ir para pagamento (Ctrl + F)
+        </button>
+      )}
     </div>
   );
 }

@@ -32,7 +32,7 @@ export function VendaPagamentoModal({
   clienteResumo,
   supportLoading,
   onClose,
-  onConfirm,
+  onReceive,
 }) {
   const formaPadrao = useMemo(() => getFormaFallback(formasPagamento), [formasPagamento]);
   const [linhas, setLinhas] = useState([]);
@@ -75,7 +75,7 @@ export function VendaPagamentoModal({
     setLinhas((current) => (current.length > 1 ? current.filter((linha) => linha.id !== id) : current));
   }
 
-  function confirmar(modoFinalizacao = "finalizar") {
+  function confirmarRecebimento() {
     const pagamentos = linhas.map((linha) => ({
       forma: linha.forma || formaPadrao.codigo || "dinheiro",
       valor: parseCurrency(linha.valor),
@@ -91,7 +91,7 @@ export function VendaPagamentoModal({
       return;
     }
 
-    onConfirm(pagamentos, modoFinalizacao);
+    onReceive(pagamentos);
   }
 
   if (!open) return null;
@@ -174,27 +174,11 @@ export function VendaPagamentoModal({
             Adicionar forma
           </button>
           <div className="payment-actions-right">
-            <button
-              type="button"
-              className="secondary-action"
-              onClick={() => confirmar("orcamento")}
-              disabled={supportLoading}
-            >
-              Imprimir orçamento
-            </button>
-            <button
-              type="button"
-              className="secondary-action"
-              onClick={() => confirmar("cupom")}
-              disabled={supportLoading}
-            >
-              Emitir cupom fiscal
-            </button>
-            <button type="button" onClick={() => confirmar("finalizar")} disabled={supportLoading}>
-              Finalizar venda
-            </button>
             <button type="button" className="secondary-action" onClick={onClose} disabled={supportLoading}>
               Cancelar
+            </button>
+            <button type="button" onClick={confirmarRecebimento} disabled={supportLoading}>
+              Receber
             </button>
           </div>
         </div>
