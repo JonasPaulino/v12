@@ -77,7 +77,7 @@ export function VendaResumo({ cart, total, onChange, onFinish, disabled }) {
         </div>
       </footer>
       <button className="finish" disabled={disabled} onClick={onFinish}>
-        Pagamento / finalizar venda (Ctrl + F)
+        Ir para pagamento (Ctrl + F)
       </button>
     </div>
   );

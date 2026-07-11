@@ -1098,14 +1098,17 @@ label {
 }
 
 .payment-actions {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
   justify-content: space-between;
   gap: 12px;
   margin-top: 18px;
 }
 
 .payment-actions-right {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -1122,6 +1125,11 @@ label {
 .payment-actions .secondary-action {
   background: #e2e8f0;
   color: #0f172a;
+}
+
+.payment-actions-right button:nth-child(3),
+.payment-actions-right button:nth-child(4) {
+  grid-column: 1 / -1;
 }
 
 .pdv-footer {
@@ -1303,7 +1311,7 @@ label {
 
   .payment-actions,
   .payment-actions-right {
-    flex-direction: column-reverse;
+    grid-template-columns: 1fr;
   }
 
   .payment-actions button,

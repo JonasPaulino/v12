@@ -232,8 +232,16 @@ export default function App() {
     }
   }
 
-  async function confirmarPagamentoVenda(pagamentos) {
+  async function confirmarPagamentoVenda(pagamentos, modoFinalizacao = "finalizar") {
     try {
+      const snapshotOrcamento = {
+        items: cart.map((item) => ({ ...item })),
+        total,
+        cliente: clienteResumo || "Cliente não identificado",
+        operador: operador?.nome || caixa?.operador_nome || "Operador",
+        data: new Date().toLocaleString("pt-BR"),
+      };
+
       showLoading("Finalizando venda...");
       const result = await api.criarVenda({
         cliente: clienteIdentificado,
@@ -243,6 +251,11 @@ export default function App() {
       setCart([]);
       setClienteIdentificado(null);
       setPagamentoModalAberto(false);
+
+      if (modoFinalizacao === "orcamento") {
+        await imprimirOrcamento(snapshotOrcamento);
+      }
+
       showAlert({
         title: "Venda registrada",
         text: result.fiscal?.message || "Venda registrada localmente.",
@@ -259,15 +272,16 @@ export default function App() {
     }
   }
 
-  async function imprimirOrcamento() {
+  async function imprimirOrcamento(payloadBase = null) {
     try {
-      const payload = {
-        items: cart,
-        total,
-        cliente: clienteResumo || "Cliente não identificado",
-        operador: operador?.nome || caixa?.operador_nome || "Operador",
-        data: new Date().toLocaleString("pt-BR"),
-      };
+      const payload =
+        payloadBase || {
+          items: cart,
+          total,
+          cliente: clienteResumo || "Cliente não identificado",
+          operador: operador?.nome || caixa?.operador_nome || "Operador",
+          data: new Date().toLocaleString("pt-BR"),
+        };
 
       if (window.v12Desktop?.printBudget) {
         await window.v12Desktop.printBudget(payload);
