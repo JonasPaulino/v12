@@ -188,10 +188,15 @@ export default function App() {
           FALLBACK_FINANCEIRO_SUPPORT_DATA.formaPagamentoPadrao,
       });
 
-      return true;
-    } catch {
+      return {
+        success: true,
+      };
+    } catch (error) {
       setFinanceiroSupportData(FALLBACK_FINANCEIRO_SUPPORT_DATA);
-      return false;
+      return {
+        success: false,
+        message: String(error?.message || "").trim(),
+      };
     } finally {
       if (!silent) {
         hideLoading();
@@ -215,10 +220,12 @@ export default function App() {
 
       if (!financeiroSupportData) {
         const loaded = await carregarFinanceiroSupportData();
-        if (!loaded) {
+        if (!loaded?.success) {
           showAlert({
             title: "Formas de pagamento indisponíveis",
-            text: "Não foi possível carregar o apoio financeiro do ERP. O PDV seguirá com os meios locais padrão.",
+            text: loaded?.message
+              ? `${loaded.message}. O PDV seguirá com os meios locais padrão.`
+              : "Não foi possível carregar o apoio financeiro do ERP. O PDV seguirá com os meios locais padrão.",
             icon: "warning",
           });
         }

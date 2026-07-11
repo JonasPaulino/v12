@@ -54,8 +54,12 @@ async function fetchSupportDataFromErp({ tipo = "receber" } = {}) {
   }
 
   const baseUrl = env.erpApiUrl.replace(/\/$/, "");
+  const params = new URLSearchParams({
+    tenant_id: String(config.tenant_erp_id),
+    tipo,
+  });
   const response = await fetch(
-    `${baseUrl}/desktop/sync/financeiro/support-data?tipo=${encodeURIComponent(tipo)}`,
+    `${baseUrl}/desktop/sync/financeiro/support-data?${params.toString()}`,
     {
       headers: {
         Authorization: `Bearer ${env.erpSyncToken}`,

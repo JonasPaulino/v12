@@ -166,8 +166,42 @@ router.get("/desktop/sync/usuarios", async (req, res) => {
 });
 
 router.get("/desktop/sync/financeiro/support-data", async (req, res) => {
+  let client;
+  let released = false;
+
+  const resetAndRelease = async () => {
+    if (!client || released) return;
+    released = true;
+    try {
+      await client.query("RESET app.tenant_id");
+    } catch (releaseError) {
+      console.error("[desktop-sync] Falha ao limpar contexto do tenant:", releaseError.message);
+    } finally {
+      client.release();
+    }
+  };
+
   try {
-    const data = await FinanceiroDAO.obterSupportData(req.db, {
+    const tenantId = Number(req.query.tenant_id);
+    if (!Number.isInteger(tenantId) || tenantId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "tenant_id obrigatório.",
+      });
+    }
+
+    const tenantAtivo = await DesktopSyncDAO.validarTenantAtivo(pool, tenantId);
+    if (!tenantAtivo) {
+      return res.status(403).json({
+        success: false,
+        message: "Filial inativa, bloqueada ou não encontrada.",
+      });
+    }
+
+    client = await pool.connect();
+    await client.query("SELECT set_config('app.tenant_id', $1, false)", [String(tenantId)]);
+
+    const data = await FinanceiroDAO.obterSupportData(client, {
       tipo: String(req.query.tipo || "receber"),
       syncOnly: true,
     });
@@ -187,8 +221,10 @@ router.get("/desktop/sync/financeiro/support-data", async (req, res) => {
     console.error("[desktop-sync] Falha ao sincronizar apoio financeiro:", error);
     return res.status(500).json({
       success: false,
-      message: "Não foi possível sincronizar as formas de pagamento.",
+      message: error.message || "Não foi possível sincronizar as formas de pagamento.",
     });
+  } finally {
+    await resetAndRelease();
   }
 });
 
