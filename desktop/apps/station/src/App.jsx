@@ -139,7 +139,7 @@ export default function App() {
     return cart.reduce((acc, item) => acc + Number(item.quantidade) * Number(item.valor_unitario), 0);
   }, [cart]);
 
-  function addProduto(produto) {
+  function addProduto(produto, quantidade = 1) {
     if (pagamentosConfirmados?.length) {
       showAlert({
         title: "Recebimento já informado",
@@ -151,10 +151,11 @@ export default function App() {
 
     setCart((current) => {
       const existing = current.find((item) => item.produto_id === produto.produto_id);
+      const quantidadeAdicionar = Math.max(1, Number(quantidade) || 1);
       if (existing) {
         return current.map((item) =>
           item.produto_id === produto.produto_id
-            ? { ...item, quantidade: Number(item.quantidade) + 1 }
+            ? { ...item, quantidade: Number(item.quantidade) + quantidadeAdicionar }
             : item,
         );
       }
@@ -165,7 +166,7 @@ export default function App() {
           produto_id: produto.produto_id,
           codigo_produto: produto.codigo,
           descricao: produto.descricao,
-          quantidade: 1,
+          quantidade: quantidadeAdicionar,
           valor_unitario: Number(produto.preco_venda || 0),
         },
       ];
