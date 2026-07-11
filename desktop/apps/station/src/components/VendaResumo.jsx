@@ -8,17 +8,19 @@ export function VendaResumo({
   onPrintBudget,
   onIssueCupom,
   onFinalizeSale,
-  onEditPayment,
+  onCancelPayment,
   paymentReady = false,
   disabled,
 }) {
   const { askYesNoQuestion } = useSweetAlert();
 
   function removeItem(produtoId) {
+    if (paymentReady) return;
     onChange(cart.filter((item) => item.produto_id !== produtoId));
   }
 
   async function updateQuantity(produtoId, quantidade) {
+    if (paymentReady) return;
     const nextQuantity = Number(quantidade || 0);
     const currentItem = cart.find((item) => item.produto_id === produtoId);
 
@@ -67,9 +69,14 @@ export function VendaResumo({
               min="0"
               step="1"
               value={item.quantidade}
+              disabled={disabled || paymentReady}
               onChange={(event) => updateQuantity(item.produto_id, event.target.value)}
             />
-            <button className="remove-line" onClick={() => removeItem(item.produto_id)}>
+            <button
+              className="remove-line"
+              onClick={() => removeItem(item.produto_id)}
+              disabled={disabled || paymentReady}
+            >
               {(Number(item.quantidade) * Number(item.valor_unitario)).toFixed(2)}
             </button>
           </div>
@@ -100,8 +107,8 @@ export function VendaResumo({
               Finalizar venda
             </button>
           </div>
-          <button className="finish-link" type="button" disabled={disabled} onClick={onEditPayment}>
-            Alterar pagamento
+          <button className="finish-link" type="button" disabled={disabled} onClick={onCancelPayment}>
+            Cancelar pagamentos
           </button>
         </div>
       ) : (

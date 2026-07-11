@@ -140,6 +140,15 @@ export default function App() {
   }, [cart]);
 
   function addProduto(produto) {
+    if (pagamentosConfirmados?.length) {
+      showAlert({
+        title: "Recebimento já informado",
+        text: "Cancele os pagamentos antes de adicionar ou alterar itens da venda.",
+        icon: "warning",
+      });
+      return;
+    }
+
     setCart((current) => {
       const existing = current.find((item) => item.produto_id === produto.produto_id);
       if (existing) {
@@ -350,6 +359,26 @@ export default function App() {
     });
   }
 
+  async function cancelarPagamentosConfirmados() {
+    if (!Array.isArray(pagamentosConfirmados) || !pagamentosConfirmados.length) {
+      return;
+    }
+
+    const confirmed = await askYesNoQuestion(
+      "Cancelar recebimento",
+      "Deseja cancelar os pagamentos informados e liberar a venda para edição?",
+    );
+
+    if (!confirmed) return;
+
+    setPagamentosConfirmados(null);
+    showAlert({
+      title: "Pagamentos cancelados",
+      text: "A venda voltou a ficar editável.",
+      icon: "success",
+    });
+  }
+
   async function sincronizarProdutos(full = false) {
     try {
       showLoading("Sincronizando produtos...");
@@ -484,6 +513,15 @@ export default function App() {
   }
 
   function abrirModalCliente() {
+    if (pagamentosConfirmados?.length) {
+      showAlert({
+        title: "Recebimento já informado",
+        text: "Cancele os pagamentos antes de alterar o cliente desta venda.",
+        icon: "warning",
+      });
+      return;
+    }
+
     setClienteForm({
       tipoDocumento: clienteIdentificado?.tipoDocumento || "CPF",
       documento: clienteIdentificado?.documento || "",
@@ -626,7 +664,7 @@ export default function App() {
           {showSaleShortcuts ? (
             <div className="shortcut-grid">
               <button className="shortcut primary" onClick={() => openModule("venda")}>Registro de item <small>F3</small></button>
-              <button className="shortcut" onClick={abrirModalCliente}>
+              <button className="shortcut" onClick={abrirModalCliente} disabled={vendaProntaParaConclusao}>
                 Informar cliente <small>F4</small>
               </button>
               <button className="shortcut" onClick={() => openModule("fechamento")}>Fechamento <small>F5</small></button>
@@ -659,6 +697,7 @@ export default function App() {
                 <button
                   type="button"
                   className="clear-customer"
+                  disabled={vendaProntaParaConclusao}
                   onClick={() => {
                     setClienteIdentificado(null);
                     setPagamentosConfirmados(null);
@@ -672,7 +711,7 @@ export default function App() {
               <AberturaCaixa operador={operador} onOpened={handleCaixaAberto} />
             ) : null}
             {activeModule === "venda" ? (
-              <ProdutoSearch onSelect={addProduto} disabled={!caixa} />
+              <ProdutoSearch onSelect={addProduto} disabled={!caixa || vendaProntaParaConclusao} />
             ) : null}
             {activeModule === "sangria" ? (
               <MovimentoCaixa tipo="sangria" operador={operador} onDone={() => openModule("venda")} />
@@ -704,7 +743,7 @@ export default function App() {
             onPrintBudget={imprimirOrcamentoComRecebimento}
             onIssueCupom={() => finalizarVenda("cupom")}
             onFinalizeSale={() => finalizarVenda("finalizar")}
-            onEditPayment={() => setPagamentoModalAberto(true)}
+            onCancelPayment={cancelarPagamentosConfirmados}
             paymentReady={vendaProntaParaConclusao}
             disabled={!caixa || caixaPendenteDiaAnterior || !cart.length}
           />
