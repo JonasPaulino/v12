@@ -46,7 +46,16 @@ export const api = {
   fecharCaixa: (payload) => request("/caixa/fechar", { method: "POST", body: JSON.stringify(payload) }),
   produtos: (search = "") => request(`/produtos?search=${encodeURIComponent(search)}`),
   pessoas: (search = "") => request(`/pessoas?search=${encodeURIComponent(search)}`),
-  vendas: () => request("/vendas"),
+  vendas: ({ search = "", status = "", limit = 50 } = {}) =>
+    request(
+      `/vendas?search=${encodeURIComponent(search)}&status=${encodeURIComponent(status)}&limit=${encodeURIComponent(limit)}`,
+    ),
+  vendaDetalhe: (vendaId) => request(`/vendas/${vendaId}`),
+  cancelarVenda: (vendaId, payload = {}) =>
+    request(`/vendas/${vendaId}/cancelar`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
   criarVenda: (payload) => request("/vendas", { method: "POST", body: JSON.stringify(payload) }),
   syncPendencias: () => request("/sync/pendencias"),
   processarSync: () => request("/sync/processar", { method: "POST" }),

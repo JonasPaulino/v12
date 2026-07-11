@@ -93,8 +93,8 @@ export async function criarVenda({
     const vendaId = vendaResult.lastInsertRowid;
 
     const insertItem = db.prepare(
-      `INSERT INTO venda_item (venda_id, produto_id, codigo_produto, descricao, quantidade, valor_unitario, valor_total)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO venda_item (venda_id, produto_id, codigo_produto, descricao, quantidade, valor_unitario, unidade, valor_total)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     );
 
     for (const item of items) {
@@ -107,6 +107,7 @@ export async function criarVenda({
         item.descricao,
         quantidade,
         valorUnitario,
+        item.unidade || "UN",
         quantidade * valorUnitario,
       );
 
@@ -146,13 +147,186 @@ export async function criarVenda({
 }
 
 export function listVendas({ limit = 50 } = {}) {
+  return searchVendas({ limit });
+}
+
+export function searchVendas({ search = "", status = "", limit = 50 } = {}) {
   const db = getDb();
   return db
     .prepare(
-      `SELECT venda_id, caixa_id, pessoa_id, cliente_tipo_documento, cliente_documento, cliente_nome, cliente_email, status, total_produtos, total_desconto, total_liquido, criada_em, concluida_em
-       FROM venda
-       ORDER BY venda_id DESC
+      `SELECT
+         v.venda_id,
+         v.caixa_id,
+         v.pessoa_id,
+         v.cliente_tipo_documento,
+         v.cliente_documento,
+         v.cliente_nome,
+         v.cliente_email,
+         v.status,
+         v.total_produtos,
+         v.total_desconto,
+         v.total_liquido,
+         v.criada_em,
+         v.concluida_em,
+         v.cancelada_em,
+         v.cancelamento_motivo,
+         c.operador_nome,
+         c.terminal_codigo,
+         n.status AS nfce_status,
+         n.numero AS nfce_numero,
+         n.serie AS nfce_serie
+       FROM venda v
+       LEFT JOIN caixa c ON c.caixa_id = v.caixa_id
+       LEFT JOIN nfce n ON n.venda_id = v.venda_id
+       WHERE
+         (? = '' OR v.status = ?)
+         AND (
+           ? = ''
+           OR CAST(v.venda_id AS TEXT) LIKE ?
+           OR LOWER(COALESCE(v.cliente_nome, '')) LIKE ?
+           OR LOWER(COALESCE(v.cliente_documento, '')) LIKE ?
+           OR REPLACE(printf('%.2f', COALESCE(v.total_liquido, 0)), '.', ',') LIKE ?
+           OR printf('%.2f', COALESCE(v.total_liquido, 0)) LIKE ?
+         )
+       ORDER BY v.venda_id DESC
        LIMIT ?`,
     )
-    .all(limit);
+    .all(
+      String(status || "").trim().toLowerCase(),
+      String(status || "").trim().toLowerCase(),
+      String(search || "").trim().toLowerCase(),
+      `%${String(search || "").trim().toLowerCase()}%`,
+      `%${String(search || "").trim().toLowerCase()}%`,
+      `%${String(search || "").trim().toLowerCase()}%`,
+      `%${String(search || "").trim().toLowerCase()}%`,
+      `%${String(search || "").trim().toLowerCase().replace(",", ".")}%`,
+      Number(limit) > 0 ? Math.min(Number(limit), 200) : 50,
+    );
+}
+
+export function getVendaDetalhe(vendaId) {
+  const db = getDb();
+  const venda = db
+    .prepare(
+      `SELECT
+         v.venda_id,
+         v.caixa_id,
+         v.pessoa_id,
+         v.cliente_tipo_documento,
+         v.cliente_documento,
+         v.cliente_nome,
+         v.cliente_email,
+         v.status,
+         v.total_produtos,
+         v.total_desconto,
+         v.total_liquido,
+         v.criada_em,
+         v.concluida_em,
+         v.cancelada_em,
+         v.cancelamento_motivo,
+         c.operador_nome,
+         c.terminal_codigo,
+         n.nfce_id,
+         n.status AS nfce_status,
+         n.chave_acesso,
+         n.numero AS nfce_numero,
+         n.serie AS nfce_serie,
+         n.protocolo,
+         n.motivo AS nfce_motivo,
+         n.emitida_em
+       FROM venda v
+       LEFT JOIN caixa c ON c.caixa_id = v.caixa_id
+       LEFT JOIN nfce n ON n.venda_id = v.venda_id
+       WHERE v.venda_id = ?
+       LIMIT 1`,
+    )
+    .get(Number(vendaId));
+
+  if (!venda) {
+    throw new Error("Venda local não encontrada.");
+  }
+
+  const itens = db
+    .prepare(
+      `SELECT
+         venda_item_id,
+         venda_id,
+         produto_id,
+         codigo_produto,
+         descricao,
+         unidade,
+         quantidade,
+         valor_unitario,
+         valor_total
+       FROM venda_item
+       WHERE venda_id = ?
+       ORDER BY venda_item_id ASC`,
+    )
+    .all(Number(vendaId));
+
+  const pagamentos = db
+    .prepare(
+      `SELECT
+         pagamento_id,
+         venda_id,
+         forma,
+         valor,
+         autorizado,
+         criado_em
+       FROM venda_pagamento
+       WHERE venda_id = ?
+       ORDER BY pagamento_id ASC`,
+    )
+    .all(Number(vendaId));
+
+  return { ...venda, itens, pagamentos };
+}
+
+export function cancelarVenda(vendaId, { motivo = "Cancelamento manual no PDV." } = {}) {
+  const db = getDb();
+  const saleId = Number(vendaId);
+  const cancelReason = String(motivo || "").trim() || "Cancelamento manual no PDV.";
+
+  const cancel = db.transaction(() => {
+    const venda = getVendaDetalhe(saleId);
+
+    if (venda.status === vendaStatus.CANCELADA) {
+      throw new Error("Esta venda já está cancelada.");
+    }
+
+    if (venda.nfce_status === nfceStatus.AUTORIZADA) {
+      throw new Error("A venda possui NFC-e autorizada. Faça primeiro o cancelamento fiscal.");
+    }
+
+    for (const item of venda.itens) {
+      db.prepare(
+        `UPDATE produto
+         SET estoque_atual = estoque_atual + ?, atualizado_em = CURRENT_TIMESTAMP
+         WHERE produto_id = ?`,
+      ).run(Number(item.quantidade || 0), item.produto_id);
+    }
+
+    db.prepare(
+      `UPDATE venda
+       SET status = ?, cancelada_em = CURRENT_TIMESTAMP, cancelamento_motivo = ?
+       WHERE venda_id = ?`,
+    ).run(vendaStatus.CANCELADA, cancelReason, saleId);
+
+    db.prepare(
+      `UPDATE nfce
+       SET status = ?, motivo = ?, atualizado_em = CURRENT_TIMESTAMP
+       WHERE venda_id = ?`,
+    ).run(nfceStatus.CANCELADA, cancelReason, saleId);
+
+    return getVendaDetalhe(saleId);
+  });
+
+  const vendaCancelada = cancel();
+  enqueueSyncEvent(syncEventTypes.VENDA_CANCELADA, vendaCancelada);
+  enqueueSyncEvent(syncEventTypes.NFCE_CANCELADA, {
+    venda_id: vendaCancelada.venda_id,
+    motivo: vendaCancelada.cancelamento_motivo,
+    status: vendaCancelada.nfce_status,
+  });
+  return vendaCancelada;
 }

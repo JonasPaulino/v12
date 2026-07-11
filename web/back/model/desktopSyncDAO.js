@@ -19,10 +19,19 @@ class DesktopSyncDAO {
     const safeLimit = Number(limit) > 0 ? Math.min(Number(limit), 5000) : 1000;
     const values = [tenantId];
     let sinceWhere = "";
+    const syncTimestampSql = `
+      GREATEST(
+        COALESCE(p.atualizado_em, p.criado_em),
+        COALESCE(pf.atualizado_em, p.criado_em),
+        COALESCE(pu.atualizado_em, p.criado_em),
+        COALESCE(pp.atualizado_em, p.criado_em),
+        COALESCE(pe.atualizado_em, p.criado_em)
+      )
+    `;
 
     if (since) {
       values.push(since);
-      sinceWhere = `AND p.atualizado_em > $${values.length}`;
+      sinceWhere = `AND ${syncTimestampSql} > $${values.length}`;
     }
 
     values.push(safeLimit);
@@ -39,7 +48,7 @@ class DesktopSyncDAO {
           COALESCE(pp.preco_venda, 0) AS preco_venda,
           COALESCE(pe.estoque_atual, 0) AS estoque_atual,
           p.ativo,
-          p.atualizado_em
+          ${syncTimestampSql} AS sincronizacao_atualizada_em
         FROM produto p
         LEFT JOIN produto_fiscal pf ON pf.produto_id = p.produto_id
         LEFT JOIN produto_unidade pu ON pu.produto_id = p.produto_id
@@ -64,7 +73,7 @@ class DesktopSyncDAO {
         WHERE p.tenant_id = $1
           AND p.excluido = FALSE
           ${sinceWhere}
-        ORDER BY p.atualizado_em ASC, p.produto_id ASC
+        ORDER BY ${syncTimestampSql} ASC, p.produto_id ASC
         LIMIT $${values.length}
       `,
       values,

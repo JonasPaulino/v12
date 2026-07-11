@@ -20,6 +20,8 @@ import { ConfiguracaoLocal } from "./components/configuracao/ConfiguracaoLocal.j
 import { ProdutoSearch } from "./components/ProdutoSearch.jsx";
 import { LoginOperador } from "./components/setup/LoginOperador.jsx";
 import { SetupLocal } from "./components/setup/SetupLocal.jsx";
+import { HistoricoVendaDetalhe } from "./components/vendas/HistoricoVendaDetalhe.jsx";
+import { HistoricoVendas } from "./components/vendas/HistoricoVendas.jsx";
 import { VendaPagamentoModal } from "./components/pagamento/VendaPagamentoModal.jsx";
 import { VendaResumo } from "./components/VendaResumo.jsx";
 import { AppContext } from "./context/AppContext.jsx";
@@ -62,6 +64,12 @@ export default function App() {
   });
   const [pagamentoModalAberto, setPagamentoModalAberto] = useState(false);
   const [pagamentosConfirmados, setPagamentosConfirmados] = useState(null);
+  const [historicoBusca, setHistoricoBusca] = useState("");
+  const [historicoStatus, setHistoricoStatus] = useState("");
+  const [historicoVendas, setHistoricoVendas] = useState([]);
+  const [historicoVendaSelecionadaId, setHistoricoVendaSelecionadaId] = useState(null);
+  const [historicoVendaDetalhe, setHistoricoVendaDetalhe] = useState(null);
+  const [historicoLoading, setHistoricoLoading] = useState(false);
   const [descontoTipo, setDescontoTipo] = useState("valor");
   const [descontoEntrada, setDescontoEntrada] = useState("");
   const [financeiroSupportData, setFinanceiroSupportData] = useState(null);
@@ -532,6 +540,132 @@ export default function App() {
     }
   }
 
+  async function carregarHistoricoVendas({ keepSelection = true } = {}) {
+    try {
+      setHistoricoLoading(true);
+      const data = await api.vendas({
+        search: historicoBusca,
+        status: historicoStatus,
+        limit: 100,
+      });
+      setHistoricoVendas(Array.isArray(data) ? data : []);
+
+      const nextSelectedId =
+        keepSelection && historicoVendaSelecionadaId
+          ? historicoVendaSelecionadaId
+          : data?.[0]?.venda_id || null;
+
+      setHistoricoVendaSelecionadaId(nextSelectedId);
+      if (nextSelectedId) {
+        await carregarHistoricoVendaDetalhe(nextSelectedId);
+      } else {
+        setHistoricoVendaDetalhe(null);
+      }
+    } catch (error) {
+      showAlert({
+        title: "Falha ao carregar vendas",
+        text: error.message,
+        icon: "error",
+      });
+    } finally {
+      setHistoricoLoading(false);
+    }
+  }
+
+  async function carregarHistoricoVendaDetalhe(vendaId) {
+    try {
+      setHistoricoLoading(true);
+      const data = await api.vendaDetalhe(vendaId);
+      setHistoricoVendaSelecionadaId(Number(vendaId));
+      setHistoricoVendaDetalhe(data);
+      return data;
+    } catch (error) {
+      showAlert({
+        title: "Falha ao carregar venda",
+        text: error.message,
+        icon: "error",
+      });
+      return null;
+    } finally {
+      setHistoricoLoading(false);
+    }
+  }
+
+  function buildBudgetPayloadFromVenda(venda) {
+    const config = configStatus?.config || {};
+
+    return {
+      items: Array.isArray(venda?.itens)
+        ? venda.itens.map((item) => ({
+            codigo_produto: item.codigo_produto,
+            descricao: item.descricao,
+            quantidade: Number(item.quantidade || 0),
+            valor_unitario: Number(item.valor_unitario || 0),
+            unidade: item.unidade || "UN",
+          }))
+        : [],
+      subtotal: Number(venda?.total_produtos || 0),
+      desconto: Number(venda?.total_desconto || 0),
+      total: Number(venda?.total_liquido || 0),
+      pagamentos: Array.isArray(venda?.pagamentos)
+        ? venda.pagamentos.map((pagamento) => ({
+            forma: pagamento.forma,
+            descricao: pagamento.forma,
+            valor: Number(pagamento.valor || 0),
+          }))
+        : [],
+      cliente: venda?.cliente_nome || "Consumidor não identificado",
+      operador: venda?.operador_nome || operador?.nome || caixa?.operador_nome || "Operador",
+      data: venda?.concluida_em || venda?.criada_em || new Date().toLocaleString("pt-BR"),
+      terminal: venda?.terminal_codigo || config.terminal_codigo || config.terminal_nome || "PDV",
+      emitente: {
+        nome: config.tenant_nome || "V12 ERP",
+        documento: config.tenant_documento || "",
+        endereco: config.tenant_endereco || "",
+        inscricaoEstadual: config.tenant_inscricao_estadual || "",
+        inscricaoMunicipal: config.tenant_inscricao_municipal || "",
+      },
+      numeroDocumento: `VENDA-${String(venda?.venda_id || "").padStart(6, "0")}`,
+    };
+  }
+
+  async function reimprimirVendaHistorico() {
+    if (!historicoVendaDetalhe) return;
+    await imprimirOrcamento(buildBudgetPayloadFromVenda(historicoVendaDetalhe));
+  }
+
+  async function cancelarVendaHistorico() {
+    if (!historicoVendaDetalhe) return;
+
+    const confirmed = await askYesNoQuestion(
+      "Cancelar venda",
+      `Deseja cancelar a venda #${String(historicoVendaDetalhe.venda_id).padStart(6, "0")}? O estoque será devolvido.`,
+    );
+
+    if (!confirmed) return;
+
+    try {
+      showLoading("Cancelando venda...");
+      await api.cancelarVenda(historicoVendaDetalhe.venda_id, {
+        motivo: "Cancelamento manual no PDV.",
+      });
+      await carregarHistoricoVendas({ keepSelection: true });
+      showAlert({
+        title: "Venda cancelada",
+        text: "A venda foi cancelada e o estoque foi devolvido ao terminal.",
+        icon: "success",
+      });
+    } catch (error) {
+      showAlert({
+        title: "Falha ao cancelar venda",
+        text: error.message,
+        icon: "error",
+      });
+    } finally {
+      hideLoading();
+    }
+  }
+
   async function atualizarDadosFilial() {
     try {
       showLoading("Atualizando dados da filial...");
@@ -655,7 +789,7 @@ export default function App() {
   }
 
   function openModule(module) {
-    if (module !== "configuracao" && caixa?.caixa_pendente_dia_anterior && module !== "fechamento") {
+    if (!["configuracao", "historico_vendas"].includes(module) && caixa?.caixa_pendente_dia_anterior && module !== "fechamento") {
       showAlert({
         title: "Fechamento pendente",
         text: `Existe um caixa aberto do dia ${caixa.data_operacional}. Feche esse caixa antes de continuar.`,
@@ -665,7 +799,7 @@ export default function App() {
       return;
     }
 
-    if (!caixa && !["abertura", "configuracao"].includes(module)) {
+    if (!caixa && !["abertura", "configuracao", "historico_vendas"].includes(module)) {
       showAlert({
         title: "Caixa fechado",
         text: "Abra o caixa antes de acessar esta operação.",
@@ -801,8 +935,9 @@ export default function App() {
     suprimento: "Caixa > Suprimento",
     fechamento: "Caixa > Fechamento",
     configuracao: "Sistema > Configurações locais",
+    historico_vendas: "Vendas > Reimpressão e cancelamento",
   };
-  const showSaleShortcuts = !caixaPendenteDiaAnterior && !["abertura", "fechamento", "configuracao"].includes(activeModule);
+  const showSaleShortcuts = !caixaPendenteDiaAnterior && !["abertura", "fechamento", "configuracao", "historico_vendas"].includes(activeModule);
   const breadcrumbAtivo =
     activeModule === "venda" && clienteModalAberto
       ? "Venda > Informar cliente"
@@ -831,6 +966,14 @@ export default function App() {
             <button onClick={() => openModule("sangria")}><FiFileText /> Sangria</button>
             <button onClick={() => openModule("suprimento")}><FiFileText /> Suprimento</button>
             <button onClick={() => openModule("fechamento")}><FiFileText /> Fechamento de caixa</button>
+            <button
+              onClick={() => {
+                openModule("historico_vendas");
+                carregarHistoricoVendas({ keepSelection: false });
+              }}
+            >
+              <FiFileText /> Reimpressão e cancelamento
+            </button>
             <button onClick={() => openModule("configuracao")}><FiSettings /> Configurações locais</button>
             <div className="top-dropdown-section">
               <span className="top-dropdown-section-title">Atualizações</span>
@@ -895,7 +1038,7 @@ export default function App() {
                 </button>
               ) : null}
             </div>
-            {clienteResumo ? (
+            {activeModule === "venda" && clienteResumo ? (
               <div className="customer-chip-row">
                 <span className="customer-chip">
                   <FiUser />
@@ -934,43 +1077,72 @@ export default function App() {
               <FechamentoCaixa onClosed={handleCaixaFechado} />
             ) : null}
             {activeModule === "configuracao" ? <ConfiguracaoLocal onBack={() => openModule("venda")} /> : null}
+            {activeModule === "historico_vendas" ? (
+              <HistoricoVendas
+                search={historicoBusca}
+                status={historicoStatus}
+                vendas={historicoVendas}
+                loading={historicoLoading}
+                selectedVendaId={historicoVendaSelecionadaId}
+                onSearchChange={setHistoricoBusca}
+                onStatusChange={setHistoricoStatus}
+                onRefresh={() => carregarHistoricoVendas({ keepSelection: true })}
+                onSelect={carregarHistoricoVendaDetalhe}
+              />
+            ) : null}
           </div>
         </section>
 
         <section className="right-panel">
-          <div className="receipt-header">
-            <strong>V12 ERP</strong>
-            <span>PDV Local - NFC-e modelo 65</span>
-            <small>{new Date().toLocaleString("pt-BR")}</small>
-          </div>
+          {activeModule === "historico_vendas" ? (
+            <HistoricoVendaDetalhe
+              venda={historicoVendaDetalhe}
+              loading={historicoLoading}
+              onRefresh={() =>
+                historicoVendaSelecionadaId
+                  ? carregarHistoricoVendaDetalhe(historicoVendaSelecionadaId)
+                  : carregarHistoricoVendas({ keepSelection: true })
+              }
+              onReprint={reimprimirVendaHistorico}
+              onCancel={cancelarVendaHistorico}
+            />
+          ) : (
+            <>
+              <div className="receipt-header">
+                <strong>V12 ERP</strong>
+                <span>PDV Local - NFC-e modelo 65</span>
+                <small>{new Date().toLocaleString("pt-BR")}</small>
+              </div>
 
-          <VendaResumo
-            cart={cart}
-            total={total}
-            subtotal={subtotal}
-            descontoTipo={descontoTipo}
-            descontoEntrada={descontoEntrada}
-            descontoCalculado={descontoCalculado}
-            onDescontoTipoChange={(nextTipo) => {
-              setDescontoTipo(nextTipo);
-              setPagamentosConfirmados(null);
-            }}
-            onDescontoEntradaChange={(nextEntrada) => {
-              setDescontoEntrada(nextEntrada);
-              setPagamentosConfirmados(null);
-            }}
-            onChange={(nextCart) => {
-              setCart(nextCart);
-              setPagamentosConfirmados(null);
-            }}
-            onFinish={iniciarFinalizacaoVenda}
-            onPrintBudget={imprimirOrcamentoComRecebimento}
-            onIssueCupom={() => finalizarVenda("cupom")}
-            onFinalizeSale={() => finalizarVenda("finalizar")}
-            onCancelPayment={cancelarPagamentosConfirmados}
-            paymentReady={vendaProntaParaConclusao}
-            disabled={!caixa || caixaPendenteDiaAnterior || !cart.length}
-          />
+              <VendaResumo
+                cart={cart}
+                total={total}
+                subtotal={subtotal}
+                descontoTipo={descontoTipo}
+                descontoEntrada={descontoEntrada}
+                descontoCalculado={descontoCalculado}
+                onDescontoTipoChange={(nextTipo) => {
+                  setDescontoTipo(nextTipo);
+                  setPagamentosConfirmados(null);
+                }}
+                onDescontoEntradaChange={(nextEntrada) => {
+                  setDescontoEntrada(nextEntrada);
+                  setPagamentosConfirmados(null);
+                }}
+                onChange={(nextCart) => {
+                  setCart(nextCart);
+                  setPagamentosConfirmados(null);
+                }}
+                onFinish={iniciarFinalizacaoVenda}
+                onPrintBudget={imprimirOrcamentoComRecebimento}
+                onIssueCupom={() => finalizarVenda("cupom")}
+                onFinalizeSale={() => finalizarVenda("finalizar")}
+                onCancelPayment={cancelarPagamentosConfirmados}
+                paymentReady={vendaProntaParaConclusao}
+                disabled={!caixa || caixaPendenteDiaAnterior || !cart.length}
+              />
+            </>
+          )}
         </section>
       </main>
 
