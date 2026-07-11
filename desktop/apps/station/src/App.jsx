@@ -532,6 +532,51 @@ export default function App() {
     }
   }
 
+  async function atualizarDadosFilial() {
+    try {
+      showLoading("Atualizando dados da filial...");
+      await api.sincronizarFilial();
+      await loadInitialData({ silent: true });
+      showAlert({
+        title: "Filial atualizada",
+        text: "Os dados cadastrais da filial foram atualizados no terminal.",
+        icon: "success",
+      });
+    } catch (error) {
+      showAlert({
+        title: "Falha na atualização",
+        text: error.message,
+        icon: "error",
+      });
+    } finally {
+      hideLoading();
+    }
+  }
+
+  async function atualizarPdvCompleto() {
+    try {
+      showLoading("Atualizando PDV...");
+      await api.sincronizarFilial();
+      await api.sincronizarUsuarios();
+      await api.sincronizarProdutos({ full: true });
+      await api.sincronizarFinanceiroSupportData({ tipo: "receber", refresh: true });
+      await loadInitialData({ silent: true });
+      showAlert({
+        title: "PDV atualizado",
+        text: "Filial, operadores, produtos e apoio financeiro foram atualizados.",
+        icon: "success",
+      });
+    } catch (error) {
+      showAlert({
+        title: "Falha na atualização",
+        text: error.message,
+        icon: "error",
+      });
+    } finally {
+      hideLoading();
+    }
+  }
+
   async function sairDoSistema() {
     const confirmed = await askYesNoQuestion(
       "Sair do sistema",
@@ -787,7 +832,12 @@ export default function App() {
             <button onClick={() => openModule("suprimento")}><FiFileText /> Suprimento</button>
             <button onClick={() => openModule("fechamento")}><FiFileText /> Fechamento de caixa</button>
             <button onClick={() => openModule("configuracao")}><FiSettings /> Configurações locais</button>
-            <button onClick={() => sincronizarProdutos(true)}><FiRefreshCcw /> Sincronizar produtos</button>
+            <div className="top-dropdown-section">
+              <span className="top-dropdown-section-title">Atualizações</span>
+              <button className="submenu-button" onClick={atualizarPdvCompleto}><FiRefreshCcw /> Atualizar PDV</button>
+              <button className="submenu-button" onClick={() => sincronizarProdutos(true)}><FiRefreshCcw /> Atualizar produtos</button>
+              <button className="submenu-button" onClick={atualizarDadosFilial}><FiRefreshCcw /> Atualizar dados da filial</button>
+            </div>
             <button onClick={alternarTelaCheia}><FiMaximize2 /> Alternar tela cheia</button>
             <button className="danger-menu" onClick={sairDoSistema}><FiPower /> Sair do sistema</button>
           </div>
@@ -883,12 +933,7 @@ export default function App() {
             {activeModule === "fechamento" ? (
               <FechamentoCaixa onClosed={handleCaixaFechado} />
             ) : null}
-            {activeModule === "configuracao" ? (
-              <ConfiguracaoLocal
-                onBack={() => openModule("venda")}
-                onUpdated={() => loadInitialData({ silent: true })}
-              />
-            ) : null}
+            {activeModule === "configuracao" ? <ConfiguracaoLocal onBack={() => openModule("venda")} /> : null}
           </div>
         </section>
 

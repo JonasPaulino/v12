@@ -386,6 +386,28 @@ label {
   background: #fff1f2;
 }
 
+.top-dropdown-section {
+  display: grid;
+  gap: 2px;
+  padding: 6px 0;
+  margin: 4px 0;
+  border-top: 1px solid #d7e4ef;
+  border-bottom: 1px solid #d7e4ef;
+}
+
+.top-dropdown-section-title {
+  padding: 4px 12px 6px;
+  color: #5b7286;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.top-dropdown .submenu-button {
+  padding-left: 28px;
+}
+
 .operator-info {
   display: flex;
   align-items: center;

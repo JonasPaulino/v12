@@ -1,6 +1,10 @@
 import { Router } from "express";
 import { getTerminalConfig } from "../modules/configuracao/localConfigRepository.js";
-import { configurarTerminalPorTenant, loginErpWeb } from "../services/erpSetupService.js";
+import {
+  atualizarDadosFilialAtual,
+  configurarTerminalPorTenant,
+  loginErpWeb,
+} from "../services/erpSetupService.js";
 import { getPrinterConfig, savePrinterConfig } from "../services/printerConfigService.js";
 
 const router = Router();
@@ -53,6 +57,15 @@ router.post("/setup-web", async (req, res, next) => {
       terminal_nome: req.body?.terminal_nome,
     });
 
+    res.json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/sincronizar-filial", async (_req, res, next) => {
+  try {
+    const data = await atualizarDadosFilialAtual();
     res.json({ success: true, data });
   } catch (error) {
     next(error);

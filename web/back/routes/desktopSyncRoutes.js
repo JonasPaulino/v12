@@ -104,6 +104,33 @@ async function enrichTenantsWithCompanyData(client, tenants = []) {
   }));
 }
 
+async function getTenantWithCompanyData(client, tenantId) {
+  const result = await client.query(
+    `
+      SELECT
+        tenant_id,
+        tenant_nome,
+        tenant_slug,
+        tenant_documento,
+        tenant_ativo,
+        COALESCE(tenant_acesso_bloqueado, FALSE) AS tenant_acesso_bloqueado,
+        tenant_bloqueio_motivo
+      FROM tenant
+      WHERE tenant_id = $1
+      LIMIT 1
+    `,
+    [tenantId],
+  );
+  const tenantBase = result.rows[0] || null;
+  if (!tenantBase) {
+    return null;
+  }
+
+  const tenants = await enrichTenantsWithCompanyData(client, [tenantBase]);
+
+  return tenants[0] || null;
+}
+
 router.post("/desktop/sync/setup-login", async (req, res) => {
   try {
     const email = String(req.body?.email || "").trim().toLowerCase();
@@ -165,6 +192,37 @@ router.post("/desktop/sync/setup-login", async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Não foi possível validar o acesso para setup.",
+    });
+  }
+});
+
+router.get("/desktop/sync/tenant-config", async (req, res) => {
+  try {
+    const tenantId = Number(req.query.tenant_id);
+    if (!Number.isInteger(tenantId) || tenantId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "tenant_id obrigatório.",
+      });
+    }
+
+    const tenant = await getTenantWithCompanyData(pool, tenantId);
+    if (!tenant) {
+      return res.status(404).json({
+        success: false,
+        message: "Filial não encontrada.",
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: buildTenantPayload(tenant),
+    });
+  } catch (error) {
+    console.error("[desktop-sync] Falha ao consultar dados da filial:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Não foi possível consultar os dados da filial.",
     });
   }
 });

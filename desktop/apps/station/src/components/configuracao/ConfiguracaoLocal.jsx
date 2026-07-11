@@ -13,7 +13,7 @@ const DEFAULT_PRINTER_CONFIG = {
   copies: 1,
 };
 
-export function ConfiguracaoLocal({ onBack, onUpdated }) {
+export function ConfiguracaoLocal({ onBack }) {
   const [form, setForm] = useState(DEFAULT_PRINTER_CONFIG);
   const [printers, setPrinters] = useState([]);
   const [loadingPrinters, setLoadingPrinters] = useState(false);
@@ -156,27 +156,6 @@ export function ConfiguracaoLocal({ onBack, onUpdated }) {
     }
   }
 
-  async function syncTenantData() {
-    try {
-      showLoading("Atualizando dados da filial...");
-      await api.sincronizarFilial();
-      showAlert({
-        title: "Filial atualizada",
-        text: "Os dados cadastrais da filial foram atualizados no terminal.",
-        icon: "success",
-      });
-      onUpdated?.();
-    } catch (error) {
-      showAlert({
-        title: "Falha ao atualizar filial",
-        text: error.message,
-        icon: "error",
-      });
-    } finally {
-      hideLoading();
-    }
-  }
-
   return (
     <div className="local-settings-module">
       <div className="local-settings-head">
@@ -288,10 +267,6 @@ export function ConfiguracaoLocal({ onBack, onUpdated }) {
       </div>
 
       <div className="local-settings-actions">
-        <button type="button" className="secondary-action" onClick={syncTenantData}>
-          <FiRefreshCcw />
-          Atualizar dados da filial
-        </button>
         <button type="button" className="secondary-action" onClick={loadPrinters} disabled={!electronAvailable || loadingPrinters}>
           <FiRefreshCcw />
           Atualizar impressoras
