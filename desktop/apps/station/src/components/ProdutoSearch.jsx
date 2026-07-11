@@ -11,6 +11,9 @@ export function ProdutoSearch({ onSelect, disabled }) {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const containerRef = useRef(null);
+  const searchInputRef = useRef(null);
+  const quantityInputRef = useRef(null);
+  const lockSelectionRef = useRef(false);
   const { showAlert } = useSweetAlert();
 
   useEffect(() => {
@@ -30,8 +33,6 @@ export function ProdutoSearch({ onSelect, disabled }) {
     const query = search.trim();
     if (!query) {
       setProdutos([]);
-      setSelectedProduto(null);
-      setQuantity(1);
       setIsOpen(false);
       return undefined;
     }
@@ -41,15 +42,23 @@ export function ProdutoSearch({ onSelect, disabled }) {
         setLoading(true);
         const data = await api.produtos(query);
         setProdutos(data);
+        if (lockSelectionRef.current) {
+          setIsOpen(false);
+          return;
+        }
+
         setIsOpen(data.length > 0);
-        setSelectedProduto((current) =>
-          current && data.some((produto) => produto.produto_id === current.produto_id)
+        setSelectedProduto((current) => {
+          if (!current) {
+            return data[0] || null;
+          }
+
+          return data.some((produto) => produto.produto_id === current.produto_id)
             ? current
-            : data[0] || null,
-        );
+            : data[0] || null;
+        });
       } catch {
         setProdutos([]);
-        setSelectedProduto(null);
         setIsOpen(false);
       } finally {
         setLoading(false);
@@ -77,11 +86,28 @@ export function ProdutoSearch({ onSelect, disabled }) {
   }
 
   function limparBusca() {
+    lockSelectionRef.current = false;
     setSearch("");
     setProdutos([]);
     setSelectedProduto(null);
     setQuantity(1);
     setIsOpen(false);
+    window.requestAnimationFrame(() => {
+      searchInputRef.current?.focus();
+    });
+  }
+
+  function selecionarProduto(produto) {
+    lockSelectionRef.current = true;
+    setSelectedProduto(produto);
+    setSearch("");
+    setProdutos([]);
+    setIsOpen(false);
+
+    window.requestAnimationFrame(() => {
+      quantityInputRef.current?.focus();
+      quantityInputRef.current?.select();
+    });
   }
 
   async function adicionarProduto() {
@@ -134,13 +160,25 @@ export function ProdutoSearch({ onSelect, disabled }) {
             <div className="product-combobox">
               <FiSearch className="product-search-icon" />
               <input
+                ref={searchInputRef}
                 placeholder="Escaneie ou digite codigo/descricao"
                 value={search}
-                onFocus={() => setIsOpen(produtos.length > 0)}
-                onChange={(event) => setSearch(event.target.value)}
+                onFocus={() => setIsOpen(produtos.length > 0 && !lockSelectionRef.current)}
+                onChange={(event) => {
+                  lockSelectionRef.current = false;
+                  setSearch(event.target.value);
+                }}
                 onKeyDown={(event) => {
                   if (event.key === "Enter") {
                     event.preventDefault();
+                    if (lockSelectionRef.current && selectedProduto) {
+                      selecionarProduto(selectedProduto);
+                      return;
+                    }
+                    if (produtos.length > 0) {
+                      selecionarProduto(selectedProduto || produtos[0]);
+                      return;
+                    }
                     adicionarProduto();
                   }
                   if (event.key === "Escape") {
@@ -163,14 +201,10 @@ export function ProdutoSearch({ onSelect, disabled }) {
                           selectedProduto?.produto_id === produto.produto_id ? "active" : ""
                         }`}
                         onMouseDown={(event) => event.preventDefault()}
-                        onClick={() => {
-                          setSelectedProduto(produto);
-                          setSearch(produto.descricao || produto.codigo || "");
-                          setIsOpen(false);
-                        }}
+                        onClick={() => selecionarProduto(produto)}
                       >
-                        <span>
-                          <strong>{produto.descricao}</strong>
+                      <span>
+                        <strong>{produto.descricao}</strong>
                           <small>{produto.codigo || "Sem codigo"} | Estoque {produto.estoque_atual}</small>
                         </span>
                         <b>R$ {Number(produto.preco_venda || 0).toFixed(2)}</b>
@@ -229,6 +263,7 @@ export function ProdutoSearch({ onSelect, disabled }) {
                 <FiMinus />
               </button>
               <input
+                ref={quantityInputRef}
                 type="number"
                 min="1"
                 step="1"

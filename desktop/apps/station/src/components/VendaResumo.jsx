@@ -63,7 +63,7 @@ export function VendaResumo({
           <div className="receipt-row" key={item.produto_id}>
             <span>{String(cart.indexOf(item) + 1).padStart(3, "0")}</span>
             <span>{item.codigo_produto || item.produto_id}</span>
-            <strong>{item.descricao}</strong>
+            <strong className="item-description">{item.descricao}</strong>
             <span>{Number(item.valor_unitario).toFixed(2)}</span>
             <div className="quantity-control">
               <button
@@ -75,7 +75,19 @@ export function VendaResumo({
               >
                 <FiMinus />
               </button>
-              <span className="quantity-value">{Number(item.quantidade)}</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                className="quantity-value-input"
+                value={String(Number(item.quantidade))}
+                disabled={disabled || paymentReady}
+                onChange={(event) => {
+                  const nextValue = event.target.value.replace(/\D/g, "");
+                  updateQuantity(item.produto_id, nextValue);
+                }}
+                aria-label={`Quantidade de ${item.descricao}`}
+              />
               <button
                 type="button"
                 className="quantity-step"

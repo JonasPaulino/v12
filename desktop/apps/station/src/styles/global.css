@@ -621,6 +621,7 @@ label {
 .product-suggestion strong {
   display: block;
   font-size: 0.86rem;
+  text-transform: uppercase;
 }
 
 .product-suggestion small {
@@ -701,6 +702,7 @@ label {
 .selected-product-preview strong {
   font-size: 1rem;
   color: #576273;
+  text-transform: uppercase;
 }
 
 .selected-product-preview b {
@@ -732,6 +734,10 @@ label {
 .selected-product-meta strong {
   color: #334155;
   font-size: 0.9rem;
+}
+
+.item-description {
+  text-transform: uppercase;
 }
 
 .selected-product-actions {
@@ -984,7 +990,7 @@ label {
   font-size: 0.9rem;
 }
 
-.quantity-value {
+.quantity-value-input {
   min-width: 0;
   padding: 6px 8px;
   border: 1px solid #dbe3eb;
@@ -993,6 +999,12 @@ label {
   color: #1f2937;
   text-align: center;
   font-weight: 800;
+  outline: none;
+}
+
+.quantity-value-input:focus {
+  border-color: #1688bd;
+  box-shadow: 0 0 0 2px rgba(22, 136, 189, 0.15);
 }
 
 .remove-line {
