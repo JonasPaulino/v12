@@ -76,7 +76,9 @@ export function VendaResumo({ cart, total, onChange, onFinish, disabled }) {
           <strong>{Number(total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong>
         </div>
       </footer>
-      <button className="finish" disabled={disabled} onClick={onFinish}>Finalizar venda (Ctrl + F)</button>
+      <button className="finish" disabled={disabled} onClick={onFinish}>
+        Pagamento / finalizar venda (Ctrl + F)
+      </button>
     </div>
   );
 }

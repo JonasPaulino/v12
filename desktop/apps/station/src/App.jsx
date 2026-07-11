@@ -19,6 +19,7 @@ import { MovimentoCaixa } from "./components/caixa/MovimentoCaixa.jsx";
 import { ProdutoSearch } from "./components/ProdutoSearch.jsx";
 import { LoginOperador } from "./components/setup/LoginOperador.jsx";
 import { SetupLocal } from "./components/setup/SetupLocal.jsx";
+import { VendaPagamentoModal } from "./components/pagamento/VendaPagamentoModal.jsx";
 import { VendaResumo } from "./components/VendaResumo.jsx";
 import { AppContext } from "./context/AppContext.jsx";
 import { useSweetAlert } from "./context/SweetAlertContext.jsx";
@@ -30,6 +31,18 @@ function getModuleForCaixa(caixaData) {
 }
 
 const LIMITE_IDENTIFICACAO_CLIENTE = 10000;
+const FALLBACK_FINANCEIRO_SUPPORT_DATA = {
+  condicoesPagamento: [],
+  condicaoPagamentoPadrao: null,
+  formasPagamento: [
+    { codigo: "dinheiro", descricao: "Dinheiro", padrao: true },
+    { codigo: "pix", descricao: "Pix", padrao: false },
+    { codigo: "debito", descricao: "Cartão de débito", padrao: false },
+    { codigo: "credito", descricao: "Cartão de crédito", padrao: false },
+    { codigo: "outros", descricao: "Outros", padrao: false },
+  ],
+  formaPagamentoPadrao: { codigo: "dinheiro", descricao: "Dinheiro", padrao: true },
+};
 
 export default function App() {
   const [health, setHealth] = useState(null);
@@ -46,6 +59,8 @@ export default function App() {
     nome: "",
     email: "",
   });
+  const [pagamentoModalAberto, setPagamentoModalAberto] = useState(false);
+  const [financeiroSupportData, setFinanceiroSupportData] = useState(null);
   const { showLoading, hideLoading } = useContext(AppContext);
   const { showAlert, askYesNoQuestion } = useSweetAlert();
 
@@ -93,9 +108,23 @@ export default function App() {
 
   useEffect(() => {
     const handleKeyboardShortcut = (event) => {
+      const targetTag = String(event.target?.tagName || "").toUpperCase();
+      if (["INPUT", "TEXTAREA", "SELECT"].includes(targetTag) || event.target?.isContentEditable) {
+        return;
+      }
+
+      if (event.shiftKey && String(event.key || "").toLowerCase() === "p") {
+        if (!caixa || caixaPendenteDiaAnterior || activeModule !== "venda" || !cart.length) return;
+        if (clienteModalAberto || pagamentoModalAberto) return;
+
+        event.preventDefault();
+        imprimirOrcamento();
+        return;
+      }
+
       if (event.key !== "F4") return;
       if (!caixa || caixaPendenteDiaAnterior) return;
-      if (clienteModalAberto || activeModule !== "venda") return;
+      if (clienteModalAberto || pagamentoModalAberto || activeModule !== "venda") return;
 
       event.preventDefault();
       abrirModalCliente();
@@ -103,7 +132,7 @@ export default function App() {
 
     window.addEventListener("keydown", handleKeyboardShortcut);
     return () => window.removeEventListener("keydown", handleKeyboardShortcut);
-  }, [activeModule, caixa, caixaPendenteDiaAnterior, clienteModalAberto]);
+  }, [activeModule, caixa, caixaPendenteDiaAnterior, cart, clienteModalAberto, pagamentoModalAberto]);
 
   const total = useMemo(() => {
     return cart.reduce((acc, item) => acc + Number(item.quantidade) * Number(item.valor_unitario), 0);
@@ -133,7 +162,42 @@ export default function App() {
     });
   }
 
-  async function finalizarVenda() {
+  async function carregarFinanceiroSupportData({ silent = false } = {}) {
+    try {
+      if (!silent) {
+        showLoading("Carregando formas de pagamento...");
+      }
+
+      const result = await api.financeiroSupportData({ tipo: "receber" });
+      const supportData = result || FALLBACK_FINANCEIRO_SUPPORT_DATA;
+      const formasPagamento = Array.isArray(supportData.formasPagamento)
+        ? supportData.formasPagamento.filter(Boolean)
+        : [];
+
+      setFinanceiroSupportData({
+        ...FALLBACK_FINANCEIRO_SUPPORT_DATA,
+        ...supportData,
+        formasPagamento: formasPagamento.length
+          ? formasPagamento
+          : FALLBACK_FINANCEIRO_SUPPORT_DATA.formasPagamento,
+        formaPagamentoPadrao:
+          supportData.formaPagamentoPadrao ||
+          formasPagamento.find((item) => item.padrao) ||
+          FALLBACK_FINANCEIRO_SUPPORT_DATA.formaPagamentoPadrao,
+      });
+
+      return true;
+    } catch {
+      setFinanceiroSupportData(FALLBACK_FINANCEIRO_SUPPORT_DATA);
+      return false;
+    } finally {
+      if (!silent) {
+        hideLoading();
+      }
+    }
+  }
+
+  async function iniciarFinalizacaoVenda() {
     try {
       if (total >= LIMITE_IDENTIFICACAO_CLIENTE && !clienteIdentificado) {
         const wantsToIdentify = await askYesNoQuestion(
@@ -147,14 +211,38 @@ export default function App() {
         }
       }
 
+      if (!financeiroSupportData) {
+        const loaded = await carregarFinanceiroSupportData();
+        if (!loaded) {
+          showAlert({
+            title: "Formas de pagamento indisponíveis",
+            text: "Não foi possível carregar o apoio financeiro do ERP. O PDV seguirá com os meios locais padrão.",
+            icon: "warning",
+          });
+        }
+      }
+
+      setPagamentoModalAberto(true);
+    } catch (error) {
+      showAlert({
+        title: "Falha na venda",
+        text: error.message,
+        icon: "error",
+      });
+    }
+  }
+
+  async function confirmarPagamentoVenda(pagamentos) {
+    try {
       showLoading("Finalizando venda...");
       const result = await api.criarVenda({
         cliente: clienteIdentificado,
         items: cart,
-        pagamentos: [{ forma: "dinheiro", valor: total }],
+        pagamentos,
       });
       setCart([]);
       setClienteIdentificado(null);
+      setPagamentoModalAberto(false);
       showAlert({
         title: "Venda registrada",
         text: result.fiscal?.message || "Venda registrada localmente.",
@@ -168,6 +256,40 @@ export default function App() {
       });
     } finally {
       hideLoading();
+    }
+  }
+
+  async function imprimirOrcamento() {
+    try {
+      const payload = {
+        items: cart,
+        total,
+        cliente: clienteResumo || "Cliente não identificado",
+        operador: operador?.nome || caixa?.operador_nome || "Operador",
+        data: new Date().toLocaleString("pt-BR"),
+      };
+
+      if (window.v12Desktop?.printBudget) {
+        await window.v12Desktop.printBudget(payload);
+        return;
+      }
+
+      const popup = window.open("", "_blank", "width=900,height=900");
+      if (!popup) {
+        throw new Error("Não foi possível abrir a janela de impressão.");
+      }
+
+      popup.document.write(`<pre>${JSON.stringify(payload, null, 2)}</pre>`);
+      popup.document.close();
+      popup.focus();
+      popup.onafterprint = () => popup.close();
+      popup.print();
+    } catch (error) {
+      showAlert({
+        title: "Falha ao imprimir orçamento",
+        text: error.message,
+        icon: "error",
+      });
     }
   }
 
@@ -201,6 +323,8 @@ export default function App() {
 
     setCart([]);
     setClienteIdentificado(null);
+    setClienteModalAberto(false);
+    setPagamentoModalAberto(false);
     setOperador(null);
     setActiveModule(getModuleForCaixa(caixa));
   }
@@ -294,6 +418,8 @@ export default function App() {
   function handleCaixaFechado() {
     setCart([]);
     setClienteIdentificado(null);
+    setClienteModalAberto(false);
+    setPagamentoModalAberto(false);
     setCaixa(null);
     setActiveModule("abertura");
   }
@@ -386,6 +512,9 @@ export default function App() {
   const clienteResumo = clienteIdentificado
     ? `${clienteIdentificado.tipoDocumento}: ${clienteIdentificado.documento} - ${clienteIdentificado.nome}`
     : null;
+  const formasPagamento = financeiroSupportData?.formasPagamento?.length
+    ? financeiroSupportData.formasPagamento
+    : FALLBACK_FINANCEIRO_SUPPORT_DATA.formasPagamento;
 
   return (
     <div className="pdv-shell">
@@ -500,7 +629,7 @@ export default function App() {
             cart={cart}
             total={total}
             onChange={setCart}
-            onFinish={finalizarVenda}
+            onFinish={iniciarFinalizacaoVenda}
             disabled={!caixa || caixaPendenteDiaAnterior || !cart.length}
           />
         </section>
@@ -581,6 +710,16 @@ export default function App() {
           </div>
         </div>
       ) : null}
+
+      <VendaPagamentoModal
+        open={pagamentoModalAberto}
+        total={total}
+        formasPagamento={formasPagamento}
+        clienteResumo={clienteResumo}
+        supportLoading={!financeiroSupportData}
+        onClose={() => setPagamentoModalAberto(false)}
+        onConfirm={confirmarPagamentoVenda}
+      />
 
       <footer className="pdv-footer">
         <div className="footer-status">

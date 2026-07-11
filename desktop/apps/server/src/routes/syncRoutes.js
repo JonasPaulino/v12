@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { listPendingSync } from "../services/syncQueueService.js";
+import { getCachedFinanceiroSupportData, syncFinanceiroSupportDataFromErp } from "../services/financeiroSupportDataSyncService.js";
 import { processSyncQueue } from "../services/erpSyncService.js";
 import { syncProdutosFromErp } from "../services/produtoSyncService.js";
 import { syncUsuariosFromErp } from "../services/usuarioSyncService.js";
@@ -28,6 +29,31 @@ router.post("/produtos", async (req, res, next) => {
 router.post("/usuarios", async (_req, res, next) => {
   try {
     const data = await syncUsuariosFromErp();
+    res.json(data);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/financeiro-support-data", async (req, res, next) => {
+  try {
+    const data = await getCachedFinanceiroSupportData({
+      tipo: String(req.query.tipo || "receber"),
+    });
+
+    res.json(data);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/financeiro-support-data", async (req, res, next) => {
+  try {
+    const data = await syncFinanceiroSupportDataFromErp({
+      tipo: String(req.body?.tipo || "receber"),
+      refresh: req.body?.refresh !== false,
+    });
+
     res.json(data);
   } catch (error) {
     next(error);

@@ -48,4 +48,16 @@ export const api = {
   sincronizarProdutos: (payload = {}) =>
     request("/sync/produtos", { method: "POST", body: JSON.stringify(payload) }),
   sincronizarUsuarios: () => request("/sync/usuarios", { method: "POST" }),
+  financeiroSupportData: (payload = {}) =>
+    request(
+      `/sync/financeiro-support-data?tipo=${encodeURIComponent(payload.tipo || "receber")}`,
+    ),
+  sincronizarFinanceiroSupportData: (payload = {}) =>
+    request("/sync/financeiro-support-data", {
+      method: "POST",
+      body: JSON.stringify({
+        tipo: payload.tipo || "receber",
+        refresh: payload.refresh !== false,
+      }),
+    }),
 };

@@ -2,6 +2,7 @@ import express from "express";
 import { pool } from "../config/conexao.js";
 import desktopSyncAuth from "../middleware/desktopSyncAuth.js";
 import DesktopSyncDAO from "../model/desktopSyncDAO.js";
+import FinanceiroDAO from "../model/financeiroDAO.js";
 import loginDAO from "../model/loginDAO.js";
 import { hashPassword, verifyPassword } from "../utils/password.js";
 
@@ -160,6 +161,32 @@ router.get("/desktop/sync/usuarios", async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Não foi possível sincronizar usuários do PDV.",
+    });
+  }
+});
+
+router.get("/desktop/sync/financeiro/support-data", async (req, res) => {
+  try {
+    const data = await FinanceiroDAO.obterSupportData(req.db, {
+      tipo: String(req.query.tipo || "receber"),
+    });
+
+    return res.json({
+      success: true,
+      data,
+      count: {
+        formasPagamento: Array.isArray(data?.formasPagamento) ? data.formasPagamento.length : 0,
+        condicoesPagamento: Array.isArray(data?.condicoesPagamento)
+          ? data.condicoesPagamento.length
+          : 0,
+      },
+      syncedAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error("[desktop-sync] Falha ao sincronizar apoio financeiro:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Não foi possível sincronizar as formas de pagamento.",
     });
   }
 });

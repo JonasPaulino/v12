@@ -11,13 +11,14 @@ function normalizePayment(payment) {
   };
 }
 
-function normalizeIdentificacaoCliente(cliente = {}) {
-  const tipoDocumento = String(cliente.tipoDocumento || "").trim().toUpperCase();
+function normalizeIdentificacaoCliente(cliente) {
+  const source = cliente || {};
+  const tipoDocumento = String(source.tipoDocumento || "").trim().toUpperCase();
   return {
     tipoDocumento: ["CPF", "CNPJ", "ESTRANGEIRO"].includes(tipoDocumento) ? tipoDocumento : null,
-    documento: String(cliente.documento || "").trim() || null,
-    nome: String(cliente.nome || "").trim() || null,
-    email: String(cliente.email || "").trim().toLowerCase() || null,
+    documento: String(source.documento || "").trim() || null,
+    nome: String(source.nome || "").trim() || null,
+    email: String(source.email || "").trim().toLowerCase() || null,
   };
 }
 

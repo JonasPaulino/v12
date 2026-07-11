@@ -3,6 +3,7 @@ import {
   limparTerminalConfigInicial,
   salvarTerminalConfig,
 } from "../modules/configuracao/localConfigRepository.js";
+import { syncFinanceiroSupportDataFromErp } from "./financeiroSupportDataSyncService.js";
 import { syncProdutosFromErp } from "./produtoSyncService.js";
 import { syncUsuariosFromErp } from "./usuarioSyncService.js";
 
@@ -75,6 +76,14 @@ export async function configurarTerminalPorTenant({
       throw new Error(produtos.message || "Não foi possível sincronizar produtos do ERP.");
     }
 
+    const financeiro = await syncFinanceiroSupportDataFromErp({
+      tipo: "receber",
+      refresh: true,
+    });
+    if (financeiro.success === false) {
+      throw new Error(financeiro.message || "Não foi possível sincronizar as formas de pagamento.");
+    }
+
     if (!usuarios.imported) {
       throw new Error(
         "Filial configurada, mas nenhum operador de caixa foi sincronizado. Marque pelo menos um usuário com perfil de PDV no ERP web.",
@@ -85,6 +94,7 @@ export async function configurarTerminalPorTenant({
       config,
       usuarios,
       produtos,
+      financeiro,
     };
   } catch (error) {
     limparTerminalConfigInicial();
