@@ -17,16 +17,92 @@ const buildPublicSetupUser = (usuario) => ({
   usuario_master: !!usuario.usuario_master,
 });
 
+const buildTenantAddress = (tenant) => {
+  const street = [tenant.logradouro, tenant.numero, tenant.complemento]
+    .map((value) => String(value || "").trim())
+    .filter(Boolean)
+    .join(", ");
+  const district = String(tenant.bairro || "").trim();
+  const cityState = [tenant.cidade, tenant.uf]
+    .map((value) => String(value || "").trim())
+    .filter(Boolean)
+    .join("/");
+  const zipCode = String(tenant.cep || "").trim();
+
+  return [street, district, cityState, zipCode].filter(Boolean).join(" - ");
+};
+
 const buildTenantPayload = (tenant) => ({
   tenant_id: tenant.tenant_id,
   tenant_nome: tenant.tenant_nome,
   tenant_slug: tenant.tenant_slug,
   tenant_documento: tenant.tenant_documento,
+  tenant_inscricao_estadual: tenant.tenant_inscricao_estadual || "",
+  tenant_inscricao_municipal: tenant.tenant_inscricao_municipal || "",
+  tenant_endereco: tenant.tenant_endereco || buildTenantAddress(tenant),
   perfil: tenant.perfil || null,
   tenant_ativo: tenant.tenant_ativo ?? tenant.ativo ?? true,
   tenant_acesso_bloqueado: !!tenant.tenant_acesso_bloqueado,
   tenant_bloqueio_motivo: tenant.tenant_bloqueio_motivo || null,
 });
+
+async function enrichTenantsWithCompanyData(client, tenants = []) {
+  const tenantIds = [...new Set(tenants.map((tenant) => Number(tenant.tenant_id)).filter(Boolean))];
+  if (!tenantIds.length) {
+    return tenants;
+  }
+
+  const { rows } = await client.query(
+    `
+      SELECT
+        t.tenant_id,
+        p.pessoa_inscricao_estadual,
+        p.pessoa_inscricao_municipal,
+        pe.cep,
+        pe.logradouro,
+        pe.numero,
+        pe.complemento,
+        pe.bairro,
+        pe.cidade,
+        pe.uf
+      FROM tenant t
+      LEFT JOIN pessoa p ON p.pessoa_id = t.pessoa_id
+      LEFT JOIN LATERAL (
+        SELECT
+          cep,
+          logradouro,
+          numero,
+          complemento,
+          bairro,
+          cidade,
+          uf
+        FROM pessoa_endereco
+        WHERE pessoa_id = t.pessoa_id
+          AND endereco_tipo = 'principal'
+        ORDER BY atualizado_em DESC, criado_em DESC
+        LIMIT 1
+      ) pe ON TRUE
+      WHERE t.tenant_id = ANY($1::int[])
+    `,
+    [tenantIds],
+  );
+
+  const detailsByTenantId = new Map(
+    rows.map((row) => [
+      Number(row.tenant_id),
+      {
+        tenant_inscricao_estadual: row.pessoa_inscricao_estadual || "",
+        tenant_inscricao_municipal: row.pessoa_inscricao_municipal || "",
+        tenant_endereco: buildTenantAddress(row),
+      },
+    ]),
+  );
+
+  return tenants.map((tenant) => ({
+    ...tenant,
+    ...(detailsByTenantId.get(Number(tenant.tenant_id)) || {}),
+  }));
+}
 
 router.post("/desktop/sync/setup-login", async (req, res) => {
   try {
@@ -74,6 +150,8 @@ router.post("/desktop/sync/setup-login", async (req, res) => {
         (tenant) => tenant.tenant_ativo && !tenant.tenant_acesso_bloqueado,
       );
     }
+
+    tenants = await enrichTenantsWithCompanyData(pool, tenants);
 
     return res.json({
       success: true,

@@ -165,6 +165,13 @@ function formatDocument(value = "") {
   return String(value || "").trim();
 }
 
+function getDocumentLabel(value = "") {
+  const digits = String(value || "").replace(/\D/g, "");
+  if (digits.length === 14) return "CNPJ";
+  if (digits.length === 11) return "CPF";
+  return "Documento";
+}
+
 function buildBudgetHtml(payload = {}, config = {}) {
   const printerConfig = normalizePrinterConfig(config);
   const items = Array.isArray(payload.items) ? payload.items : [];
@@ -176,12 +183,14 @@ function buildBudgetHtml(payload = {}, config = {}) {
   const cliente = escapeHtml(payload.cliente || "Cliente não identificado");
   const data = escapeHtml(payload.data || new Date().toLocaleString("pt-BR"));
   const emitente = escapeHtml(payload.emitente?.nome || payload.empresa?.nome || "V12 ERP");
-  const documentoEmitente = escapeHtml(
-    formatDocument(payload.emitente?.documento || payload.empresa?.documento || ""),
-  );
+  const emitenteDocumentoRaw = payload.emitente?.documento || payload.empresa?.documento || "";
+  const documentoEmitente = escapeHtml(formatDocument(emitenteDocumentoRaw));
+  const documentoEmitenteLabel = escapeHtml(getDocumentLabel(emitenteDocumentoRaw));
   const enderecoEmitente = escapeHtml(payload.emitente?.endereco || payload.empresa?.endereco || "");
+  const inscricaoEstadual = escapeHtml(payload.emitente?.inscricaoEstadual || payload.empresa?.inscricaoEstadual || "");
+  const inscricaoMunicipal = escapeHtml(payload.emitente?.inscricaoMunicipal || payload.empresa?.inscricaoMunicipal || "");
   const terminal = escapeHtml(payload.terminal || "PDV");
-  const numeroDocumento = escapeHtml(payload.numeroDocumento || "ORCAMENTO");
+  const numeroDocumento = escapeHtml(payload.numeroDocumento || "ORÇAMENTO");
   const isThermal = printerConfig.layout !== "a4";
   const pageWidth = printerConfig.layout === "thermal-58" ? "58mm" : printerConfig.layout === "thermal-80" ? "80mm" : "210mm";
   const separator = isThermal ? "-".repeat(printerConfig.layout === "thermal-58" ? 32 : 46) : "";
@@ -338,7 +347,9 @@ function buildBudgetHtml(payload = {}, config = {}) {
           <div class="coupon">
             <div class="center block">
               <div class="title">${emitente}</div>
-              ${documentoEmitente ? `<div>CNPJ/CPF: ${documentoEmitente}</div>` : ""}
+              ${documentoEmitente ? `<div>${documentoEmitenteLabel}: ${documentoEmitente}</div>` : ""}
+              ${inscricaoEstadual ? `<div>IE: ${inscricaoEstadual}</div>` : ""}
+              ${inscricaoMunicipal ? `<div>IM: ${inscricaoMunicipal}</div>` : ""}
               ${enderecoEmitente ? `<div class="small">${enderecoEmitente}</div>` : ""}
               <div class="small muted">${terminal}  ${data}</div>
             </div>
@@ -387,15 +398,16 @@ function buildBudgetHtml(payload = {}, config = {}) {
             <div class="separator">${separator}</div>
 
             <div class="center block small">
-              <div>NAO E DOCUMENTO FISCAL</div>
-              <div>NAO SUBSTITUI NFC-E / NF-E</div>
-              <div>NAO PERMITE APROVEITAMENTO DE CREDITO DE ICMS</div>
+              <div>NÃO É DOCUMENTO FISCAL</div>
+              <div>NÃO SUBSTITUI NFC-E / NF-E</div>
+              <div>NÃO PERMITE APROVEITAMENTO DE CRÉDITO DE ICMS</div>
             </div>
 
             <div class="separator">${separator}</div>
 
             <div class="center block small muted">
-              <div>V12 ERP PDV</div>
+              <div>V12 ERP</div>
+              <div>jhes.com.br</div>
               <div>Emitido por ${terminal}</div>
               <div class="thanks">OBRIGADO!</div>
             </div>

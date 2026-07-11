@@ -390,13 +390,16 @@ export default function App() {
             };
           })
         : [],
-      cliente: clienteResumo || "Consumidor nao identificado",
+      cliente: clienteResumo || "Consumidor não identificado",
       operador: operador?.nome || caixa?.operador_nome || "Operador",
       data: new Date().toLocaleString("pt-BR"),
       terminal: config.terminal_codigo || config.terminal_nome || "PDV",
       emitente: {
         nome: config.tenant_nome || "V12 ERP",
         documento: config.tenant_documento || "",
+        endereco: config.tenant_endereco || "",
+        inscricaoEstadual: config.tenant_inscricao_estadual || "",
+        inscricaoMunicipal: config.tenant_inscricao_municipal || "",
       },
       numeroDocumento: `ORC-${Date.now()}`,
     };
@@ -486,15 +489,7 @@ export default function App() {
       return;
     }
 
-    await imprimirOrcamento({
-      items: cart.map((item) => ({ ...item })),
-      subtotal,
-      desconto: descontoCalculado,
-      total,
-      cliente: clienteResumo || "Cliente não identificado",
-      operador: operador?.nome || caixa?.operador_nome || "Operador",
-      data: new Date().toLocaleString("pt-BR"),
-    });
+    await imprimirOrcamento(buildBudgetPayload(cart.map((item) => ({ ...item }))));
   }
 
   async function cancelarPagamentosConfirmados() {

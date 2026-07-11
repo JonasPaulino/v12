@@ -8,6 +8,9 @@ export function getTerminalConfig() {
         tenant_erp_id,
         tenant_nome,
         tenant_documento,
+        tenant_endereco,
+        tenant_inscricao_estadual,
+        tenant_inscricao_municipal,
         tenant_ativo,
         tenant_acesso_bloqueado,
         tenant_bloqueio_motivo,
@@ -56,6 +59,9 @@ export function salvarTerminalConfig(payload = {}) {
       tenant_erp_id,
       tenant_nome,
       tenant_documento,
+      tenant_endereco,
+      tenant_inscricao_estadual,
+      tenant_inscricao_municipal,
       tenant_ativo,
       tenant_acesso_bloqueado,
       tenant_bloqueio_motivo,
@@ -64,11 +70,14 @@ export function salvarTerminalConfig(payload = {}) {
       ambiente,
       sincronizado_em
     )
-    VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     ON CONFLICT(config_id) DO UPDATE SET
       tenant_erp_id = excluded.tenant_erp_id,
       tenant_nome = excluded.tenant_nome,
       tenant_documento = excluded.tenant_documento,
+      tenant_endereco = excluded.tenant_endereco,
+      tenant_inscricao_estadual = excluded.tenant_inscricao_estadual,
+      tenant_inscricao_municipal = excluded.tenant_inscricao_municipal,
       tenant_ativo = excluded.tenant_ativo,
       tenant_acesso_bloqueado = excluded.tenant_acesso_bloqueado,
       tenant_bloqueio_motivo = excluded.tenant_bloqueio_motivo,
@@ -80,6 +89,9 @@ export function salvarTerminalConfig(payload = {}) {
     tenantErpId,
     tenantNome,
     payload.tenant_documento || null,
+    payload.tenant_endereco || null,
+    payload.tenant_inscricao_estadual || null,
+    payload.tenant_inscricao_municipal || null,
     payload.tenant_ativo === false ? 0 : 1,
     payload.tenant_acesso_bloqueado ? 1 : 0,
     payload.tenant_bloqueio_motivo || null,
