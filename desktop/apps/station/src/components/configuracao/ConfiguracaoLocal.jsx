@@ -1,5 +1,5 @@
 import { useContext, useEffect, useMemo, useState } from "react";
-import { FiPrinter, FiRefreshCcw, FiSave } from "react-icons/fi";
+import { FiArrowLeft, FiPrinter, FiRefreshCcw, FiSave } from "react-icons/fi";
 import { api } from "../../api.js";
 import { AppContext } from "../../context/AppContext.jsx";
 import { useSweetAlert } from "../../context/SweetAlertContext.jsx";
@@ -13,7 +13,7 @@ const DEFAULT_PRINTER_CONFIG = {
   copies: 1,
 };
 
-export function ConfiguracaoLocal() {
+export function ConfiguracaoLocal({ onBack }) {
   const [form, setForm] = useState(DEFAULT_PRINTER_CONFIG);
   const [printers, setPrinters] = useState([]);
   const [loadingPrinters, setLoadingPrinters] = useState(false);
@@ -25,6 +25,21 @@ export function ConfiguracaoLocal() {
     () => printers.find((printer) => printer.name === form.deviceName) || null,
     [form.deviceName, printers],
   );
+  const printerStatusMessage = useMemo(() => {
+    if (!electronAvailable) {
+      return "Lista de impressoras disponível somente no app Electron. Se o PDV já está no Electron, feche e abra novamente para recarregar o preload.";
+    }
+
+    if (loadingPrinters) {
+      return "Atualizando lista de impressoras...";
+    }
+
+    if (!printers.length) {
+      return "O Electron não retornou nenhuma impressora do Windows. Reinicie o app Electron por completo e tente atualizar a lista novamente.";
+    }
+
+    return `${printers.length} impressora(s) encontrada(s) no terminal.`;
+  }, [electronAvailable, loadingPrinters, printers.length]);
 
   useEffect(() => {
     setElectronAvailable(Boolean(window.v12Desktop?.listPrinters));
@@ -144,9 +159,25 @@ export function ConfiguracaoLocal() {
   return (
     <div className="local-settings-module">
       <div className="local-settings-head">
-        <strong>Impressora local</strong>
-        <span>Configure a impressora padrão do terminal para orçamento e futuras reimpressões.</span>
+        <div>
+          <strong>Impressora local</strong>
+          <span>Configure a impressora padrão do terminal para orçamento e futuras reimpressões.</span>
+        </div>
+        <button type="button" className="local-settings-back" onClick={onBack}>
+          <FiArrowLeft />
+          Voltar para venda
+        </button>
       </div>
+
+      {!electronAvailable ? (
+        <div className="local-settings-warning">
+          <strong>Modo navegador detectado</strong>
+          <span>
+            Este módulo foi aberto sem a API do Electron. A listagem de impressoras e o teste de
+            impressão só funcionam quando o PDV é executado pelo app Electron, não pela aba do Vite no navegador.
+          </span>
+        </div>
+      ) : null}
 
       <div className="local-settings-grid">
         <label className="local-toggle-card">
@@ -231,13 +262,7 @@ export function ConfiguracaoLocal() {
         <div className="local-printer-status">
           <small>Impressora selecionada</small>
           <strong>{selectedPrinter?.displayName || form.deviceName || "Nenhuma impressora definida"}</strong>
-          <span>
-            {electronAvailable
-              ? loadingPrinters
-                ? "Atualizando lista de impressoras..."
-                : `${printers.length} impressora(s) encontrada(s) no terminal.`
-              : "Lista de impressoras disponível somente no app Electron."}
-          </span>
+          <span>{printerStatusMessage}</span>
         </div>
       </div>
 

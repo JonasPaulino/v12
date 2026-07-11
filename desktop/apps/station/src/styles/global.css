@@ -815,11 +815,18 @@ label {
 }
 
 .local-settings-head {
-  display: grid;
-  gap: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   padding: 16px;
   background: #edf7fc;
   border: 1px solid #c7e4f3;
+}
+
+.local-settings-head > div {
+  display: grid;
+  gap: 4px;
 }
 
 .local-settings-head strong {
@@ -830,6 +837,41 @@ label {
 .local-settings-head span {
   color: #5f7182;
   font-size: 0.82rem;
+}
+
+.local-settings-back {
+  min-height: 42px;
+  padding: 0 14px;
+  border-radius: 4px;
+  background: #e2e8f0;
+  color: #0f172a;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 900;
+  text-transform: uppercase;
+  white-space: nowrap;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.local-settings-warning {
+  display: grid;
+  gap: 5px;
+  padding: 14px 16px;
+  border: 1px solid #f2c6a5;
+  background: #fff7ed;
+}
+
+.local-settings-warning strong {
+  color: #9a3412;
+  font-size: 0.86rem;
+}
+
+.local-settings-warning span {
+  color: #9a3412;
+  font-size: 0.78rem;
+  line-height: 1.45;
 }
 
 .local-settings-grid {
@@ -901,9 +943,35 @@ label {
 
 .local-settings-actions {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.local-settings-actions button {
+  flex: 1 1 0;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #1688bd, #075985);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 900;
+  text-transform: uppercase;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.local-settings-actions .secondary-action {
+  background: #e2e8f0;
+  color: #0f172a;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.local-settings-actions button:disabled {
+  opacity: 0.6;
 }
 
 .cash-flow-head {
@@ -1665,6 +1733,15 @@ label {
 
   .local-settings-grid {
     grid-template-columns: 1fr;
+  }
+
+  .local-settings-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .local-settings-back {
+    width: 100%;
   }
 
   .local-settings-actions {

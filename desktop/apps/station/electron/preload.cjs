@@ -1,0 +1,9 @@
+const { contextBridge, ipcRenderer } = require("electron");
+
+contextBridge.exposeInMainWorld("v12Desktop", {
+  quit: () => ipcRenderer.invoke("app:quit"),
+  toggleFullscreen: () => ipcRenderer.invoke("window:toggle-fullscreen"),
+  listPrinters: () => ipcRenderer.invoke("printer:list"),
+  printBudget: (payload, printerConfig) =>
+    ipcRenderer.invoke("sale:print-budget", payload, printerConfig),
+});

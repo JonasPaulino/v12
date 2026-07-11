@@ -226,7 +226,7 @@ function createWindow() {
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
-      preload: path.resolve(__dirname, "preload.js"),
+      preload: path.resolve(__dirname, "preload.cjs"),
     },
   });
 

@@ -677,7 +677,7 @@ export default function App() {
     sangria: "Caixa > Sangria",
     suprimento: "Caixa > Suprimento",
     fechamento: "Caixa > Fechamento",
-    configuracao: "Sistema > Configuracoes locais",
+    configuracao: "Sistema > Configurações locais",
   };
   const showSaleShortcuts = !caixaPendenteDiaAnterior && !["abertura", "fechamento", "configuracao"].includes(activeModule);
   const breadcrumbAtivo =
@@ -708,7 +708,7 @@ export default function App() {
             <button onClick={() => openModule("sangria")}><FiFileText /> Sangria</button>
             <button onClick={() => openModule("suprimento")}><FiFileText /> Suprimento</button>
             <button onClick={() => openModule("fechamento")}><FiFileText /> Fechamento de caixa</button>
-            <button onClick={() => openModule("configuracao")}><FiSettings /> Configuracoes locais</button>
+            <button onClick={() => openModule("configuracao")}><FiSettings /> Configurações locais</button>
             <button onClick={() => sincronizarProdutos(true)}><FiRefreshCcw /> Sincronizar produtos</button>
             <button onClick={alternarTelaCheia}><FiMaximize2 /> Alternar tela cheia</button>
             <button className="danger-menu" onClick={sairDoSistema}><FiPower /> Sair do sistema</button>
@@ -801,7 +801,7 @@ export default function App() {
             {activeModule === "fechamento" ? (
               <FechamentoCaixa onClosed={handleCaixaFechado} />
             ) : null}
-            {activeModule === "configuracao" ? <ConfiguracaoLocal /> : null}
+            {activeModule === "configuracao" ? <ConfiguracaoLocal onBack={() => openModule("venda")} /> : null}
           </div>
         </section>
 
