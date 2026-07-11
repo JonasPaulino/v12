@@ -27,6 +27,8 @@ function getFormaFallback(formasPagamento = []) {
 
 export function VendaPagamentoModal({
   open,
+  subtotal = 0,
+  desconto = 0,
   total,
   formasPagamento = [],
   clienteResumo,
@@ -110,6 +112,14 @@ export function VendaPagamentoModal({
         </div>
 
         <div className="payment-summary">
+          <div>
+            <small>Subtotal</small>
+            <strong>R$ {formatCurrency(subtotal)}</strong>
+          </div>
+          <div>
+            <small>Desconto</small>
+            <strong>R$ {formatCurrency(desconto)}</strong>
+          </div>
           <div>
             <small>Total da venda</small>
             <strong>R$ {formatCurrency(total)}</strong>

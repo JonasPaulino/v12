@@ -61,6 +61,8 @@ export default function App() {
   });
   const [pagamentoModalAberto, setPagamentoModalAberto] = useState(false);
   const [pagamentosConfirmados, setPagamentosConfirmados] = useState(null);
+  const [descontoTipo, setDescontoTipo] = useState("valor");
+  const [descontoEntrada, setDescontoEntrada] = useState("");
   const [financeiroSupportData, setFinanceiroSupportData] = useState(null);
   const { showLoading, hideLoading } = useContext(AppContext);
   const { showAlert, askYesNoQuestion } = useSweetAlert();
@@ -105,6 +107,12 @@ export default function App() {
     setActiveModule(getModuleForCaixa(caixa));
   }, [caixa, operador]);
 
+  useEffect(() => {
+    if (cart.length) return;
+    setDescontoEntrada("");
+    setDescontoTipo("valor");
+  }, [cart.length]);
+
   const caixaPendenteDiaAnterior = !!caixa?.caixa_pendente_dia_anterior;
 
   useEffect(() => {
@@ -135,9 +143,28 @@ export default function App() {
     return () => window.removeEventListener("keydown", handleKeyboardShortcut);
   }, [activeModule, caixa, caixaPendenteDiaAnterior, cart, clienteModalAberto, pagamentoModalAberto]);
 
-  const total = useMemo(() => {
+  const subtotal = useMemo(() => {
     return cart.reduce((acc, item) => acc + Number(item.quantidade) * Number(item.valor_unitario), 0);
   }, [cart]);
+
+  const descontoCalculado = useMemo(() => {
+    const raw = Number(String(descontoEntrada || "").replace(",", "."));
+    const valorInformado = Number.isFinite(raw) ? raw : 0;
+
+    if (subtotal <= 0 || valorInformado <= 0) {
+      return 0;
+    }
+
+    if (descontoTipo === "percentual") {
+      return Math.min(subtotal, subtotal * Math.min(valorInformado, 100) / 100);
+    }
+
+    return Math.min(subtotal, valorInformado);
+  }, [descontoEntrada, descontoTipo, subtotal]);
+
+  const total = useMemo(() => {
+    return Math.max(0, Number((subtotal - descontoCalculado).toFixed(2)));
+  }, [descontoCalculado, subtotal]);
 
   function addProduto(produto, quantidade = 1) {
     if (pagamentosConfirmados?.length) {
@@ -269,6 +296,8 @@ export default function App() {
 
       const snapshotOrcamento = {
         items: cart.map((item) => ({ ...item })),
+        subtotal,
+        desconto: descontoCalculado,
         total,
         cliente: clienteResumo || "Cliente não identificado",
         operador: operador?.nome || caixa?.operador_nome || "Operador",
@@ -280,10 +309,15 @@ export default function App() {
         cliente: clienteIdentificado,
         items: cart,
         pagamentos: pagamentosConfirmados,
+        subtotal,
+        desconto: descontoCalculado,
+        totalLiquido: total,
       });
       setCart([]);
       setClienteIdentificado(null);
       setPagamentosConfirmados(null);
+      setDescontoEntrada("");
+      setDescontoTipo("valor");
       setPagamentoModalAberto(false);
 
       if (modoFinalizacao === "orcamento") {
@@ -311,6 +345,8 @@ export default function App() {
       const payload =
         payloadBase || {
           items: cart,
+          subtotal,
+          desconto: descontoCalculado,
           total,
           cliente: clienteResumo || "Cliente não identificado",
           operador: operador?.nome || caixa?.operador_nome || "Operador",
@@ -353,6 +389,8 @@ export default function App() {
 
     await imprimirOrcamento({
       items: cart.map((item) => ({ ...item })),
+      subtotal,
+      desconto: descontoCalculado,
       total,
       cliente: clienteResumo || "Cliente não identificado",
       operador: operador?.nome || caixa?.operador_nome || "Operador",
@@ -413,6 +451,8 @@ export default function App() {
     setClienteModalAberto(false);
     setPagamentoModalAberto(false);
     setPagamentosConfirmados(null);
+    setDescontoEntrada("");
+    setDescontoTipo("valor");
     setOperador(null);
     setActiveModule(getModuleForCaixa(caixa));
   }
@@ -509,6 +549,8 @@ export default function App() {
     setClienteModalAberto(false);
     setPagamentoModalAberto(false);
     setPagamentosConfirmados(null);
+    setDescontoEntrada("");
+    setDescontoTipo("valor");
     setCaixa(null);
     setActiveModule("abertura");
   }
@@ -736,6 +778,18 @@ export default function App() {
           <VendaResumo
             cart={cart}
             total={total}
+            subtotal={subtotal}
+            descontoTipo={descontoTipo}
+            descontoEntrada={descontoEntrada}
+            descontoCalculado={descontoCalculado}
+            onDescontoTipoChange={(nextTipo) => {
+              setDescontoTipo(nextTipo);
+              setPagamentosConfirmados(null);
+            }}
+            onDescontoEntradaChange={(nextEntrada) => {
+              setDescontoEntrada(nextEntrada);
+              setPagamentosConfirmados(null);
+            }}
             onChange={(nextCart) => {
               setCart(nextCart);
               setPagamentosConfirmados(null);
@@ -829,6 +883,8 @@ export default function App() {
 
       <VendaPagamentoModal
         open={pagamentoModalAberto}
+        subtotal={subtotal}
+        desconto={descontoCalculado}
         total={total}
         formasPagamento={formasPagamento}
         clienteResumo={clienteResumo}

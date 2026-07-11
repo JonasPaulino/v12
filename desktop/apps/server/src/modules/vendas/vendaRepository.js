@@ -22,7 +22,15 @@ function normalizeIdentificacaoCliente(cliente) {
   };
 }
 
-export async function criarVenda({ pessoaId, cliente, items = [], pagamentos = [] }) {
+export async function criarVenda({
+  pessoaId,
+  cliente,
+  items = [],
+  pagamentos = [],
+  subtotal = null,
+  desconto = 0,
+  totalLiquido = null,
+}) {
   const caixa = getCaixaAberto();
   if (!caixa) {
     throw new Error("Nao existe caixa aberto.");
@@ -35,9 +43,22 @@ export async function criarVenda({ pessoaId, cliente, items = [], pagamentos = [
   const clienteIdentificado = normalizeIdentificacaoCliente(cliente);
   const db = getDb();
   const create = db.transaction(() => {
-    const totalProdutos = items.reduce((acc, item) => {
+    const totalProdutosCalculado = items.reduce((acc, item) => {
       return acc + Number(item.quantidade || 0) * Number(item.valor_unitario || 0);
     }, 0);
+    const totalProdutos = subtotal == null ? totalProdutosCalculado : Number(subtotal || 0);
+    const totalDesconto = Math.max(0, Math.min(totalProdutos, Number(desconto || 0)));
+    const totalLiquidoVenda =
+      totalLiquido == null
+        ? Number((totalProdutos - totalDesconto).toFixed(2))
+        : Number(totalLiquido || 0);
+    const totalPagamentos = pagamentos
+      .map(normalizePayment)
+      .reduce((acc, item) => acc + Number(item.valor || 0), 0);
+
+    if (Math.abs(Number((totalPagamentos - totalLiquidoVenda).toFixed(2))) > 0.01) {
+      throw new Error("A soma dos pagamentos precisa fechar com o total líquido da venda.");
+    }
 
     const vendaResult = db
       .prepare(
@@ -50,10 +71,11 @@ export async function criarVenda({ pessoaId, cliente, items = [], pagamentos = [
            cliente_email,
            status,
            total_produtos,
+           total_desconto,
            total_liquido,
            concluida_em
          )
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
       )
       .run(
         caixa.caixa_id,
@@ -64,7 +86,8 @@ export async function criarVenda({ pessoaId, cliente, items = [], pagamentos = [
         clienteIdentificado.email,
         vendaStatus.CONCLUIDA,
         totalProdutos,
-        totalProdutos,
+        totalDesconto,
+        totalLiquidoVenda,
       );
 
     const vendaId = vendaResult.lastInsertRowid;

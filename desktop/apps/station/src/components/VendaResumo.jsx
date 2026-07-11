@@ -4,6 +4,12 @@ import { useSweetAlert } from "../context/SweetAlertContext.jsx";
 export function VendaResumo({
   cart,
   total,
+  subtotal,
+  descontoTipo,
+  descontoEntrada,
+  descontoCalculado,
+  onDescontoTipoChange,
+  onDescontoEntradaChange,
   onChange,
   onFinish,
   onPrintBudget,
@@ -109,11 +115,50 @@ export function VendaResumo({
         ))}
       </div>
 
+      <div className="discount-panel">
+        <div className="discount-panel-header">
+          <strong>Desconto da venda</strong>
+          <span>Aplique o desconto antes de ir para o pagamento.</span>
+        </div>
+        <div className="discount-panel-grid">
+          <label>
+            Tipo
+            <select
+              value={descontoTipo}
+              disabled={disabled || paymentReady}
+              onChange={(event) => onDescontoTipoChange(event.target.value)}
+            >
+              <option value="valor">Valor (R$)</option>
+              <option value="percentual">Percentual (%)</option>
+            </select>
+          </label>
+          <label>
+            Desconto
+            <input
+              type="text"
+              inputMode="decimal"
+              placeholder={descontoTipo === "percentual" ? "0" : "0,00"}
+              value={descontoEntrada}
+              disabled={disabled || paymentReady}
+              onChange={(event) =>
+                onDescontoEntradaChange(event.target.value.replace(/[^\d,.-]/g, ""))
+              }
+            />
+          </label>
+          <div className="discount-panel-total-field">
+            <span>Aplicado</span>
+            <div className="discount-panel-total">
+              <strong>R$ {Number(descontoCalculado || 0).toFixed(2)}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <footer className="receipt-footer">
         <div>
           <span>Quantidade: {cart.reduce((acc, item) => acc + Number(item.quantidade || 0), 0)} itens</span>
-          <span>Subtotal: R$ {Number(total).toFixed(2)}</span>
-          <span>Desconto: R$ 0,00</span>
+          <span>Subtotal: R$ {Number(subtotal || 0).toFixed(2)}</span>
+          <span>Desconto: R$ {Number(descontoCalculado || 0).toFixed(2)}</span>
         </div>
         <div className="grand-total">
           <small>Total</small>

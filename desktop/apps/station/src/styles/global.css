@@ -1038,6 +1038,71 @@ label {
   font-weight: 700;
 }
 
+.discount-panel {
+  display: grid;
+  gap: 12px;
+  padding: 14px 22px 0;
+}
+
+.discount-panel-header {
+  display: grid;
+  gap: 3px;
+}
+
+.discount-panel-header strong {
+  color: #334155;
+  font-size: 0.86rem;
+  text-transform: uppercase;
+}
+
+.discount-panel-header span {
+  color: #7b8794;
+  font-size: 0.76rem;
+}
+
+.discount-panel-grid {
+  display: grid;
+  grid-template-columns: 180px 1fr 160px;
+  gap: 10px;
+  align-items: end;
+}
+
+.discount-panel-grid label {
+  gap: 6px;
+}
+
+.discount-panel-total-field {
+  display: grid;
+  gap: 6px;
+}
+
+.discount-panel-total-field span {
+  color: #667485;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.discount-panel-grid input,
+.discount-panel-grid select {
+  min-height: 40px;
+}
+
+.discount-panel-total {
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid #d9e3ec;
+  border-radius: 3px;
+  background: #f6f9fc;
+  display: grid;
+  align-content: center;
+}
+
+.discount-panel-total strong {
+  color: #0f3a55;
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
 .grand-total {
   display: grid;
   justify-items: end;
@@ -1522,6 +1587,10 @@ label {
   .payment-summary,
   .payment-line,
   .payment-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .discount-panel-grid {
     grid-template-columns: 1fr;
   }
 
