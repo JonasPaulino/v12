@@ -806,7 +806,8 @@ label {
 .cash-flow-module {
   display: grid;
   gap: 14px;
-  max-width: 620px;
+  width: 100%;
+  max-width: none;
 }
 
 .local-settings-module {

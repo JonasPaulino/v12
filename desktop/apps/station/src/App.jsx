@@ -1,4 +1,4 @@
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   FiChevronDown,
   FiFileText,
@@ -65,6 +65,7 @@ export default function App() {
   const [descontoTipo, setDescontoTipo] = useState("valor");
   const [descontoEntrada, setDescontoEntrada] = useState("");
   const [financeiroSupportData, setFinanceiroSupportData] = useState(null);
+  const productSearchRef = useRef(null);
   const { showLoading, hideLoading } = useContext(AppContext);
   const { showAlert, askYesNoQuestion } = useSweetAlert();
 
@@ -119,7 +120,20 @@ export default function App() {
   useEffect(() => {
     const handleKeyboardShortcut = (event) => {
       const targetTag = String(event.target?.tagName || "").toUpperCase();
-      if (["INPUT", "TEXTAREA", "SELECT"].includes(targetTag) || event.target?.isContentEditable) {
+      const key = String(event.key || "").toUpperCase();
+      const isFunctionKey = /^F\d+$/.test(key);
+      const isMetaShortcut = event.ctrlKey || event.metaKey;
+      if (
+        (["INPUT", "TEXTAREA", "SELECT"].includes(targetTag) || event.target?.isContentEditable) &&
+        !isFunctionKey &&
+        !isMetaShortcut
+      ) {
+        return;
+      }
+
+      if (isMetaShortcut && String(event.key || "").toLowerCase() === "f") {
+        event.preventDefault();
+        abrirPagamentoVenda();
         return;
       }
 
@@ -132,17 +146,55 @@ export default function App() {
         return;
       }
 
-      if (event.key !== "F4") return;
-      if (!caixa || caixaPendenteDiaAnterior) return;
-      if (clienteModalAberto || pagamentoModalAberto || activeModule !== "venda") return;
+      if (key === "F3") {
+        event.preventDefault();
+        openModule("venda");
+        return;
+      }
 
-      event.preventDefault();
-      abrirModalCliente();
+      if (key === "F4") {
+        if (!caixa || caixaPendenteDiaAnterior) return;
+        if (clienteModalAberto || pagamentoModalAberto || activeModule !== "venda") return;
+
+        event.preventDefault();
+        abrirModalCliente();
+        return;
+      }
+
+      if (key === "F5") {
+        event.preventDefault();
+        openModule("fechamento");
+        return;
+      }
+
+      if (key === "F6") {
+        event.preventDefault();
+        openModule("sangria");
+        return;
+      }
+
+      if (key === "F7") {
+        event.preventDefault();
+        openModule("suprimento");
+        return;
+      }
+
+      if (key === "F8") {
+        event.preventDefault();
+        focarConsultaProduto();
+      }
     };
 
     window.addEventListener("keydown", handleKeyboardShortcut);
     return () => window.removeEventListener("keydown", handleKeyboardShortcut);
-  }, [activeModule, caixa, caixaPendenteDiaAnterior, cart, clienteModalAberto, pagamentoModalAberto]);
+  }, [
+    activeModule,
+    caixa,
+    caixaPendenteDiaAnterior,
+    cart,
+    clienteModalAberto,
+    pagamentoModalAberto,
+  ]);
 
   const subtotal = useMemo(() => {
     return cart.reduce((acc, item) => acc + Number(item.quantidade) * Number(item.valor_unitario), 0);
@@ -609,6 +661,24 @@ export default function App() {
     setClienteModalAberto(true);
   }
 
+  function focarConsultaProduto() {
+    if (activeModule !== "venda") {
+      openModule("venda");
+      window.requestAnimationFrame(() => {
+        productSearchRef.current?.focusSearch?.();
+      });
+      return;
+    }
+
+    productSearchRef.current?.focusSearch?.();
+  }
+
+  function abrirPagamentoVenda() {
+    if (!caixa || caixaPendenteDiaAnterior || !cart.length) return;
+    if (clienteModalAberto || pagamentoModalAberto || vendaProntaParaConclusao) return;
+    iniciarFinalizacaoVenda();
+  }
+
   function fecharModalCliente() {
     setClienteModalAberto(false);
   }
@@ -749,7 +819,7 @@ export default function App() {
               <button className="shortcut" onClick={() => openModule("fechamento")}>Fechamento <small>F5</small></button>
               <button className="shortcut" onClick={() => openModule("sangria")}>Sangria <small>F6</small></button>
               <button className="shortcut" onClick={() => openModule("suprimento")}>Suprimento <small>F7</small></button>
-              <button className="shortcut">Consultar produto <small>F8</small></button>
+              <button className="shortcut" onClick={focarConsultaProduto}>Consultar produto <small>F8</small></button>
             </div>
           ) : null}
 
@@ -790,7 +860,11 @@ export default function App() {
               <AberturaCaixa operador={operador} onOpened={handleCaixaAberto} />
             ) : null}
             {activeModule === "venda" ? (
-              <ProdutoSearch onSelect={addProduto} disabled={!caixa || vendaProntaParaConclusao} />
+              <ProdutoSearch
+                ref={productSearchRef}
+                onSelect={addProduto}
+                disabled={!caixa || vendaProntaParaConclusao}
+              />
             ) : null}
             {activeModule === "sangria" ? (
               <MovimentoCaixa tipo="sangria" operador={operador} onDone={() => openModule("venda")} />

@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { FiMinus, FiPackage, FiPlus, FiSearch } from "react-icons/fi";
 import { api } from "../api.js";
 import { useSweetAlert } from "../context/SweetAlertContext.jsx";
 
-export function ProdutoSearch({ onSelect, disabled }) {
+export const ProdutoSearch = forwardRef(function ProdutoSearch({ onSelect, disabled }, ref) {
   const [search, setSearch] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [selectedProduto, setSelectedProduto] = useState(null);
@@ -15,6 +15,15 @@ export function ProdutoSearch({ onSelect, disabled }) {
   const quantityInputRef = useRef(null);
   const lockSelectionRef = useRef(false);
   const { showAlert } = useSweetAlert();
+
+  useImperativeHandle(ref, () => ({
+    focusSearch() {
+      window.requestAnimationFrame(() => {
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select?.();
+      });
+    },
+  }));
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -297,4 +306,4 @@ export function ProdutoSearch({ onSelect, disabled }) {
       </div>
     </div>
   );
-}
+});
