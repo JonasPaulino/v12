@@ -32,6 +32,8 @@ export const api = {
     request("/configuracao/login-web", { method: "POST", body: JSON.stringify(payload) }),
   setupWeb: (payload) =>
     request("/configuracao/setup-web", { method: "POST", body: JSON.stringify(payload) }),
+  sincronizarFilial: () =>
+    request("/configuracao/sincronizar-filial", { method: "POST" }),
   loginOperador: (payload) =>
     request("/operadores/login", { method: "POST", body: JSON.stringify(payload) }),
   trocarSenhaPrimeiroAcesso: (payload) =>

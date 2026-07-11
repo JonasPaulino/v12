@@ -883,7 +883,12 @@ export default function App() {
             {activeModule === "fechamento" ? (
               <FechamentoCaixa onClosed={handleCaixaFechado} />
             ) : null}
-            {activeModule === "configuracao" ? <ConfiguracaoLocal onBack={() => openModule("venda")} /> : null}
+            {activeModule === "configuracao" ? (
+              <ConfiguracaoLocal
+                onBack={() => openModule("venda")}
+                onUpdated={() => loadInitialData({ silent: true })}
+              />
+            ) : null}
           </div>
         </section>
 
