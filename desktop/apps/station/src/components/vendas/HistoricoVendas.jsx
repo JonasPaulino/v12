@@ -1,4 +1,4 @@
-import { FiArrowLeft, FiRefreshCcw, FiSearch } from "react-icons/fi";
+import { FiRefreshCcw, FiSearch } from "react-icons/fi";
 
 function formatDateTime(value) {
   if (!value) return "-";
@@ -32,7 +32,6 @@ export function HistoricoVendas({
   onStatusChange,
   onRefresh,
   onSelect,
-  onBack,
 }) {
   return (
     <div className="sales-history-module">
@@ -41,10 +40,6 @@ export function HistoricoVendas({
           <strong>Reimpressão e cancelamento</strong>
           <span>Consulte vendas já registradas, visualize o cupom e execute ações administrativas.</span>
         </div>
-        <button type="button" className="sales-history-back" onClick={onBack}>
-          <FiArrowLeft />
-          Voltar para venda
-        </button>
       </div>
 
       <div className="sales-history-toolbar">

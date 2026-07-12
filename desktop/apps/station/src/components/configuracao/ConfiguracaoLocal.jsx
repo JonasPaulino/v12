@@ -1,5 +1,5 @@
 import { useContext, useEffect, useMemo, useState } from "react";
-import { FiArrowLeft, FiPrinter, FiRefreshCcw, FiSave } from "react-icons/fi";
+import { FiPrinter, FiRefreshCcw, FiSave } from "react-icons/fi";
 import { api } from "../../api.js";
 import { AppContext } from "../../context/AppContext.jsx";
 import { useSweetAlert } from "../../context/SweetAlertContext.jsx";
@@ -13,7 +13,7 @@ const DEFAULT_PRINTER_CONFIG = {
   copies: 1,
 };
 
-export function ConfiguracaoLocal({ onBack }) {
+export function ConfiguracaoLocal() {
   const [form, setForm] = useState(DEFAULT_PRINTER_CONFIG);
   const [printers, setPrinters] = useState([]);
   const [loadingPrinters, setLoadingPrinters] = useState(false);
@@ -163,10 +163,6 @@ export function ConfiguracaoLocal({ onBack }) {
           <strong>Impressora local</strong>
           <span>Configure a impressora padrão do terminal para orçamento e futuras reimpressões.</span>
         </div>
-        <button type="button" className="local-settings-back" onClick={onBack}>
-          <FiArrowLeft />
-          Voltar para venda
-        </button>
       </div>
 
       {!electronAvailable ? (

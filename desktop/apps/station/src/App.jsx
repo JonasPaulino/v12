@@ -938,6 +938,9 @@ export default function App() {
     historico_vendas: "Vendas > Reimpressão e cancelamento",
   };
   const showSaleShortcuts = !caixaPendenteDiaAnterior && !["abertura", "fechamento", "configuracao", "historico_vendas"].includes(activeModule);
+  const showBackToSale =
+    Boolean(caixa) &&
+    ["fechamento", "configuracao", "historico_vendas", "sangria", "suprimento"].includes(activeModule);
   const breadcrumbAtivo =
     activeModule === "venda" && clienteModalAberto
       ? "Venda > Informar cliente"
@@ -1027,11 +1030,11 @@ export default function App() {
             <div className="entry-card">
             <div className="entry-card-top">
               <div className="breadcrumb">{breadcrumbAtivo}</div>
-              {activeModule === "fechamento" && caixa ? (
+              {showBackToSale ? (
                 <button
                   className="back-to-sale"
                   type="button"
-                  disabled={caixaPendenteDiaAnterior}
+                  disabled={activeModule === "fechamento" && caixaPendenteDiaAnterior}
                   onClick={() => openModule("venda")}
                 >
                   Voltar para venda
@@ -1068,15 +1071,23 @@ export default function App() {
               />
             ) : null}
             {activeModule === "sangria" ? (
-              <MovimentoCaixa tipo="sangria" operador={operador} onDone={() => openModule("venda")} />
+              <MovimentoCaixa
+                tipo="sangria"
+                operador={operador}
+                onDone={() => openModule("venda")}
+              />
             ) : null}
             {activeModule === "suprimento" ? (
-              <MovimentoCaixa tipo="suprimento" operador={operador} onDone={() => openModule("venda")} />
+              <MovimentoCaixa
+                tipo="suprimento"
+                operador={operador}
+                onDone={() => openModule("venda")}
+              />
             ) : null}
             {activeModule === "fechamento" ? (
               <FechamentoCaixa onClosed={handleCaixaFechado} />
             ) : null}
-            {activeModule === "configuracao" ? <ConfiguracaoLocal onBack={() => openModule("venda")} /> : null}
+            {activeModule === "configuracao" ? <ConfiguracaoLocal /> : null}
             {activeModule === "historico_vendas" ? (
               <HistoricoVendas
                 search={historicoBusca}
@@ -1088,7 +1099,6 @@ export default function App() {
                 onStatusChange={setHistoricoStatus}
                 onRefresh={() => carregarHistoricoVendas({ keepSelection: true })}
                 onSelect={carregarHistoricoVendaDetalhe}
-                onBack={() => openModule("venda")}
               />
             ) : null}
           </div>
