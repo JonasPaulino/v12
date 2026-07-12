@@ -1,0 +1,495 @@
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import { api } from "../api.js";
+import {
+  FALLBACK_FINANCEIRO_SUPPORT_DATA,
+  LIMITE_IDENTIFICACAO_CLIENTE,
+} from "../constants/pdv.js";
+import { AppContext } from "../context/AppContext.jsx";
+import { useSweetAlert } from "../context/SweetAlertContext.jsx";
+
+export function usePdvVenda({ config, operador, caixa, activeModule, caixaPendenteDiaAnterior }) {
+  const [cart, setCart] = useState([]);
+  const [clienteIdentificado, setClienteIdentificado] = useState(null);
+  const [clienteModalAberto, setClienteModalAberto] = useState(false);
+  const [clienteForm, setClienteForm] = useState({
+    tipoDocumento: "CPF",
+    documento: "",
+    nome: "",
+    email: "",
+  });
+  const [pagamentoModalAberto, setPagamentoModalAberto] = useState(false);
+  const [pagamentosConfirmados, setPagamentosConfirmados] = useState(null);
+  const [descontoTipo, setDescontoTipo] = useState("valor");
+  const [descontoEntrada, setDescontoEntrada] = useState("");
+  const [financeiroSupportData, setFinanceiroSupportData] = useState(null);
+  const productSearchRef = useRef(null);
+  const { showLoading, hideLoading } = useContext(AppContext);
+  const { showAlert, askYesNoQuestion } = useSweetAlert();
+
+  useEffect(() => {
+    if (cart.length) return;
+    setDescontoEntrada("");
+    setDescontoTipo("valor");
+  }, [cart.length]);
+
+  const subtotal = useMemo(() => {
+    return cart.reduce((acc, item) => acc + Number(item.quantidade) * Number(item.valor_unitario), 0);
+  }, [cart]);
+
+  const descontoCalculado = useMemo(() => {
+    const raw = Number(String(descontoEntrada || "").replace(",", "."));
+    const valorInformado = Number.isFinite(raw) ? raw : 0;
+
+    if (subtotal <= 0 || valorInformado <= 0) {
+      return 0;
+    }
+
+    if (descontoTipo === "percentual") {
+      return Math.min(subtotal, subtotal * Math.min(valorInformado, 100) / 100);
+    }
+
+    return Math.min(subtotal, valorInformado);
+  }, [descontoEntrada, descontoTipo, subtotal]);
+
+  const total = useMemo(() => {
+    return Math.max(0, Number((subtotal - descontoCalculado).toFixed(2)));
+  }, [descontoCalculado, subtotal]);
+
+  const vendaProntaParaConclusao = Array.isArray(pagamentosConfirmados) && pagamentosConfirmados.length > 0;
+  const formasPagamento = financeiroSupportData?.formasPagamento?.length
+    ? financeiroSupportData.formasPagamento
+    : FALLBACK_FINANCEIRO_SUPPORT_DATA.formasPagamento;
+  const clienteResumo = clienteIdentificado
+    ? `${clienteIdentificado.tipoDocumento}: ${clienteIdentificado.documento} - ${clienteIdentificado.nome}`
+    : null;
+
+  function resetVendaState() {
+    setCart([]);
+    setClienteIdentificado(null);
+    setClienteModalAberto(false);
+    setPagamentoModalAberto(false);
+    setPagamentosConfirmados(null);
+    setDescontoEntrada("");
+    setDescontoTipo("valor");
+  }
+
+  function addProduto(produto, quantidade = 1) {
+    if (pagamentosConfirmados?.length) {
+      showAlert({
+        title: "Recebimento ja informado",
+        text: "Cancele os pagamentos antes de adicionar ou alterar itens da venda.",
+        icon: "warning",
+      });
+      return;
+    }
+
+    setCart((current) => {
+      const existing = current.find((item) => item.produto_id === produto.produto_id);
+      const quantidadeAdicionar = Math.max(1, Number(quantidade) || 1);
+      if (existing) {
+        return current.map((item) =>
+          item.produto_id === produto.produto_id
+            ? { ...item, quantidade: Number(item.quantidade) + quantidadeAdicionar }
+            : item,
+        );
+      }
+
+      return [
+        ...current,
+        {
+          produto_id: produto.produto_id,
+          codigo_produto: produto.codigo,
+          descricao: produto.descricao,
+          unidade: produto.unidade || "UN",
+          quantidade: quantidadeAdicionar,
+          valor_unitario: Number(produto.preco_venda || 0),
+        },
+      ];
+    });
+    setPagamentosConfirmados(null);
+  }
+
+  async function carregarFinanceiroSupportData({ silent = false, refresh = false } = {}) {
+    try {
+      if (!silent) {
+        showLoading("Carregando formas de pagamento...");
+      }
+
+      const result = refresh
+        ? await api.sincronizarFinanceiroSupportData({ tipo: "receber", refresh: true })
+        : await api.financeiroSupportData({ tipo: "receber" });
+      const supportData = result || FALLBACK_FINANCEIRO_SUPPORT_DATA;
+      const nextFormasPagamento = Array.isArray(supportData.formasPagamento)
+        ? supportData.formasPagamento.filter(Boolean)
+        : [];
+
+      setFinanceiroSupportData({
+        ...FALLBACK_FINANCEIRO_SUPPORT_DATA,
+        ...supportData,
+        formasPagamento: nextFormasPagamento.length
+          ? nextFormasPagamento
+          : FALLBACK_FINANCEIRO_SUPPORT_DATA.formasPagamento,
+        formaPagamentoPadrao:
+          supportData.formaPagamentoPadrao ||
+          nextFormasPagamento.find((item) => item.padrao) ||
+          FALLBACK_FINANCEIRO_SUPPORT_DATA.formaPagamentoPadrao,
+      });
+
+      return {
+        success: true,
+      };
+    } catch (error) {
+      if (refresh) {
+        try {
+          const cachedResult = await api.financeiroSupportData({ tipo: "receber" });
+          const cachedSupportData = cachedResult || FALLBACK_FINANCEIRO_SUPPORT_DATA;
+          const nextFormasPagamento = Array.isArray(cachedSupportData.formasPagamento)
+            ? cachedSupportData.formasPagamento.filter(Boolean)
+            : [];
+
+          setFinanceiroSupportData({
+            ...FALLBACK_FINANCEIRO_SUPPORT_DATA,
+            ...cachedSupportData,
+            formasPagamento: nextFormasPagamento.length
+              ? nextFormasPagamento
+              : FALLBACK_FINANCEIRO_SUPPORT_DATA.formasPagamento,
+            formaPagamentoPadrao:
+              cachedSupportData.formaPagamentoPadrao ||
+              nextFormasPagamento.find((item) => item.padrao) ||
+              FALLBACK_FINANCEIRO_SUPPORT_DATA.formaPagamentoPadrao,
+          });
+
+          return {
+            success: true,
+            cached: true,
+          };
+        } catch {
+          // fallback local padrao
+        }
+      }
+
+      setFinanceiroSupportData(FALLBACK_FINANCEIRO_SUPPORT_DATA);
+      return {
+        success: false,
+        message: String(error?.message || "").trim(),
+      };
+    } finally {
+      if (!silent) {
+        hideLoading();
+      }
+    }
+  }
+
+  async function iniciarFinalizacaoVenda() {
+    try {
+      if (total >= LIMITE_IDENTIFICACAO_CLIENTE && !clienteIdentificado) {
+        const wantsToIdentify = await askYesNoQuestion(
+          "Identificar cliente",
+          "Esta venda esta acima de R$ 10.000,00. Deseja identificar o cliente antes de finalizar?",
+        );
+
+        if (wantsToIdentify) {
+          abrirModalCliente();
+          return;
+        }
+      }
+
+      if (!financeiroSupportData) {
+        const loaded = await carregarFinanceiroSupportData();
+        if (!loaded?.success) {
+          showAlert({
+            title: "Formas de pagamento indisponiveis",
+            text: loaded?.message
+              ? `${loaded.message}. O PDV seguira com os meios locais padrao.`
+              : "Nao foi possivel carregar o apoio financeiro do ERP. O PDV seguira com os meios locais padrao.",
+            icon: "warning",
+          });
+        }
+      }
+
+      setPagamentoModalAberto(true);
+    } catch (error) {
+      showAlert({
+        title: "Falha na venda",
+        text: error.message,
+        icon: "error",
+      });
+    }
+  }
+
+  function confirmarRecebimentoVenda(pagamentos) {
+    setPagamentosConfirmados(pagamentos);
+    setPagamentoModalAberto(false);
+    showAlert({
+      title: "Pagamento informado",
+      text: "Agora escolha se deseja imprimir orcamento, emitir cupom fiscal ou apenas finalizar a venda.",
+      icon: "success",
+    });
+  }
+
+  function buildBudgetPayload(itemsOverride = cart.map((item) => ({ ...item }))) {
+    return {
+      items: itemsOverride,
+      subtotal,
+      desconto: descontoCalculado,
+      total,
+      pagamentos: Array.isArray(pagamentosConfirmados)
+        ? pagamentosConfirmados.map((item) => {
+            const forma = formasPagamento.find((formaPagamento) => formaPagamento.codigo === item.forma);
+            return {
+              ...item,
+              descricao: forma?.descricao || item.forma,
+            };
+          })
+        : [],
+      cliente: clienteResumo || "Consumidor nao identificado",
+      operador: operador?.nome || caixa?.operador_nome || "Operador",
+      data: new Date().toLocaleString("pt-BR"),
+      terminal: config?.terminal_codigo || config?.terminal_nome || "PDV",
+      emitente: {
+        nome: config?.tenant_nome || "V12 ERP",
+        documento: config?.tenant_documento || "",
+        endereco: config?.tenant_endereco || "",
+        inscricaoEstadual: config?.tenant_inscricao_estadual || "",
+        inscricaoMunicipal: config?.tenant_inscricao_municipal || "",
+      },
+      numeroDocumento: `ORC-${Date.now()}`,
+    };
+  }
+
+  async function finalizarVenda(modoFinalizacao = "finalizar") {
+    try {
+      if (!Array.isArray(pagamentosConfirmados) || !pagamentosConfirmados.length) {
+        throw new Error("Informe as formas de pagamento antes de concluir a venda.");
+      }
+
+      const snapshotOrcamento = buildBudgetPayload(cart.map((item) => ({ ...item })));
+
+      showLoading("Finalizando venda...");
+      const result = await api.criarVenda({
+        cliente: clienteIdentificado,
+        items: cart,
+        pagamentos: pagamentosConfirmados,
+        subtotal,
+        desconto: descontoCalculado,
+        totalLiquido: total,
+      });
+      resetVendaState();
+
+      if (modoFinalizacao === "orcamento") {
+        await imprimirOrcamento(snapshotOrcamento);
+      }
+
+      showAlert({
+        title: "Venda registrada",
+        text: result.fiscal?.message || "Venda registrada localmente.",
+        icon: result.fiscal?.success ? "success" : "info",
+      });
+    } catch (error) {
+      showAlert({
+        title: "Falha na venda",
+        text: error.message,
+        icon: "error",
+      });
+    } finally {
+      hideLoading();
+    }
+  }
+
+  async function imprimirOrcamento(payloadBase = null) {
+    try {
+      const payload = payloadBase || buildBudgetPayload();
+      const printerConfig = await api.obterConfiguracaoImpressora().catch(() => null);
+
+      if (window.v12Desktop?.printBudget) {
+        await window.v12Desktop.printBudget(payload, printerConfig);
+        return;
+      }
+
+      const popup = window.open("", "_blank", "width=900,height=900");
+      if (!popup) {
+        throw new Error("Nao foi possivel abrir a janela de impressao.");
+      }
+
+      popup.document.write(`<pre>${JSON.stringify(payload, null, 2)}</pre>`);
+      popup.document.close();
+      popup.focus();
+      popup.onafterprint = () => popup.close();
+      popup.print();
+    } catch (error) {
+      showAlert({
+        title: "Falha ao imprimir orcamento",
+        text: error.message,
+        icon: "error",
+      });
+    }
+  }
+
+  async function imprimirOrcamentoComRecebimento() {
+    if (!Array.isArray(pagamentosConfirmados) || !pagamentosConfirmados.length) {
+      showAlert({
+        title: "Pagamento pendente",
+        text: "Informe as formas de pagamento antes de imprimir o orcamento.",
+        icon: "warning",
+      });
+      return;
+    }
+
+    await imprimirOrcamento(buildBudgetPayload(cart.map((item) => ({ ...item }))));
+  }
+
+  async function cancelarPagamentosConfirmados() {
+    if (!Array.isArray(pagamentosConfirmados) || !pagamentosConfirmados.length) {
+      return;
+    }
+
+    const confirmed = await askYesNoQuestion(
+      "Cancelar recebimento",
+      "Deseja cancelar os pagamentos informados e liberar a venda para edicao?",
+    );
+
+    if (!confirmed) return;
+
+    setPagamentosConfirmados(null);
+    showAlert({
+      title: "Pagamentos cancelados",
+      text: "A venda voltou a ficar editavel.",
+      icon: "success",
+    });
+  }
+
+  function abrirModalCliente() {
+    if (pagamentosConfirmados?.length) {
+      showAlert({
+        title: "Recebimento ja informado",
+        text: "Cancele os pagamentos antes de alterar o cliente desta venda.",
+        icon: "warning",
+      });
+      return;
+    }
+
+    setClienteForm({
+      tipoDocumento: clienteIdentificado?.tipoDocumento || "CPF",
+      documento: clienteIdentificado?.documento || "",
+      nome: clienteIdentificado?.nome || "",
+      email: clienteIdentificado?.email || "",
+    });
+    setClienteModalAberto(true);
+  }
+
+  function fecharModalCliente() {
+    setClienteModalAberto(false);
+  }
+
+  function salvarClienteIdentificado() {
+    const tipoDocumento = String(clienteForm.tipoDocumento || "CPF").toUpperCase();
+    const documentoBruto = String(clienteForm.documento || "").trim();
+    const documento = tipoDocumento === "ESTRANGEIRO" ? documentoBruto : documentoBruto.replace(/\D/g, "");
+    const nome = String(clienteForm.nome || "").trim();
+    const email = String(clienteForm.email || "").trim().toLowerCase();
+
+    if (!documento) {
+      showAlert({
+        title: "Documento obrigatorio",
+        text: "Informe o documento do cliente para identificar a venda.",
+        icon: "warning",
+      });
+      return;
+    }
+
+    if (!nome) {
+      showAlert({
+        title: "Nome obrigatorio",
+        text: "Informe o nome do cliente para continuar.",
+        icon: "warning",
+      });
+      return;
+    }
+
+    if (tipoDocumento === "CPF" && documento.length !== 11) {
+      showAlert({
+        title: "CPF invalido",
+        text: "O CPF precisa ter 11 digitos.",
+        icon: "warning",
+      });
+      return;
+    }
+
+    if (tipoDocumento === "CNPJ" && documento.length !== 14) {
+      showAlert({
+        title: "CNPJ invalido",
+        text: "O CNPJ precisa ter 14 digitos.",
+        icon: "warning",
+      });
+      return;
+    }
+
+    setClienteIdentificado({
+      tipoDocumento,
+      documento,
+      nome,
+      email: email || null,
+    });
+    setPagamentosConfirmados(null);
+    setClienteModalAberto(false);
+    showAlert({
+      title: "Cliente identificado",
+      text: `${nome} foi vinculado a venda atual.`,
+      icon: "success",
+    });
+  }
+
+  function focarConsultaProduto() {
+    if (activeModule !== "venda") {
+      return;
+    }
+
+    productSearchRef.current?.focusSearch?.();
+  }
+
+  function abrirPagamentoVenda() {
+    if (!caixa || caixaPendenteDiaAnterior || !cart.length) return;
+    if (clienteModalAberto || pagamentoModalAberto || vendaProntaParaConclusao) return;
+    iniciarFinalizacaoVenda();
+  }
+
+  return {
+    cart,
+    clienteIdentificado,
+    clienteModalAberto,
+    clienteForm,
+    pagamentoModalAberto,
+    pagamentosConfirmados,
+    descontoTipo,
+    descontoEntrada,
+    descontoCalculado,
+    subtotal,
+    total,
+    financeiroSupportData,
+    productSearchRef,
+    vendaProntaParaConclusao,
+    formasPagamento,
+    clienteResumo,
+    setCart,
+    setClienteIdentificado,
+    setClienteForm,
+    setPagamentoModalAberto,
+    setPagamentosConfirmados,
+    setDescontoTipo,
+    setDescontoEntrada,
+    addProduto,
+    resetVendaState,
+    carregarFinanceiroSupportData,
+    iniciarFinalizacaoVenda,
+    confirmarRecebimentoVenda,
+    finalizarVenda,
+    imprimirOrcamento,
+    imprimirOrcamentoComRecebimento,
+    cancelarPagamentosConfirmados,
+    abrirModalCliente,
+    fecharModalCliente,
+    salvarClienteIdentificado,
+    focarConsultaProduto,
+    abrirPagamentoVenda,
+  };
+}

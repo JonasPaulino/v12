@@ -1,0 +1,73 @@
+import {
+  FiChevronDown,
+  FiFileText,
+  FiMaximize2,
+  FiMenu,
+  FiPower,
+  FiRefreshCcw,
+  FiSettings,
+  FiShoppingCart,
+} from "react-icons/fi";
+
+export function PdvTopBar({
+  config,
+  health,
+  operador,
+  caixa,
+  openModule,
+  carregarHistoricoVendas,
+  atualizarPdvCompleto,
+  alternarTelaCheia,
+  sairDoSistema,
+}) {
+  return (
+    <header className="pdv-topbar">
+      <div className="menu-group">
+        <button className="top-menu">
+          <FiMenu />
+          Menu <small>F2</small>
+          <FiChevronDown className="chevron" />
+        </button>
+        <div className="top-dropdown">
+          <button onClick={() => openModule("venda")}><FiShoppingCart /> Nova venda</button>
+          <button onClick={() => openModule("sangria")}><FiFileText /> Sangria</button>
+          <button onClick={() => openModule("suprimento")}><FiFileText /> Suprimento</button>
+          <button onClick={() => openModule("fechamento")}><FiFileText /> Fechamento de caixa</button>
+          <button
+            onClick={() => {
+              openModule("historico_vendas");
+              carregarHistoricoVendas({ keepSelection: false });
+            }}
+          >
+            <FiFileText /> Reimpressao e cancelamento
+          </button>
+          <button onClick={() => openModule("configuracao")}><FiSettings /> Configuracoes locais</button>
+          <div className="top-dropdown-section">
+            <span className="top-dropdown-section-title">Atualizacoes</span>
+            <button className="submenu-button" onClick={atualizarPdvCompleto}><FiRefreshCcw /> Atualizar PDV</button>
+          </div>
+          <button onClick={alternarTelaCheia}><FiMaximize2 /> Alternar tela cheia</button>
+          <button className="danger-menu" onClick={sairDoSistema}><FiPower /> Sair do sistema</button>
+        </div>
+      </div>
+
+      <div className="operator-info">
+        <span>{config?.terminal_codigo || "PDV: 01"}</span>
+        <span>Operador: {operador?.nome || caixa?.operador_nome || "Caixa fechado"}</span>
+        <span>{config?.tenant_nome || health?.station || "Caixa 01"}</span>
+      </div>
+
+      <div className="menu-group align-right">
+        <button className="top-menu fiscal">
+          Menu fiscal <small>F12</small>
+          <FiChevronDown className="chevron" />
+        </button>
+        <div className="top-dropdown">
+          <button>Status SEFAZ</button>
+          <button>Enviar contingencias</button>
+          <button>Consultar NFC-e</button>
+        </div>
+      </div>
+    </header>
+  );
+}
