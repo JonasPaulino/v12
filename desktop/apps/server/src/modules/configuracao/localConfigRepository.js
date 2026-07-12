@@ -25,6 +25,11 @@ export function getTerminalConfig() {
     .get() || null;
 }
 
+export function getTerminalTenantErpId() {
+  const tenantErpId = Number(getTerminalConfig()?.tenant_erp_id || 0);
+  return Number.isInteger(tenantErpId) && tenantErpId > 0 ? tenantErpId : null;
+}
+
 export function assertTerminalConfigurado() {
   const config = getTerminalConfig();
   if (!config) {
@@ -106,9 +111,18 @@ export function salvarTerminalConfig(payload = {}) {
 export function limparTerminalConfigInicial() {
   const db = getDb();
   const clear = db.transaction(() => {
+    db.prepare("DELETE FROM caixa_movimento").run();
+    db.prepare("DELETE FROM venda_pagamento").run();
+    db.prepare("DELETE FROM venda_item").run();
+    db.prepare("DELETE FROM nfce").run();
+    db.prepare("DELETE FROM venda").run();
+    db.prepare("DELETE FROM caixa").run();
     db.prepare("DELETE FROM operador_perfil").run();
     db.prepare("DELETE FROM operador_local").run();
+    db.prepare("DELETE FROM pessoa").run();
     db.prepare("DELETE FROM produto").run();
+    db.prepare("DELETE FROM sync_queue").run();
+    db.prepare("DELETE FROM config_local").run();
     db.prepare("DELETE FROM terminal_config WHERE config_id = 1").run();
   });
 

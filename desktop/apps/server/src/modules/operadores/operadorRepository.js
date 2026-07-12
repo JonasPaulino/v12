@@ -1,5 +1,6 @@
 import { getDb } from "../../db/connection.js";
 import { verifyPassword } from "../../utils/password.js";
+import { getTerminalTenantErpId } from "../configuracao/localConfigRepository.js";
 
 export const OPERADOR_PERFIS = Object.freeze({
   PDV_OPERADOR: "pdv_operador",
@@ -10,15 +11,21 @@ export const OPERADOR_PERFIS = Object.freeze({
 
 export function sincronizarOperadoresErp(usuarios = []) {
   const db = getDb();
+  const tenantErpId = getTerminalTenantErpId();
+  if (!tenantErpId) {
+    throw new Error("PDV local ainda não pareado com uma filial do ERP.");
+  }
   const sync = db.transaction((items) => {
     db.prepare(
       `UPDATE operador_local
        SET ativo = 0, atualizado_em = CURRENT_TIMESTAMP
-       WHERE erp_usuario_id IS NOT NULL`,
-    ).run();
+       WHERE tenant_erp_id = ?
+         AND erp_usuario_id IS NOT NULL`,
+    ).run(tenantErpId);
 
     const upsertOperador = db.prepare(
       `INSERT INTO operador_local (
+        tenant_erp_id,
         erp_usuario_id,
         nome,
         email,
@@ -27,8 +34,9 @@ export function sincronizarOperadoresErp(usuarios = []) {
         primeiro_acesso,
         sincronizado_em
       )
-      VALUES (@erp_usuario_id, @nome, @email, @senha_hash, @ativo, @primeiro_acesso, CURRENT_TIMESTAMP)
+      VALUES (@tenant_erp_id, @erp_usuario_id, @nome, @email, @senha_hash, @ativo, @primeiro_acesso, CURRENT_TIMESTAMP)
       ON CONFLICT(erp_usuario_id) WHERE erp_usuario_id IS NOT NULL DO UPDATE SET
+        tenant_erp_id = excluded.tenant_erp_id,
         nome = excluded.nome,
         email = excluded.email,
         senha_hash = excluded.senha_hash,
@@ -38,21 +46,27 @@ export function sincronizarOperadoresErp(usuarios = []) {
         atualizado_em = CURRENT_TIMESTAMP`,
     );
 
-    const findOperador = db.prepare("SELECT operador_id FROM operador_local WHERE erp_usuario_id = ?");
+    const findOperador = db.prepare(
+      "SELECT operador_id FROM operador_local WHERE tenant_erp_id = ? AND erp_usuario_id = ?",
+    );
     const disablePerfis = db.prepare(
       `UPDATE operador_perfil
        SET ativo = 0
-       WHERE operador_id = ?`,
+       WHERE tenant_erp_id = ?
+         AND operador_id = ?`,
     );
     const upsertPerfil = db.prepare(
-      `INSERT INTO operador_perfil (operador_id, perfil, ativo)
-       VALUES (?, ?, 1)
-       ON CONFLICT(operador_id, perfil) DO UPDATE SET ativo = 1`,
+      `INSERT INTO operador_perfil (tenant_erp_id, operador_id, perfil, ativo)
+       VALUES (?, ?, ?, 1)
+       ON CONFLICT(operador_id, perfil) DO UPDATE SET
+         tenant_erp_id = excluded.tenant_erp_id,
+         ativo = 1`,
     );
 
     for (const usuario of items) {
       const perfis = Array.isArray(usuario.perfis) ? usuario.perfis : [];
       upsertOperador.run({
+        tenant_erp_id: tenantErpId,
         erp_usuario_id: Number(usuario.erp_usuario_id),
         nome: String(usuario.nome || "").trim(),
         email: String(usuario.email || "").trim().toLowerCase(),
@@ -61,13 +75,13 @@ export function sincronizarOperadoresErp(usuarios = []) {
         primeiro_acesso: usuario.primeiro_acesso ? 1 : 0,
       });
 
-      const operador = findOperador.get(Number(usuario.erp_usuario_id));
+      const operador = findOperador.get(tenantErpId, Number(usuario.erp_usuario_id));
       if (!operador) continue;
 
-      disablePerfis.run(operador.operador_id);
+      disablePerfis.run(tenantErpId, operador.operador_id);
       for (const perfil of perfis) {
         if (Object.values(OPERADOR_PERFIS).includes(perfil)) {
-          upsertPerfil.run(operador.operador_id, perfil);
+          upsertPerfil.run(tenantErpId, operador.operador_id, perfil);
         }
       }
     }
@@ -79,19 +93,23 @@ export function sincronizarOperadoresErp(usuarios = []) {
 
 export function getOperadorById(operadorId) {
   const db = getDb();
+  const tenantErpId = getTerminalTenantErpId();
   const operador = db
     .prepare(
       `SELECT operador_id, erp_usuario_id, nome, email, ativo, primeiro_acesso, sincronizado_em, criado_em, atualizado_em
        FROM operador_local
-       WHERE operador_id = ?`,
+       WHERE tenant_erp_id = ?
+         AND operador_id = ?`,
     )
-    .get(operadorId);
+    .get(tenantErpId, operadorId);
 
   if (!operador) return null;
 
   operador.perfis = db
-    .prepare("SELECT perfil FROM operador_perfil WHERE operador_id = ? AND ativo = 1 ORDER BY perfil")
-    .all(operadorId)
+    .prepare(
+      "SELECT perfil FROM operador_perfil WHERE tenant_erp_id = ? AND operador_id = ? AND ativo = 1 ORDER BY perfil",
+    )
+    .all(tenantErpId, operadorId)
     .map((row) => row.perfil);
 
   return operador;
@@ -99,14 +117,16 @@ export function getOperadorById(operadorId) {
 
 export function autenticarOperador({ email, senha }) {
   const db = getDb();
+  const tenantErpId = getTerminalTenantErpId();
   const operador = db
     .prepare(
       `SELECT operador_id, senha_hash, ativo
        FROM operador_local
-       WHERE LOWER(TRIM(email)) = LOWER(TRIM(?))
+       WHERE tenant_erp_id = ?
+         AND LOWER(TRIM(email)) = LOWER(TRIM(?))
        LIMIT 1`,
     )
-    .get(String(email || "").trim());
+    .get(tenantErpId, String(email || "").trim());
 
   if (!operador || !Number(operador.ativo) || !verifyPassword(senha, operador.senha_hash)) {
     throw new Error("Operador ou senha invalida.");
@@ -117,6 +137,7 @@ export function autenticarOperador({ email, senha }) {
 
 export function atualizarSenhaOperadorLocal({ operadorId, senhaHash }) {
   const db = getDb();
+  const tenantErpId = getTerminalTenantErpId();
   db.prepare(
     `UPDATE operador_local
      SET
@@ -124,14 +145,16 @@ export function atualizarSenhaOperadorLocal({ operadorId, senhaHash }) {
        primeiro_acesso = 0,
        sincronizado_em = CURRENT_TIMESTAMP,
        atualizado_em = CURRENT_TIMESTAMP
-     WHERE operador_id = ?`,
-  ).run(senhaHash, operadorId);
+     WHERE tenant_erp_id = ?
+       AND operador_id = ?`,
+  ).run(senhaHash, tenantErpId, operadorId);
 
   return getOperadorById(operadorId);
 }
 
 export function operadorTemPerfil(operadorId, perfis = []) {
   if (!operadorId) return false;
+  const tenantErpId = getTerminalTenantErpId();
 
   const perfilList = Array.isArray(perfis) ? perfis : [perfis];
   if (!perfilList.length) return false;
@@ -141,12 +164,13 @@ export function operadorTemPerfil(operadorId, perfis = []) {
     .prepare(
       `SELECT 1
        FROM operador_perfil
-       WHERE operador_id = ?
+       WHERE tenant_erp_id = ?
+         AND operador_id = ?
          AND ativo = 1
          AND perfil IN (${placeholders})
        LIMIT 1`,
     )
-    .get(operadorId, ...perfilList);
+    .get(tenantErpId, operadorId, ...perfilList);
 
   return !!row;
 }

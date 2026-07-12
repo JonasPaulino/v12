@@ -1,6 +1,7 @@
 import { formaPagamento, nfceStatus, syncEventTypes, vendaStatus } from "@v12-desktop/shared";
 import { getDb } from "../../db/connection.js";
 import { getCaixaAberto } from "../caixa/caixaRepository.js";
+import { getTerminalTenantErpId } from "../configuracao/localConfigRepository.js";
 import { enqueueSyncEvent } from "../../services/syncQueueService.js";
 import { emitirNfce } from "../../services/acbrFiscalService.js";
 
@@ -32,8 +33,13 @@ export async function criarVenda({
   totalLiquido = null,
 }) {
   const caixa = getCaixaAberto();
+  const tenantErpId = getTerminalTenantErpId();
   if (!caixa) {
     throw new Error("Nao existe caixa aberto.");
+  }
+
+  if (!tenantErpId || Number(caixa.tenant_erp_id) !== Number(tenantErpId)) {
+    throw new Error("O caixa aberto nao pertence a filial configurada neste PDV.");
   }
 
   if (!items.length) {
@@ -63,6 +69,7 @@ export async function criarVenda({
     const vendaResult = db
       .prepare(
         `INSERT INTO venda (
+           tenant_erp_id,
            caixa_id,
            pessoa_id,
            cliente_tipo_documento,
@@ -75,9 +82,10 @@ export async function criarVenda({
            total_liquido,
            concluida_em
          )
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
       )
       .run(
+        tenantErpId,
         caixa.caixa_id,
         pessoaId || null,
         clienteIdentificado.tipoDocumento,
@@ -93,14 +101,15 @@ export async function criarVenda({
     const vendaId = vendaResult.lastInsertRowid;
 
     const insertItem = db.prepare(
-      `INSERT INTO venda_item (venda_id, produto_id, codigo_produto, descricao, quantidade, valor_unitario, unidade, valor_total)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO venda_item (tenant_erp_id, venda_id, produto_id, codigo_produto, descricao, quantidade, valor_unitario, unidade, valor_total)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     );
 
     for (const item of items) {
       const quantidade = Number(item.quantidade || 0);
       const valorUnitario = Number(item.valor_unitario || 0);
       insertItem.run(
+        tenantErpId,
         vendaId,
         item.produto_id,
         item.codigo_produto || null,
@@ -114,25 +123,28 @@ export async function criarVenda({
       db.prepare(
         `UPDATE produto
          SET estoque_atual = estoque_atual - ?, atualizado_em = CURRENT_TIMESTAMP
-         WHERE produto_id = ?`,
-      ).run(quantidade, item.produto_id);
+         WHERE tenant_erp_id = ?
+           AND produto_id = ?`,
+      ).run(quantidade, tenantErpId, item.produto_id);
     }
 
     const insertPagamento = db.prepare(
-      `INSERT INTO venda_pagamento (venda_id, forma, valor)
-       VALUES (?, ?, ?)`,
+      `INSERT INTO venda_pagamento (tenant_erp_id, venda_id, forma, valor)
+       VALUES (?, ?, ?, ?)`,
     );
 
     for (const pagamento of pagamentos.map(normalizePayment)) {
-      insertPagamento.run(vendaId, pagamento.forma, pagamento.valor);
+      insertPagamento.run(tenantErpId, vendaId, pagamento.forma, pagamento.valor);
     }
 
     db.prepare(
-      `INSERT INTO nfce (venda_id, status)
-       VALUES (?, ?)`,
-    ).run(vendaId, nfceStatus.PENDENTE);
+      `INSERT INTO nfce (tenant_erp_id, venda_id, status)
+       VALUES (?, ?, ?)`,
+    ).run(tenantErpId, vendaId, nfceStatus.PENDENTE);
 
-    return db.prepare("SELECT * FROM venda WHERE venda_id = ?").get(vendaId);
+    return db
+      .prepare("SELECT * FROM venda WHERE tenant_erp_id = ? AND venda_id = ?")
+      .get(tenantErpId, vendaId);
   });
 
   const venda = create();
@@ -152,6 +164,7 @@ export function listVendas({ limit = 50 } = {}) {
 
 export function searchVendas({ search = "", status = "", limit = 50 } = {}) {
   const db = getDb();
+  const tenantErpId = getTerminalTenantErpId();
   return db
     .prepare(
       `SELECT
@@ -178,8 +191,8 @@ export function searchVendas({ search = "", status = "", limit = 50 } = {}) {
        FROM venda v
        LEFT JOIN caixa c ON c.caixa_id = v.caixa_id
        LEFT JOIN nfce n ON n.venda_id = v.venda_id
-       WHERE
-         (? = '' OR v.status = ?)
+       WHERE v.tenant_erp_id = ?
+         AND (? = '' OR v.status = ?)
          AND (
            ? = ''
            OR CAST(v.venda_id AS TEXT) LIKE ?
@@ -192,6 +205,7 @@ export function searchVendas({ search = "", status = "", limit = 50 } = {}) {
        LIMIT ?`,
     )
     .all(
+      tenantErpId,
       String(status || "").trim().toLowerCase(),
       String(status || "").trim().toLowerCase(),
       String(search || "").trim().toLowerCase(),
@@ -206,6 +220,7 @@ export function searchVendas({ search = "", status = "", limit = 50 } = {}) {
 
 export function getVendaDetalhe(vendaId) {
   const db = getDb();
+  const tenantErpId = getTerminalTenantErpId();
   const venda = db
     .prepare(
       `SELECT
@@ -237,10 +252,11 @@ export function getVendaDetalhe(vendaId) {
        FROM venda v
        LEFT JOIN caixa c ON c.caixa_id = v.caixa_id
        LEFT JOIN nfce n ON n.venda_id = v.venda_id
-       WHERE v.venda_id = ?
+       WHERE v.tenant_erp_id = ?
+         AND v.venda_id = ?
        LIMIT 1`,
     )
-    .get(Number(vendaId));
+    .get(tenantErpId, Number(vendaId));
 
   if (!venda) {
     throw new Error("Venda local não encontrada.");
@@ -259,10 +275,11 @@ export function getVendaDetalhe(vendaId) {
          valor_unitario,
          valor_total
        FROM venda_item
-       WHERE venda_id = ?
+       WHERE tenant_erp_id = ?
+         AND venda_id = ?
        ORDER BY venda_item_id ASC`,
     )
-    .all(Number(vendaId));
+    .all(tenantErpId, Number(vendaId));
 
   const pagamentos = db
     .prepare(
@@ -274,16 +291,18 @@ export function getVendaDetalhe(vendaId) {
          autorizado,
          criado_em
        FROM venda_pagamento
-       WHERE venda_id = ?
+       WHERE tenant_erp_id = ?
+         AND venda_id = ?
        ORDER BY pagamento_id ASC`,
     )
-    .all(Number(vendaId));
+    .all(tenantErpId, Number(vendaId));
 
   return { ...venda, itens, pagamentos };
 }
 
 export function cancelarVenda(vendaId, { motivo = "Cancelamento manual no PDV." } = {}) {
   const db = getDb();
+  const tenantErpId = getTerminalTenantErpId();
   const saleId = Number(vendaId);
   const cancelReason = String(motivo || "").trim() || "Cancelamento manual no PDV.";
 
@@ -302,21 +321,24 @@ export function cancelarVenda(vendaId, { motivo = "Cancelamento manual no PDV." 
       db.prepare(
         `UPDATE produto
          SET estoque_atual = estoque_atual + ?, atualizado_em = CURRENT_TIMESTAMP
-         WHERE produto_id = ?`,
-      ).run(Number(item.quantidade || 0), item.produto_id);
+         WHERE tenant_erp_id = ?
+           AND produto_id = ?`,
+      ).run(Number(item.quantidade || 0), tenantErpId, item.produto_id);
     }
 
     db.prepare(
       `UPDATE venda
        SET status = ?, cancelada_em = CURRENT_TIMESTAMP, cancelamento_motivo = ?
-       WHERE venda_id = ?`,
-    ).run(vendaStatus.CANCELADA, cancelReason, saleId);
+       WHERE tenant_erp_id = ?
+         AND venda_id = ?`,
+    ).run(vendaStatus.CANCELADA, cancelReason, tenantErpId, saleId);
 
     db.prepare(
       `UPDATE nfce
        SET status = ?, motivo = ?, atualizado_em = CURRENT_TIMESTAMP
-       WHERE venda_id = ?`,
-    ).run(nfceStatus.CANCELADA, cancelReason, saleId);
+       WHERE tenant_erp_id = ?
+         AND venda_id = ?`,
+    ).run(nfceStatus.CANCELADA, cancelReason, tenantErpId, saleId);
 
     return getVendaDetalhe(saleId);
   });

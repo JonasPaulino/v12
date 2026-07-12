@@ -1,23 +1,31 @@
 import { getDb } from "../../db/connection.js";
+import { getTerminalTenantErpId } from "../configuracao/localConfigRepository.js";
 
 export function listProdutos({ search = "", limit = 50 } = {}) {
   const db = getDb();
+  const tenantErpId = getTerminalTenantErpId();
   const like = `%${search}%`;
   return db
     .prepare(
       `SELECT produto_id, erp_id, codigo, descricao, unidade, ncm, cest, preco_venda, estoque_atual, ativo
        FROM produto
-       WHERE ativo = 1
+       WHERE tenant_erp_id = ?
+         AND ativo = 1
          AND (? = '' OR descricao LIKE ? OR codigo LIKE ?)
        ORDER BY descricao
        LIMIT ?`,
     )
-    .all(search, like, like, limit);
+    .all(tenantErpId, search, like, like, limit);
 }
 
 export function upsertProduto(produto) {
   const db = getDb();
+  const tenantErpId = getTerminalTenantErpId();
+  if (!tenantErpId) {
+    throw new Error("PDV local ainda não pareado com uma filial do ERP.");
+  }
   const payload = {
+    tenant_erp_id: tenantErpId,
     erp_id: produto.erp_id || null,
     codigo: produto.codigo || null,
     descricao: produto.descricao,
@@ -30,11 +38,12 @@ export function upsertProduto(produto) {
   };
 
   const result = payload.erp_id
-    ? db
+      ? db
         .prepare(
-          `INSERT INTO produto (erp_id, codigo, descricao, unidade, ncm, cest, preco_venda, estoque_atual, ativo, sincronizado_em)
-           VALUES (@erp_id, @codigo, @descricao, @unidade, @ncm, @cest, @preco_venda, @estoque_atual, @ativo, CURRENT_TIMESTAMP)
+          `INSERT INTO produto (tenant_erp_id, erp_id, codigo, descricao, unidade, ncm, cest, preco_venda, estoque_atual, ativo, sincronizado_em)
+           VALUES (@tenant_erp_id, @erp_id, @codigo, @descricao, @unidade, @ncm, @cest, @preco_venda, @estoque_atual, @ativo, CURRENT_TIMESTAMP)
            ON CONFLICT(erp_id) WHERE erp_id IS NOT NULL DO UPDATE SET
+             tenant_erp_id = excluded.tenant_erp_id,
              codigo = excluded.codigo,
              descricao = excluded.descricao,
              unidade = excluded.unidade,
@@ -47,10 +56,10 @@ export function upsertProduto(produto) {
              atualizado_em = CURRENT_TIMESTAMP`,
         )
         .run(payload)
-    : db
+      : db
         .prepare(
-          `INSERT INTO produto (erp_id, codigo, descricao, unidade, ncm, cest, preco_venda, estoque_atual, ativo, sincronizado_em)
-           VALUES (@erp_id, @codigo, @descricao, @unidade, @ncm, @cest, @preco_venda, @estoque_atual, @ativo, CURRENT_TIMESTAMP)`,
+          `INSERT INTO produto (tenant_erp_id, erp_id, codigo, descricao, unidade, ncm, cest, preco_venda, estoque_atual, ativo, sincronizado_em)
+           VALUES (@tenant_erp_id, @erp_id, @codigo, @descricao, @unidade, @ncm, @cest, @preco_venda, @estoque_atual, @ativo, CURRENT_TIMESTAMP)`,
         )
         .run(payload);
 

@@ -163,14 +163,21 @@ export function registrarMovimentoCaixa({ operadorId, tipo, valor, motivo }) {
 
   const result = getDb()
     .prepare(
-      `INSERT INTO caixa_movimento (caixa_id, operador_id, tipo, valor, motivo)
-       VALUES (?, ?, ?, ?, ?)`,
+      `INSERT INTO caixa_movimento (tenant_erp_id, caixa_id, operador_id, tipo, valor, motivo)
+       VALUES (?, ?, ?, ?, ?, ?)`,
     )
-    .run(caixa.caixa_id, operador.operador_id, normalizedTipo, valorMovimento, motivo || null);
+    .run(
+      caixa.tenant_erp_id,
+      caixa.caixa_id,
+      operador.operador_id,
+      normalizedTipo,
+      valorMovimento,
+      motivo || null,
+    );
 
   const movimento = getDb()
-    .prepare("SELECT * FROM caixa_movimento WHERE movimento_id = ?")
-    .get(result.lastInsertRowid);
+    .prepare("SELECT * FROM caixa_movimento WHERE tenant_erp_id = ? AND movimento_id = ?")
+    .get(caixa.tenant_erp_id, result.lastInsertRowid);
 
   enqueueSyncEvent(syncEventTypes.CAIXA_MOVIMENTO, movimento);
   return movimento;
@@ -267,8 +274,8 @@ export function fecharCaixa({ valorFechamento, observacao }) {
   ).run(caixaStatus.FECHADO, valorFinal, observacao || null, diferenca, caixa.caixa_id);
 
   const fechado = db
-    .prepare("SELECT * FROM caixa WHERE caixa_id = ?")
-    .get(caixa.caixa_id);
+    .prepare("SELECT * FROM caixa WHERE tenant_erp_id = ? AND caixa_id = ?")
+    .get(caixa.tenant_erp_id, caixa.caixa_id);
 
   enqueueSyncEvent(syncEventTypes.CAIXA_FECHADO, fechado);
   return fechado;
