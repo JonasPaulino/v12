@@ -1,4 +1,26 @@
-import { FiRefreshCcw, FiSearch } from "react-icons/fi";
+import { FiArrowLeft, FiRefreshCcw, FiSearch } from "react-icons/fi";
+
+function formatDateTime(value) {
+  if (!value) return "-";
+  const normalized = String(value).replace(" ", "T");
+  const date = new Date(normalized);
+  if (Number.isNaN(date.getTime())) return String(value);
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function formatCurrency(value) {
+  return Number(value || 0).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+}
 
 export function HistoricoVendas({
   search,
@@ -10,9 +32,21 @@ export function HistoricoVendas({
   onStatusChange,
   onRefresh,
   onSelect,
+  onBack,
 }) {
   return (
     <div className="sales-history-module">
+      <div className="sales-history-head">
+        <div>
+          <strong>Reimpressão e cancelamento</strong>
+          <span>Consulte vendas já registradas, visualize o cupom e execute ações administrativas.</span>
+        </div>
+        <button type="button" className="sales-history-back" onClick={onBack}>
+          <FiArrowLeft />
+          Voltar para venda
+        </button>
+      </div>
+
       <div className="sales-history-toolbar">
         <label>
           Buscar venda
@@ -57,20 +91,20 @@ export function HistoricoVendas({
               onClick={() => onSelect(venda.venda_id)}
             >
               <div className="sales-history-row-top">
-                <strong>Venda #{String(venda.venda_id).padStart(6, "0")}</strong>
-                <span className={`sales-status-badge is-${venda.status}`}>{venda.status}</span>
+                <div className="sales-history-row-title">
+                  <strong>Venda #{String(venda.venda_id).padStart(6, "0")}</strong>
+                  <small>{formatDateTime(venda.concluida_em || venda.criada_em)}</small>
+                </div>
+                <div className="sales-history-row-tags">
+                  <span className={`sales-status-badge is-${venda.status}`}>{venda.status}</span>
+                  <span className="sales-history-nfce-status">
+                    NFC-e {String(venda.nfce_status || "pendente").replace(/_/g, " ")}
+                  </span>
+                </div>
               </div>
               <div className="sales-history-row-middle">
                 <span>{venda.cliente_nome || "Consumidor não identificado"}</span>
-                <b>
-                  {Number(venda.total_liquido || 0).toLocaleString("pt-BR", {
-                    minimumFractionDigits: 2,
-                  })}
-                </b>
-              </div>
-              <div className="sales-history-row-bottom">
-                <small>{venda.criada_em || venda.concluida_em || "-"}</small>
-                <small>NFC-e: {venda.nfce_status || "pendente"}</small>
+                <b className="sales-history-row-total">{formatCurrency(venda.total_liquido)}</b>
               </div>
             </button>
           ))

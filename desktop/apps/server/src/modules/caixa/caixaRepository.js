@@ -181,6 +181,18 @@ export function getResumoCaixa() {
   if (!caixa) return null;
 
   const db = getDb();
+  const vendas = db
+    .prepare(
+      `SELECT
+        COALESCE(SUM(CASE WHEN status = 'concluida' THEN total_liquido ELSE 0 END), 0) AS total_vendido,
+        COALESCE(SUM(CASE WHEN status = 'cancelada' THEN total_liquido ELSE 0 END), 0) AS total_cancelado,
+        COALESCE(SUM(CASE WHEN status = 'concluida' THEN 1 ELSE 0 END), 0) AS quantidade_vendas,
+        COALESCE(SUM(CASE WHEN status = 'cancelada' THEN 1 ELSE 0 END), 0) AS quantidade_canceladas
+       FROM venda
+       WHERE caixa_id = ?`,
+    )
+    .get(caixa.caixa_id);
+
   const pagamentos = db
     .prepare(
       `SELECT
@@ -218,6 +230,12 @@ export function getResumoCaixa() {
 
   return {
     caixa,
+    vendas: {
+      total_vendido: Number(vendas?.total_vendido || 0),
+      total_cancelado: Number(vendas?.total_cancelado || 0),
+      quantidade_vendas: Number(vendas?.quantidade_vendas || 0),
+      quantidade_canceladas: Number(vendas?.quantidade_canceladas || 0),
+    },
     pagamentos: totalPorForma,
     movimentos: totalMovimento,
     dinheiro_vendas: dinheiroVendas,

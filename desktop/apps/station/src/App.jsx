@@ -1088,6 +1088,7 @@ export default function App() {
                 onStatusChange={setHistoricoStatus}
                 onRefresh={() => carregarHistoricoVendas({ keepSelection: true })}
                 onSelect={carregarHistoricoVendaDetalhe}
+                onBack={() => openModule("venda")}
               />
             ) : null}
           </div>
@@ -1098,6 +1099,7 @@ export default function App() {
             <HistoricoVendaDetalhe
               venda={historicoVendaDetalhe}
               loading={historicoLoading}
+              config={configStatus?.config}
               onRefresh={() =>
                 historicoVendaSelecionadaId
                   ? carregarHistoricoVendaDetalhe(historicoVendaSelecionadaId)

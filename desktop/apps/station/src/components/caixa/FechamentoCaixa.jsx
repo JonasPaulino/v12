@@ -70,10 +70,14 @@ export function FechamentoCaixa({ onClosed }) {
             ? `Caixa aberto em ${new Date(`${resumo.caixa.data_operacional}T00:00:00`).toLocaleDateString("pt-BR")}. Feche este caixa antes de iniciar o dia atual.`
             : "Confira o dinheiro físico da gaveta e encerre a sessão."}
         </span>
+        <small>O fechamento considera apenas as vendas do caixa aberto atual.</small>
       </div>
 
       <div className="cash-resume-list">
         <span>Saldo inicial <b>{currency(resumo?.caixa?.valor_abertura)}</b></span>
+        <span>Vendas concluídas <b>{resumo?.vendas?.quantidade_vendas || 0}</b></span>
+        <span>Total vendido <b>{currency(resumo?.vendas?.total_vendido)}</b></span>
+        <span>Vendas canceladas <b>{resumo?.vendas?.quantidade_canceladas || 0}</b></span>
         <span>Vendas em dinheiro <b>{currency(resumo?.dinheiro_vendas)}</b></span>
         <span>Suprimentos <b>{currency(resumo?.suprimentos)}</b></span>
         <span>Sangrias <b>{currency(resumo?.sangrias)}</b></span>
