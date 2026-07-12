@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { listPendingSync } from "../services/syncQueueService.js";
+import { atualizarPdvCompleto } from "../services/pdvUpdateService.js";
 import { getCachedFinanceiroSupportData, syncFinanceiroSupportDataFromErp } from "../services/financeiroSupportDataSyncService.js";
 import { processSyncQueue } from "../services/erpSyncService.js";
 import { syncProdutosFromErp } from "../services/produtoSyncService.js";
@@ -15,6 +16,15 @@ router.get("/pendencias", (req, res) => {
 router.post("/processar", async (_req, res) => {
   const data = await processSyncQueue();
   res.json(data);
+});
+
+router.post("/atualizar-pdv", async (_req, res, next) => {
+  try {
+    const data = await atualizarPdvCompleto();
+    res.json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
 });
 
 router.post("/produtos", async (req, res, next) => {

@@ -10,7 +10,6 @@ import {
   FiUser,
   FiShoppingCart,
   FiX,
-  FiWifi,
 } from "react-icons/fi";
 import { api } from "./api.js";
 import { AberturaCaixa } from "./components/caixa/AberturaCaixa.jsx";
@@ -520,26 +519,6 @@ export default function App() {
     });
   }
 
-  async function sincronizarProdutos(full = false) {
-    try {
-      showLoading("Sincronizando produtos...");
-      const result = await api.sincronizarProdutos({ full });
-      showAlert({
-        title: "Produtos sincronizados",
-        text: `${result.imported || 0} produto(s) importado(s) ou atualizado(s).`,
-        icon: "success",
-      });
-    } catch (error) {
-      showAlert({
-        title: "Falha na sincronização",
-        text: error.message,
-        icon: "error",
-      });
-    } finally {
-      hideLoading();
-    }
-  }
-
   async function carregarHistoricoVendas({ keepSelection = true } = {}) {
     try {
       setHistoricoLoading(true);
@@ -666,38 +645,17 @@ export default function App() {
     }
   }
 
-  async function atualizarDadosFilial() {
-    try {
-      showLoading("Atualizando dados da filial...");
-      await api.sincronizarFilial();
-      await loadInitialData({ silent: true });
-      showAlert({
-        title: "Filial atualizada",
-        text: "Os dados cadastrais da filial foram atualizados no terminal.",
-        icon: "success",
-      });
-    } catch (error) {
-      showAlert({
-        title: "Falha na atualização",
-        text: error.message,
-        icon: "error",
-      });
-    } finally {
-      hideLoading();
-    }
-  }
-
   async function atualizarPdvCompleto() {
     try {
       showLoading("Atualizando PDV...");
-      await api.sincronizarFilial();
-      await api.sincronizarUsuarios();
-      await api.sincronizarProdutos({ full: true });
-      await api.sincronizarFinanceiroSupportData({ tipo: "receber", refresh: true });
+      const result = await api.atualizarPdvCompleto();
       await loadInitialData({ silent: true });
+      const steps = Array.isArray(result?.steps) ? result.steps.map((step) => step.label) : [];
       showAlert({
         title: "PDV atualizado",
-        text: "Filial, operadores, produtos e apoio financeiro foram atualizados.",
+        text: steps.length
+          ? `${steps.join(", ")} atualizados com sucesso.`
+          : "Filial, operadores, produtos, financeiro e pendências locais foram atualizados.",
         icon: "success",
       });
     } catch (error) {
@@ -981,8 +939,6 @@ export default function App() {
             <div className="top-dropdown-section">
               <span className="top-dropdown-section-title">Atualizações</span>
               <button className="submenu-button" onClick={atualizarPdvCompleto}><FiRefreshCcw /> Atualizar PDV</button>
-              <button className="submenu-button" onClick={() => sincronizarProdutos(true)}><FiRefreshCcw /> Atualizar produtos</button>
-              <button className="submenu-button" onClick={atualizarDadosFilial}><FiRefreshCcw /> Atualizar dados da filial</button>
             </div>
             <button onClick={alternarTelaCheia}><FiMaximize2 /> Alternar tela cheia</button>
             <button className="danger-menu" onClick={sairDoSistema}><FiPower /> Sair do sistema</button>
@@ -1250,8 +1206,7 @@ export default function App() {
         <div className="footer-status">
           <span className={caixa ? "dot online" : "dot offline"} />
           {caixa ? "Caixa aberto" : "Caixa fechado"}
-          <button onClick={() => loadInitialData()}><FiRefreshCcw /> Atualizar</button>
-          <button onClick={() => sincronizarProdutos(false)}><FiWifi /> Sync produtos</button>
+          <button onClick={atualizarPdvCompleto}><FiRefreshCcw /> Atualizar PDV</button>
         </div>
         <span />
         <button className="footer-brand" onClick={sairDoSistema} title="Sair do sistema">

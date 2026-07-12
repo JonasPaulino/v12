@@ -10,6 +10,66 @@ const router = express.Router();
 
 router.use("/desktop/sync", desktopSyncAuth);
 
+router.post("/desktop/sync", async (req, res) => {
+  try {
+    const tenantId = Number(req.body?.tenantId);
+    const localSyncId = Number(req.body?.localSyncId);
+    const eventType = String(req.body?.eventType || "").trim().toUpperCase();
+    const terminalCodigo = String(req.body?.terminalCodigo || "").trim() || null;
+    const terminalNome = String(req.body?.terminalNome || "").trim() || null;
+    const payload = req.body?.payload && typeof req.body.payload === "object" ? req.body.payload : {};
+
+    if (!Number.isInteger(tenantId) || tenantId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "tenantId obrigatorio.",
+      });
+    }
+
+    if (!Number.isInteger(localSyncId) || localSyncId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "localSyncId obrigatorio.",
+      });
+    }
+
+    if (!eventType) {
+      return res.status(400).json({
+        success: false,
+        message: "eventType obrigatorio.",
+      });
+    }
+
+    const tenantAtivo = await DesktopSyncDAO.validarTenantAtivo(pool, tenantId);
+    if (!tenantAtivo) {
+      return res.status(403).json({
+        success: false,
+        message: "Filial inativa, bloqueada ou nao encontrada.",
+      });
+    }
+
+    const evento = await DesktopSyncDAO.registrarEventoPdv(pool, {
+      tenantId,
+      terminalCodigo,
+      terminalNome,
+      localSyncId,
+      eventType,
+      payload,
+    });
+
+    return res.json({
+      success: true,
+      data: evento,
+    });
+  } catch (error) {
+    console.error("[desktop-sync] Falha ao registrar evento do PDV:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Nao foi possivel registrar o evento do PDV.",
+    });
+  }
+});
+
 const buildPublicSetupUser = (usuario) => ({
   usuario_id: usuario.usuario_id,
   usuario_nome: usuario.usuario_nome,

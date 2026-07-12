@@ -175,6 +175,58 @@ class DesktopSyncDAO {
 
     return rows[0] || null;
   }
+
+  static async registrarEventoPdv(
+    client,
+    {
+      tenantId,
+      terminalCodigo = null,
+      terminalNome = null,
+      localSyncId,
+      eventType,
+      payload = {},
+    }
+  ) {
+    const { rows } = await client.query(
+      `
+        INSERT INTO desktop_sync_evento (
+          tenant_id,
+          terminal_codigo,
+          terminal_nome,
+          local_sync_id,
+          event_type,
+          payload_json,
+          status
+        )
+        VALUES ($1, $2, $3, $4, $5, $6::jsonb, 'recebido')
+        ON CONFLICT (tenant_id, local_sync_id) DO UPDATE SET
+          terminal_codigo = EXCLUDED.terminal_codigo,
+          terminal_nome = EXCLUDED.terminal_nome,
+          event_type = EXCLUDED.event_type,
+          payload_json = EXCLUDED.payload_json,
+          status = 'recebido'
+        RETURNING
+          desktop_sync_evento_id,
+          tenant_id,
+          terminal_codigo,
+          terminal_nome,
+          local_sync_id,
+          event_type,
+          status,
+          recebido_em
+      `,
+      [
+        tenantId,
+        terminalCodigo,
+        terminalNome,
+        localSyncId,
+        eventType,
+        JSON.stringify(payload || {}),
+      ]
+    );
+
+    return rows[0] || null;
+  }
 }
 
 export default DesktopSyncDAO;
