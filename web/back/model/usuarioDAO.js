@@ -84,6 +84,7 @@ class UsuarioDAO {
        AND utc.ativo = TRUE
       LEFT JOIN tenant td ON td.tenant_id = u.tenant_id_default
       WHERE u.usuario_excluido = FALSE
+        AND COALESCE(u.usuario_master, FALSE) = FALSE
       ${searchSql}
       ORDER BY ${orderBy}
       LIMIT $${limitIndex} OFFSET $${offsetIndex}
@@ -97,6 +98,7 @@ class UsuarioDAO {
        AND utc.tenant_id = $1
        AND utc.ativo = TRUE
       WHERE u.usuario_excluido = FALSE
+        AND COALESCE(u.usuario_master, FALSE) = FALSE
       ${searchSql}
     `;
 
@@ -183,6 +185,7 @@ class UsuarioDAO {
        AND utc.ativo = TRUE
       WHERE u.usuario_id = $1
         AND u.usuario_excluido = FALSE
+        AND COALESCE(u.usuario_master, FALSE) = FALSE
       LIMIT 1
     `;
 
