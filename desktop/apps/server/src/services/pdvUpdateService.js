@@ -73,9 +73,17 @@ export async function atualizarPdvCompleto() {
 
     const pendencias = await processSyncQueue();
     if (pendencias.success === false) {
+      const firstErrors = Array.isArray(pendencias.errors) ? pendencias.errors.slice(0, 3) : [];
+      const detail = firstErrors.length
+        ? ` ${firstErrors
+            .map((item) => `#${item.syncId} ${item.tipoEvento}: ${item.message}`)
+            .join(" | ")}`
+        : "";
       throw new Error(
         pendencias.message ||
-          `Nao foi possivel sincronizar as pendencias locais. Falhas: ${Number(pendencias.failed || 0)}.`,
+          `Nao foi possivel sincronizar as pendencias locais. Falhas: ${Number(
+            pendencias.failed || 0,
+          )}.${detail}`,
       );
     }
     steps.push({

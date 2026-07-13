@@ -72,10 +72,17 @@ router.post("/desktop/sync", async (req, res) => {
       data: evento,
     });
   } catch (error) {
-    console.error("[desktop-sync] Falha ao registrar evento do PDV:", error);
+    console.error("[desktop-sync] Falha ao registrar evento do PDV:", {
+      tenantId: req.body?.tenantId,
+      localSyncId: req.body?.localSyncId,
+      eventType: req.body?.eventType,
+      terminalCodigo: req.body?.terminalCodigo,
+      message: error?.message,
+      stack: error?.stack,
+    });
     return res.status(500).json({
       success: false,
-      message: "Nao foi possivel registrar o evento do PDV.",
+      message: error?.message || "Nao foi possivel registrar o evento do PDV.",
     });
   }
 });

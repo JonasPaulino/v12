@@ -25,9 +25,16 @@ export async function processSyncQueue() {
 
   let processed = 0;
   let failed = 0;
+  const errors = [];
 
   for (const event of pending) {
     try {
+      console.info("[desktop-sync] Processando pendencia local", {
+        syncId: event.sync_id,
+        tipoEvento: event.tipo_evento,
+        tentativas: event.tentativas,
+      });
+
       const response = await fetch(`${env.erpApiUrl.replace(/\/$/, "")}/desktop/sync`, {
         method: "POST",
         headers: {
@@ -51,9 +58,20 @@ export async function processSyncQueue() {
       }
 
       markSyncSuccess(event.sync_id);
+      console.info("[desktop-sync] Pendencia sincronizada", {
+        syncId: event.sync_id,
+        tipoEvento: event.tipo_evento,
+      });
       processed += 1;
     } catch (error) {
       markSyncError(event.sync_id, error);
+      const errorInfo = {
+        syncId: event.sync_id,
+        tipoEvento: event.tipo_evento,
+        message: String(error?.message || error),
+      };
+      console.error("[desktop-sync] Falha ao enviar pendencia local", errorInfo);
+      errors.push(errorInfo);
       failed += 1;
     }
   }
@@ -63,5 +81,6 @@ export async function processSyncQueue() {
     processed,
     failed,
     pending: pending.length,
+    errors,
   };
 }
