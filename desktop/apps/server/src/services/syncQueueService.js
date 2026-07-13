@@ -64,3 +64,17 @@ export function markSyncError(syncId, error) {
        AND sync_id = ?`,
   ).run(syncStatus.ERRO, String(error?.message || error), tenantErpId, syncId);
 }
+
+export function updateSyncPayload(syncId, payload) {
+  const db = getDb();
+  const tenantErpId = getTerminalTenantErpId();
+  if (!tenantErpId) {
+    return;
+  }
+  db.prepare(
+    `UPDATE sync_queue
+     SET payload_json = ?
+     WHERE tenant_erp_id = ?
+       AND sync_id = ?`,
+  ).run(JSON.stringify(payload || {}), tenantErpId, syncId);
+}
