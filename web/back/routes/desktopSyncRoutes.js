@@ -7,7 +7,7 @@ import FinanceiroDAO from "../model/financeiroDAO.js";
 import loginDAO from "../model/loginDAO.js";
 import { processarEventoDesktopSync } from "../services/pdvSyncProcessor.js";
 import { hashPassword, verifyPassword } from "../utils/password.js";
-import { decryptSecret } from "../../acbr/utils/secret.js";
+import { decryptSecret } from "../utils/secret.js";
 
 const router = express.Router();
 
