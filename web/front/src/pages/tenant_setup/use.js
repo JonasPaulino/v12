@@ -44,6 +44,7 @@ const createInitialForm = () => ({
   uf: "",
   codigo_ibge: "",
   pais: "Brasil",
+  usa_pdv: false,
   usuario_nome: "",
   usuario_email: "",
   usuario_password: "",
@@ -298,6 +299,7 @@ export const useTenantSetupPage = ({ gestaoContext = false } = {}) => {
           uf: empresa.uf || "",
           codigo_ibge: empresa.codigo_ibge || "",
           pais: empresa.pais || "Brasil",
+          usa_pdv: data.tenant_usa_pdv === true,
         });
         setPreview({
           certificado: {
@@ -643,6 +645,7 @@ export const useTenantSetupPage = ({ gestaoContext = false } = {}) => {
           uf: form.uf,
           codigo_ibge: form.codigo_ibge,
           pais: form.pais,
+          usa_pdv: form.usa_pdv === true,
         },
       };
 

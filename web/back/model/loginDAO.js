@@ -53,6 +53,7 @@ class LoginDAO {
         t.tenant_slug,
         t.tenant_documento,
         t.tenant_ativo,
+        COALESCE(t.tenant_usa_pdv, FALSE) AS tenant_usa_pdv,
         COALESCE(t.tenant_acesso_bloqueado, FALSE) AS tenant_acesso_bloqueado,
         t.tenant_bloqueio_motivo,
         ut.perfil,
@@ -140,6 +141,7 @@ class LoginDAO {
         t.tenant_slug,
         t.tenant_documento,
         t.tenant_ativo,
+        COALESCE(t.tenant_usa_pdv, FALSE) AS tenant_usa_pdv,
         COALESCE(t.tenant_acesso_bloqueado, FALSE) AS tenant_acesso_bloqueado,
         t.tenant_bloqueio_motivo,
         ut.perfil

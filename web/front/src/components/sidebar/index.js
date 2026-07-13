@@ -3,6 +3,7 @@ import { MdClose, MdKeyboardArrowDown } from "react-icons/md";
 import {
   HiOutlineBanknotes,
   HiOutlineChartBarSquare,
+  HiOutlineComputerDesktop,
   HiOutlineCog8Tooth,
   HiOutlineCube,
   HiOutlineClipboardDocumentCheck,
@@ -29,9 +30,11 @@ const Sidebar = () => {
     location.pathname.startsWith("/nfe") ||
     location.pathname === "/devolucoes" ||
     location.pathname === "/mdfe";
+  const isPdvPath = location.pathname.startsWith("/pdv/");
   const [expandedGroups, setExpandedGroups] = useState({
     pedidos: ["/vendas", "/compras"].includes(location.pathname),
     nfe: isNfePath,
+    pdv: isPdvPath,
   });
 
   const handleNavigate = (path, title) => {
@@ -56,7 +59,10 @@ const Sidebar = () => {
     if (isNfePath) {
       setExpandedGroups((prev) => ({ ...prev, nfe: true }));
     }
-  }, [isNfePath, location.pathname]);
+    if (isPdvPath) {
+      setExpandedGroups((prev) => ({ ...prev, pdv: true }));
+    }
+  }, [isNfePath, isPdvPath, location.pathname]);
 
   return (
     <C.Container $open={mOpen}>
@@ -176,6 +182,49 @@ const Sidebar = () => {
               <HiOutlineBanknotes />
               <C.NavText $open={mOpen}>Contas</C.NavText>
             </C.NavButton>
+
+            {business?.tenant_usa_pdv ? (
+              <C.NavGroup>
+                <C.GroupButton
+                  $open={mOpen}
+                  $active={isPdvPath}
+                  onClick={() => toggleGroup("pdv")}
+                  title="Vendas e caixas sincronizados pelo V12 PDV"
+                  aria-label="Vendas e caixas sincronizados pelo V12 PDV"
+                  type="button"
+                >
+                  <C.GroupLabel>
+                    <HiOutlineComputerDesktop />
+                    <C.NavText $open={mOpen}>PDV</C.NavText>
+                  </C.GroupLabel>
+                  <C.GroupChevron $open={mOpen} $expanded={expandedGroups.pdv}>
+                    <MdKeyboardArrowDown />
+                  </C.GroupChevron>
+                </C.GroupButton>
+                <C.SubNavList $open={mOpen} $expanded={expandedGroups.pdv}>
+                  <C.SubNavButton
+                    $open={mOpen}
+                    $active={location.pathname === "/pdv/vendas"}
+                    onClick={() => handleNavigate("/pdv/vendas", "PDV • Vendas")}
+                    title="Vendas concluídas e canceladas recebidas do PDV"
+                    aria-label="Vendas concluídas e canceladas recebidas do PDV"
+                  >
+                    <HiOutlineShoppingCart />
+                    <C.NavText $open={mOpen}>Vendas PDV</C.NavText>
+                  </C.SubNavButton>
+                  <C.SubNavButton
+                    $open={mOpen}
+                    $active={location.pathname === "/pdv/caixas"}
+                    onClick={() => handleNavigate("/pdv/caixas", "PDV • Caixas")}
+                    title="Aberturas, fechamentos, sangrias e suprimentos do PDV"
+                    aria-label="Aberturas, fechamentos, sangrias e suprimentos do PDV"
+                  >
+                    <HiOutlineBanknotes />
+                    <C.NavText $open={mOpen}>Caixas PDV</C.NavText>
+                  </C.SubNavButton>
+                </C.SubNavList>
+              </C.NavGroup>
+            ) : null}
 
             <C.NavGroup>
               <C.GroupButton

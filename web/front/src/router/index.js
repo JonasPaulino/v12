@@ -19,6 +19,8 @@ import { Nfe } from "pages/nfe";
 import { NfeRecebidas } from "pages/nfe_recebidas";
 import { NfeManifestacao } from "pages/nfe_manifestacao";
 import { Mdfe } from "pages/mdfe";
+import { PdvVendas } from "pages/pdv_vendas";
+import { PdvCaixas } from "pages/pdv_caixas";
 import { ChatWidget } from "components/chatWidget";
 import { GestaoV12Dashboard } from "pages/gestao_v12/dashboard";
 import { GestaoV12Clientes } from "pages/gestao_v12/clientes";
@@ -162,6 +164,26 @@ export const RouteApp = () => (
         }
       />
       <Route path="/configuracao-fiscal" element={<Navigate to="/configuracao" replace />} />
+      <Route
+        path="/pdv/vendas"
+        element={
+          <AuthMiddleware>
+            <PageWrapper title="PDV • Vendas">
+              <PdvVendas />
+            </PageWrapper>
+          </AuthMiddleware>
+        }
+      />
+      <Route
+        path="/pdv/caixas"
+        element={
+          <AuthMiddleware>
+            <PageWrapper title="PDV • Caixas">
+              <PdvCaixas />
+            </PageWrapper>
+          </AuthMiddleware>
+        }
+      />
       <Route
         path="/gestao-v12"
         element={

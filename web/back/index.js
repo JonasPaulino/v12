@@ -27,6 +27,7 @@ import configuracaoFiscalRoutes from "./routes/configuracaoFiscalRoutes.js";
 import regraFiscalRoutes from "./routes/regraFiscalRoutes.js";
 import operacaoFiscalRoutes from "./routes/operacaoFiscalRoutes.js";
 import mdfeRoutes from "./routes/mdfeRoutes.js";
+import pdvRoutes from "./routes/pdvRoutes.js";
 import paymentIntegrationRoutes from "./routes/paymentIntegrationRoutes.js";
 import messageIntegrationRoutes from "./routes/messageIntegrationRoutes.js";
 import tenantCertificateRoutes from "./routes/tenantCertificateRoutes.js";
@@ -117,6 +118,7 @@ privateRouter.use("/configuracao-fiscal", configuracaoFiscalRoutes);
 privateRouter.use("/regra-fiscal", regraFiscalRoutes);
 privateRouter.use("/operacao-fiscal", operacaoFiscalRoutes);
 privateRouter.use("/mdfe", mdfeRoutes);
+privateRouter.use("/pdv", pdvRoutes);
 privateRouter.use("/integracoes/mensagens", messageIntegrationRoutes);
 
 app.use(privateRouter);

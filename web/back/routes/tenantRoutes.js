@@ -14,6 +14,7 @@ const buildTenantPayload = (tenant) => ({
   perfil: tenant.perfil,
   ativo: tenant.tenant_ativo ?? tenant.ativo ?? true,
   tenant_ativo: tenant.tenant_ativo ?? tenant.ativo ?? true,
+  tenant_usa_pdv: !!tenant.tenant_usa_pdv,
   tenant_acesso_bloqueado: !!tenant.tenant_acesso_bloqueado,
   tenant_bloqueio_motivo: tenant.tenant_bloqueio_motivo || null,
 });

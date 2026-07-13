@@ -9,6 +9,7 @@ class TenantDAO {
         tenant_slug,
         tenant_documento,
         tenant_ativo,
+        COALESCE(tenant_usa_pdv, FALSE) AS tenant_usa_pdv,
         COALESCE(tenant_acesso_bloqueado, FALSE) AS tenant_acesso_bloqueado,
         tenant_bloqueio_motivo
       FROM tenant
@@ -28,6 +29,7 @@ class TenantDAO {
         tenant_slug,
         tenant_documento,
         tenant_ativo,
+        COALESCE(tenant_usa_pdv, FALSE) AS tenant_usa_pdv,
         COALESCE(tenant_acesso_bloqueado, FALSE) AS tenant_acesso_bloqueado,
         tenant_bloqueio_motivo
       FROM tenant

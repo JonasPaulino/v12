@@ -6,6 +6,7 @@ class DesktopSyncDAO {
         FROM tenant
         WHERE tenant_id = $1
           AND tenant_ativo = TRUE
+          AND COALESCE(tenant_usa_pdv, FALSE) = TRUE
           AND COALESCE(tenant_acesso_bloqueado, FALSE) = FALSE
         LIMIT 1
       `,
@@ -223,6 +224,39 @@ class DesktopSyncDAO {
         eventType,
         JSON.stringify(payload || {}),
       ]
+    );
+
+    return rows[0] || null;
+  }
+
+  static async atualizarEventoStatus(
+    client,
+    {
+      desktopSyncEventoId,
+      status,
+      observacao = null,
+    },
+  ) {
+    const atualizarProcessado = status === "processado" ? ", processado_em = NOW()" : "";
+    const { rows } = await client.query(
+      `
+        UPDATE desktop_sync_evento
+        SET
+          status = $2,
+          observacao = $3
+          ${atualizarProcessado}
+        WHERE desktop_sync_evento_id = $1
+        RETURNING
+          desktop_sync_evento_id,
+          tenant_id,
+          local_sync_id,
+          event_type,
+          status,
+          observacao,
+          recebido_em,
+          processado_em
+      `,
+      [desktopSyncEventoId, status, observacao],
     );
 
     return rows[0] || null;

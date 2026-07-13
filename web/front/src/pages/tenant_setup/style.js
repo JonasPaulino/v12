@@ -126,6 +126,64 @@ export const RequiredMark = styled.span`
   margin-left: 4px;
 `;
 
+export const ToggleCard = styled.div`
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 16px 18px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radius.md};
+  background: rgba(255, 255, 255, 0.92);
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+
+  &:focus-visible,
+  &:hover {
+    border-color: ${({ theme }) => theme.colors.primary};
+    box-shadow: 0 0 0 4px rgba(11, 95, 255, 0.08);
+  }
+`;
+
+export const ToggleInfo = styled.div`
+  display: grid;
+  gap: 6px;
+`;
+
+export const ToggleHint = styled.span`
+  color: ${({ theme }) => theme.colors.textSoft};
+  line-height: 1.45;
+  font-size: 0.9rem;
+`;
+
+export const ToggleSwitch = styled.div`
+  width: 54px;
+  height: 32px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px;
+  border-radius: 999px;
+  background: ${({ $active, theme }) =>
+    $active ? theme.colors.primary : "rgba(15, 23, 42, 0.12)"};
+  transition: background 0.2s ease;
+
+  span {
+    width: 24px;
+    height: 24px;
+    display: block;
+    border-radius: 999px;
+    background: #ffffff;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.16);
+    transform: ${({ $active }) => ($active ? "translateX(22px)" : "translateX(0)")};
+    transition: transform 0.2s ease;
+  }
+`;
+
 const inputStyles = css`
   width: 100%;
   min-width: 0;

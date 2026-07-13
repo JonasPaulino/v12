@@ -452,6 +452,7 @@ class TenantSetupDAO {
           t.tenant_slug,
           t.tenant_documento,
           t.tenant_ativo,
+          COALESCE(t.tenant_usa_pdv, FALSE) AS tenant_usa_pdv,
           COALESCE(t.tenant_acesso_bloqueado, FALSE) AS tenant_acesso_bloqueado,
           t.tenant_bloqueio_motivo,
           t.pessoa_id,
@@ -517,6 +518,7 @@ class TenantSetupDAO {
       tenant_slug: row.tenant_slug,
       tenant_documento: row.tenant_documento,
       tenant_ativo: row.tenant_ativo,
+      tenant_usa_pdv: !!row.tenant_usa_pdv,
       tenant_acesso_bloqueado: !!row.tenant_acesso_bloqueado,
       tenant_bloqueio_motivo: row.tenant_bloqueio_motivo || null,
       pessoa_id: row.pessoa_id,
@@ -614,6 +616,7 @@ class TenantSetupDAO {
         uf: normalizeText(empresa.uf, 2),
         codigo_ibge: normalizeText(empresa.codigo_ibge, 10),
         pais: normalizeText(empresa.pais, 60) || "Brasil",
+        usa_pdv: empresa.usa_pdv === true,
       },
       usuario: {
         nome: normalizeText(usuario.nome, 150, {
@@ -828,12 +831,13 @@ class TenantSetupDAO {
             tenant_slug,
             tenant_documento,
             tenant_ativo,
+            tenant_usa_pdv,
             pessoa_id
           )
-          VALUES ($1, $2, $3, TRUE, $4)
+          VALUES ($1, $2, $3, TRUE, $4, $5)
           RETURNING tenant_id
         `,
-        [data.empresa.tenant_nome, tenantSlug, data.empresa.cnpj, pessoaId]
+        [data.empresa.tenant_nome, tenantSlug, data.empresa.cnpj, data.empresa.usa_pdv, pessoaId]
       );
 
       const tenantId = Number(tenantResult.rows[0].tenant_id);
@@ -1189,6 +1193,7 @@ class TenantSetupDAO {
         uf: normalizeText(empresa.uf, 2),
         codigo_ibge: normalizeText(empresa.codigo_ibge, 10),
         pais: normalizeText(empresa.pais, 60) || "Brasil",
+        usa_pdv: empresa.usa_pdv === true,
       },
       fiscal: {
         ambiente_nfe: normalizeText(fiscal.ambiente_nfe, 1) || "2",
@@ -1243,11 +1248,12 @@ class TenantSetupDAO {
         `
           UPDATE tenant
           SET tenant_nome = $2,
-              tenant_documento = $3
+              tenant_documento = $3,
+              tenant_usa_pdv = $4
           WHERE tenant_id = $1
           RETURNING tenant_id
         `,
-        [tenantId, data.empresa.tenant_nome, data.empresa.cnpj]
+        [tenantId, data.empresa.tenant_nome, data.empresa.cnpj, data.empresa.usa_pdv]
       );
 
       if (!tenantResult.rows[0]) {

@@ -247,6 +247,29 @@ const Wizard = ({
               onChange={(event) => updateField("telefone", event.target.value)}
             />
           </C.Field>
+          <C.FieldFull>
+            <C.ToggleCard
+              role="button"
+              tabIndex={0}
+              onClick={() => updateField("usa_pdv", !form.usa_pdv)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  updateField("usa_pdv", !form.usa_pdv);
+                }
+              }}
+            >
+              <C.ToggleInfo>
+                <C.FieldSpan>Integração com PDV</C.FieldSpan>
+                <C.ToggleHint>
+                  Ative esta opção quando a filial usar o V12 PDV local. Sem isso, o setup do caixa será bloqueado.
+                </C.ToggleHint>
+              </C.ToggleInfo>
+              <C.ToggleSwitch $active={form.usa_pdv}>
+                <span />
+              </C.ToggleSwitch>
+            </C.ToggleCard>
+          </C.FieldFull>
           <C.Field>
             <C.FieldSpan>
               CEP

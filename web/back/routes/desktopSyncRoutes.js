@@ -4,6 +4,7 @@ import desktopSyncAuth from "../middleware/desktopSyncAuth.js";
 import DesktopSyncDAO from "../model/desktopSyncDAO.js";
 import FinanceiroDAO from "../model/financeiroDAO.js";
 import loginDAO from "../model/loginDAO.js";
+import { processarEventoDesktopSync } from "../services/pdvSyncProcessor.js";
 import { hashPassword, verifyPassword } from "../utils/password.js";
 
 const router = express.Router();
@@ -44,7 +45,7 @@ router.post("/desktop/sync", async (req, res) => {
     if (!tenantAtivo) {
       return res.status(403).json({
         success: false,
-        message: "Filial inativa, bloqueada ou nao encontrada.",
+        message: "Filial inativa, bloqueada, sem integração PDV ou não encontrada.",
       });
     }
 
@@ -53,6 +54,15 @@ router.post("/desktop/sync", async (req, res) => {
       terminalCodigo,
       terminalNome,
       localSyncId,
+      eventType,
+      payload,
+    });
+
+    await processarEventoDesktopSync({
+      desktopSyncEventoId: evento.desktop_sync_evento_id,
+      tenantId,
+      terminalCodigo,
+      terminalNome,
       eventType,
       payload,
     });
@@ -102,6 +112,7 @@ const buildTenantPayload = (tenant) => ({
   tenant_endereco: tenant.tenant_endereco || buildTenantAddress(tenant),
   perfil: tenant.perfil || null,
   tenant_ativo: tenant.tenant_ativo ?? tenant.ativo ?? true,
+  tenant_usa_pdv: !!tenant.tenant_usa_pdv,
   tenant_acesso_bloqueado: !!tenant.tenant_acesso_bloqueado,
   tenant_bloqueio_motivo: tenant.tenant_bloqueio_motivo || null,
 });
@@ -173,6 +184,7 @@ async function getTenantWithCompanyData(client, tenantId) {
         tenant_slug,
         tenant_documento,
         tenant_ativo,
+        COALESCE(tenant_usa_pdv, FALSE) AS tenant_usa_pdv,
         COALESCE(tenant_acesso_bloqueado, FALSE) AS tenant_acesso_bloqueado,
         tenant_bloqueio_motivo
       FROM tenant
@@ -221,6 +233,7 @@ router.post("/desktop/sync/setup-login", async (req, res) => {
             tenant_slug,
             tenant_documento,
             tenant_ativo,
+            COALESCE(tenant_usa_pdv, FALSE) AS tenant_usa_pdv,
             COALESCE(tenant_acesso_bloqueado, FALSE) AS tenant_acesso_bloqueado,
             tenant_bloqueio_motivo,
             'master' AS perfil
