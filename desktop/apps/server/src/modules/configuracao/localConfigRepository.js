@@ -168,6 +168,7 @@ export function limparTerminalConfigInicial() {
     db.prepare("DELETE FROM pessoa").run();
     db.prepare("DELETE FROM produto").run();
     db.prepare("DELETE FROM sync_queue").run();
+    db.prepare("DELETE FROM fiscal_config").run();
     db.prepare("DELETE FROM config_local").run();
     db.prepare("DELETE FROM terminal_config WHERE config_id = 1").run();
   });

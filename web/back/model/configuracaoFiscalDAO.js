@@ -345,6 +345,12 @@ class ConfiguracaoFiscalDAO {
           cfg.ambiente_nfe,
           cfg.serie_nfe_padrao,
           cfg.proximo_numero_nfe,
+          cfg.nfce_habilitada,
+          cfg.serie_nfce_padrao,
+          cfg.proximo_numero_nfce,
+          cfg.nfce_id_token_csc,
+          cfg.nfce_csc_masked,
+          cfg.nfce_ind_pres_padrao,
           cfg.ambiente_mdfe,
           cfg.serie_mdfe_padrao,
           cfg.proximo_numero_mdfe,
@@ -418,6 +424,13 @@ class ConfiguracaoFiscalDAO {
         ambiente_nfe: row.ambiente_nfe || "2",
         serie_nfe_padrao: Number(row.serie_nfe_padrao ?? 1),
         proximo_numero_nfe: Number(row.proximo_numero_nfe ?? 1),
+        nfce_habilitada: !!row.nfce_habilitada,
+        serie_nfce_padrao: Number(row.serie_nfce_padrao ?? 1),
+        proximo_numero_nfce: Number(row.proximo_numero_nfce ?? 1),
+        nfce_id_token_csc: row.nfce_id_token_csc || "",
+        nfce_csc_configurado: !!row.nfce_csc_masked,
+        nfce_csc_masked: row.nfce_csc_masked || "",
+        nfce_ind_pres_padrao: row.nfce_ind_pres_padrao || "1",
         ambiente_mdfe: row.ambiente_mdfe || "2",
         serie_mdfe_padrao: Number(row.serie_mdfe_padrao ?? 1),
         proximo_numero_mdfe: Number(row.proximo_numero_mdfe ?? 1),
@@ -506,6 +519,34 @@ class ConfiguracaoFiscalDAO {
       max: 999999999,
       label: "Próximo número da NF-e",
     });
+
+    const serieNfcePadrao = parseInteger(payload.serie_nfce_padrao ?? 1, {
+      min: 0,
+      max: 999,
+      label: "Série padrão do NFC-e",
+    });
+
+    const proximoNumeroNfce = parseInteger(payload.proximo_numero_nfce ?? 1, {
+      max: 999999999,
+      label: "Próximo número do NFC-e",
+    });
+
+    const nfceIdTokenCsc = normalizeDigits(payload.nfce_id_token_csc).slice(0, 6);
+    const nfceCsc = normalizeText(payload.nfce_csc, null, {
+      label: "CSC do NFC-e",
+    });
+    const nfceIndPresPadrao = normalizeText(payload.nfce_ind_pres_padrao ?? "1", 1, {
+      required: true,
+      label: "Indicador de presença padrão do NFC-e",
+    });
+
+    if (!["0", "1", "2", "3", "4", "5", "9"].includes(nfceIndPresPadrao)) {
+      throw new Error("Indicador de presença padrão do NFC-e inválido.");
+    }
+
+    if (nfceIdTokenCsc && !/^\d{1,6}$/.test(nfceIdTokenCsc)) {
+      throw new Error("ID token CSC do NFC-e inválido.");
+    }
 
     const serieMdfePadrao = parseInteger(payload.serie_mdfe_padrao ?? 1, {
       min: 0,
@@ -605,6 +646,12 @@ class ConfiguracaoFiscalDAO {
       ambiente_nfe: ambienteNfe,
       serie_nfe_padrao: serieNfePadrao,
       proximo_numero_nfe: proximoNumeroNfe,
+      nfce_habilitada: normalizeBoolean(payload.nfce_habilitada, false),
+      serie_nfce_padrao: serieNfcePadrao,
+      proximo_numero_nfce: proximoNumeroNfce,
+      nfce_id_token_csc: nfceIdTokenCsc,
+      nfce_csc: nfceCsc,
+      nfce_ind_pres_padrao: nfceIndPresPadrao,
       ambiente_mdfe: ambienteMdfe,
       serie_mdfe_padrao: serieMdfePadrao,
       proximo_numero_mdfe: proximoNumeroMdfe,
@@ -731,6 +778,13 @@ class ConfiguracaoFiscalDAO {
             ambiente_nfe,
             serie_nfe_padrao,
             proximo_numero_nfe,
+            nfce_habilitada,
+            serie_nfce_padrao,
+            proximo_numero_nfce,
+            nfce_id_token_csc,
+            nfce_csc_criptografado,
+            nfce_csc_masked,
+            nfce_ind_pres_padrao,
             ambiente_mdfe,
             serie_mdfe_padrao,
             proximo_numero_mdfe,
@@ -754,13 +808,27 @@ class ConfiguracaoFiscalDAO {
             $9,
             $10,
             $11,
-            $12
+            $12,
+            $13,
+            $14,
+            $15,
+            $16,
+            $17,
+            $18,
+            $19
           )
           ON CONFLICT (tenant_id) DO UPDATE
           SET
             ambiente_nfe = EXCLUDED.ambiente_nfe,
             serie_nfe_padrao = EXCLUDED.serie_nfe_padrao,
             proximo_numero_nfe = EXCLUDED.proximo_numero_nfe,
+            nfce_habilitada = EXCLUDED.nfce_habilitada,
+            serie_nfce_padrao = EXCLUDED.serie_nfce_padrao,
+            proximo_numero_nfce = EXCLUDED.proximo_numero_nfce,
+            nfce_id_token_csc = EXCLUDED.nfce_id_token_csc,
+            nfce_csc_criptografado = COALESCE(EXCLUDED.nfce_csc_criptografado, tenant_configuracao_fiscal.nfce_csc_criptografado),
+            nfce_csc_masked = COALESCE(EXCLUDED.nfce_csc_masked, tenant_configuracao_fiscal.nfce_csc_masked),
+            nfce_ind_pres_padrao = EXCLUDED.nfce_ind_pres_padrao,
             ambiente_mdfe = EXCLUDED.ambiente_mdfe,
             serie_mdfe_padrao = EXCLUDED.serie_mdfe_padrao,
             proximo_numero_mdfe = EXCLUDED.proximo_numero_mdfe,
@@ -775,6 +843,13 @@ class ConfiguracaoFiscalDAO {
           data.ambiente_nfe,
           data.serie_nfe_padrao,
           data.proximo_numero_nfe,
+          data.nfce_habilitada,
+          data.serie_nfce_padrao,
+          data.proximo_numero_nfce,
+          data.nfce_id_token_csc || null,
+          data.nfce_csc ? encryptSecret(data.nfce_csc) : null,
+          data.nfce_csc ? maskSecret(data.nfce_csc, { visibleStart: 3, visibleEnd: 3 }) : null,
+          data.nfce_ind_pres_padrao,
           data.ambiente_mdfe,
           data.serie_mdfe_padrao,
           data.proximo_numero_mdfe,

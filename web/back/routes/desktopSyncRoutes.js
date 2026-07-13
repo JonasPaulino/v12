@@ -7,6 +7,7 @@ import FinanceiroDAO from "../model/financeiroDAO.js";
 import loginDAO from "../model/loginDAO.js";
 import { processarEventoDesktopSync } from "../services/pdvSyncProcessor.js";
 import { hashPassword, verifyPassword } from "../utils/password.js";
+import { decryptSecret } from "../../acbr/utils/secret.js";
 
 const router = express.Router();
 
@@ -151,6 +152,14 @@ const buildTenantPayload = (tenant) => ({
   ...encodeTenantAccessGuard(tenant),
 });
 
+const buildTenantConfigPayload = (tenant) => ({
+  ...buildTenantPayload(tenant),
+  emitente: tenant.emitente || null,
+  fiscal_nfce: tenant.fiscal_nfce || null,
+  responsavel_tecnico: tenant.responsavel_tecnico || null,
+  certificado: tenant.certificado || null,
+});
+
 async function enrichTenantsWithCompanyData(client, tenants = []) {
   const tenantIds = [...new Set(tenants.map((tenant) => Number(tenant.tenant_id)).filter(Boolean))];
   if (!tenantIds.length) {
@@ -213,28 +222,150 @@ async function getTenantWithCompanyData(client, tenantId) {
   const result = await client.query(
     `
       SELECT
-        tenant_id,
-        tenant_nome,
-        tenant_slug,
-        tenant_documento,
-        tenant_ativo,
-        COALESCE(tenant_usa_pdv, FALSE) AS tenant_usa_pdv,
-        COALESCE(tenant_acesso_bloqueado, FALSE) AS tenant_acesso_bloqueado,
-        tenant_bloqueio_motivo
-      FROM tenant
-      WHERE tenant_id = $1
+        t.tenant_id,
+        t.tenant_nome,
+        t.tenant_slug,
+        t.tenant_documento,
+        t.tenant_ativo,
+        COALESCE(t.tenant_usa_pdv, FALSE) AS tenant_usa_pdv,
+        COALESCE(t.tenant_acesso_bloqueado, FALSE) AS tenant_acesso_bloqueado,
+        t.tenant_bloqueio_motivo,
+        p.pessoa_nome_razao AS emitente_nome_razao,
+        p.pessoa_nome_fantasia AS emitente_nome_fantasia,
+        COALESCE(p.pessoa_cpf_cnpj, t.tenant_documento) AS emitente_cpf_cnpj,
+        p.pessoa_inscricao_estadual AS emitente_inscricao_estadual,
+        p.pessoa_inscricao_municipal AS emitente_inscricao_municipal,
+        p.pessoa_email AS emitente_email,
+        p.pessoa_telefone AS emitente_telefone,
+        pe.cep AS emitente_cep,
+        pe.logradouro AS emitente_logradouro,
+        pe.numero AS emitente_numero,
+        pe.complemento AS emitente_complemento,
+        pe.bairro AS emitente_bairro,
+        pe.cidade AS emitente_cidade,
+        pe.uf AS emitente_uf,
+        pe.codigo_ibge AS emitente_codigo_ibge,
+        pe.pais AS emitente_pais,
+        cfg.ambiente_nfe,
+        cfg.crt,
+        cfg.cnae,
+        cfg.natureza_operacao_padrao,
+        cfg.nfce_habilitada,
+        cfg.serie_nfce_padrao,
+        cfg.proximo_numero_nfce,
+        cfg.nfce_id_token_csc,
+        cfg.nfce_csc_criptografado,
+        cfg.nfce_ind_pres_padrao,
+        rt.cnpj AS responsavel_tecnico_cnpj,
+        rt.nome AS responsavel_tecnico_nome,
+        rt.contato AS responsavel_tecnico_contato,
+        rt.email AS responsavel_tecnico_email,
+        rt.telefone AS responsavel_tecnico_telefone,
+        cert.nome_arquivo AS certificado_nome_arquivo,
+        cert.conteudo_pfx,
+        cert.senha_criptografada
+      FROM tenant t
+      LEFT JOIN pessoa p ON p.pessoa_id = t.pessoa_id
+      LEFT JOIN LATERAL (
+        SELECT
+          cep,
+          logradouro,
+          numero,
+          complemento,
+          bairro,
+          cidade,
+          uf,
+          codigo_ibge,
+          pais
+        FROM pessoa_endereco
+        WHERE pessoa_id = t.pessoa_id
+          AND endereco_tipo = 'principal'
+        ORDER BY atualizado_em DESC, criado_em DESC
+        LIMIT 1
+      ) pe ON TRUE
+      LEFT JOIN tenant_configuracao_fiscal cfg
+        ON cfg.tenant_id = t.tenant_id
+      LEFT JOIN tenant_responsavel_tecnico rt
+        ON rt.tenant_id = t.tenant_id
+      LEFT JOIN tenant_certificado_a1 cert
+        ON cert.tenant_id = t.tenant_id
+      WHERE t.tenant_id = $1
       LIMIT 1
     `,
     [tenantId],
   );
-  const tenantBase = result.rows[0] || null;
-  if (!tenantBase) {
+  const row = result.rows[0] || null;
+  if (!row) {
     return null;
   }
 
-  const tenants = await enrichTenantsWithCompanyData(client, [tenantBase]);
-
-  return tenants[0] || null;
+  return {
+    tenant_id: row.tenant_id,
+    tenant_nome: row.tenant_nome,
+    tenant_slug: row.tenant_slug,
+    tenant_documento: row.tenant_documento,
+    tenant_inscricao_estadual: row.emitente_inscricao_estadual || "",
+    tenant_inscricao_municipal: row.emitente_inscricao_municipal || "",
+    tenant_endereco: buildTenantAddress({
+      logradouro: row.emitente_logradouro,
+      numero: row.emitente_numero,
+      complemento: row.emitente_complemento,
+      bairro: row.emitente_bairro,
+      cidade: row.emitente_cidade,
+      uf: row.emitente_uf,
+      cep: row.emitente_cep,
+    }),
+    tenant_ativo: row.tenant_ativo,
+    tenant_usa_pdv: !!row.tenant_usa_pdv,
+    tenant_acesso_bloqueado: !!row.tenant_acesso_bloqueado,
+    tenant_bloqueio_motivo: row.tenant_bloqueio_motivo || null,
+    emitente: {
+      nome_razao: row.emitente_nome_razao || row.tenant_nome || "",
+      nome_fantasia: row.emitente_nome_fantasia || row.tenant_nome || "",
+      cpf_cnpj: row.emitente_cpf_cnpj || "",
+      inscricao_estadual: row.emitente_inscricao_estadual || "",
+      inscricao_municipal: row.emitente_inscricao_municipal || "",
+      email: row.emitente_email || "",
+      telefone: row.emitente_telefone || "",
+      cep: row.emitente_cep || "",
+      logradouro: row.emitente_logradouro || "",
+      numero: row.emitente_numero || "",
+      complemento: row.emitente_complemento || "",
+      bairro: row.emitente_bairro || "",
+      cidade: row.emitente_cidade || "",
+      uf: row.emitente_uf || "",
+      codigo_ibge: row.emitente_codigo_ibge || "",
+      pais: row.emitente_pais || "Brasil",
+    },
+    fiscal_nfce: {
+      ambiente_nfe: row.ambiente_nfe || "2",
+      crt: row.crt || "3",
+      cnae: row.cnae || "",
+      natureza_operacao_padrao: row.natureza_operacao_padrao || "Venda de mercadoria",
+      nfce_habilitada: !!row.nfce_habilitada,
+      serie_nfce_padrao: Number(row.serie_nfce_padrao ?? 1),
+      proximo_numero_nfce: Number(row.proximo_numero_nfce ?? 1),
+      nfce_id_token_csc: row.nfce_id_token_csc || "",
+      nfce_csc: row.nfce_csc_criptografado
+        ? decryptSecret(row.nfce_csc_criptografado)
+        : "",
+      nfce_ind_pres_padrao: row.nfce_ind_pres_padrao || "1",
+    },
+    responsavel_tecnico: {
+      cnpj: row.responsavel_tecnico_cnpj || "",
+      nome: row.responsavel_tecnico_nome || "",
+      contato: row.responsavel_tecnico_contato || "",
+      email: row.responsavel_tecnico_email || "",
+      telefone: row.responsavel_tecnico_telefone || "",
+    },
+    certificado: row.conteudo_pfx && row.senha_criptografada
+      ? {
+          nome_arquivo: row.certificado_nome_arquivo || `certificado-${row.tenant_id}.pfx`,
+          conteudo_base64: Buffer.from(row.conteudo_pfx).toString("base64"),
+          senha: decryptSecret(row.senha_criptografada),
+        }
+      : null,
+  };
 }
 
 router.post("/desktop/sync/setup-login", async (req, res) => {
@@ -323,7 +454,7 @@ router.get("/desktop/sync/tenant-config", async (req, res) => {
 
     return res.json({
       success: true,
-      data: buildTenantPayload(tenant),
+      data: buildTenantConfigPayload(tenant),
     });
   } catch (error) {
     console.error("[desktop-sync] Falha ao consultar dados da filial:", error);
