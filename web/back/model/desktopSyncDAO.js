@@ -26,7 +26,8 @@ class DesktopSyncDAO {
         COALESCE(pf.atualizado_em, p.criado_em),
         COALESCE(pu.atualizado_em, p.criado_em),
         COALESCE(pp.atualizado_em, p.criado_em),
-        COALESCE(pe.atualizado_em, p.criado_em)
+        COALESCE(pe.atualizado_em, p.criado_em),
+        COALESCE(rt.atualizado_em, p.criado_em)
       )
     `;
 
@@ -43,15 +44,49 @@ class DesktopSyncDAO {
           p.produto_id AS erp_id,
           COALESCE(NULLIF(p.codigo_interno, ''), p.produto_id::varchar(60)) AS codigo,
           p.descricao,
+          p.descricao_fiscal,
+          p.gtin,
           COALESCE(um.sigla, 'UN') AS unidade,
           pf.ncm,
           pf.cest,
+          COALESCE(NULLIF(pf.origem_mercadoria, ''), rt.origem_mercadoria) AS origem_mercadoria,
+          pf.regra_tributaria_id,
+          rt.descricao AS regra_fiscal_descricao,
+          rt.crt_emitente,
+          rt.cbenef,
+          rt.cfop_venda_interna,
+          rt.cfop_venda_interestadual,
+          icms.cst AS icms_cst,
+          icms.csosn AS icms_csosn,
+          icms.aliquota_icms AS icms_aliquota,
+          icms.reducao_base AS icms_reducao_base,
+          icms.aliquota_fcp AS icms_aliquota_fcp,
+          icms.modalidade_bc AS icms_modalidade_bc,
+          pis.cst AS pis_cst,
+          pis.aliquota AS pis_aliquota,
+          cofins.cst AS cofins_cst,
+          cofins.aliquota AS cofins_aliquota,
+          ipi.cst AS ipi_cst,
+          ipi.enquadramento_ipi AS ipi_enquadramento,
+          ipi.aliquota AS ipi_aliquota,
           COALESCE(pp.preco_venda, 0) AS preco_venda,
           COALESCE(pe.estoque_atual, 0) AS estoque_atual,
           p.ativo,
           ${syncTimestampSql} AS sincronizacao_atualizada_em
         FROM produto p
         LEFT JOIN produto_fiscal pf ON pf.produto_id = p.produto_id
+        LEFT JOIN regra_tributaria rt
+          ON rt.regra_tributaria_id = pf.regra_tributaria_id
+         AND rt.tenant_id = p.tenant_id
+         AND rt.excluido = FALSE
+        LEFT JOIN regra_tributaria_icms icms
+          ON icms.regra_tributaria_id = rt.regra_tributaria_id
+        LEFT JOIN regra_tributaria_pis pis
+          ON pis.regra_tributaria_id = rt.regra_tributaria_id
+        LEFT JOIN regra_tributaria_cofins cofins
+          ON cofins.regra_tributaria_id = rt.regra_tributaria_id
+        LEFT JOIN regra_tributaria_ipi ipi
+          ON ipi.regra_tributaria_id = rt.regra_tributaria_id
         LEFT JOIN produto_unidade pu ON pu.produto_id = p.produto_id
         LEFT JOIN unidade_medida um ON um.unidade_medida_id = pu.unidade_comercial_id
         LEFT JOIN tabela_preco tp
@@ -82,8 +117,15 @@ class DesktopSyncDAO {
 
     return rows.map((row) => ({
       ...row,
+      regra_tributaria_id: row.regra_tributaria_id ? Number(row.regra_tributaria_id) : null,
       preco_venda: Number(row.preco_venda || 0),
       estoque_atual: Number(row.estoque_atual || 0),
+      icms_aliquota: Number(row.icms_aliquota || 0),
+      icms_reducao_base: Number(row.icms_reducao_base || 0),
+      icms_aliquota_fcp: Number(row.icms_aliquota_fcp || 0),
+      pis_aliquota: Number(row.pis_aliquota || 0),
+      cofins_aliquota: Number(row.cofins_aliquota || 0),
+      ipi_aliquota: Number(row.ipi_aliquota || 0),
       ativo: !!row.ativo,
     }));
   }
