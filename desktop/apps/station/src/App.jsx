@@ -130,6 +130,7 @@ export default function App() {
         health={session.health}
         operador={session.operador}
         caixa={session.caixa}
+        syncState={session.syncState}
         openModule={session.openModule}
         carregarHistoricoVendas={historico.carregarHistoricoVendas}
         atualizarPdvCompleto={session.atualizarPdvCompleto}
@@ -317,6 +318,7 @@ export default function App() {
 
       <PdvFooter
         caixa={session.caixa}
+        syncState={session.syncState}
         atualizarPdvCompleto={session.atualizarPdvCompleto}
         sairDoSistema={session.sairDoSistema}
       />

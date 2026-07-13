@@ -408,6 +408,14 @@ label {
   padding-left: 28px;
 }
 
+.sync-running {
+  position: relative;
+}
+
+.spinning-icon {
+  animation: loading-spin 0.9s linear infinite;
+}
+
 .sales-history-module,
 .sales-detail-panel,
 .sales-detail-empty {
@@ -2066,6 +2074,11 @@ label {
   align-items: center;
   gap: 5px;
   font-size: 0.72rem;
+}
+
+.footer-status button.sync-running {
+  background: rgba(123, 214, 255, 0.16);
+  color: #ffffff;
 }
 
 .footer-brand {

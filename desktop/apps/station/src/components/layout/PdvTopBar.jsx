@@ -14,12 +14,17 @@ export function PdvTopBar({
   health,
   operador,
   caixa,
+  syncState,
   openModule,
   carregarHistoricoVendas,
   atualizarPdvCompleto,
   alternarTelaCheia,
   sairDoSistema,
 }) {
+  const syncTitle = syncState?.running
+    ? "Uma atualizacao automatica esta sendo executada em segundo plano."
+    : "Atualizar PDV agora";
+
   return (
     <header className="pdv-topbar">
       <div className="menu-group">
@@ -44,7 +49,14 @@ export function PdvTopBar({
           <button onClick={() => openModule("configuracao")}><FiSettings /> Configuracoes locais</button>
           <div className="top-dropdown-section">
             <span className="top-dropdown-section-title">Atualizacoes</span>
-            <button className="submenu-button" onClick={atualizarPdvCompleto}><FiRefreshCcw /> Atualizar PDV</button>
+            <button
+              className={`submenu-button ${syncState?.running ? "sync-running" : ""}`.trim()}
+              onClick={() => atualizarPdvCompleto()}
+              title={syncTitle}
+            >
+              <FiRefreshCcw className={syncState?.running ? "spinning-icon" : ""} />
+              Atualizar PDV
+            </button>
           </div>
           <button onClick={alternarTelaCheia}><FiMaximize2 /> Alternar tela cheia</button>
           <button className="danger-menu" onClick={sairDoSistema}><FiPower /> Sair do sistema</button>
