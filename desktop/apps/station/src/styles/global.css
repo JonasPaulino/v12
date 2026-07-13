@@ -154,6 +154,35 @@ label {
   line-height: 1.45;
 }
 
+.login-blocked-message {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid #f1c7cd;
+  background: #fff4f6;
+  color: #7f1d1d;
+}
+
+.login-blocked-message strong {
+  font-size: 0.92rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.login-blocked-message span {
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.login-card .blocked-refresh-button {
+  min-height: 38px;
+  width: 100%;
+  background: #991b1b;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.84rem;
+}
+
 .setup-form {
   display: grid;
   gap: 18px;

@@ -1,8 +1,18 @@
 import { Router } from "express";
+import { assertTerminalConfigurado } from "../modules/configuracao/localConfigRepository.js";
 import { autenticarOperador } from "../modules/operadores/operadorRepository.js";
 import { trocarSenhaPrimeiroAcesso } from "../services/operadorSenhaService.js";
 
 const router = Router();
+
+router.use((_req, _res, next) => {
+  try {
+    assertTerminalConfigurado();
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
 
 router.post("/login", (req, res, next) => {
   try {

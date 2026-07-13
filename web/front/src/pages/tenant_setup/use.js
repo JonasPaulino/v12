@@ -877,7 +877,9 @@ export const useTenantSetupPage = ({ gestaoContext = false } = {}) => {
         const result = await toggleTenantAccessBlock(
           tenant.tenant_id,
           willBlock,
-          willBlock ? "Bloqueio manual pela Gestão V12" : null
+          willBlock
+            ? "Todos os acessos desta filial foram bloqueados. Entre em contato com o suporte."
+            : null
         );
         if (result?.success === false) {
           throw new Error(result?.message || "Não foi possível alterar o bloqueio de acesso.");

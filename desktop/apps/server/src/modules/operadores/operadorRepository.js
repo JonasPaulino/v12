@@ -1,6 +1,6 @@
 import { getDb } from "../../db/connection.js";
 import { verifyPassword } from "../../utils/password.js";
-import { getTerminalTenantErpId } from "../configuracao/localConfigRepository.js";
+import { assertTerminalConfigurado, getTerminalTenantErpId } from "../configuracao/localConfigRepository.js";
 
 export const OPERADOR_PERFIS = Object.freeze({
   PDV_OPERADOR: "pdv_operador",
@@ -116,6 +116,7 @@ export function getOperadorById(operadorId) {
 }
 
 export function autenticarOperador({ email, senha }) {
+  assertTerminalConfigurado();
   const db = getDb();
   const tenantErpId = getTerminalTenantErpId();
   const operador = db

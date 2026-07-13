@@ -7,7 +7,7 @@ import logoPdvColor from "../../assets/logo_pdv_cor.png";
 
 const REMEMBER_OPERATOR_KEY = "v12_pdv_remember_operator_email";
 
-export function LoginOperador({ config, onLogin }) {
+export function LoginOperador({ config, onLogin, onRefreshStatus }) {
   const { showLoading, hideLoading } = useContext(AppContext);
   const { showAlert, promptPasswordChange } = useSweetAlert();
   const [email, setEmail] = useState("");
@@ -23,6 +23,12 @@ export function LoginOperador({ config, onLogin }) {
     }
   }, []);
 
+  const bloqueado = !!config?.tenant_acesso_bloqueado || !!config?.bloqueado;
+  const motivoBloqueio =
+    config?.motivo_bloqueio ||
+    config?.tenant_bloqueio_motivo ||
+    "A filial está bloqueada na retaguarda.";
+
   function persistRememberedEmail(value) {
     const normalizedEmail = String(value || "").trim().toLowerCase();
     if (lembrarUsuario && normalizedEmail) {
@@ -35,8 +41,14 @@ export function LoginOperador({ config, onLogin }) {
 
   async function submit(event) {
     event.preventDefault();
+    if (bloqueado) return;
     showLoading("Validando operador...");
     try {
+      const refreshedStatus = await onRefreshStatus?.({ syncRemote: true, silent: true });
+      if (refreshedStatus?.bloqueado) {
+        return;
+      }
+
       persistRememberedEmail(email);
       await api.sincronizarUsuarios().catch(() => null);
       const operador = await api.loginOperador({ email, senha });
@@ -82,9 +94,27 @@ export function LoginOperador({ config, onLogin }) {
         <p>
           {config?.tenant_nome || "Filial configurada"} • {config?.terminal_nome || "Caixa 01"}
         </p>
+        {bloqueado ? (
+          <div className="login-blocked-message">
+            <strong>Filial bloqueada</strong>
+            <span>{motivoBloqueio}</span>
+            <button
+              type="button"
+              className="blocked-refresh-button"
+              onClick={() => onRefreshStatus?.({ syncRemote: true, silent: true })}
+            >
+              Atualizar situação
+            </button>
+          </div>
+        ) : null}
         <label>
           E-mail do operador
-          <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} />
+          <input
+            type="email"
+            value={email}
+            disabled={bloqueado}
+            onChange={(event) => setEmail(event.target.value)}
+          />
         </label>
         <label>
           Senha local
@@ -92,11 +122,13 @@ export function LoginOperador({ config, onLogin }) {
             <input
               type={mostrarSenha ? "text" : "password"}
               value={senha}
+              disabled={bloqueado}
               onChange={(event) => setSenha(event.target.value)}
             />
             <button
               type="button"
               className="password-toggle"
+              disabled={bloqueado}
               onClick={() => setMostrarSenha((current) => !current)}
               aria-label={mostrarSenha ? "Ocultar senha" : "Mostrar senha"}
             >
@@ -108,11 +140,12 @@ export function LoginOperador({ config, onLogin }) {
           <input
             type="checkbox"
             checked={lembrarUsuario}
+            disabled={bloqueado}
             onChange={(event) => setLembrarUsuario(event.target.checked)}
           />
           Lembrar usuário neste caixa
         </label>
-        <button type="submit">Entrar</button>
+        <button type="submit" disabled={bloqueado}>Entrar</button>
       </form>
     </div>
   );

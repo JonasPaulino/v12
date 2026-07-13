@@ -102,8 +102,13 @@ export default function App() {
   if (!session.operador) {
     return (
       <LoginOperador
-        config={session.configStatus.config}
+        config={{
+          ...(session.configStatus?.config || {}),
+          bloqueado: !!session.configStatus?.bloqueado,
+          motivo_bloqueio: session.configStatus?.motivo_bloqueio || null,
+        }}
         onLogin={session.handleOperadorLogin}
+        onRefreshStatus={session.refreshTerminalStatus}
       />
     );
   }

@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { assertTerminalConfigurado } from "../modules/configuracao/localConfigRepository.js";
 import {
   abrirCaixa,
   fecharCaixa,
@@ -8,6 +9,15 @@ import {
 } from "../modules/caixa/caixaRepository.js";
 
 const router = Router();
+
+router.use((_req, _res, next) => {
+  try {
+    assertTerminalConfigurado();
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
 
 router.get("/atual", (_req, res) => {
   res.json({ success: true, data: getCaixaAberto() });

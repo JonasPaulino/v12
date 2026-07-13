@@ -1,7 +1,17 @@
 import { Router } from "express";
+import { assertTerminalConfigurado } from "../modules/configuracao/localConfigRepository.js";
 import { createPessoa, listPessoas } from "../modules/pessoas/pessoaRepository.js";
 
 const router = Router();
+
+router.use((_req, _res, next) => {
+  try {
+    assertTerminalConfigurado();
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
 
 router.get("/", (req, res) => {
   const data = listPessoas({

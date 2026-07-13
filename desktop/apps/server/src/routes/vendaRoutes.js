@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { assertTerminalConfigurado } from "../modules/configuracao/localConfigRepository.js";
 import {
   cancelarVenda,
   criarVenda,
@@ -7,6 +8,15 @@ import {
 } from "../modules/vendas/vendaRepository.js";
 
 const router = Router();
+
+router.use((_req, _res, next) => {
+  try {
+    assertTerminalConfigurado();
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
 
 router.get("/", (req, res) => {
   res.json({

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getTerminalConfig } from "../modules/configuracao/localConfigRepository.js";
+import { getTerminalConfigStatus } from "../modules/configuracao/localConfigRepository.js";
 import {
   atualizarDadosFilialAtual,
   configurarTerminalPorTenant,
@@ -10,12 +10,11 @@ import { getPrinterConfig, savePrinterConfig } from "../services/printerConfigSe
 const router = Router();
 
 router.get("/status", (_req, res) => {
-  const config = getTerminalConfig();
+  const status = getTerminalConfigStatus();
   res.json({
     success: true,
     data: {
-      configurado: !!config,
-      config,
+      ...status,
     },
   });
 });

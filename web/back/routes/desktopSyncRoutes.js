@@ -1,4 +1,5 @@
 import express from "express";
+import crypto from "node:crypto";
 import { pool } from "../config/conexao.js";
 import desktopSyncAuth from "../middleware/desktopSyncAuth.js";
 import DesktopSyncDAO from "../model/desktopSyncDAO.js";
@@ -10,6 +11,31 @@ import { hashPassword, verifyPassword } from "../utils/password.js";
 const router = express.Router();
 
 router.use("/desktop/sync", desktopSyncAuth);
+
+const buildTenantGuardPayload = (tenant) => ({
+  tenant_id: Number(tenant.tenant_id),
+  tenant_ativo: tenant.tenant_ativo ?? tenant.ativo ?? true,
+  tenant_usa_pdv: !!tenant.tenant_usa_pdv,
+  tenant_acesso_bloqueado: !!tenant.tenant_acesso_bloqueado,
+  tenant_bloqueio_motivo: tenant.tenant_bloqueio_motivo || null,
+  issued_at: new Date().toISOString(),
+});
+
+const encodeTenantAccessGuard = (tenant) => {
+  const secret = String(process.env.DESKTOP_SYNC_TOKEN || "").trim();
+  const guardPayload = buildTenantGuardPayload(tenant);
+  const payload = Buffer.from(JSON.stringify(guardPayload), "utf8").toString("base64url");
+
+  const signature = secret
+    ? crypto.createHmac("sha256", secret).update(payload).digest("hex")
+    : "";
+
+  return {
+    sync_guard_payload: payload,
+    sync_guard_signature: signature,
+    sync_guard_issued_at: guardPayload.issued_at,
+  };
+};
 
 router.post("/desktop/sync", async (req, res) => {
   try {
@@ -122,6 +148,7 @@ const buildTenantPayload = (tenant) => ({
   tenant_usa_pdv: !!tenant.tenant_usa_pdv,
   tenant_acesso_bloqueado: !!tenant.tenant_acesso_bloqueado,
   tenant_bloqueio_motivo: tenant.tenant_bloqueio_motivo || null,
+  ...encodeTenantAccessGuard(tenant),
 });
 
 async function enrichTenantsWithCompanyData(client, tenants = []) {

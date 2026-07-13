@@ -1,7 +1,7 @@
 import { formaPagamento, nfceStatus, syncEventTypes, vendaStatus } from "@v12-desktop/shared";
 import { getDb } from "../../db/connection.js";
 import { getCaixaAberto } from "../caixa/caixaRepository.js";
-import { getTerminalTenantErpId } from "../configuracao/localConfigRepository.js";
+import { assertTerminalConfigurado, getTerminalTenantErpId } from "../configuracao/localConfigRepository.js";
 import { enqueueSyncEvent } from "../../services/syncQueueService.js";
 import { emitirNfce } from "../../services/acbrFiscalService.js";
 
@@ -32,6 +32,7 @@ export async function criarVenda({
   desconto = 0,
   totalLiquido = null,
 }) {
+  assertTerminalConfigurado();
   const caixa = getCaixaAberto();
   const tenantErpId = getTerminalTenantErpId();
   if (!caixa) {
@@ -161,6 +162,7 @@ export function listVendas({ limit = 50 } = {}) {
 }
 
 export function searchVendas({ search = "", status = "", limit = 50 } = {}) {
+  assertTerminalConfigurado();
   const db = getDb();
   const tenantErpId = getTerminalTenantErpId();
   return db
@@ -219,6 +221,7 @@ export function searchVendas({ search = "", status = "", limit = 50 } = {}) {
 }
 
 export function getVendaDetalhe(vendaId) {
+  assertTerminalConfigurado();
   const db = getDb();
   const tenantErpId = getTerminalTenantErpId();
   const venda = db
@@ -303,6 +306,7 @@ export function getVendaDetalhe(vendaId) {
 }
 
 export function cancelarVenda(vendaId, { motivo = "Cancelamento manual no PDV." } = {}) {
+  assertTerminalConfigurado();
   const db = getDb();
   const tenantErpId = getTerminalTenantErpId();
   const saleId = Number(vendaId);

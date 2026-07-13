@@ -23,18 +23,42 @@ export function usePdvSession({ onResetVenda, onCarregarFinanceiroSupportData })
   const { showAlert, askYesNoQuestion } = useSweetAlert();
   const syncLockRef = useRef(false);
 
+  function aplicarBloqueioTerminal(statusData) {
+    if (!statusData?.bloqueado) return false;
+    onResetVenda();
+    setOperador(null);
+    setCaixa(null);
+    setActiveModule("abertura");
+    if (statusData.config) {
+      setConfigStatus(statusData);
+    }
+    return true;
+  }
+
   async function loadInitialData({ silent = false, suppressErrorAlert = false } = {}) {
     try {
       if (!silent) showLoading("Atualizando PDV...");
-      const [healthData, statusData, caixaData] = await Promise.all([
+      const [healthData, statusData] = await Promise.all([
         api.health(),
         api.configuracaoStatus(),
-        api.caixaAtual(),
       ]);
       setHealth(healthData);
       setConfigStatus(statusData);
+
+      if (!statusData?.configurado) {
+        setCaixa(null);
+        setActiveModule("abertura");
+        return statusData;
+      }
+
+      if (aplicarBloqueioTerminal(statusData)) {
+        return statusData;
+      }
+
+      const caixaData = await api.caixaAtual();
       setCaixa(caixaData);
       setActiveModule(getModuleForCaixa(caixaData));
+
       if (!silent) {
         showAlert({
           title: "PDV atualizado",
@@ -42,21 +66,25 @@ export function usePdvSession({ onResetVenda, onCarregarFinanceiroSupportData })
           icon: "success",
         });
       }
+      return statusData;
     } catch (error) {
-      if (!suppressErrorAlert) {
+      if (!silent && !suppressErrorAlert) {
         showAlert({
           title: "Falha ao atualizar",
           text: error.message,
           icon: "error",
         });
       }
+      return null;
     } finally {
-      hideLoading();
+      if (!silent) {
+        hideLoading();
+      }
     }
   }
 
   useEffect(() => {
-    loadInitialData({ silent: true });
+    refreshTerminalStatus({ syncRemote: true, silent: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -107,11 +135,20 @@ export function usePdvSession({ onResetVenda, onCarregarFinanceiroSupportData })
       }
       return { success: true, result };
     } catch (error) {
+      const statusData = await api.configuracaoStatus().catch(() => null);
+      if (statusData?.config) {
+        setConfigStatus(statusData);
+      }
+      const terminalBloqueado = aplicarBloqueioTerminal(statusData);
+
       setSyncState((current) => ({
         ...current,
-        lastError: String(error?.message || error),
+        lastError: terminalBloqueado
+          ? statusData?.motivo_bloqueio ||
+            "A filial está bloqueada na retaguarda."
+          : String(error?.message || error),
       }));
-      if (!silent) {
+      if (!silent && !terminalBloqueado) {
         showAlert({
           title: "Falha na atualização",
           text: error.message,
@@ -166,6 +203,18 @@ export function usePdvSession({ onResetVenda, onCarregarFinanceiroSupportData })
     const intervalId = window.setInterval(runBackgroundSync, AUTO_SYNC_INTERVAL_MS);
     return () => window.clearInterval(intervalId);
   }, [operador]);
+
+  async function refreshTerminalStatus({ syncRemote = false, silent = true } = {}) {
+    try {
+      if (syncRemote) {
+        await api.sincronizarFilial();
+      }
+    } catch {
+      // segue para refletir o último estado salvo localmente
+    }
+
+    return loadInitialData({ silent, suppressErrorAlert: true });
+  }
 
   function openModule(module) {
     if (
@@ -243,6 +292,7 @@ export function usePdvSession({ onResetVenda, onCarregarFinanceiroSupportData })
     syncState,
     caixaPendenteDiaAnterior: !!caixa?.caixa_pendente_dia_anterior,
     loadInitialData,
+    refreshTerminalStatus,
     atualizarPdvCompleto,
     handleOperadorLogin,
     openModule,
