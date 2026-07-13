@@ -1,6 +1,7 @@
 import { atualizarDadosFilialAtual } from "./erpSetupService.js";
 import { processSyncQueue } from "./erpSyncService.js";
 import { syncFinanceiroSupportDataFromErp } from "./financeiroSupportDataSyncService.js";
+import { verificarConectividadeInternet } from "./networkService.js";
 import { syncProdutosFromErp } from "./produtoSyncService.js";
 import { syncUsuariosFromErp } from "./usuarioSyncService.js";
 
@@ -8,6 +9,13 @@ export async function atualizarPdvCompleto() {
   const steps = [];
 
   try {
+    const conectividade = await verificarConectividadeInternet();
+    if (!conectividade.online) {
+      throw new Error(
+        "Nao foi possivel atualizar o PDV porque o terminal esta sem internet ou sem comunicacao com a retaguarda.",
+      );
+    }
+
     const filial = await atualizarDadosFilialAtual();
     steps.push({
       key: "filial",

@@ -23,7 +23,9 @@ export function PdvTopBar({
 }) {
   const syncTitle = syncState?.running
     ? "Uma atualizacao automatica esta sendo executada em segundo plano."
-    : "Atualizar PDV agora";
+    : syncState?.lastError
+      ? syncState.lastError
+      : "Atualizar PDV agora";
 
   return (
     <header className="pdv-topbar">

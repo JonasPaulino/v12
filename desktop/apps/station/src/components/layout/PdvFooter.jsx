@@ -3,7 +3,9 @@ import { FiPower, FiRefreshCcw } from "react-icons/fi";
 export function PdvFooter({ caixa, syncState, atualizarPdvCompleto, sairDoSistema }) {
   const syncTitle = syncState?.running
     ? "Uma atualizacao automatica esta sendo executada em segundo plano."
-    : "Atualizar PDV agora";
+    : syncState?.lastError
+      ? syncState.lastError
+      : "Atualizar PDV agora";
 
   return (
     <footer className="pdv-footer">
