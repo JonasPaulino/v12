@@ -39,7 +39,11 @@ export function SetupLocal({ onConfigured }) {
       const availableTenants = Array.isArray(result.tenants) ? result.tenants : [];
       setWebUser(result.user || null);
       setTenants(availableTenants);
-      setSelectedTenantId(availableTenants[0]?.tenant_id || "");
+      setSelectedTenantId(
+        availableTenants.find((tenant) => tenant.tenant_usa_pdv === true)?.tenant_id ||
+          availableTenants[0]?.tenant_id ||
+          "",
+      );
 
       if (!availableTenants.length) {
         showAlert({
@@ -65,6 +69,15 @@ export function SetupLocal({ onConfigured }) {
       showAlert({
         title: "Selecione uma filial",
         text: "Escolha a filial do ERP web que ficará vinculada a este terminal.",
+        icon: "warning",
+      });
+      return;
+    }
+
+    if (selectedTenant.tenant_usa_pdv !== true) {
+      showAlert({
+        title: "Filial sem integração PDV",
+        text: "Esta filial não está habilitada para uso do PDV no ERP web.",
         icon: "warning",
       });
       return;
@@ -148,8 +161,12 @@ export function SetupLocal({ onConfigured }) {
                   onChange={(event) => setSelectedTenantId(event.target.value)}
                 >
                   {tenants.map((tenant) => (
-                    <option key={tenant.tenant_id} value={tenant.tenant_id}>
-                      {tenant.tenant_nome} - {tenant.tenant_documento || "sem documento"}
+                    <option
+                      key={tenant.tenant_id}
+                      value={tenant.tenant_id}
+                      disabled={tenant.tenant_usa_pdv !== true}
+                    >
+                      {tenant.tenant_nome} - {tenant.tenant_documento || "sem documento"}{tenant.tenant_usa_pdv ? "" : " (PDV inativo)"}
                     </option>
                   ))}
                 </select>

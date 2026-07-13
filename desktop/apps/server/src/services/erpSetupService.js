@@ -77,6 +77,10 @@ export async function configurarTerminalPorTenant({
     throw new Error("Selecione a filial do ERP web para parear este terminal.");
   }
 
+  if (tenant.tenant_usa_pdv !== true) {
+    throw new Error("Esta filial não está habilitada para integração com o PDV. Ative a opção no ERP web antes do setup.");
+  }
+
   try {
     const config = salvarTerminalConfig({
       tenant_erp_id: tenant.tenant_id,
@@ -86,6 +90,7 @@ export async function configurarTerminalPorTenant({
       tenant_inscricao_estadual: tenant.tenant_inscricao_estadual || null,
       tenant_inscricao_municipal: tenant.tenant_inscricao_municipal || null,
       tenant_ativo: tenant.tenant_ativo !== false,
+      tenant_usa_pdv: tenant.tenant_usa_pdv !== false,
       tenant_acesso_bloqueado: !!tenant.tenant_acesso_bloqueado,
       tenant_bloqueio_motivo: tenant.tenant_bloqueio_motivo || null,
       terminal_codigo,
@@ -148,6 +153,7 @@ export async function atualizarDadosFilialAtual() {
     tenant_inscricao_estadual: tenant.tenant_inscricao_estadual || null,
     tenant_inscricao_municipal: tenant.tenant_inscricao_municipal || null,
     tenant_ativo: tenant.tenant_ativo !== false,
+    tenant_usa_pdv: tenant.tenant_usa_pdv !== false,
     tenant_acesso_bloqueado: !!tenant.tenant_acesso_bloqueado,
     tenant_bloqueio_motivo: tenant.tenant_bloqueio_motivo || null,
     terminal_codigo: configAtual.terminal_codigo,

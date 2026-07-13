@@ -12,6 +12,7 @@ export function getTerminalConfig() {
         tenant_inscricao_estadual,
         tenant_inscricao_municipal,
         tenant_ativo,
+        tenant_usa_pdv,
         tenant_acesso_bloqueado,
         tenant_bloqueio_motivo,
         terminal_codigo,
@@ -44,6 +45,10 @@ export function assertTerminalConfigurado() {
     throw new Error(config.tenant_bloqueio_motivo || "A filial configurada esta com acesso bloqueado.");
   }
 
+  if (!Number(config.tenant_usa_pdv)) {
+    throw new Error("A filial configurada não está habilitada para integração com PDV.");
+  }
+
   return config;
 }
 
@@ -68,6 +73,7 @@ export function salvarTerminalConfig(payload = {}) {
       tenant_inscricao_estadual,
       tenant_inscricao_municipal,
       tenant_ativo,
+      tenant_usa_pdv,
       tenant_acesso_bloqueado,
       tenant_bloqueio_motivo,
       terminal_codigo,
@@ -84,6 +90,7 @@ export function salvarTerminalConfig(payload = {}) {
       tenant_inscricao_estadual = excluded.tenant_inscricao_estadual,
       tenant_inscricao_municipal = excluded.tenant_inscricao_municipal,
       tenant_ativo = excluded.tenant_ativo,
+      tenant_usa_pdv = excluded.tenant_usa_pdv,
       tenant_acesso_bloqueado = excluded.tenant_acesso_bloqueado,
       tenant_bloqueio_motivo = excluded.tenant_bloqueio_motivo,
       terminal_codigo = excluded.terminal_codigo,
@@ -98,6 +105,7 @@ export function salvarTerminalConfig(payload = {}) {
     payload.tenant_inscricao_estadual || null,
     payload.tenant_inscricao_municipal || null,
     payload.tenant_ativo === false ? 0 : 1,
+    payload.tenant_usa_pdv === false ? 0 : 1,
     payload.tenant_acesso_bloqueado ? 1 : 0,
     payload.tenant_bloqueio_motivo || null,
     terminalCodigo,

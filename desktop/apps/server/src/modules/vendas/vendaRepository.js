@@ -142,9 +142,7 @@ export async function criarVenda({
        VALUES (?, ?, ?)`,
     ).run(tenantErpId, vendaId, nfceStatus.PENDENTE);
 
-    return db
-      .prepare("SELECT * FROM venda WHERE tenant_erp_id = ? AND venda_id = ?")
-      .get(tenantErpId, vendaId);
+    return getVendaDetalhe(vendaId);
   });
 
   const venda = create();
@@ -171,6 +169,7 @@ export function searchVendas({ search = "", status = "", limit = 50 } = {}) {
          v.venda_id,
          v.caixa_id,
          v.pessoa_id,
+         p.erp_id AS pessoa_erp_id,
          v.cliente_tipo_documento,
          v.cliente_documento,
          v.cliente_nome,
@@ -190,6 +189,7 @@ export function searchVendas({ search = "", status = "", limit = 50 } = {}) {
          n.serie AS nfce_serie
        FROM venda v
        LEFT JOIN caixa c ON c.caixa_id = v.caixa_id
+       LEFT JOIN pessoa p ON p.pessoa_id = v.pessoa_id
        LEFT JOIN nfce n ON n.venda_id = v.venda_id
        WHERE v.tenant_erp_id = ?
          AND (? = '' OR v.status = ?)
@@ -267,15 +267,17 @@ export function getVendaDetalhe(vendaId) {
       `SELECT
          venda_item_id,
          venda_id,
-         produto_id,
-         codigo_produto,
-         descricao,
-         unidade,
-         quantidade,
-         valor_unitario,
-         valor_total
-       FROM venda_item
-       WHERE tenant_erp_id = ?
+         vi.produto_id,
+         p.erp_id AS produto_erp_id,
+         vi.codigo_produto,
+         vi.descricao,
+         vi.unidade,
+         vi.quantidade,
+         vi.valor_unitario,
+         vi.valor_total
+       FROM venda_item vi
+       LEFT JOIN produto p ON p.produto_id = vi.produto_id
+       WHERE vi.tenant_erp_id = ?
          AND venda_id = ?
        ORDER BY venda_item_id ASC`,
     )
