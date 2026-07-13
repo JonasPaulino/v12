@@ -81,7 +81,7 @@ export function salvarTerminalConfig(payload = {}) {
       ambiente,
       sincronizado_em
     )
-    VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     ON CONFLICT(config_id) DO UPDATE SET
       tenant_erp_id = excluded.tenant_erp_id,
       tenant_nome = excluded.tenant_nome,

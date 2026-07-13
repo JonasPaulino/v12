@@ -34,6 +34,11 @@ export async function syncUsuariosFromErp() {
   const result = await response.json().catch(() => ({}));
 
   if (!response.ok || result.success === false) {
+    console.error("[desktop-sync] Falha ao sincronizar operadores", {
+      tenantId: config.tenant_erp_id,
+      status: response.status,
+      response: result,
+    });
     throw new Error(result.message || `ERP respondeu ${response.status}`);
   }
 

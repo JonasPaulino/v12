@@ -69,6 +69,12 @@ async function fetchSupportDataFromErp({ tipo = "receber" } = {}) {
 
   const result = await response.json().catch(() => ({}));
   if (!response.ok || result.success === false) {
+    console.error("[desktop-sync] Falha ao sincronizar apoio financeiro", {
+      tenantId: config.tenant_erp_id,
+      tipo,
+      status: response.status,
+      response: result,
+    });
     throw new Error(result.message || `ERP respondeu ${response.status}`);
   }
 

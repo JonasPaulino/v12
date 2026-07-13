@@ -37,7 +37,7 @@ const tipoFinanceiroLabels = {
 
 export const ConfiguracaoFiscal = () => {
   const { mOpen, abreFechaMenu, user } = useContext(AppContext);
-  const [activeTab, setActiveTab] = useState("emitente");
+  const [activeTab, setActiveTab] = useState("fiscal");
   const [activeMensagemTab, setActiveMensagemTab] = useState("conectar");
   const [fiscalSearch, setFiscalSearch] = useState("");
   const [fiscalPage, setFiscalPage] = useState(1);
@@ -50,6 +50,7 @@ export const ConfiguracaoFiscal = () => {
   const [operacaoMenuOpenId, setOperacaoMenuOpenId] = useState(null);
   const [operacaoAnchorEl, setOperacaoAnchorEl] = useState(null);
   const isUsuarioMaster = !!user?.usuario_master;
+  const canManageInternalConfig = isUsuarioMaster;
   const {
     loading,
     saving,
@@ -239,27 +240,39 @@ export const ConfiguracaoFiscal = () => {
                   <C.CardHeader>
                     <C.CardTitle>Configurações da filial</C.CardTitle>
                     <C.CardText>
-                      A filial <strong>{tenant?.tenant_nome || "--"}</strong> usa uma pessoa
-                      emitente, parâmetros fiscais e uma conta de cobrança própria para
-                      emissão e recebimento.
+                      {canManageInternalConfig ? (
+                        <>
+                          A filial <strong>{tenant?.tenant_nome || "--"}</strong> reúne
+                          parâmetros operacionais, fiscais e internos de suporte.
+                        </>
+                      ) : (
+                        <>
+                          A filial <strong>{tenant?.tenant_nome || "--"}</strong> mantém aqui
+                          apenas as configurações operacionais usadas no dia a dia.
+                        </>
+                      )}
                     </C.CardText>
                   </C.CardHeader>
 
                   <C.Tabs>
-                    <C.TabButton
-                      type="button"
-                      $active={activeTab === "emitente"}
-                      onClick={() => setActiveTab("emitente")}
-                    >
-                      Emitente
-                    </C.TabButton>
-                    <C.TabButton
-                      type="button"
-                      $active={activeTab === "parametros"}
-                      onClick={() => setActiveTab("parametros")}
-                    >
-                      Parâmetros
-                    </C.TabButton>
+                    {canManageInternalConfig ? (
+                      <C.TabButton
+                        type="button"
+                        $active={activeTab === "emitente"}
+                        onClick={() => setActiveTab("emitente")}
+                      >
+                        Emitente
+                      </C.TabButton>
+                    ) : null}
+                    {canManageInternalConfig ? (
+                      <C.TabButton
+                        type="button"
+                        $active={activeTab === "parametros"}
+                        onClick={() => setActiveTab("parametros")}
+                      >
+                        Parâmetros
+                      </C.TabButton>
+                    ) : null}
                     <C.TabButton
                       type="button"
                       $active={activeTab === "fiscal"}
@@ -267,7 +280,7 @@ export const ConfiguracaoFiscal = () => {
                     >
                       Fiscal
                     </C.TabButton>
-                    {isUsuarioMaster ? (
+                    {canManageInternalConfig ? (
                       <C.TabButton
                         type="button"
                         $active={activeTab === "responsavel"}
@@ -276,13 +289,15 @@ export const ConfiguracaoFiscal = () => {
                         Responsável técnico
                       </C.TabButton>
                     ) : null}
-                    <C.TabButton
-                      type="button"
-                      $active={activeTab === "certificado"}
-                      onClick={() => setActiveTab("certificado")}
-                    >
-                      Certificado
-                    </C.TabButton>
+                    {canManageInternalConfig ? (
+                      <C.TabButton
+                        type="button"
+                        $active={activeTab === "certificado"}
+                        onClick={() => setActiveTab("certificado")}
+                      >
+                        Certificado
+                      </C.TabButton>
+                    ) : null}
                     <C.TabButton
                       type="button"
                       $active={activeTab === "contas"}
@@ -299,7 +314,7 @@ export const ConfiguracaoFiscal = () => {
                     </C.TabButton>
                   </C.Tabs>
 
-                  {activeTab === "emitente" ? (
+                  {canManageInternalConfig && activeTab === "emitente" ? (
                     <C.SectionBody>
                       <C.CardHeader>
                         <C.CardTitle>Emitente principal da filial</C.CardTitle>
@@ -364,7 +379,7 @@ export const ConfiguracaoFiscal = () => {
                     </C.SectionBody>
                   ) : null}
 
-                  {activeTab === "parametros" ? (
+                  {canManageInternalConfig && activeTab === "parametros" ? (
                     <C.SectionBody>
                       <C.CardHeader>
                         <C.CardTitle>Parâmetros da NF-e</C.CardTitle>
@@ -1614,7 +1629,7 @@ export const ConfiguracaoFiscal = () => {
                     </C.SectionBody>
                   ) : null}
 
-                  {activeTab === "certificado" ? (
+                  {canManageInternalConfig && activeTab === "certificado" ? (
                     <C.SectionBody>
                       <C.CardHeader>
                         <C.CardTitle>Certificado A1</C.CardTitle>
@@ -1658,7 +1673,7 @@ export const ConfiguracaoFiscal = () => {
                     </C.SectionBody>
                   ) : null}
 
-                  {isUsuarioMaster && activeTab === "responsavel" ? (
+                  {canManageInternalConfig && activeTab === "responsavel" ? (
                     <C.SectionBody>
                       <C.CardHeader>
                         <C.CardTitle>Responsável técnico</C.CardTitle>
