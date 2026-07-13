@@ -16,7 +16,14 @@ export function createApp() {
     res.status(404).json({ success: false, message: "Rota local nao encontrada." });
   });
 
-  app.use((error, _req, res, _next) => {
+  app.use((error, req, res, _next) => {
+    console.error("[desktop-server] Falha na requisicao", {
+      method: req.method,
+      path: req.originalUrl,
+      message: error?.message,
+      stack: error?.stack,
+    });
+
     res.status(400).json({
       success: false,
       message: error.message || "Falha local.",
