@@ -159,6 +159,9 @@ export async function processarEventoDesktopSync(evento) {
 
   try {
     await client.query("BEGIN");
+    await client.query("SELECT set_config('app.tenant_id', $1, true)", [
+      String(evento.tenantId),
+    ]);
     const observacao = await processarEventoComClient(client, evento);
     await DesktopSyncDAO.atualizarEventoStatus(client, {
       desktopSyncEventoId: evento.desktopSyncEventoId,
@@ -169,6 +172,14 @@ export async function processarEventoDesktopSync(evento) {
     return { success: true, observacao };
   } catch (error) {
     await client.query("ROLLBACK");
+    console.error("[desktop-sync] Falha ao processar evento do PDV no web:", {
+      desktopSyncEventoId: evento.desktopSyncEventoId,
+      tenantId: evento.tenantId,
+      terminalCodigo: evento.terminalCodigo,
+      eventType: evento.eventType,
+      message: error?.message,
+      stack: error?.stack,
+    });
     await DesktopSyncDAO.atualizarEventoStatus(pool, {
       desktopSyncEventoId: evento.desktopSyncEventoId,
       status: "erro",
