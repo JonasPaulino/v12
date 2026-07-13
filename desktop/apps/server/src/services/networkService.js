@@ -54,7 +54,7 @@ export async function verificarConectividadeInternet() {
       online: false,
       checkedAt: new Date().toISOString(),
       targets: [],
-      message: "Nao foi possivel validar a internet porque a retaguarda nao esta configurada.",
+      message: "Não foi possível validar a internet porque a retaguarda não está configurada.",
     };
   }
 
@@ -67,6 +67,6 @@ export async function verificarConectividadeInternet() {
     targets: results,
     message: online
       ? "Conectividade externa validada."
-      : "Nao foi possivel comunicar com a retaguarda nem com os endpoints de internet configurados.",
+      : "Não foi possível comunicar com a retaguarda nem com os endpoints de internet configurados.",
   };
 }

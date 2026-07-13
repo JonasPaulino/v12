@@ -12,7 +12,7 @@ export async function atualizarPdvCompleto() {
     const conectividade = await verificarConectividadeInternet();
     if (!conectividade.online) {
       throw new Error(
-        "Nao foi possivel atualizar o PDV porque o terminal esta sem internet ou sem comunicacao com a retaguarda.",
+        "Não foi possível atualizar o PDV porque o terminal está sem internet ou sem comunicação com a retaguarda.",
       );
     }
 
@@ -30,7 +30,7 @@ export async function atualizarPdvCompleto() {
 
     const usuarios = await syncUsuariosFromErp();
     if (usuarios.success === false) {
-      throw new Error(usuarios.message || "Nao foi possivel sincronizar os operadores.");
+      throw new Error(usuarios.message || "Não foi possível sincronizar os operadores.");
     }
     steps.push({
       key: "usuarios",
@@ -44,7 +44,7 @@ export async function atualizarPdvCompleto() {
 
     const produtos = await syncProdutosFromErp({ full: true });
     if (produtos.success === false) {
-      throw new Error(produtos.message || "Nao foi possivel sincronizar os produtos.");
+      throw new Error(produtos.message || "Não foi possível sincronizar os produtos.");
     }
     steps.push({
       key: "produtos",
@@ -62,7 +62,7 @@ export async function atualizarPdvCompleto() {
       refresh: true,
     });
     if (financeiro.success === false) {
-      throw new Error(financeiro.message || "Nao foi possivel sincronizar as formas de pagamento.");
+      throw new Error(financeiro.message || "Não foi possível sincronizar as formas de pagamento.");
     }
     steps.push({
       key: "financeiro",
@@ -89,14 +89,14 @@ export async function atualizarPdvCompleto() {
         : "";
       throw new Error(
         pendencias.message ||
-          `Nao foi possivel sincronizar as pendencias locais. Falhas: ${Number(
+          `Não foi possível sincronizar as pendências locais. Falhas: ${Number(
             pendencias.failed || 0,
           )}.${detail}`,
       );
     }
     steps.push({
       key: "pendencias",
-      label: "Pendencias locais",
+      label: "Pendências locais",
       success: true,
       details: {
         processed: Number(pendencias.processed || 0),
@@ -105,7 +105,7 @@ export async function atualizarPdvCompleto() {
     });
     console.info("[desktop-sync] Etapa concluida", steps[steps.length - 1]);
   } catch (error) {
-    console.error("[desktop-sync] Falha na atualizacao completa", {
+    console.error("[desktop-sync] Falha na atualização completa", {
       completedSteps: steps,
       message: error?.message,
       stack: error?.stack,

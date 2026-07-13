@@ -69,8 +69,8 @@ export function usePdvSession({ onResetVenda, onCarregarFinanceiroSupportData })
     if (syncLockRef.current) {
       if (!silent) {
         showAlert({
-          title: "Atualizacao em andamento",
-          text: "Uma atualizacao automatica esta sendo executada em segundo plano.",
+          title: "Atualização em andamento",
+          text: "Uma atualização automática está sendo executada em segundo plano.",
           icon: "info",
         });
       }
@@ -101,7 +101,7 @@ export function usePdvSession({ onResetVenda, onCarregarFinanceiroSupportData })
           title: "PDV atualizado",
           text: steps.length
             ? `${steps.join(", ")} atualizados com sucesso.`
-            : "Filial, operadores, produtos, financeiro e pendencias locais foram atualizados.",
+            : "Filial, operadores, produtos, financeiro e pendências locais foram atualizados.",
           icon: "success",
         });
       }
@@ -113,12 +113,12 @@ export function usePdvSession({ onResetVenda, onCarregarFinanceiroSupportData })
       }));
       if (!silent) {
         showAlert({
-          title: "Falha na atualizacao",
+          title: "Falha na atualização",
           text: error.message,
           icon: "error",
         });
       } else {
-        console.error("[pdv-session] Falha na atualizacao automatica", {
+        console.error("[pdv-session] Falha na atualização automática", {
           reason,
           message: error?.message,
         });
@@ -185,7 +185,7 @@ export function usePdvSession({ onResetVenda, onCarregarFinanceiroSupportData })
     if (!caixa && !["abertura", "configuracao", "historico_vendas"].includes(module)) {
       showAlert({
         title: "Caixa fechado",
-        text: "Abra o caixa antes de acessar esta operacao.",
+        text: "Abra o caixa antes de acessar esta operação.",
         icon: "info",
       });
       setActiveModule("abertura");
@@ -211,7 +211,7 @@ export function usePdvSession({ onResetVenda, onCarregarFinanceiroSupportData })
   async function sairDoSistema() {
     const confirmed = await askYesNoQuestion(
       "Sair do sistema",
-      "Deseja encerrar a sessao do operador atual?",
+      "Deseja encerrar a sessão do operador atual?",
     );
 
     if (!confirmed) return;
@@ -228,8 +228,8 @@ export function usePdvSession({ onResetVenda, onCarregarFinanceiroSupportData })
     }
 
     showAlert({
-      title: "Opcao indisponivel",
-      text: "Tela cheia esta disponivel somente no app Electron.",
+      title: "Opção indisponível",
+      text: "Tela cheia está disponível somente no app Electron.",
       icon: "info",
     });
   }
