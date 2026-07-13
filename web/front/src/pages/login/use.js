@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppContext } from "context";
 import { useSweetAlert } from "context/sweet_alert";
@@ -14,6 +14,10 @@ export const useLogin = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [pendingAccess, setPendingAccess] = useState(null);
+
+  useEffect(() => {
+    clearLogoutInProgress();
+  }, []);
 
   const handleKeyDown = (event) => {
     if (event.key === "Enter") {

@@ -60,6 +60,7 @@ export const useProfileActions = () => {
     await logout().catch(() => null);
     clearSession();
     navigate("/login", { replace: true });
+    window.location.replace("/login");
   };
 
   return { handleLogout };

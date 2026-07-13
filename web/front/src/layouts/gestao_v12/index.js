@@ -96,6 +96,7 @@ export const GestaoV12Layout = ({ title = "Gestão V12", subtitle, children }) =
     await logout().catch(() => null);
     clearSession();
     navigate("/login", { replace: true });
+    window.location.replace("/login");
   }, [askYesNoQuestion, clearSession, navigate]);
 
   return (
