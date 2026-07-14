@@ -85,7 +85,7 @@ export function usePdvHistorico({ config, operador, caixa, onPrintBudget }) {
             valor: Number(pagamento.valor || 0),
           }))
         : [],
-      cliente: venda?.cliente_nome || "Consumidor nao identificado",
+      cliente: venda?.cliente_nome || "Consumidor não identificado",
       operador: venda?.operador_nome || operador?.nome || caixa?.operador_nome || "Operador",
       data: venda?.concluida_em || venda?.criada_em || new Date().toLocaleString("pt-BR"),
       terminal: venda?.terminal_codigo || config?.terminal_codigo || config?.terminal_nome || "PDV",
@@ -104,7 +104,7 @@ export function usePdvHistorico({ config, operador, caixa, onPrintBudget }) {
     if (!historicoVendaDetalhe) return;
 
     if (
-      historicoVendaDetalhe.nfce_status === "autorizada" &&
+      ["autorizada", "contingencia"].includes(historicoVendaDetalhe.nfce_status) &&
       historicoVendaDetalhe.nfce_pdf_path
     ) {
       if (!window.v12Desktop?.printPdfFile) {
@@ -133,6 +133,33 @@ export function usePdvHistorico({ config, operador, caixa, onPrintBudget }) {
     }
 
     await onPrintBudget(buildBudgetPayloadFromVenda(historicoVendaDetalhe));
+  }
+
+  async function transmitirContingenciaHistorico() {
+    if (!historicoVendaDetalhe || historicoVendaDetalhe.nfce_status !== "contingencia") return;
+
+    try {
+      showLoading("Transmitindo NFC-e em contingência...");
+      const data = await api.transmitirVendaContingencia(historicoVendaDetalhe.venda_id);
+      setHistoricoVendaDetalhe(data?.venda || null);
+      await carregarHistoricoVendas({ keepSelection: true });
+
+      showAlert({
+        title: data?.fiscal?.success ? "NFC-e autorizada" : "Contingência processada",
+        text:
+          data?.fiscal?.message ||
+          "A NFC-e em contingência foi processada novamente com a SEFAZ.",
+        icon: data?.fiscal?.success ? "success" : "info",
+      });
+    } catch (error) {
+      showAlert({
+        title: "Falha ao transmitir",
+        text: error.message,
+        icon: "error",
+      });
+    } finally {
+      hideLoading();
+    }
   }
 
   async function cancelarVendaHistorico() {
@@ -179,6 +206,7 @@ export function usePdvHistorico({ config, operador, caixa, onPrintBudget }) {
     carregarHistoricoVendas,
     carregarHistoricoVendaDetalhe,
     reimprimirVendaHistorico,
+    transmitirContingenciaHistorico,
     cancelarVendaHistorico,
   };
 }

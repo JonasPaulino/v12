@@ -25,6 +25,9 @@ export async function runNfceEmissionWorker({
   context,
   certificadoBase64,
   certificadoSenha,
+  operation = "emitir_normal",
+  formaEmissao = "0",
+  xmlContent = null,
 }) {
   const workerPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "nfceWorker.js");
   const workDir = await fs.mkdtemp(path.join(os.tmpdir(), "v12-pdv-nfce-"));
@@ -36,10 +39,13 @@ export async function runNfceEmissionWorker({
     JSON.stringify({
       tenantId,
       vendaId,
-      context,
-      certificadoBase64,
-      certificadoSenha,
-    }),
+        context,
+        certificadoBase64,
+        certificadoSenha,
+        operation,
+        formaEmissao,
+        xmlContent,
+      }),
     "utf8",
   );
 

@@ -99,10 +99,41 @@ async function tryGeneratePdf(session) {
   }
 }
 
+async function writeXmlArtifact(session, filename, xmlContent) {
+  const targetPath = path.join(session.xmlDir, filename);
+  await fs.writeFile(targetPath, xmlContent, "utf8");
+  return targetPath;
+}
+
+async function tryGeneratePdfFromXml(session, xmlContent) {
+  const xmlPath = await writeXmlArtifact(session, "nfce.xml", xmlContent);
+  try {
+    session.acbr.limparLista();
+    session.acbr.carregarXML(xmlPath);
+  } catch {
+    // segue para tentar gerar PDF do contexto já carregado
+  }
+  return tryGeneratePdf(session);
+}
+
+function extractAccessKeyFromXml(xmlContent) {
+  const match = String(xmlContent || "").match(/<infNFe[^>]+Id="NFe(\d{44})"/i);
+  return match?.[1] || null;
+}
+
 async function run() {
   const rawInput = await fs.readFile(inputPath, "utf8");
   const payload = JSON.parse(rawInput);
-  const { tenantId, vendaId, context, certificadoBase64, certificadoSenha } = payload;
+  const {
+    tenantId,
+    vendaId,
+    context,
+    certificadoBase64,
+    certificadoSenha,
+    operation = "emitir_normal",
+    formaEmissao = "0",
+    xmlContent = null,
+  } = payload;
 
   const session = await createAcbrSession({
     tenantId,
@@ -111,6 +142,7 @@ async function run() {
     certificadoSenha,
     ambiente: context.nfce.ambiente,
     emitenteUf: context.emitente.uf,
+    formaEmissao,
   });
 
   try {
@@ -120,27 +152,53 @@ async function run() {
     session.acbr.configGravarValor("NFE", "CSC", String(context.configuracao.nfce_csc || ""));
     session.acbr.configGravar(session.configPath);
 
-    const iniContent = buildNfceIni(context);
-    const iniPath = await writeAcbrIni(session, iniContent);
+    let iniPath = null;
+    let preXml = null;
+    let postXml = null;
+    let rawResponse = null;
+    let pdfPath = null;
+    let chaveAcesso = null;
 
-    session.acbr.limparLista();
-    session.acbr.carregarINI(iniPath);
+    if (operation === "transmitir_xml_contingencia") {
+      const xmlPath = await writeXmlArtifact(session, "nfce-contingencia.xml", xmlContent || "");
+      session.acbr.limparLista();
+      session.acbr.carregarXML(xmlPath);
+      preXml = safeGetXml(session.acbr);
+      rawResponse = session.acbr.enviar(1, false, true, false);
+      postXml = safeGetXml(session.acbr) || preXml;
+      pdfPath = await tryGeneratePdfFromXml(session, postXml || preXml || "");
+      chaveAcesso = extractAccessKeyFromXml(postXml || preXml || "");
+    } else {
+      const iniContent = buildNfceIni(context);
+      iniPath = await writeAcbrIni(session, iniContent);
 
-    const preXml = safeGetXml(session.acbr);
+      session.acbr.limparLista();
+      session.acbr.carregarINI(iniPath);
 
-    session.acbr.assinar();
-    session.acbr.validar();
+      preXml = safeGetXml(session.acbr);
 
-    const rawResponse = session.acbr.enviar(1, false, true, false);
-    const postXml = safeGetXml(session.acbr);
-    const pdfPath = await tryGeneratePdf(session);
+      session.acbr.assinar();
+      session.acbr.validar();
+      postXml = safeGetXml(session.acbr) || preXml;
+      chaveAcesso = extractAccessKeyFromXml(postXml || preXml || "");
+
+      if (operation === "emitir_contingencia_offline") {
+        pdfPath = await tryGeneratePdfFromXml(session, postXml || preXml || "");
+      } else {
+        rawResponse = session.acbr.enviar(1, false, true, false);
+        postXml = safeGetXml(session.acbr) || postXml || preXml;
+        pdfPath = await tryGeneratePdf(session);
+      }
+    }
 
     await writeOutput({
       ok: true,
+      operation,
       rawResponse,
       preXml,
       postXml,
       pdfPath,
+      chaveAcesso,
       paths: {
         configPath: session.configPath,
         iniPath,

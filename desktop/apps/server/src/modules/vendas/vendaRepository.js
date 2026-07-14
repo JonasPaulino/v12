@@ -115,6 +115,18 @@ function descartarVendaProvisoria(db, tenantErpId, vendaId) {
   );
 }
 
+function buildContingenciaDecisionError(vendaId, fiscal) {
+  const error = new Error(
+    fiscal?.message || "Não foi possível transmitir a NFC-e. A emissão em contingência offline está disponível.",
+  );
+  error.code = "NFCE_CONTINGENCIA_DISPONIVEL";
+  error.data = {
+    vendaId: Number(vendaId),
+    fiscal,
+  };
+  return error;
+}
+
 export async function criarVenda({
   pessoaId,
   cliente,
@@ -124,6 +136,7 @@ export async function criarVenda({
   desconto = 0,
   totalLiquido = null,
   emitirFiscal = false,
+  permitirContingenciaOffline = false,
 }) {
   assertTerminalConfigurado();
   const caixa = getCaixaAberto();
@@ -249,7 +262,13 @@ export async function criarVenda({
   }
 
   if (emitirFiscal) {
-    fiscal = await emitirNfce(venda);
+    fiscal = await emitirNfce(venda, {
+      mode: permitirContingenciaOffline ? "contingencia_offline" : "normal",
+    });
+
+    if (fiscal.requiresOfflineDecision) {
+      throw buildContingenciaDecisionError(venda.venda_id, fiscal);
+    }
 
     if (fiscal.success || fiscal.status === nfceStatus.CONTINGENCIA) {
       const finalize = db.transaction(() => {
@@ -267,10 +286,12 @@ export async function criarVenda({
       return { venda, fiscal };
     }
 
-    const rollback = db.transaction(() => {
-      descartarVendaProvisoria(db, tenantErpId, venda.venda_id);
-    });
-    rollback();
+    if (!permitirContingenciaOffline) {
+      const rollback = db.transaction(() => {
+        descartarVendaProvisoria(db, tenantErpId, venda.venda_id);
+      });
+      rollback();
+    }
 
     throw new Error(
       fiscal?.message || "A NFC-e não foi autorizada e a venda local foi descartada para evitar pendência fiscal.",
@@ -380,8 +401,12 @@ export function getVendaDetalhe(vendaId) {
          n.protocolo,
          n.cstat AS nfce_cstat,
          n.motivo AS nfce_motivo,
+         n.tp_emis AS nfce_tp_emis,
+         n.contingencia_em AS nfce_contingencia_em,
+         n.contingencia_justificativa AS nfce_contingencia_justificativa,
          n.pdf_path AS nfce_pdf_path,
          n.xml AS nfce_xml,
+         n.xml_assinado AS nfce_xml_assinado,
          n.emitida_em
        FROM venda v
        LEFT JOIN caixa c ON c.caixa_id = v.caixa_id
@@ -454,6 +479,12 @@ export function cancelarVenda(vendaId, { motivo = "Cancelamento manual no PDV." 
       throw new Error("A venda possui NFC-e autorizada. Faça primeiro o cancelamento fiscal.");
     }
 
+    if ([nfceStatus.CONTINGENCIA, nfceStatus.REJEITADA].includes(venda.nfce_status)) {
+      throw new Error(
+        "A venda possui NFC-e em contingência ou rejeitada. Regularize primeiro a situação fiscal antes do cancelamento.",
+      );
+    }
+
     for (const item of venda.itens) {
       db.prepare(
         `UPDATE produto
@@ -490,6 +521,85 @@ export function cancelarVenda(vendaId, { motivo = "Cancelamento manual no PDV." 
   return vendaCancelada;
 }
 
+export function descartarVendaRascunho(vendaId) {
+  assertTerminalConfigurado();
+  const db = getDb();
+  const tenantErpId = getTerminalTenantErpId();
+  const saleId = Number(vendaId);
+
+  const discard = db.transaction(() => {
+    const venda = getVendaDetalhe(saleId);
+
+    if (venda.status !== vendaStatus.RASCUNHO) {
+      throw new Error("Somente vendas em rascunho podem ser descartadas.");
+    }
+
+    descartarVendaProvisoria(db, tenantErpId, saleId);
+    return { venda_id: saleId, descartada: true };
+  });
+
+  return discard();
+}
+
+export async function emitirVendaEmContingencia(vendaId, options = {}) {
+  assertTerminalConfigurado();
+  const db = getDb();
+  const tenantErpId = getTerminalTenantErpId();
+  const saleId = Number(vendaId);
+  const venda = getVendaDetalhe(saleId);
+
+  if (venda.status !== vendaStatus.RASCUNHO) {
+    throw new Error("A venda não está mais disponível para emissão em contingência.");
+  }
+
+  const fiscal = await emitirNfce(venda, {
+    mode: "contingencia_offline",
+    contingenciaJustificativa: options.contingenciaJustificativa,
+  });
+
+  if (fiscal.status !== nfceStatus.CONTINGENCIA) {
+    throw new Error(fiscal?.message || "Não foi possível emitir a NFC-e em contingência offline.");
+  }
+
+  const finalize = db.transaction(() => {
+    aplicarMovimentoEstoque(db, tenantErpId, venda.itens || [], "saida");
+    marcarVendaConcluida(db, tenantErpId, saleId);
+    return getVendaDetalhe(saleId);
+  });
+
+  const vendaFinalizada = finalize();
+  enqueueSyncEvent(syncEventTypes.VENDA_CRIADA, vendaFinalizada);
+  enqueueSyncEvent(syncEventTypes.NFCE_CONTINGENCIA, fiscal);
+
+  return { venda: vendaFinalizada, fiscal };
+}
+
+export async function transmitirVendaContingencia(vendaId) {
+  assertTerminalConfigurado();
+  const saleId = Number(vendaId);
+  const venda = getVendaDetalhe(saleId);
+
+  if (venda.status !== vendaStatus.CONCLUIDA || venda.nfce_status !== nfceStatus.CONTINGENCIA) {
+    throw new Error("A venda selecionada não possui NFC-e em contingência pendente de transmissão.");
+  }
+
+  const fiscal = await emitirNfce(venda, {
+    mode: "transmitir_contingencia_xml",
+    xmlContent: venda.nfce_xml_assinado || venda.nfce_xml || null,
+  });
+
+  if (fiscal.success) {
+    enqueueSyncEvent(syncEventTypes.NFCE_AUTORIZADA, fiscal);
+  } else if (fiscal.status === nfceStatus.REJEITADA) {
+    enqueueSyncEvent(syncEventTypes.NFCE_REJEITADA, fiscal);
+  }
+
+  return {
+    venda: getVendaDetalhe(saleId),
+    fiscal,
+  };
+}
+
 export async function reenviarContingenciasNfce({ limit = 20 } = {}) {
   assertTerminalConfigurado();
   const db = getDb();
@@ -512,17 +622,10 @@ export async function reenviarContingenciasNfce({ limit = 20 } = {}) {
   const resultados = [];
 
   for (const item of pendencias) {
-    const venda = getVendaDetalhe(item.venda_id);
-    const fiscal = await emitirNfce(venda);
-
-    if (fiscal.success) {
-      enqueueSyncEvent(syncEventTypes.NFCE_AUTORIZADA, fiscal);
-    } else if (fiscal.status === nfceStatus.REJEITADA) {
-      enqueueSyncEvent(syncEventTypes.NFCE_REJEITADA, fiscal);
-    }
+    const { fiscal } = await transmitirVendaContingencia(item.venda_id);
 
     resultados.push({
-      venda_id: venda.venda_id,
+      venda_id: Number(item.venda_id),
       status: fiscal.status,
       message: fiscal.message,
       chave_acesso: fiscal.chave_acesso || null,

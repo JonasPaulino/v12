@@ -102,6 +102,7 @@ export async function createAcbrSession({
   certificadoSenha,
   ambiente,
   emitenteUf,
+  formaEmissao = "0",
 }) {
   await ensureAcbrLibRuntime();
 
@@ -136,7 +137,7 @@ export async function createAcbrSession({
   applyConfig(acbr, "DFe", "Senha", certificadoSenha || "");
 
   applyConfig(acbr, "NFE", "Ambiente", mapAcbrAmbiente(ambiente));
-  applyConfig(acbr, "NFE", "FormaEmissao", "0");
+  applyConfig(acbr, "NFE", "FormaEmissao", formaEmissao);
   applyConfig(acbr, "NFE", "ModeloDF", "1");
   applyConfig(acbr, "NFE", "VersaoDF", "3");
   applyConfig(acbr, "NFE", "SSLType", sslConfig.sslType);

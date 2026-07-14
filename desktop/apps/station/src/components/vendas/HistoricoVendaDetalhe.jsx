@@ -1,4 +1,4 @@
-import { FiPrinter, FiRefreshCcw, FiSlash } from "react-icons/fi";
+import { FiPrinter, FiRefreshCcw, FiRotateCw, FiSlash } from "react-icons/fi";
 
 function formatCurrency(value) {
   return Number(value || 0).toLocaleString("pt-BR", {
@@ -45,7 +45,15 @@ function formatNfceStatus(value) {
   return value ? `NFC-e ${String(value).replace(/_/g, " ")}` : "NFC-e não emitida";
 }
 
-export function HistoricoVendaDetalhe({ venda, loading, config, onRefresh, onReprint, onCancel }) {
+export function HistoricoVendaDetalhe({
+  venda,
+  loading,
+  config,
+  onRefresh,
+  onReprint,
+  onCancel,
+  onTransmitContingencia,
+}) {
   if (!venda) {
     return (
       <div className="sales-detail-empty">
@@ -61,6 +69,7 @@ export function HistoricoVendaDetalhe({ venda, loading, config, onRefresh, onRep
   const numeroVenda = String(venda.venda_id).padStart(6, "0");
   const statusNfce = venda.nfce_status || "";
   const isCancelada = venda.status === "cancelada";
+  const isContingencia = statusNfce === "contingencia";
 
   return (
     <div className="sales-detail-panel">
@@ -80,6 +89,19 @@ export function HistoricoVendaDetalhe({ venda, loading, config, onRefresh, onRep
       </div>
 
       <div className="sales-detail-body-area">
+        {isContingencia ? (
+          <div className="sales-detail-warning">
+            <strong>NFC-e emitida em contingência offline</strong>
+            <span>
+              Emissão em: {formatDateTime(venda.nfce_contingencia_em || venda.emitida_em || venda.concluida_em)}
+            </span>
+            <span>
+              {venda.nfce_contingencia_justificativa ||
+                "A NFC-e foi impressa em contingência e ainda precisa ser transmitida para a SEFAZ."}
+            </span>
+          </div>
+        ) : null}
+
         <div className="sales-receipt-stage">
           <article className="sales-receipt-preview">
             <header className="sales-receipt-header">
@@ -207,6 +229,17 @@ export function HistoricoVendaDetalhe({ venda, loading, config, onRefresh, onRep
             <FiRefreshCcw />
             Atualizar
           </button>
+          {isContingencia ? (
+            <button
+              type="button"
+              className="secondary-action"
+              onClick={onTransmitContingencia}
+              disabled={loading}
+            >
+              <FiRotateCw />
+              Transmitir contingência
+            </button>
+          ) : null}
           <button type="button" className="secondary-action" onClick={onReprint} disabled={loading}>
             <FiPrinter />
             Reimprimir

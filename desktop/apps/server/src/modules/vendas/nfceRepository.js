@@ -36,6 +36,9 @@ export function getNfceByVendaId(vendaId) {
            raw_retorno,
            pdf_path,
            lote,
+           tp_emis,
+           contingencia_em,
+           contingencia_justificativa,
            emitida_em,
            atualizado_em
          FROM nfce
@@ -59,7 +62,8 @@ export function reserveNextNfceNumber(vendaId) {
            numero,
            serie,
            ambiente,
-           lote
+           lote,
+           tp_emis
          FROM nfce
          WHERE tenant_erp_id = ?
            AND venda_id = ?
@@ -91,6 +95,7 @@ export function reserveNextNfceNumber(vendaId) {
         serie: Number(current.serie),
         ambiente: String(current.ambiente || fiscalConfig.ambiente_nfce || "2"),
         lote: Number(current.lote || 1),
+        tp_emis: Number(current.tp_emis || 1),
       };
     }
 
@@ -124,6 +129,7 @@ export function reserveNextNfceNumber(vendaId) {
       serie,
       ambiente,
       lote: Number(updated?.lote || 1),
+      tp_emis: Number(updated?.tp_emis || 1),
     };
   });
 
@@ -152,6 +158,9 @@ export function updateNfceResult(vendaId, payload = {}) {
        xml_retorno = COALESCE(?, xml_retorno),
        raw_retorno = COALESCE(?, raw_retorno),
        pdf_path = COALESCE(?, pdf_path),
+       tp_emis = COALESCE(?, tp_emis),
+       contingencia_em = COALESCE(?, contingencia_em),
+       contingencia_justificativa = COALESCE(?, contingencia_justificativa),
        emitida_em = CASE
          WHEN ? IS NOT NULL THEN COALESCE(emitida_em, CURRENT_TIMESTAMP)
          ELSE emitida_em
@@ -174,7 +183,10 @@ export function updateNfceResult(vendaId, payload = {}) {
     payload.xml_retorno || null,
     payload.raw_retorno || null,
     payload.pdf_path || null,
-    payload.status === nfceStatus.AUTORIZADA ? 1 : null,
+    payload.tp_emis ? Number(payload.tp_emis) : null,
+    payload.contingencia_em || null,
+    payload.contingencia_justificativa || null,
+    [nfceStatus.AUTORIZADA, nfceStatus.CONTINGENCIA].includes(payload.status) ? 1 : null,
     tenantErpId,
     vendaLocalId,
   );

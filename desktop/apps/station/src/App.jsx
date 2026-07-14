@@ -261,6 +261,7 @@ export default function App() {
                   : historico.carregarHistoricoVendas({ keepSelection: true })
               }
               onReprint={historico.reimprimirVendaHistorico}
+              onTransmitContingencia={historico.transmitirContingenciaHistorico}
               onCancel={historico.cancelarVendaHistorico}
             />
           ) : (

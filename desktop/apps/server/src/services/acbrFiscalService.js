@@ -3,7 +3,11 @@ import { env } from "../config/env.js";
 import { getFiscalConfig } from "../modules/configuracao/localFiscalConfigRepository.js";
 import { getDb } from "../db/connection.js";
 import { getTerminalConfig, getTerminalTenantErpId } from "../modules/configuracao/localConfigRepository.js";
-import { reserveNextNfceNumber, updateNfceResult } from "../modules/vendas/nfceRepository.js";
+import {
+  getNfceByVendaId,
+  reserveNextNfceNumber,
+  updateNfceResult,
+} from "../modules/vendas/nfceRepository.js";
 import {
   getAcbrLibReadiness,
   parseWorkerNfceResult,
@@ -19,6 +23,10 @@ const SUPPORTED_ICMS_CSOSN = new Set(["102", "103", "300", "400"]);
 const SUPPORTED_PIS_CST = new Set(["01", "02", "49", "99"]);
 const SUPPORTED_COFINS_CST = new Set(["01", "02", "49", "99"]);
 const TRANSIENT_CSTAT = new Set(["103", "104", "105", "106", "108", "109"]);
+const TP_EMIS_NORMAL = 1;
+const TP_EMIS_CONTINGENCIA_OFFLINE = 9;
+const ACBR_FORMA_EMISSAO_NORMAL = "0";
+const ACBR_FORMA_EMISSAO_OFFLINE = "8";
 const TRANSIENT_ERROR_PATTERNS = [
   /timeout/i,
   /time[\s-]?out/i,
@@ -101,6 +109,22 @@ function isContingenciaCandidate({ cStat = null, message = "" } = {}) {
   return TRANSIENT_ERROR_PATTERNS.some((pattern) => pattern.test(String(message || "")));
 }
 
+function normalizeContingenciaJustificativa(message = "") {
+  const base = String(message || "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const fallback =
+    "Falha de comunicação com a SEFAZ ou indisponibilidade temporária da internet no PDV.";
+  const value = base || fallback;
+
+  if (value.length >= 15) {
+    return value.slice(0, 256);
+  }
+
+  return `${value} - emissão em contingência offline.`.slice(0, 256);
+}
+
 function validateFiscalItemSupport(item, crt) {
   if (String(crt || "3") === "3") {
     if (!SUPPORTED_ICMS_CST_NORMAL.has(String(item.icms_cst || "").trim())) {
@@ -167,10 +191,15 @@ function calculateFiscalTotals(itens = []) {
   );
 }
 
-function loadNfceContext(vendaId, fiscal, sequencial) {
+function loadNfceContext(vendaId, fiscal, sequencial, options = {}) {
   const db = getDb();
   const tenantErpId = getTerminalTenantErpId();
   const terminal = getTerminalConfig();
+  const tpEmis = Number(options.tpEmis || TP_EMIS_NORMAL);
+  const contingenciaJustificativa =
+    tpEmis === TP_EMIS_CONTINGENCIA_OFFLINE
+      ? normalizeContingenciaJustificativa(options.contingenciaJustificativa)
+      : null;
 
   const venda = db
     .prepare(
@@ -351,6 +380,10 @@ function loadNfceContext(vendaId, fiscal, sequencial) {
       ind_pres: fiscal.nfce_ind_pres_padrao || "1",
       operador_nome: venda.operador_nome || "Operador",
       terminal_codigo: venda.terminal_codigo || terminal?.terminal_codigo || "PDV-01",
+      tp_emis: tpEmis,
+      dh_contingencia:
+        tpEmis === TP_EMIS_CONTINGENCIA_OFFLINE ? options.contingenciaEm || new Date().toISOString() : null,
+      x_justificativa_contingencia: contingenciaJustificativa,
       observacao: observacoes.join(" "),
       ...totals,
     },
@@ -360,9 +393,12 @@ function loadNfceContext(vendaId, fiscal, sequencial) {
   };
 }
 
-export async function emitirNfce(venda) {
+export async function emitirNfce(venda, options = {}) {
   const readiness = validarProntidaoNfce();
   const vendaId = Number(venda?.venda_id || venda || 0);
+  const mode = String(options.mode || "normal").trim().toLowerCase();
+  const emitirEmContingenciaOffline = mode === "contingencia_offline";
+  const transmitirXmlContingencia = mode === "transmitir_contingencia_xml";
 
   if (!vendaId) {
     return {
@@ -384,14 +420,75 @@ export async function emitirNfce(venda) {
 
   try {
     const sequencial = reserveNextNfceNumber(vendaId);
-    const context = loadNfceContext(vendaId, readiness.fiscal, sequencial);
+    const nfceAtual = getNfceByVendaId(vendaId);
+    const context = loadNfceContext(vendaId, readiness.fiscal, sequencial, {
+      tpEmis: emitirEmContingenciaOffline ? TP_EMIS_CONTINGENCIA_OFFLINE : TP_EMIS_NORMAL,
+      contingenciaEm: nfceAtual?.contingencia_em || options.contingenciaEm || new Date().toISOString(),
+      contingenciaJustificativa:
+        nfceAtual?.contingencia_justificativa ||
+        options.contingenciaJustificativa ||
+        "Falha de comunicação com a SEFAZ ou indisponibilidade temporária da internet no PDV.",
+    });
+    const xmlContingencia =
+      options.xmlContent || nfceAtual?.xml_assinado || nfceAtual?.xml || null;
     const workerResult = await runNfceEmissionWorker({
       tenantId: Number(readiness.fiscal.tenant_erp_id),
       vendaId,
       context,
       certificadoBase64: readiness.fiscal.certificado_conteudo_base64,
       certificadoSenha: readiness.fiscal.certificado_senha,
+      operation: emitirEmContingenciaOffline
+        ? "emitir_contingencia_offline"
+        : transmitirXmlContingencia
+          ? "transmitir_xml_contingencia"
+          : "emitir_normal",
+      formaEmissao: emitirEmContingenciaOffline
+        ? ACBR_FORMA_EMISSAO_OFFLINE
+        : ACBR_FORMA_EMISSAO_NORMAL,
+      xmlContent: transmitirXmlContingencia ? xmlContingencia : null,
     });
+
+    if (emitirEmContingenciaOffline) {
+      const contingenciaEm = context.nfce.dh_contingencia || new Date().toISOString();
+      const contingenciaJustificativa = normalizeContingenciaJustificativa(
+        context.nfce.x_justificativa_contingencia,
+      );
+      const xmlGerado = workerResult.postXml || workerResult.preXml || null;
+
+      updateNfceResult(vendaId, {
+        status: nfceStatus.CONTINGENCIA,
+        numero: sequencial.numero,
+        serie: sequencial.serie,
+        ambiente: sequencial.ambiente,
+        chave_acesso: workerResult.chaveAcesso || null,
+        cstat: "OFFLINE",
+        motivo: contingenciaJustificativa,
+        xml: xmlGerado,
+        xml_assinado: xmlGerado,
+        xml_retorno: null,
+        raw_retorno: null,
+        pdf_path: workerResult.pdfPath || null,
+        tp_emis: TP_EMIS_CONTINGENCIA_OFFLINE,
+        contingencia_em: contingenciaEm,
+        contingencia_justificativa: contingenciaJustificativa,
+      });
+
+      return {
+        success: false,
+        status: nfceStatus.CONTINGENCIA,
+        requiresOfflineDecision: false,
+        vendaId,
+        numero: sequencial.numero,
+        serie: sequencial.serie,
+        chave_acesso: workerResult.chaveAcesso || null,
+        protocolo: null,
+        recibo: null,
+        cStat: "OFFLINE",
+        xMotivo: contingenciaJustificativa,
+        message: "NFC-e emitida em contingência offline. Reenvie quando a SEFAZ voltar a responder.",
+        pdfPath: workerResult.pdfPath || null,
+      };
+    }
 
     const metadata = parseWorkerNfceResult(workerResult.rawResponse, vendaId);
     const status =
@@ -406,31 +503,35 @@ export async function emitirNfce(venda) {
             : isContingenciaCandidate({ cStat: metadata.cStat, message: metadata.xMotivo })
               ? nfceStatus.CONTINGENCIA
               : nfceStatus.PENDENTE;
+    const requiresOfflineDecision = !transmitirXmlContingencia && status === nfceStatus.CONTINGENCIA;
+    const persistedStatus = requiresOfflineDecision ? nfceStatus.PENDENTE : status;
 
     updateNfceResult(vendaId, {
-      status,
+      status: persistedStatus,
       numero: metadata.numero || sequencial.numero,
       serie: metadata.serie || sequencial.serie,
       ambiente: sequencial.ambiente,
-      chave_acesso: metadata.chaveAcesso,
+      chave_acesso: metadata.chaveAcesso || workerResult.chaveAcesso || null,
       recibo: metadata.recibo,
       protocolo: metadata.protocolo,
       cstat: metadata.cStat,
       motivo: metadata.xMotivo || "Retorno da emissão NFC-e.",
       xml: workerResult.postXml || workerResult.preXml || null,
-      xml_assinado: workerResult.preXml || null,
+      xml_assinado: workerResult.postXml || workerResult.preXml || null,
       xml_retorno: workerResult.postXml || null,
       raw_retorno: metadata.raw,
       pdf_path: workerResult.pdfPath || null,
+      tp_emis: transmitirXmlContingencia ? TP_EMIS_CONTINGENCIA_OFFLINE : TP_EMIS_NORMAL,
     });
 
     return {
       success: status === nfceStatus.AUTORIZADA,
       status,
+      requiresOfflineDecision,
       vendaId,
       numero: metadata.numero || sequencial.numero,
       serie: metadata.serie || sequencial.serie,
-      chave_acesso: metadata.chaveAcesso || null,
+      chave_acesso: metadata.chaveAcesso || workerResult.chaveAcesso || null,
       protocolo: metadata.protocolo || null,
       recibo: metadata.recibo || null,
       cStat: metadata.cStat || null,
@@ -438,33 +539,48 @@ export async function emitirNfce(venda) {
       message:
         metadata.xMotivo ||
         (status === nfceStatus.AUTORIZADA
-          ? "NFC-e autorizada pela SEFAZ."
+          ? transmitirXmlContingencia
+            ? "NFC-e de contingência transmitida e autorizada pela SEFAZ."
+            : "NFC-e autorizada pela SEFAZ."
           : status === nfceStatus.CONTINGENCIA
-            ? "NFC-e gravada em contingência local. Reenvie quando a SEFAZ voltar a responder."
-          : "NFC-e enviada para processamento."),
+            ? transmitirXmlContingencia
+              ? "A NFC-e em contingência ainda não pôde ser transmitida."
+              : "Não foi possível transmitir a NFC-e. É possível emitir em contingência offline."
+            : "NFC-e enviada para processamento."),
       pdfPath: workerResult.pdfPath || null,
     };
   } catch (error) {
-    const status = isContingenciaCandidate({
+    const contingencyCandidate = isContingenciaCandidate({
       message: error.message || error.details?.stderr || "",
-    })
-      ? nfceStatus.CONTINGENCIA
-      : nfceStatus.REJEITADA;
+    });
+    const status = contingencyCandidate ? nfceStatus.CONTINGENCIA : nfceStatus.REJEITADA;
+    const requiresOfflineDecision = !transmitirXmlContingencia && !emitirEmContingenciaOffline && contingencyCandidate;
+    const persistedStatus = requiresOfflineDecision ? nfceStatus.PENDENTE : status;
 
     updateNfceResult(vendaId, {
-      status,
+      status: persistedStatus,
       motivo: error.message,
       raw_retorno: error.details?.workerResult?.lastReturn || null,
+      tp_emis: emitirEmContingenciaOffline || transmitirXmlContingencia
+        ? TP_EMIS_CONTINGENCIA_OFFLINE
+        : TP_EMIS_NORMAL,
+      contingencia_em: emitirEmContingenciaOffline ? options.contingenciaEm || new Date().toISOString() : null,
+      contingencia_justificativa: emitirEmContingenciaOffline
+        ? normalizeContingenciaJustificativa(options.contingenciaJustificativa || error.message)
+        : null,
     });
 
     return {
       success: false,
       status,
+      requiresOfflineDecision,
       message:
-        status === nfceStatus.CONTINGENCIA
-          ? error.message ||
-            "A SEFAZ não respondeu. A venda pode seguir apenas em contingência local até o reenvio."
-          : error.message || "Falha ao emitir NFC-e.",
+        requiresOfflineDecision
+          ? error.message || "Não foi possível transmitir a NFC-e. É possível emitir em contingência offline."
+          : status === nfceStatus.CONTINGENCIA
+            ? error.message ||
+              "A SEFAZ não respondeu. A NFC-e permanece em contingência até novo envio."
+            : error.message || "Falha ao emitir NFC-e.",
       vendaId,
     };
   }

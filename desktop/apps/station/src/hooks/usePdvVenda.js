@@ -345,7 +345,7 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
       const snapshotOrcamento = buildBudgetPayload(cart.map((item) => ({ ...item })));
 
       showLoading("Finalizando venda...");
-      const result = await api.criarVenda({
+      let result = await api.criarVenda({
         cliente: clienteIdentificado,
         items: cart,
         pagamentos: pagamentosConfirmados,
@@ -354,6 +354,26 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
         totalLiquido: total,
         emitirFiscal: modoFinalizacao === "cupom",
       });
+
+      if (
+        modoFinalizacao === "cupom" &&
+        result?.fiscal?.requiresOfflineDecision &&
+        result?.venda?.venda_id
+      ) {
+        const confirmContingencia = await askYesNoQuestion(
+          "Emitir em contingência",
+          "Não foi possível transmitir a NFC-e. Deseja emitir em contingência offline para entregar o cupom ao cliente agora?",
+        );
+
+        if (!confirmContingencia) {
+          await api.descartarVendaRascunho(result.venda.venda_id).catch(() => {});
+          hideLoading();
+          return;
+        }
+
+        result = await api.emitirVendaEmContingencia(result.venda.venda_id);
+      }
+
       resetVendaState();
 
       let avisoImpressao = "";
@@ -365,7 +385,10 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
         }
       }
 
-      if (modoFinalizacao === "cupom" && result.fiscal?.success) {
+      if (
+        modoFinalizacao === "cupom" &&
+        (result.fiscal?.success || result.fiscal?.status === "contingencia")
+      ) {
         try {
           await sendDanfceToPrint(result.fiscal?.pdfPath);
         } catch (printError) {
@@ -395,6 +418,53 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
             : "success",
       });
     } catch (error) {
+      if (modoFinalizacao === "cupom" && error?.code === "NFCE_CONTINGENCIA_DISPONIVEL") {
+        try {
+          hideLoading();
+          const vendaId = Number(error?.data?.vendaId || 0);
+          const confirmContingencia = await askYesNoQuestion(
+            "Emitir em contingência",
+            "Não foi possível transmitir a NFC-e. Deseja emitir em contingência offline para entregar o cupom ao cliente agora?",
+          );
+
+          if (!confirmContingencia) {
+            if (vendaId > 0) {
+              await api.descartarVendaRascunho(vendaId).catch(() => {});
+            }
+            return;
+          }
+
+          showLoading("Emitindo NFC-e em contingência offline...");
+          const result = await api.emitirVendaEmContingencia(vendaId, {
+            contingenciaJustificativa: error?.message,
+          });
+          resetVendaState();
+
+          let avisoImpressao = "";
+          try {
+            await sendDanfceToPrint(result.fiscal?.pdfPath);
+          } catch (printError) {
+            avisoImpressao = ` DANFCe de contingência emitido, mas não foi possível imprimir: ${printError.message}`;
+          }
+
+          showAlert({
+            title: "Venda em contingência fiscal",
+            text: `${result.fiscal?.message || "NFC-e emitida em contingência offline."}${avisoImpressao}`.trim(),
+            icon: avisoImpressao ? "warning" : "success",
+          });
+          return;
+        } catch (fallbackError) {
+          showAlert({
+            title: "Falha na contingência",
+            text: fallbackError.message,
+            icon: "error",
+          });
+          return;
+        } finally {
+          hideLoading();
+        }
+      }
+
       showAlert({
         title: "Falha na venda",
         text: error.message,

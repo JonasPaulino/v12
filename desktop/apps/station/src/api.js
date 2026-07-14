@@ -12,7 +12,11 @@ async function request(path, options = {}) {
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok || data.success === false) {
-    throw new Error(data.message || `Falha local ${response.status}`);
+    const error = new Error(data.message || `Falha local ${response.status}`);
+    error.status = response.status;
+    error.code = data.code || null;
+    error.data = Object.prototype.hasOwnProperty.call(data, "data") ? data.data : null;
+    throw error;
   }
 
   if (Object.prototype.hasOwnProperty.call(data, "data")) {
@@ -55,6 +59,19 @@ export const api = {
     request(`/vendas/${vendaId}/cancelar`, {
       method: "POST",
       body: JSON.stringify(payload),
+    }),
+  descartarVendaRascunho: (vendaId) =>
+    request(`/vendas/${vendaId}/descartar-rascunho`, {
+      method: "POST",
+    }),
+  emitirVendaEmContingencia: (vendaId, payload = {}) =>
+    request(`/vendas/${vendaId}/nfce/emitir-contingencia`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  transmitirVendaContingencia: (vendaId) =>
+    request(`/vendas/${vendaId}/nfce/transmitir`, {
+      method: "POST",
     }),
   reenviarContingenciasNfce: () =>
     request("/vendas/nfce/contingencias/enviar", {

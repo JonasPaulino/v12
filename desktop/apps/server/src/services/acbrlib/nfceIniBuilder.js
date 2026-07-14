@@ -62,6 +62,21 @@ const buildDhEmi = (date = new Date()) => {
   return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
 };
 
+const buildDhUtc = (date = new Date()) => {
+  const pad = (value) => String(Math.trunc(Math.abs(value))).padStart(2, "0");
+  const year = date.getFullYear();
+  const month = pad(date.getMonth() + 1);
+  const day = pad(date.getDate());
+  const hours = pad(date.getHours());
+  const minutes = pad(date.getMinutes());
+  const seconds = pad(date.getSeconds());
+  const timezoneMinutes = -date.getTimezoneOffset();
+  const sign = timezoneMinutes >= 0 ? "+" : "-";
+  const offsetHours = pad(timezoneMinutes / 60);
+  const offsetMinutes = pad(timezoneMinutes % 60);
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${sign}${offsetHours}:${offsetMinutes}`;
+};
+
 const mapIdDest = (emitenteUf, destinatarioUf) => {
   if (!destinatarioUf) return "1";
   return String(emitenteUf || "").trim().toUpperCase() ===
@@ -207,6 +222,7 @@ export function buildNfceIni(context) {
   const lines = [];
   const cUfEmitente = getUfCode(emitente.uf, emitente.codigo_ibge);
   const totalTroco = Math.max(0, Number(nfce.total_pago || 0) - Number(nfce.valor_total || 0));
+  const tpEmis = String(nfce.tp_emis || "1");
 
   appendSection(lines, "infNFe", {
     versao: "4.00",
@@ -225,13 +241,15 @@ export function buildNfceIni(context) {
     idDest: mapIdDest(emitente.uf, destinatario?.uf),
     cMunFG: emitente.codigo_ibge,
     tpImp: "4",
-    tpEmis: "1",
+    tpEmis,
     tpAmb: nfce.ambiente,
     finNFe: "1",
     indFinal: "1",
     indPres: nfce.ind_pres || configuracao.nfce_ind_pres_padrao || "1",
     procEmi: "0",
     verProc: "v12-pdv",
+    dhCont: tpEmis !== "1" ? nfce.dh_contingencia || buildDhUtc() : undefined,
+    xJust: tpEmis !== "1" ? nfce.x_justificativa_contingencia : undefined,
   });
 
   appendSection(lines, "Emitente", {
