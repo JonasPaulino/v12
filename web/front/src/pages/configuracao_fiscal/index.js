@@ -494,6 +494,105 @@ export const ConfiguracaoFiscal = () => {
                       </C.ToggleRow>
 
                       <C.CardHeader>
+                        <C.CardTitle>Parâmetros da NFC-e</C.CardTitle>
+                        <C.CardText>
+                          Estes dados definem a emissão do cupom fiscal eletrônico modelo 65,
+                          incluindo série, numeração, CSC e presença padrão do consumidor.
+                        </C.CardText>
+                      </C.CardHeader>
+
+                      <C.FieldsGrid>
+                        <C.Field>
+                          <C.FieldSpan>
+                            Série padrão NFC-e
+                            <C.RequiredMark title={requiredTitle}>*</C.RequiredMark>
+                          </C.FieldSpan>
+                          <C.Input
+                            value={form.serie_nfce_padrao}
+                            onChange={(event) =>
+                              updateField("serie_nfce_padrao", event.target.value)
+                            }
+                            inputMode="numeric"
+                            min="0"
+                            max="999"
+                            placeholder="1"
+                          />
+                        </C.Field>
+
+                        <C.Field>
+                          <C.FieldSpan>
+                            Próximo número NFC-e
+                            <C.RequiredMark title={requiredTitle}>*</C.RequiredMark>
+                          </C.FieldSpan>
+                          <C.Input
+                            value={form.proximo_numero_nfce}
+                            onChange={(event) =>
+                              updateField("proximo_numero_nfce", event.target.value)
+                            }
+                            inputMode="numeric"
+                            min="1"
+                            max="999999999"
+                            placeholder="1"
+                          />
+                        </C.Field>
+
+                        <C.Field>
+                          <C.FieldSpan>ID Token CSC</C.FieldSpan>
+                          <C.Input
+                            value={form.nfce_id_token_csc}
+                            onChange={(event) =>
+                              updateField("nfce_id_token_csc", event.target.value)
+                            }
+                            inputMode="numeric"
+                            placeholder="Ex.: 1"
+                          />
+                        </C.Field>
+
+                        <C.Field>
+                          <C.FieldSpan>Indicador de presença padrão</C.FieldSpan>
+                          <C.Select
+                            value={form.nfce_ind_pres_padrao}
+                            onChange={(event) =>
+                              updateField("nfce_ind_pres_padrao", event.target.value)
+                            }
+                          >
+                            <option value="1">1 - Operação presencial</option>
+                            <option value="2">2 - Internet</option>
+                            <option value="3">3 - Teleatendimento</option>
+                            <option value="4">4 - Entrega em domicílio</option>
+                            <option value="5">5 - Presencial fora do estabelecimento</option>
+                            <option value="9">9 - Não presencial outros</option>
+                            <option value="0">0 - Não se aplica</option>
+                          </C.Select>
+                        </C.Field>
+                      </C.FieldsGrid>
+
+                      <C.Field>
+                        <C.FieldSpan>CSC NFC-e</C.FieldSpan>
+                        <C.Input
+                          type="password"
+                          value={form.nfce_csc}
+                          onChange={(event) => updateField("nfce_csc", event.target.value)}
+                          placeholder={
+                            form.nfce_csc_masked
+                              ? `Configurado atualmente: ${form.nfce_csc_masked}`
+                              : "Informe o CSC da NFC-e"
+                          }
+                        />
+                      </C.Field>
+
+                      <C.ToggleRow>
+                        <C.Checkbox
+                          type="checkbox"
+                          checked={form.nfce_habilitada}
+                          onChange={(event) =>
+                            updateField("nfce_habilitada", event.target.checked)
+                          }
+                        />
+                        <span>Habilitar emissão de NFC-e nesta filial</span>
+                      </C.ToggleRow>
+
+                      <C.CardHeader>
                         <C.CardTitle>Parâmetros do MDF-e</C.CardTitle>
                         <C.CardText>
                           Estes dados definem o ambiente, série e numeração padrão dos
