@@ -266,9 +266,48 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
     setPagamentoModalAberto(false);
     showAlert({
       title: "Pagamento informado",
-      text: "Agora escolha se deseja imprimir orçamento, emitir cupom fiscal ou apenas finalizar a venda.",
+      text: "Agora escolha se deseja finalizar o orçamento ou finalizar o cupom fiscal.",
       icon: "success",
     });
+  }
+
+  function buildBudgetPayloadFromVenda(vendaSalva) {
+    return {
+      items: Array.isArray(vendaSalva?.itens)
+        ? vendaSalva.itens.map((item) => ({
+            produto_id: item.produto_id,
+            codigo_produto: item.codigo_produto,
+            descricao: item.descricao,
+            quantidade: Number(item.quantidade || 0),
+            valor_unitario: Number(item.valor_unitario || 0),
+            unidade: item.unidade || "UN",
+          }))
+        : cart.map((item) => ({ ...item })),
+      subtotal: Number(vendaSalva?.total_produtos ?? subtotal ?? 0),
+      desconto: Number(vendaSalva?.total_desconto ?? descontoCalculado ?? 0),
+      total: Number(vendaSalva?.total_liquido ?? total ?? 0),
+      pagamentos: Array.isArray(vendaSalva?.pagamentos)
+        ? vendaSalva.pagamentos.map((item) => {
+            const forma = formasPagamento.find((formaPagamento) => formaPagamento.codigo === item.forma);
+            return {
+              ...item,
+              descricao: forma?.descricao || item.forma,
+            };
+          })
+        : buildBudgetPayload().pagamentos,
+      cliente: vendaSalva?.cliente_nome || clienteResumo || "Consumidor não identificado",
+      operador: vendaSalva?.operador_nome || operador?.nome || caixa?.operador_nome || "Operador",
+      data: vendaSalva?.concluida_em || vendaSalva?.criada_em || new Date().toLocaleString("pt-BR"),
+      terminal: vendaSalva?.terminal_codigo || config?.terminal_codigo || config?.terminal_nome || "PDV",
+      emitente: {
+        nome: config?.tenant_nome || "V12 ERP",
+        documento: config?.tenant_documento || "",
+        endereco: config?.tenant_endereco || "",
+        inscricaoEstadual: config?.tenant_inscricao_estadual || "",
+        inscricaoMunicipal: config?.tenant_inscricao_municipal || "",
+      },
+      numeroDocumento: `ORC-${String(vendaSalva?.venda_id || Date.now()).padStart(6, "0")}`,
+    };
   }
 
   function buildBudgetPayload(itemsOverride = cart.map((item) => ({ ...item }))) {
@@ -336,16 +375,14 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
     await window.v12Desktop.printPdfFile(pdfPath, printerConfig);
   }
 
-  async function finalizarVenda(modoFinalizacao = "finalizar") {
+  async function finalizarVenda(modoFinalizacao = "orcamento") {
     try {
       if (!Array.isArray(pagamentosConfirmados) || !pagamentosConfirmados.length) {
         throw new Error("Informe as formas de pagamento antes de concluir a venda.");
       }
 
-      const snapshotOrcamento = buildBudgetPayload(cart.map((item) => ({ ...item })));
-
       showLoading("Finalizando venda...");
-      let result = await api.criarVenda({
+      const result = await api.criarVenda({
         cliente: clienteIdentificado,
         items: cart,
         pagamentos: pagamentosConfirmados,
@@ -353,33 +390,15 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
         desconto: descontoCalculado,
         totalLiquido: total,
         emitirFiscal: modoFinalizacao === "cupom",
+        permitirContingenciaAutomatica: modoFinalizacao === "cupom",
       });
-
-      if (
-        modoFinalizacao === "cupom" &&
-        result?.fiscal?.requiresOfflineDecision &&
-        result?.venda?.venda_id
-      ) {
-        const confirmContingencia = await askYesNoQuestion(
-          "Emitir em contingência",
-          "Não foi possível transmitir a NFC-e. Deseja emitir em contingência offline para entregar o cupom ao cliente agora?",
-        );
-
-        if (!confirmContingencia) {
-          await api.descartarVendaRascunho(result.venda.venda_id).catch(() => {});
-          hideLoading();
-          return;
-        }
-
-        result = await api.emitirVendaEmContingencia(result.venda.venda_id);
-      }
 
       resetVendaState();
 
       let avisoImpressao = "";
       if (modoFinalizacao === "orcamento") {
         try {
-          await sendBudgetToPrint(snapshotOrcamento);
+          await sendBudgetToPrint(buildBudgetPayloadFromVenda(result.venda));
         } catch (printError) {
           avisoImpressao = ` O orçamento foi registrado, mas não foi possível imprimir: ${printError.message}`;
         }
@@ -401,11 +420,11 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
       showAlert({
         title: ehCupom
           ? result.fiscal?.status === "contingencia"
-            ? "Venda em contingência fiscal"
+            ? "Cupom emitido em contingência"
             : vendaRegistradaSemFiscal
             ? "Venda registrada com pendência fiscal"
             : "NFC-e emitida"
-          : "Venda registrada",
+          : "Orçamento finalizado",
         text: `${result.fiscal?.message || "Venda registrada localmente."}${avisoImpressao}`.trim(),
         icon: ehCupom
           ? vendaRegistradaSemFiscal
@@ -420,39 +439,28 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
     } catch (error) {
       if (modoFinalizacao === "cupom" && error?.code === "NFCE_CONTINGENCIA_DISPONIVEL") {
         try {
-          hideLoading();
           const vendaId = Number(error?.data?.vendaId || 0);
-          const confirmContingencia = await askYesNoQuestion(
-            "Emitir em contingência",
-            "Não foi possível transmitir a NFC-e. Deseja emitir em contingência offline para entregar o cupom ao cliente agora?",
-          );
+          if (vendaId > 0) {
+            showLoading("Emitindo NFC-e em contingência offline...");
+            const result = await api.emitirVendaEmContingencia(vendaId, {
+              contingenciaJustificativa: error?.message,
+            });
+            resetVendaState();
 
-          if (!confirmContingencia) {
-            if (vendaId > 0) {
-              await api.descartarVendaRascunho(vendaId).catch(() => {});
+            let avisoImpressao = "";
+            try {
+              await sendDanfceToPrint(result.fiscal?.pdfPath);
+            } catch (printError) {
+              avisoImpressao = ` DANFCe de contingência emitido, mas não foi possível imprimir: ${printError.message}`;
             }
+
+            showAlert({
+              title: "Cupom emitido em contingência",
+              text: `${result.fiscal?.message || "NFC-e emitida em contingência offline."}${avisoImpressao}`.trim(),
+              icon: "warning",
+            });
             return;
           }
-
-          showLoading("Emitindo NFC-e em contingência offline...");
-          const result = await api.emitirVendaEmContingencia(vendaId, {
-            contingenciaJustificativa: error?.message,
-          });
-          resetVendaState();
-
-          let avisoImpressao = "";
-          try {
-            await sendDanfceToPrint(result.fiscal?.pdfPath);
-          } catch (printError) {
-            avisoImpressao = ` DANFCe de contingência emitido, mas não foi possível imprimir: ${printError.message}`;
-          }
-
-          showAlert({
-            title: "Venda em contingência fiscal",
-            text: `${result.fiscal?.message || "NFC-e emitida em contingência offline."}${avisoImpressao}`.trim(),
-            icon: avisoImpressao ? "warning" : "success",
-          });
-          return;
         } catch (fallbackError) {
           showAlert({
             title: "Falha na contingência",
@@ -485,19 +493,6 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
         icon: "error",
       });
     }
-  }
-
-  async function imprimirOrcamentoComRecebimento() {
-    if (!Array.isArray(pagamentosConfirmados) || !pagamentosConfirmados.length) {
-      showAlert({
-        title: "Pagamento pendente",
-        text: "Informe as formas de pagamento antes de imprimir o orçamento.",
-        icon: "warning",
-      });
-      return;
-    }
-
-    await imprimirOrcamento(buildBudgetPayload(cart.map((item) => ({ ...item }))));
   }
 
   async function cancelarPagamentosConfirmados() {
@@ -647,7 +642,6 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
     confirmarRecebimentoVenda,
     finalizarVenda,
     imprimirOrcamento,
-    imprimirOrcamentoComRecebimento,
     cancelarPagamentosConfirmados,
     abrirModalCliente,
     fecharModalCliente,

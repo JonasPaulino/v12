@@ -42,7 +42,7 @@ function formatQuantity(value) {
 }
 
 function formatNfceStatus(value) {
-  return value ? `NFC-e ${String(value).replace(/_/g, " ")}` : "NFC-e não emitida";
+  return value ? `NFC-e ${String(value).replace(/_/g, " ")}` : "Orçamento";
 }
 
 export function HistoricoVendaDetalhe({
@@ -51,6 +51,7 @@ export function HistoricoVendaDetalhe({
   config,
   onRefresh,
   onReprint,
+  onIssueCupom,
   onCancel,
   onTransmitContingencia,
 }) {
@@ -70,6 +71,8 @@ export function HistoricoVendaDetalhe({
   const statusNfce = venda.nfce_status || "";
   const isCancelada = venda.status === "cancelada";
   const isContingencia = statusNfce === "contingencia";
+  const canIssueCupom =
+    venda.status === "concluida" && (!statusNfce || statusNfce === "rejeitada");
 
   return (
     <div className="sales-detail-panel">
@@ -118,7 +121,13 @@ export function HistoricoVendaDetalhe({
 
             <section className="sales-receipt-section">
               <div className="sales-receipt-line is-centered">
-                <strong>COMPROVANTE DE VENDA</strong>
+                <strong>
+                  {statusNfce === "rejeitada"
+                    ? "NFC-E REJEITADA"
+                    : canIssueCupom
+                      ? "ORÇAMENTO"
+                      : "COMPROVANTE DE VENDA"}
+                </strong>
               </div>
               <div className="sales-receipt-line">
                 <span>Venda</span>
@@ -216,8 +225,22 @@ export function HistoricoVendaDetalhe({
             <div className="sales-receipt-divider" />
 
             <footer className="sales-receipt-footer">
-              <strong>{isCancelada ? "VENDA CANCELADA" : "DOCUMENTO INTERNO DE CONSULTA"}</strong>
-              <span>Reimpressão e cancelamento de vendas do PDV</span>
+              <strong>
+                {isCancelada
+                  ? "VENDA CANCELADA"
+                  : statusNfce === "rejeitada"
+                    ? "PENDÊNCIA FISCAL"
+                    : canIssueCupom
+                    ? "ORÇAMENTO SEM VALOR FISCAL"
+                    : "DOCUMENTO INTERNO DE CONSULTA"}
+              </strong>
+              <span>
+                {canIssueCupom
+                  ? statusNfce === "rejeitada"
+                    ? "Esta venda pode ter a NFC-e emitida novamente após correção fiscal."
+                    : "Este orçamento pode ser convertido em cupom fiscal."
+                  : "Reimpressão e cancelamento de vendas do PDV"}
+              </span>
             </footer>
           </article>
         </div>
@@ -229,6 +252,17 @@ export function HistoricoVendaDetalhe({
             <FiRefreshCcw />
             Atualizar
           </button>
+          {canIssueCupom ? (
+            <button
+              type="button"
+              className="secondary-action"
+              onClick={onIssueCupom}
+              disabled={loading}
+            >
+              <FiRotateCw />
+              {statusNfce === "rejeitada" ? "Reemitir cupom fiscal" : "Emitir cupom fiscal"}
+            </button>
+          ) : null}
           {isContingencia ? (
             <button
               type="button"
@@ -242,7 +276,7 @@ export function HistoricoVendaDetalhe({
           ) : null}
           <button type="button" className="secondary-action" onClick={onReprint} disabled={loading}>
             <FiPrinter />
-            Reimprimir
+            {canIssueCupom ? "Reimprimir orçamento" : "Reimprimir"}
           </button>
           <button
             type="button"

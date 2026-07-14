@@ -65,6 +65,11 @@ export function usePdvHistorico({ config, operador, caixa, onPrintBudget }) {
   }
 
   function buildBudgetPayloadFromVenda(venda) {
+    const numeroDocumento =
+      venda?.nfce_numero && venda?.nfce_serie
+        ? `NFC-E ${String(venda.nfce_serie).padStart(3, "0")}/${String(venda.nfce_numero).padStart(6, "0")}`
+        : `ORC-${String(venda?.venda_id || "").padStart(6, "0")}`;
+
     return {
       items: Array.isArray(venda?.itens)
         ? venda.itens.map((item) => ({
@@ -96,7 +101,7 @@ export function usePdvHistorico({ config, operador, caixa, onPrintBudget }) {
         inscricaoEstadual: config?.tenant_inscricao_estadual || "",
         inscricaoMunicipal: config?.tenant_inscricao_municipal || "",
       },
-      numeroDocumento: `VENDA-${String(venda?.venda_id || "").padStart(6, "0")}`,
+      numeroDocumento,
     };
   }
 
@@ -162,6 +167,48 @@ export function usePdvHistorico({ config, operador, caixa, onPrintBudget }) {
     }
   }
 
+  async function emitirCupomHistorico() {
+    if (!historicoVendaDetalhe) return;
+
+    try {
+      showLoading("Emitindo cupom fiscal...");
+      const data = await api.emitirCupomFiscalVenda(historicoVendaDetalhe.venda_id, {
+        permitirContingenciaAutomatica: true,
+      });
+      setHistoricoVendaDetalhe(data?.venda || null);
+      await carregarHistoricoVendas({ keepSelection: true });
+
+      let avisoImpressao = "";
+      if (data?.fiscal?.pdfPath && window.v12Desktop?.printPdfFile) {
+        try {
+          const printerConfig = await api.obterConfiguracaoImpressora().catch(() => null);
+          await window.v12Desktop.printPdfFile(data.fiscal.pdfPath, printerConfig);
+        } catch (printError) {
+          avisoImpressao = ` O DANFCe foi gerado, mas não foi possível imprimir: ${printError.message}`;
+        }
+      }
+
+      showAlert({
+        title:
+          data?.fiscal?.status === "contingencia"
+            ? "Cupom emitido em contingência"
+            : data?.fiscal?.success
+              ? "NFC-e emitida"
+              : "Emissão processada",
+        text: `${data?.fiscal?.message || "A venda foi convertida em cupom fiscal."}${avisoImpressao}`.trim(),
+        icon: data?.fiscal?.status === "contingencia" || avisoImpressao ? "warning" : "success",
+      });
+    } catch (error) {
+      showAlert({
+        title: "Falha ao emitir cupom",
+        text: error.message,
+        icon: "error",
+      });
+    } finally {
+      hideLoading();
+    }
+  }
+
   async function cancelarVendaHistorico() {
     if (!historicoVendaDetalhe) return;
 
@@ -206,6 +253,7 @@ export function usePdvHistorico({ config, operador, caixa, onPrintBudget }) {
     carregarHistoricoVendas,
     carregarHistoricoVendaDetalhe,
     reimprimirVendaHistorico,
+    emitirCupomHistorico,
     transmitirContingenciaHistorico,
     cancelarVendaHistorico,
   };

@@ -136,7 +136,7 @@ export async function criarVenda({
   desconto = 0,
   totalLiquido = null,
   emitirFiscal = false,
-  permitirContingenciaOffline = false,
+  permitirContingenciaAutomatica = false,
 }) {
   assertTerminalConfigurado();
   const caixa = getCaixaAberto();
@@ -262,12 +262,17 @@ export async function criarVenda({
   }
 
   if (emitirFiscal) {
-    fiscal = await emitirNfce(venda, {
-      mode: permitirContingenciaOffline ? "contingencia_offline" : "normal",
-    });
+    fiscal = await emitirNfce(venda, { mode: "normal" });
 
     if (fiscal.requiresOfflineDecision) {
-      throw buildContingenciaDecisionError(venda.venda_id, fiscal);
+      if (permitirContingenciaAutomatica) {
+        fiscal = await emitirNfce(venda, {
+          mode: "contingencia_offline",
+          contingenciaJustificativa: fiscal.message,
+        });
+      } else {
+        throw buildContingenciaDecisionError(venda.venda_id, fiscal);
+      }
     }
 
     if (fiscal.success || fiscal.status === nfceStatus.CONTINGENCIA) {
@@ -286,12 +291,10 @@ export async function criarVenda({
       return { venda, fiscal };
     }
 
-    if (!permitirContingenciaOffline) {
-      const rollback = db.transaction(() => {
-        descartarVendaProvisoria(db, tenantErpId, venda.venda_id);
-      });
-      rollback();
-    }
+    const rollback = db.transaction(() => {
+      descartarVendaProvisoria(db, tenantErpId, venda.venda_id);
+    });
+    rollback();
 
     throw new Error(
       fiscal?.message || "A NFC-e não foi autorizada e a venda local foi descartada para evitar pendência fiscal.",
@@ -299,6 +302,20 @@ export async function criarVenda({
   }
 
   return { venda, fiscal };
+}
+
+function garantirRegistroNfce(db, tenantErpId, vendaId) {
+  const existente = getNfceByVendaId(vendaId);
+  if (existente) {
+    return existente;
+  }
+
+  db.prepare(
+    `INSERT INTO nfce (tenant_erp_id, venda_id, status)
+     VALUES (?, ?, ?)`,
+  ).run(tenantErpId, Number(vendaId), nfceStatus.PENDENTE);
+
+  return getNfceByVendaId(vendaId);
 }
 
 export function listVendas({ limit = 50 } = {}) {
@@ -572,6 +589,57 @@ export async function emitirVendaEmContingencia(vendaId, options = {}) {
   enqueueSyncEvent(syncEventTypes.NFCE_CONTINGENCIA, fiscal);
 
   return { venda: vendaFinalizada, fiscal };
+}
+
+export async function emitirCupomFiscalVenda(vendaId, { permitirContingenciaAutomatica = true } = {}) {
+  assertTerminalConfigurado();
+  const db = getDb();
+  const tenantErpId = getTerminalTenantErpId();
+  const saleId = Number(vendaId);
+  const venda = getVendaDetalhe(saleId);
+
+  if (venda.status !== vendaStatus.CONCLUIDA) {
+    throw new Error("Somente vendas concluídas podem ser convertidas em cupom fiscal.");
+  }
+
+  if (venda.nfce_status === nfceStatus.AUTORIZADA) {
+    throw new Error("Esta venda já possui NFC-e autorizada.");
+  }
+
+  if (venda.nfce_status === nfceStatus.CONTINGENCIA) {
+    throw new Error("Esta venda já possui NFC-e em contingência. Use a opção de transmitir contingência.");
+  }
+
+  if (venda.nfce_status === nfceStatus.CANCELADA) {
+    throw new Error("A NFC-e desta venda já foi cancelada e não pode ser emitida novamente.");
+  }
+
+  garantirRegistroNfce(db, tenantErpId, saleId);
+
+  let fiscal = await emitirNfce(venda, { mode: "normal" });
+  if (fiscal.requiresOfflineDecision) {
+    if (!permitirContingenciaAutomatica) {
+      throw buildContingenciaDecisionError(venda.venda_id, fiscal);
+    }
+
+    fiscal = await emitirNfce(venda, {
+      mode: "contingencia_offline",
+      contingenciaJustificativa: fiscal.message,
+    });
+  }
+
+  if (fiscal.success) {
+    enqueueSyncEvent(syncEventTypes.NFCE_AUTORIZADA, fiscal);
+  } else if (fiscal.status === nfceStatus.CONTINGENCIA) {
+    enqueueSyncEvent(syncEventTypes.NFCE_CONTINGENCIA, fiscal);
+  } else if (fiscal.status === nfceStatus.REJEITADA) {
+    enqueueSyncEvent(syncEventTypes.NFCE_REJEITADA, fiscal);
+  }
+
+  return {
+    venda: getVendaDetalhe(saleId),
+    fiscal,
+  };
 }
 
 export async function transmitirVendaContingencia(vendaId) {

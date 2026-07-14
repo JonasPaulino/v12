@@ -14,7 +14,6 @@ export function VendaResumo({
   onFinish,
   onPrintBudget,
   onIssueCupom,
-  onFinalizeSale,
   onCancelPayment,
   paymentReady = false,
   disabled,
@@ -169,13 +168,10 @@ export function VendaResumo({
         <div className="finish-actions">
           <div className="finish-actions-grid">
             <button className="finish secondary" disabled={disabled} onClick={onPrintBudget}>
-              Imprimir orçamento
+              Finalizar orçamento
             </button>
             <button className="finish secondary" disabled={disabled} onClick={onIssueCupom}>
-              Emitir cupom fiscal
-            </button>
-            <button className="finish" disabled={disabled} onClick={onFinalizeSale}>
-              Finalizar venda
+              Finalizar cupom fiscal
             </button>
           </div>
           <button className="finish-link" type="button" disabled={disabled} onClick={onCancelPayment}>

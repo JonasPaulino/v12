@@ -261,6 +261,7 @@ export default function App() {
                   : historico.carregarHistoricoVendas({ keepSelection: true })
               }
               onReprint={historico.reimprimirVendaHistorico}
+              onIssueCupom={historico.emitirCupomHistorico}
               onTransmitContingencia={historico.transmitirContingenciaHistorico}
               onCancel={historico.cancelarVendaHistorico}
             />
@@ -291,9 +292,8 @@ export default function App() {
                   venda.atualizarCart(nextCart);
                 }}
                 onFinish={venda.iniciarFinalizacaoVenda}
-                onPrintBudget={venda.imprimirOrcamentoComRecebimento}
+                onPrintBudget={() => venda.finalizarVenda("orcamento")}
                 onIssueCupom={() => venda.finalizarVenda("cupom")}
-                onFinalizeSale={() => venda.finalizarVenda("finalizar")}
                 onCancelPayment={venda.cancelarPagamentosConfirmados}
                 paymentReady={venda.vendaProntaParaConclusao}
                 disabled={!session.caixa || session.caixaPendenteDiaAnterior || !venda.cart.length}

@@ -23,7 +23,7 @@ function formatCurrency(value) {
 }
 
 function formatNfceStatus(value) {
-  return value ? `NFC-e ${String(value).replace(/_/g, " ")}` : "NFC-e não emitida";
+  return value ? `NFC-e ${String(value).replace(/_/g, " ")}` : "Orçamento";
 }
 
 export function HistoricoVendas({

@@ -78,6 +78,11 @@ export const api = {
       method: "POST",
     }),
   criarVenda: (payload) => request("/vendas", { method: "POST", body: JSON.stringify(payload) }),
+  emitirCupomFiscalVenda: (vendaId, payload = {}) =>
+    request(`/vendas/${vendaId}/emitir-cupom`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
   syncPendencias: () => request("/sync/pendencias"),
   processarSync: () => request("/sync/processar", { method: "POST" }),
   atualizarPdvCompleto: () => request("/sync/atualizar-pdv", { method: "POST" }),

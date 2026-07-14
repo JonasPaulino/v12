@@ -4,6 +4,7 @@ import {
   cancelarVenda,
   criarVenda,
   descartarVendaRascunho,
+  emitirCupomFiscalVenda,
   emitirVendaEmContingencia,
   getVendaDetalhe,
   reenviarContingenciasNfce,
@@ -37,6 +38,25 @@ router.post("/", async (req, res, next) => {
   try {
     const data = await criarVenda(req.body);
     res.status(201).json({ success: true, data });
+  } catch (error) {
+    if (error?.code === "NFCE_CONTINGENCIA_DISPONIVEL") {
+      return res.status(409).json({
+        success: false,
+        code: error.code,
+        message: error.message,
+        data: error.data,
+      });
+    }
+    next(error);
+  }
+});
+
+router.post("/:vendaId/emitir-cupom", async (req, res, next) => {
+  try {
+    const data = await emitirCupomFiscalVenda(req.params.vendaId, {
+      permitirContingenciaAutomatica: req.body?.permitirContingenciaAutomatica !== false,
+    });
+    res.json({ success: true, data });
   } catch (error) {
     if (error?.code === "NFCE_CONTINGENCIA_DISPONIVEL") {
       return res.status(409).json({
