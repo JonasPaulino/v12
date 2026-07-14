@@ -1,11 +1,19 @@
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api.js";
-import {
-  FALLBACK_FINANCEIRO_SUPPORT_DATA,
-  LIMITE_IDENTIFICACAO_CLIENTE,
-} from "../constants/pdv.js";
+import { LIMITE_IDENTIFICACAO_CLIENTE } from "../constants/pdv.js";
 import { AppContext } from "../context/AppContext.jsx";
 import { useSweetAlert } from "../context/SweetAlertContext.jsx";
+import { useVendaFinanceiro } from "./venda/useVendaFinanceiro.js";
+import { buildBudgetPayload, buildBudgetPayloadFromVenda } from "./venda/vendaPayloads.js";
+import { sendBudgetToPrint as printBudgetDocument, sendDanfceToPrint as printDanfceDocument } from "./venda/vendaPrintService.js";
+
+function getClienteResumo(clienteIdentificado) {
+  if (!clienteIdentificado) {
+    return null;
+  }
+
+  return `${clienteIdentificado.tipoDocumento}: ${clienteIdentificado.documento} - ${clienteIdentificado.nome}`;
+}
 
 export function usePdvVenda({ config, operador, caixa, activeModule, caixaPendenteDiaAnterior }) {
   const [cart, setCart] = useState([]);
@@ -21,10 +29,13 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
   const [pagamentosConfirmados, setPagamentosConfirmados] = useState(null);
   const [descontoTipo, setDescontoTipo] = useState("valor");
   const [descontoEntrada, setDescontoEntrada] = useState("");
-  const [financeiroSupportData, setFinanceiroSupportData] = useState(null);
   const productSearchRef = useRef(null);
   const { showLoading, hideLoading } = useContext(AppContext);
   const { showAlert, askYesNoQuestion } = useSweetAlert();
+  const { financeiroSupportData, formasPagamento, carregarFinanceiroSupportData } = useVendaFinanceiro({
+    showLoading,
+    hideLoading,
+  });
 
   useEffect(() => {
     if (cart.length) return;
@@ -56,12 +67,7 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
   }, [descontoCalculado, subtotal]);
 
   const vendaProntaParaConclusao = Array.isArray(pagamentosConfirmados) && pagamentosConfirmados.length > 0;
-  const formasPagamento = financeiroSupportData?.formasPagamento?.length
-    ? financeiroSupportData.formasPagamento
-    : FALLBACK_FINANCEIRO_SUPPORT_DATA.formasPagamento;
-  const clienteResumo = clienteIdentificado
-    ? `${clienteIdentificado.tipoDocumento}: ${clienteIdentificado.documento} - ${clienteIdentificado.nome}`
-    : null;
+  const clienteResumo = getClienteResumo(clienteIdentificado);
 
   function resetVendaState() {
     setCart([]);
@@ -73,13 +79,21 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
     setDescontoTipo("valor");
   }
 
+  function validarEdicaoComPagamento() {
+    if (!pagamentosConfirmados?.length) {
+      return false;
+    }
+
+    showAlert({
+      title: "Recebimento já informado",
+      text: "Cancele os pagamentos antes de adicionar ou alterar itens da venda.",
+      icon: "warning",
+    });
+    return true;
+  }
+
   function addProduto(produto, quantidade = 1) {
-    if (pagamentosConfirmados?.length) {
-      showAlert({
-        title: "Recebimento já informado",
-        text: "Cancele os pagamentos antes de adicionar ou alterar itens da venda.",
-        icon: "warning",
-      });
+    if (validarEdicaoComPagamento()) {
       return;
     }
 
@@ -153,77 +167,6 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
     return true;
   }
 
-  async function carregarFinanceiroSupportData({ silent = false, refresh = false } = {}) {
-    try {
-      if (!silent) {
-        showLoading("Carregando formas de pagamento...");
-      }
-
-      const result = refresh
-        ? await api.sincronizarFinanceiroSupportData({ tipo: "receber", refresh: true })
-        : await api.financeiroSupportData({ tipo: "receber" });
-      const supportData = result || FALLBACK_FINANCEIRO_SUPPORT_DATA;
-      const nextFormasPagamento = Array.isArray(supportData.formasPagamento)
-        ? supportData.formasPagamento.filter(Boolean)
-        : [];
-
-      setFinanceiroSupportData({
-        ...FALLBACK_FINANCEIRO_SUPPORT_DATA,
-        ...supportData,
-        formasPagamento: nextFormasPagamento.length
-          ? nextFormasPagamento
-          : FALLBACK_FINANCEIRO_SUPPORT_DATA.formasPagamento,
-        formaPagamentoPadrao:
-          supportData.formaPagamentoPadrao ||
-          nextFormasPagamento.find((item) => item.padrao) ||
-          FALLBACK_FINANCEIRO_SUPPORT_DATA.formaPagamentoPadrao,
-      });
-
-      return {
-        success: true,
-      };
-    } catch (error) {
-      if (refresh) {
-        try {
-          const cachedResult = await api.financeiroSupportData({ tipo: "receber" });
-          const cachedSupportData = cachedResult || FALLBACK_FINANCEIRO_SUPPORT_DATA;
-          const nextFormasPagamento = Array.isArray(cachedSupportData.formasPagamento)
-            ? cachedSupportData.formasPagamento.filter(Boolean)
-            : [];
-
-          setFinanceiroSupportData({
-            ...FALLBACK_FINANCEIRO_SUPPORT_DATA,
-            ...cachedSupportData,
-            formasPagamento: nextFormasPagamento.length
-              ? nextFormasPagamento
-              : FALLBACK_FINANCEIRO_SUPPORT_DATA.formasPagamento,
-            formaPagamentoPadrao:
-              cachedSupportData.formaPagamentoPadrao ||
-              nextFormasPagamento.find((item) => item.padrao) ||
-              FALLBACK_FINANCEIRO_SUPPORT_DATA.formaPagamentoPadrao,
-          });
-
-          return {
-            success: true,
-            cached: true,
-          };
-        } catch {
-          // fallback local padrao
-        }
-      }
-
-      setFinanceiroSupportData(FALLBACK_FINANCEIRO_SUPPORT_DATA);
-      return {
-        success: false,
-        message: String(error?.message || "").trim(),
-      };
-    } finally {
-      if (!silent) {
-        hideLoading();
-      }
-    }
-  }
-
   async function iniciarFinalizacaoVenda() {
     try {
       if (total >= LIMITE_IDENTIFICACAO_CLIENTE && !clienteIdentificado) {
@@ -271,108 +214,136 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
     });
   }
 
-  function buildBudgetPayloadFromVenda(vendaSalva) {
-    return {
-      items: Array.isArray(vendaSalva?.itens)
-        ? vendaSalva.itens.map((item) => ({
-            produto_id: item.produto_id,
-            codigo_produto: item.codigo_produto,
-            descricao: item.descricao,
-            quantidade: Number(item.quantidade || 0),
-            valor_unitario: Number(item.valor_unitario || 0),
-            unidade: item.unidade || "UN",
-          }))
-        : cart.map((item) => ({ ...item })),
-      subtotal: Number(vendaSalva?.total_produtos ?? subtotal ?? 0),
-      desconto: Number(vendaSalva?.total_desconto ?? descontoCalculado ?? 0),
-      total: Number(vendaSalva?.total_liquido ?? total ?? 0),
-      pagamentos: Array.isArray(vendaSalva?.pagamentos)
-        ? vendaSalva.pagamentos.map((item) => {
-            const forma = formasPagamento.find((formaPagamento) => formaPagamento.codigo === item.forma);
-            return {
-              ...item,
-              descricao: forma?.descricao || item.forma,
-            };
-          })
-        : buildBudgetPayload().pagamentos,
-      cliente: vendaSalva?.cliente_nome || clienteResumo || "Consumidor não identificado",
-      operador: vendaSalva?.operador_nome || operador?.nome || caixa?.operador_nome || "Operador",
-      data: vendaSalva?.concluida_em || vendaSalva?.criada_em || new Date().toLocaleString("pt-BR"),
-      terminal: vendaSalva?.terminal_codigo || config?.terminal_codigo || config?.terminal_nome || "PDV",
-      emitente: {
-        nome: config?.tenant_nome || "V12 ERP",
-        documento: config?.tenant_documento || "",
-        endereco: config?.tenant_endereco || "",
-        inscricaoEstadual: config?.tenant_inscricao_estadual || "",
-        inscricaoMunicipal: config?.tenant_inscricao_municipal || "",
-      },
-      numeroDocumento: `ORC-${String(vendaSalva?.venda_id || Date.now()).padStart(6, "0")}`,
-    };
-  }
+  function montarPayloadOrcamento(vendaSalva = null) {
+    if (vendaSalva) {
+      return buildBudgetPayloadFromVenda({
+        vendaSalva,
+        cart,
+        subtotal,
+        descontoCalculado,
+        total,
+        pagamentosConfirmados,
+        formasPagamento,
+        clienteResumo,
+        operador,
+        caixa,
+        config,
+      });
+    }
 
-  function buildBudgetPayload(itemsOverride = cart.map((item) => ({ ...item }))) {
-    return {
-      items: itemsOverride,
+    return buildBudgetPayload({
+      items: cart.map((item) => ({ ...item })),
       subtotal,
-      desconto: descontoCalculado,
+      descontoCalculado,
       total,
-      pagamentos: Array.isArray(pagamentosConfirmados)
-        ? pagamentosConfirmados.map((item) => {
-            const forma = formasPagamento.find((formaPagamento) => formaPagamento.codigo === item.forma);
-            return {
-              ...item,
-              descricao: forma?.descricao || item.forma,
-            };
-          })
-        : [],
-      cliente: clienteResumo || "Consumidor não identificado",
-      operador: operador?.nome || caixa?.operador_nome || "Operador",
-      data: new Date().toLocaleString("pt-BR"),
-      terminal: config?.terminal_codigo || config?.terminal_nome || "PDV",
-      emitente: {
-        nome: config?.tenant_nome || "V12 ERP",
-        documento: config?.tenant_documento || "",
-        endereco: config?.tenant_endereco || "",
-        inscricaoEstadual: config?.tenant_inscricao_estadual || "",
-        inscricaoMunicipal: config?.tenant_inscricao_municipal || "",
-      },
-      numeroDocumento: `ORC-${Date.now()}`,
-    };
+      pagamentosConfirmados,
+      formasPagamento,
+      clienteResumo,
+      operador,
+      caixa,
+      config,
+    });
   }
 
-  async function sendBudgetToPrint(payloadBase = null) {
-    const payload = payloadBase || buildBudgetPayload();
-    const printerConfig = await api.obterConfiguracaoImpressora().catch(() => null);
-
-    if (window.v12Desktop?.printBudget) {
-      await window.v12Desktop.printBudget(payload, printerConfig);
-      return;
+  async function imprimirOrcamento(payloadBase = null) {
+    try {
+      await printBudgetDocument(payloadBase || montarPayloadOrcamento());
+    } catch (error) {
+      showAlert({
+        title: "Falha ao imprimir orçamento",
+        text: error.message,
+        icon: "error",
+      });
     }
-
-    const popup = window.open("", "_blank", "width=900,height=900");
-    if (!popup) {
-      throw new Error("Não foi possível abrir a janela de impressão.");
-    }
-
-    popup.document.write(`<pre>${JSON.stringify(payload, null, 2)}</pre>`);
-    popup.document.close();
-    popup.focus();
-    popup.onafterprint = () => popup.close();
-    popup.print();
   }
 
-  async function sendDanfceToPrint(pdfPath) {
-    if (!pdfPath) {
-      throw new Error("A NFC-e foi autorizada, mas o PDF do DANFCe não foi gerado.");
+  async function imprimirDanfce(pdfPath) {
+    await printDanfceDocument(pdfPath);
+  }
+
+  async function concluirVendaComSucesso({ result, modoFinalizacao }) {
+    resetVendaState();
+
+    let avisoImpressao = "";
+    if (modoFinalizacao === "orcamento") {
+      try {
+        await printBudgetDocument(montarPayloadOrcamento(result.venda));
+      } catch (printError) {
+        avisoImpressao = ` O orçamento foi registrado, mas não foi possível imprimir: ${printError.message}`;
+      }
     }
 
-    const printerConfig = await api.obterConfiguracaoImpressora().catch(() => null);
-
-    if (!window.v12Desktop?.printPdfFile) {
-      throw new Error("A impressão do DANFCe funciona somente no app Electron.");
+    if (
+      modoFinalizacao === "cupom" &&
+      (result.fiscal?.success || result.fiscal?.status === "contingencia")
+    ) {
+      try {
+        await imprimirDanfce(result.fiscal?.pdfPath);
+      } catch (printError) {
+        avisoImpressao = ` NFC-e autorizada, mas o DANFCe não foi impresso: ${printError.message}`;
+      }
     }
 
-    await window.v12Desktop.printPdfFile(pdfPath, printerConfig);
+    const vendaRegistradaSemFiscal = !result.fiscal?.success;
+    const ehCupom = modoFinalizacao === "cupom";
+    showAlert({
+      title: ehCupom
+        ? result.fiscal?.status === "contingencia"
+          ? "Cupom emitido em contingência"
+          : vendaRegistradaSemFiscal
+            ? "Venda registrada com pendência fiscal"
+            : "NFC-e emitida"
+        : "Orçamento finalizado",
+      text: `${result.fiscal?.message || "Venda registrada localmente."}${avisoImpressao}`.trim(),
+      icon: ehCupom
+        ? vendaRegistradaSemFiscal
+          ? "warning"
+          : avisoImpressao
+            ? "warning"
+            : "success"
+        : avisoImpressao
+          ? "warning"
+          : "success",
+    });
+  }
+
+  async function tratarContingenciaAutomatica(error) {
+    try {
+      const vendaId = Number(error?.data?.vendaId || 0);
+      if (vendaId <= 0) {
+        return false;
+      }
+
+      showLoading("Emitindo NFC-e em contingência offline...");
+      const result = await api.emitirVendaEmContingencia(vendaId, {
+        contingenciaJustificativa: error?.message,
+      });
+
+      resetVendaState();
+
+      let avisoImpressao = "";
+      try {
+        await imprimirDanfce(result.fiscal?.pdfPath);
+      } catch (printError) {
+        avisoImpressao = ` DANFCe de contingência emitido, mas não foi possível imprimir: ${printError.message}`;
+      }
+
+      showAlert({
+        title: "Cupom emitido em contingência",
+        text: `${result.fiscal?.message || "NFC-e emitida em contingência offline."}${avisoImpressao}`.trim(),
+        icon: "warning",
+      });
+      return true;
+    } catch (fallbackError) {
+      showAlert({
+        title: "Falha na contingência",
+        text: fallbackError.message,
+        icon: "error",
+      });
+      return true;
+    } finally {
+      hideLoading();
+    }
   }
 
   async function finalizarVenda(modoFinalizacao = "orcamento") {
@@ -393,83 +364,12 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
         permitirContingenciaAutomatica: modoFinalizacao === "cupom",
       });
 
-      resetVendaState();
-
-      let avisoImpressao = "";
-      if (modoFinalizacao === "orcamento") {
-        try {
-          await sendBudgetToPrint(buildBudgetPayloadFromVenda(result.venda));
-        } catch (printError) {
-          avisoImpressao = ` O orçamento foi registrado, mas não foi possível imprimir: ${printError.message}`;
-        }
-      }
-
-      if (
-        modoFinalizacao === "cupom" &&
-        (result.fiscal?.success || result.fiscal?.status === "contingencia")
-      ) {
-        try {
-          await sendDanfceToPrint(result.fiscal?.pdfPath);
-        } catch (printError) {
-          avisoImpressao = ` NFC-e autorizada, mas o DANFCe não foi impresso: ${printError.message}`;
-        }
-      }
-
-      const vendaRegistradaSemFiscal = !result.fiscal?.success;
-      const ehCupom = modoFinalizacao === "cupom";
-      showAlert({
-        title: ehCupom
-          ? result.fiscal?.status === "contingencia"
-            ? "Cupom emitido em contingência"
-            : vendaRegistradaSemFiscal
-            ? "Venda registrada com pendência fiscal"
-            : "NFC-e emitida"
-          : "Orçamento finalizado",
-        text: `${result.fiscal?.message || "Venda registrada localmente."}${avisoImpressao}`.trim(),
-        icon: ehCupom
-          ? vendaRegistradaSemFiscal
-            ? "warning"
-            : avisoImpressao
-              ? "warning"
-              : "success"
-          : avisoImpressao
-            ? "warning"
-            : "success",
-      });
+      await concluirVendaComSucesso({ result, modoFinalizacao });
     } catch (error) {
       if (modoFinalizacao === "cupom" && error?.code === "NFCE_CONTINGENCIA_DISPONIVEL") {
-        try {
-          const vendaId = Number(error?.data?.vendaId || 0);
-          if (vendaId > 0) {
-            showLoading("Emitindo NFC-e em contingência offline...");
-            const result = await api.emitirVendaEmContingencia(vendaId, {
-              contingenciaJustificativa: error?.message,
-            });
-            resetVendaState();
-
-            let avisoImpressao = "";
-            try {
-              await sendDanfceToPrint(result.fiscal?.pdfPath);
-            } catch (printError) {
-              avisoImpressao = ` DANFCe de contingência emitido, mas não foi possível imprimir: ${printError.message}`;
-            }
-
-            showAlert({
-              title: "Cupom emitido em contingência",
-              text: `${result.fiscal?.message || "NFC-e emitida em contingência offline."}${avisoImpressao}`.trim(),
-              icon: "warning",
-            });
-            return;
-          }
-        } catch (fallbackError) {
-          showAlert({
-            title: "Falha na contingência",
-            text: fallbackError.message,
-            icon: "error",
-          });
+        const handled = await tratarContingenciaAutomatica(error);
+        if (handled) {
           return;
-        } finally {
-          hideLoading();
         }
       }
 
@@ -480,18 +380,6 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
       });
     } finally {
       hideLoading();
-    }
-  }
-
-  async function imprimirOrcamento(payloadBase = null) {
-    try {
-      await sendBudgetToPrint(payloadBase);
-    } catch (error) {
-      showAlert({
-        title: "Falha ao imprimir orçamento",
-        text: error.message,
-        icon: "error",
-      });
     }
   }
 
