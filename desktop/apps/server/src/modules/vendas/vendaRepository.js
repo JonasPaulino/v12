@@ -249,8 +249,12 @@ export function getVendaDetalhe(vendaId) {
          n.chave_acesso,
          n.numero AS nfce_numero,
          n.serie AS nfce_serie,
+         n.recibo AS nfce_recibo,
          n.protocolo,
+         n.cstat AS nfce_cstat,
          n.motivo AS nfce_motivo,
+         n.pdf_path AS nfce_pdf_path,
+         n.xml AS nfce_xml,
          n.emitida_em
        FROM venda v
        LEFT JOIN caixa c ON c.caixa_id = v.caixa_id

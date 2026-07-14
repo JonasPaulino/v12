@@ -10,6 +10,7 @@
     "migrate": "node src/db/migrate.js"
   },
   "dependencies": {
+    "@projetoacbr/acbrlib-nfe-node": "^1.0.11",
     "@v12-desktop/shared": "file:../../packages/shared",
     "better-sqlite3": "^11.10.0",
     "cors": "^2.8.5",
