@@ -31,6 +31,7 @@ export async function criarVenda({
   subtotal = null,
   desconto = 0,
   totalLiquido = null,
+  emitirFiscal = false,
 }) {
   assertTerminalConfigurado();
   const caixa = getCaixaAberto();
@@ -138,10 +139,12 @@ export async function criarVenda({
       insertPagamento.run(tenantErpId, vendaId, pagamento.forma, pagamento.valor);
     }
 
-    db.prepare(
-      `INSERT INTO nfce (tenant_erp_id, venda_id, status)
-       VALUES (?, ?, ?)`,
-    ).run(tenantErpId, vendaId, nfceStatus.PENDENTE);
+    if (emitirFiscal) {
+      db.prepare(
+        `INSERT INTO nfce (tenant_erp_id, venda_id, status)
+         VALUES (?, ?, ?)`,
+      ).run(tenantErpId, vendaId, nfceStatus.PENDENTE);
+    }
 
     return getVendaDetalhe(vendaId);
   });
@@ -149,9 +152,12 @@ export async function criarVenda({
   const venda = create();
   enqueueSyncEvent(syncEventTypes.VENDA_CRIADA, venda);
 
-  const fiscal = await emitirNfce(venda);
-  if (fiscal.success) {
-    enqueueSyncEvent(syncEventTypes.NFCE_EMITIDA, fiscal);
+  let fiscal = null;
+  if (emitirFiscal) {
+    fiscal = await emitirNfce(venda);
+    if (fiscal.success) {
+      enqueueSyncEvent(syncEventTypes.NFCE_EMITIDA, fiscal);
+    }
   }
 
   return { venda, fiscal };

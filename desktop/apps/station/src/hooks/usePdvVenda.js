@@ -257,6 +257,41 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
     };
   }
 
+  async function sendBudgetToPrint(payloadBase = null) {
+    const payload = payloadBase || buildBudgetPayload();
+    const printerConfig = await api.obterConfiguracaoImpressora().catch(() => null);
+
+    if (window.v12Desktop?.printBudget) {
+      await window.v12Desktop.printBudget(payload, printerConfig);
+      return;
+    }
+
+    const popup = window.open("", "_blank", "width=900,height=900");
+    if (!popup) {
+      throw new Error("Não foi possível abrir a janela de impressão.");
+    }
+
+    popup.document.write(`<pre>${JSON.stringify(payload, null, 2)}</pre>`);
+    popup.document.close();
+    popup.focus();
+    popup.onafterprint = () => popup.close();
+    popup.print();
+  }
+
+  async function sendDanfceToPrint(pdfPath) {
+    if (!pdfPath) {
+      throw new Error("A NFC-e foi autorizada, mas o PDF do DANFCe não foi gerado.");
+    }
+
+    const printerConfig = await api.obterConfiguracaoImpressora().catch(() => null);
+
+    if (!window.v12Desktop?.printPdfFile) {
+      throw new Error("A impressão do DANFCe funciona somente no app Electron.");
+    }
+
+    await window.v12Desktop.printPdfFile(pdfPath, printerConfig);
+  }
+
   async function finalizarVenda(modoFinalizacao = "finalizar") {
     try {
       if (!Array.isArray(pagamentosConfirmados) || !pagamentosConfirmados.length) {
@@ -273,17 +308,45 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
         subtotal,
         desconto: descontoCalculado,
         totalLiquido: total,
+        emitirFiscal: modoFinalizacao === "cupom",
       });
       resetVendaState();
 
+      let avisoImpressao = "";
       if (modoFinalizacao === "orcamento") {
-        await imprimirOrcamento(snapshotOrcamento);
+        try {
+          await sendBudgetToPrint(snapshotOrcamento);
+        } catch (printError) {
+          avisoImpressao = ` O orçamento foi registrado, mas não foi possível imprimir: ${printError.message}`;
+        }
       }
 
+      if (modoFinalizacao === "cupom" && result.fiscal?.success) {
+        try {
+          await sendDanfceToPrint(result.fiscal?.pdfPath);
+        } catch (printError) {
+          avisoImpressao = ` NFC-e autorizada, mas o DANFCe não foi impresso: ${printError.message}`;
+        }
+      }
+
+      const vendaRegistradaSemFiscal = !result.fiscal?.success;
+      const ehCupom = modoFinalizacao === "cupom";
       showAlert({
-        title: "Venda registrada",
-        text: result.fiscal?.message || "Venda registrada localmente.",
-        icon: result.fiscal?.success ? "success" : "info",
+        title: ehCupom
+          ? vendaRegistradaSemFiscal
+            ? "Venda registrada com pendência fiscal"
+            : "NFC-e emitida"
+          : "Venda registrada",
+        text: `${result.fiscal?.message || "Venda registrada localmente."}${avisoImpressao}`.trim(),
+        icon: ehCupom
+          ? vendaRegistradaSemFiscal
+            ? "warning"
+            : avisoImpressao
+              ? "warning"
+              : "success"
+          : avisoImpressao
+            ? "warning"
+            : "success",
       });
     } catch (error) {
       showAlert({
@@ -298,27 +361,10 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
 
   async function imprimirOrcamento(payloadBase = null) {
     try {
-      const payload = payloadBase || buildBudgetPayload();
-      const printerConfig = await api.obterConfiguracaoImpressora().catch(() => null);
-
-      if (window.v12Desktop?.printBudget) {
-        await window.v12Desktop.printBudget(payload, printerConfig);
-        return;
-      }
-
-      const popup = window.open("", "_blank", "width=900,height=900");
-      if (!popup) {
-        throw new Error("Nao foi possivel abrir a janela de impressao.");
-      }
-
-      popup.document.write(`<pre>${JSON.stringify(payload, null, 2)}</pre>`);
-      popup.document.close();
-      popup.focus();
-      popup.onafterprint = () => popup.close();
-      popup.print();
+      await sendBudgetToPrint(payloadBase);
     } catch (error) {
       showAlert({
-        title: "Falha ao imprimir orcamento",
+        title: "Falha ao imprimir orçamento",
         text: error.message,
         icon: "error",
       });

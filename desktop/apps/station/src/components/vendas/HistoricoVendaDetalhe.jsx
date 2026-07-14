@@ -41,6 +41,10 @@ function formatQuantity(value) {
   });
 }
 
+function formatNfceStatus(value) {
+  return value ? `NFC-e ${String(value).replace(/_/g, " ")}` : "NFC-e não emitida";
+}
+
 export function HistoricoVendaDetalhe({ venda, loading, config, onRefresh, onReprint, onCancel }) {
   if (!venda) {
     return (
@@ -55,7 +59,7 @@ export function HistoricoVendaDetalhe({ venda, loading, config, onRefresh, onRep
   const clienteDocumento = venda.cliente_documento ? formatDocument(venda.cliente_documento) : "Não informado";
   const clienteEmail = venda.cliente_email || "Não informado";
   const numeroVenda = String(venda.venda_id).padStart(6, "0");
-  const statusNfce = venda.nfce_status || "pendente";
+  const statusNfce = venda.nfce_status || "";
   const isCancelada = venda.status === "cancelada";
 
   return (
@@ -68,8 +72,8 @@ export function HistoricoVendaDetalhe({ venda, loading, config, onRefresh, onRep
           </div>
           <div className="sales-detail-badge-row">
             <span className={`sales-status-badge is-${venda.status}`}>{venda.status}</span>
-            <span className={`sales-status-badge is-${statusNfce.replace(/_/g, "-")}`}>
-              NFC-e {statusNfce.replace(/_/g, " ")}
+            <span className={`sales-status-badge ${statusNfce ? `is-${statusNfce.replace(/_/g, "-")}` : ""}`}>
+              {formatNfceStatus(statusNfce)}
             </span>
           </div>
         </div>

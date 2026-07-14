@@ -22,6 +22,10 @@ function formatCurrency(value) {
   });
 }
 
+function formatNfceStatus(value) {
+  return value ? `NFC-e ${String(value).replace(/_/g, " ")}` : "NFC-e não emitida";
+}
+
 export function HistoricoVendas({
   search,
   status,
@@ -92,9 +96,7 @@ export function HistoricoVendas({
                 </div>
                 <div className="sales-history-row-tags">
                   <span className={`sales-status-badge is-${venda.status}`}>{venda.status}</span>
-                  <span className="sales-history-nfce-status">
-                    NFC-e {String(venda.nfce_status || "pendente").replace(/_/g, " ")}
-                  </span>
+                  <span className="sales-history-nfce-status">{formatNfceStatus(venda.nfce_status)}</span>
                 </div>
               </div>
               <div className="sales-history-row-middle">

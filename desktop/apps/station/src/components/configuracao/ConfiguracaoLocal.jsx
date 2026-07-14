@@ -18,6 +18,7 @@ export function ConfiguracaoLocal() {
   const [printers, setPrinters] = useState([]);
   const [loadingPrinters, setLoadingPrinters] = useState(false);
   const [electronAvailable, setElectronAvailable] = useState(false);
+  const [fiscalStatus, setFiscalStatus] = useState(null);
   const { showLoading, hideLoading } = useContext(AppContext);
   const { showAlert } = useSweetAlert();
 
@@ -40,10 +41,28 @@ export function ConfiguracaoLocal() {
 
     return `${printers.length} impressora(s) encontrada(s) no terminal.`;
   }, [electronAvailable, loadingPrinters, printers.length]);
+  const fiscalDiagnostics = useMemo(() => {
+    const diagnostics = fiscalStatus?.diagnostics || {};
+    return [
+      {
+        label: "Biblioteca ACBr",
+        value: diagnostics.libExists ? "OK" : "Não localizada",
+      },
+      {
+        label: "Schemas NFC-e",
+        value: diagnostics.schemaExists ? "OK" : "Não localizados",
+      },
+      {
+        label: "Serviços SEFAZ",
+        value: diagnostics.iniServicosExists ? "OK" : "INI não localizado",
+      },
+    ];
+  }, [fiscalStatus]);
 
   useEffect(() => {
     setElectronAvailable(Boolean(window.v12Desktop?.listPrinters));
     loadPrinterConfig();
+    loadFiscalStatus();
     if (window.v12Desktop?.listPrinters) {
       loadPrinters();
     }
@@ -62,6 +81,20 @@ export function ConfiguracaoLocal() {
         title: "Falha ao carregar configuração",
         text: error.message,
         icon: "error",
+      });
+    }
+  }
+
+  async function loadFiscalStatus() {
+    try {
+      const data = await api.health();
+      setFiscalStatus(data?.fiscal || null);
+    } catch (error) {
+      setFiscalStatus({
+        ready: false,
+        message: error.message,
+        mode: "lib",
+        diagnostics: null,
       });
     }
   }
@@ -161,7 +194,7 @@ export function ConfiguracaoLocal() {
       <div className="local-settings-head">
         <div>
           <strong>Impressora local</strong>
-          <span>Configure a impressora padrão do terminal para orçamento e futuras reimpressões.</span>
+          <span>Configure a impressora padrão do terminal para orçamento, DANFCe e futuras reimpressões.</span>
         </div>
       </div>
 
@@ -174,6 +207,32 @@ export function ConfiguracaoLocal() {
           </span>
         </div>
       ) : null}
+
+      <div className={`local-fiscal-card ${fiscalStatus?.ready ? "ready" : "pending"}`}>
+        <div className="local-fiscal-head">
+          <div>
+            <strong>Status fiscal do NFC-e</strong>
+            <span>{fiscalStatus?.message || "Consultando diagnóstico fiscal do terminal..."}</span>
+          </div>
+          <span className={`local-fiscal-badge ${fiscalStatus?.ready ? "ok" : "alert"}`}>
+            {fiscalStatus?.ready ? "Pronto para emitir" : "Configuração pendente"}
+          </span>
+        </div>
+
+        <div className="local-fiscal-grid">
+          <div className="local-printer-status">
+            <small>Motor fiscal</small>
+            <strong>{String(fiscalStatus?.mode || "lib").toUpperCase()}</strong>
+          </div>
+
+          {fiscalDiagnostics.map((item) => (
+            <div key={item.label} className="local-printer-status">
+              <small>{item.label}</small>
+              <strong>{item.value}</strong>
+            </div>
+          ))}
+        </div>
+      </div>
 
       <div className="local-settings-grid">
         <label className="local-toggle-card">

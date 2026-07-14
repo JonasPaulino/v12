@@ -1,6 +1,7 @@
 import { app, BrowserWindow, Menu, globalShortcut, ipcMain } from "electron";
+import fs from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -143,6 +144,44 @@ function normalizePrinterConfig(config = {}) {
     silent: config.silent === true,
     copies: Number.isInteger(Number(config.copies)) ? Math.max(1, Math.min(10, Number(config.copies))) : 1,
   };
+}
+
+function buildPrintOptions(config = {}) {
+  const printerConfig = normalizePrinterConfig(config);
+
+  return {
+    printerConfig,
+    options: {
+      silent: printerConfig.enabled && printerConfig.silent,
+      deviceName: printerConfig.enabled && printerConfig.deviceName ? printerConfig.deviceName : undefined,
+      copies: printerConfig.copies,
+      printBackground: true,
+      margins: {
+        marginType: "none",
+      },
+      pageSize:
+        printerConfig.layout === "thermal-58"
+          ? { width: 58000, height: 200000 }
+          : printerConfig.layout === "thermal-80"
+            ? { width: 80000, height: 200000 }
+            : undefined,
+    },
+  };
+}
+
+async function printBrowserWindow(targetWindow, config = {}) {
+  const { options } = buildPrintOptions(config);
+
+  await new Promise((resolve, reject) => {
+    targetWindow.webContents.print(options, (success, errorType) => {
+      if (!success) {
+        reject(new Error(errorType || "Falha ao imprimir documento."));
+        return;
+      }
+
+      resolve();
+    });
+  });
 }
 
 function formatCurrency(value) {
@@ -473,7 +512,7 @@ ipcMain.handle("printer:list", async () => {
 });
 
 ipcMain.handle("sale:print-budget", async (_event, payload = {}, config = {}) => {
-  const printerConfig = normalizePrinterConfig(config);
+  const { printerConfig } = buildPrintOptions(config);
   const budgetWindow = new BrowserWindow({
     show: false,
     width: 900,
@@ -487,37 +526,40 @@ ipcMain.handle("sale:print-budget", async (_event, payload = {}, config = {}) =>
   try {
     const html = buildBudgetHtml(payload, printerConfig);
     await budgetWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
-    await new Promise((resolve, reject) => {
-      budgetWindow.webContents.print(
-        {
-          silent: printerConfig.enabled && printerConfig.silent,
-          deviceName: printerConfig.enabled && printerConfig.deviceName ? printerConfig.deviceName : undefined,
-          copies: printerConfig.copies,
-          printBackground: true,
-          margins: {
-            marginType: "none",
-          },
-          pageSize:
-            printerConfig.layout === "thermal-58"
-              ? { width: 58000, height: 200000 }
-              : printerConfig.layout === "thermal-80"
-                ? { width: 80000, height: 200000 }
-                : undefined,
-        },
-        (success, errorType) => {
-          if (!success) {
-            reject(new Error(errorType || "Falha ao imprimir orçamento."));
-            return;
-          }
-
-          resolve();
-        },
-      );
-    });
+    await printBrowserWindow(budgetWindow, printerConfig);
 
     return true;
   } finally {
     budgetWindow.close();
+  }
+});
+
+ipcMain.handle("sale:print-pdf-file", async (_event, pdfPath, config = {}) => {
+  const rawPdfPath = String(pdfPath || "").trim();
+  if (!rawPdfPath) {
+    throw new Error("PDF do DANFCe não informado para impressão.");
+  }
+  const resolvedPdfPath = path.resolve(rawPdfPath);
+
+  await fs.access(resolvedPdfPath);
+
+  const pdfWindow = new BrowserWindow({
+    show: false,
+    width: 900,
+    height: 1200,
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+
+  try {
+    await pdfWindow.loadURL(pathToFileURL(resolvedPdfPath).href);
+    await wait(350);
+    await printBrowserWindow(pdfWindow, config);
+    return true;
+  } finally {
+    pdfWindow.close();
   }
 });
 

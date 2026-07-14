@@ -102,6 +102,36 @@ export function usePdvHistorico({ config, operador, caixa, onPrintBudget }) {
 
   async function reimprimirVendaHistorico() {
     if (!historicoVendaDetalhe) return;
+
+    if (
+      historicoVendaDetalhe.nfce_status === "autorizada" &&
+      historicoVendaDetalhe.nfce_pdf_path
+    ) {
+      if (!window.v12Desktop?.printPdfFile) {
+        showAlert({
+          title: "Electron indisponível",
+          text: "A reimpressão do DANFCe funciona somente no app Electron.",
+          icon: "info",
+        });
+        return;
+      }
+
+      try {
+        showLoading("Reimprimindo DANFCe...");
+        const printerConfig = await api.obterConfiguracaoImpressora().catch(() => null);
+        await window.v12Desktop.printPdfFile(historicoVendaDetalhe.nfce_pdf_path, printerConfig);
+      } catch (error) {
+        showAlert({
+          title: "Falha ao reimprimir DANFCe",
+          text: error.message,
+          icon: "error",
+        });
+      } finally {
+        hideLoading();
+      }
+      return;
+    }
+
     await onPrintBudget(buildBudgetPayloadFromVenda(historicoVendaDetalhe));
   }
 

@@ -62,9 +62,9 @@ export async function ensureAcbrLibRuntime() {
 }
 
 function applyConfig(acbr, sessao, chave, valor) {
-  if (value === undefined || value === null || value === "") return;
+  if (valor === undefined || valor === null || valor === "") return;
   try {
-    acbr.configGravarValor(sessao, chave, String(value));
+    acbr.configGravarValor(sessao, chave, String(valor));
   } catch (error) {
     const message = String(error?.message || error);
     if (/Chave .* não existe na Sessão|Chave .* nao existe na Sessao|Sessão .* não existe|Sessao .* nao existe/i.test(message)) {
