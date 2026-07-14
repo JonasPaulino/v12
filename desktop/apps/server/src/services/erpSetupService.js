@@ -78,6 +78,7 @@ function salvarConfiguracaoFiscalLocal(tenant = {}) {
   return saveFiscalConfig({
     tenant_erp_id: tenant.tenant_id,
     ambiente_nfe: fiscal.ambiente_nfe || "2",
+    ambiente_nfce: fiscal.ambiente_nfce || "2",
     crt: fiscal.crt || "3",
     cnae: fiscal.cnae || "",
     natureza_operacao_padrao: fiscal.natureza_operacao_padrao || "Venda de mercadoria",

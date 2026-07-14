@@ -8,6 +8,7 @@ export function getFiscalConfig() {
           config_id,
           tenant_erp_id,
           ambiente_nfe,
+          ambiente_nfce,
           crt,
           cnae,
           natureza_operacao_padrao,
@@ -63,6 +64,7 @@ export function saveFiscalConfig(payload = {}) {
       config_id,
       tenant_erp_id,
       ambiente_nfe,
+      ambiente_nfce,
       crt,
       cnae,
       natureza_operacao_padrao,
@@ -100,11 +102,12 @@ export function saveFiscalConfig(payload = {}) {
       atualizado_em
     )
     VALUES (
-      1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+      1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
     )
     ON CONFLICT(config_id) DO UPDATE SET
       tenant_erp_id = excluded.tenant_erp_id,
       ambiente_nfe = excluded.ambiente_nfe,
+      ambiente_nfce = excluded.ambiente_nfce,
       crt = excluded.crt,
       cnae = excluded.cnae,
       natureza_operacao_padrao = excluded.natureza_operacao_padrao,
@@ -143,6 +146,7 @@ export function saveFiscalConfig(payload = {}) {
   ).run(
     tenantErpId,
     payload.ambiente_nfe || "2",
+    payload.ambiente_nfce || "2",
     payload.crt || "3",
     payload.cnae || null,
     payload.natureza_operacao_padrao || "Venda de mercadoria",

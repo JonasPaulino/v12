@@ -504,6 +504,20 @@ export const ConfiguracaoFiscal = () => {
                       <C.FieldsGrid>
                         <C.Field>
                           <C.FieldSpan>
+                            Ambiente NFC-e
+                            <C.RequiredMark title={requiredTitle}>*</C.RequiredMark>
+                          </C.FieldSpan>
+                          <C.Select
+                            value={form.ambiente_nfce}
+                            onChange={(event) => updateField("ambiente_nfce", event.target.value)}
+                          >
+                            <option value="1">1 - Produção</option>
+                            <option value="2">2 - Homologação</option>
+                          </C.Select>
+                        </C.Field>
+
+                        <C.Field>
+                          <C.FieldSpan>
                             Série padrão NFC-e
                             <C.RequiredMark title={requiredTitle}>*</C.RequiredMark>
                           </C.FieldSpan>

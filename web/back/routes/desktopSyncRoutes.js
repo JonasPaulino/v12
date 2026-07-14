@@ -247,6 +247,7 @@ async function getTenantWithCompanyData(client, tenantId) {
         pe.codigo_ibge AS emitente_codigo_ibge,
         pe.pais AS emitente_pais,
         cfg.ambiente_nfe,
+        cfg.ambiente_nfce,
         cfg.crt,
         cfg.cnae,
         cfg.natureza_operacao_padrao,
@@ -339,6 +340,7 @@ async function getTenantWithCompanyData(client, tenantId) {
     },
     fiscal_nfce: {
       ambiente_nfe: row.ambiente_nfe || "2",
+      ambiente_nfce: row.ambiente_nfce || "2",
       crt: row.crt || "3",
       cnae: row.cnae || "",
       natureza_operacao_padrao: row.natureza_operacao_padrao || "Venda de mercadoria",

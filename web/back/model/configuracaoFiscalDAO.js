@@ -345,6 +345,7 @@ class ConfiguracaoFiscalDAO {
           cfg.ambiente_nfe,
           cfg.serie_nfe_padrao,
           cfg.proximo_numero_nfe,
+          cfg.ambiente_nfce,
           cfg.nfce_habilitada,
           cfg.serie_nfce_padrao,
           cfg.proximo_numero_nfce,
@@ -424,6 +425,7 @@ class ConfiguracaoFiscalDAO {
         ambiente_nfe: row.ambiente_nfe || "2",
         serie_nfe_padrao: Number(row.serie_nfe_padrao ?? 1),
         proximo_numero_nfe: Number(row.proximo_numero_nfe ?? 1),
+        ambiente_nfce: row.ambiente_nfce || "2",
         nfce_habilitada: !!row.nfce_habilitada,
         serie_nfce_padrao: Number(row.serie_nfce_padrao ?? 1),
         proximo_numero_nfce: Number(row.proximo_numero_nfce ?? 1),
@@ -498,6 +500,15 @@ class ConfiguracaoFiscalDAO {
 
     if (!["1", "2"].includes(ambienteNfe)) {
       throw new Error("Ambiente da NF-e inválido.");
+    }
+
+    const ambienteNfce = normalizeText(payload.ambiente_nfce ?? "2", 1, {
+      required: true,
+      label: "Ambiente da NFC-e",
+    });
+
+    if (!["1", "2"].includes(ambienteNfce)) {
+      throw new Error("Ambiente da NFC-e inválido.");
     }
 
     const ambienteMdfe = normalizeText(payload.ambiente_mdfe ?? "2", 1, {
@@ -646,6 +657,7 @@ class ConfiguracaoFiscalDAO {
       ambiente_nfe: ambienteNfe,
       serie_nfe_padrao: serieNfePadrao,
       proximo_numero_nfe: proximoNumeroNfe,
+      ambiente_nfce: ambienteNfce,
       nfce_habilitada: normalizeBoolean(payload.nfce_habilitada, false),
       serie_nfce_padrao: serieNfcePadrao,
       proximo_numero_nfce: proximoNumeroNfce,
@@ -778,6 +790,7 @@ class ConfiguracaoFiscalDAO {
             ambiente_nfe,
             serie_nfe_padrao,
             proximo_numero_nfe,
+            ambiente_nfce,
             nfce_habilitada,
             serie_nfce_padrao,
             proximo_numero_nfce,
@@ -816,12 +829,15 @@ class ConfiguracaoFiscalDAO {
             $17,
             $18,
             $19
+            ,
+            $20
           )
           ON CONFLICT (tenant_id) DO UPDATE
           SET
             ambiente_nfe = EXCLUDED.ambiente_nfe,
             serie_nfe_padrao = EXCLUDED.serie_nfe_padrao,
             proximo_numero_nfe = EXCLUDED.proximo_numero_nfe,
+            ambiente_nfce = EXCLUDED.ambiente_nfce,
             nfce_habilitada = EXCLUDED.nfce_habilitada,
             serie_nfce_padrao = EXCLUDED.serie_nfce_padrao,
             proximo_numero_nfce = EXCLUDED.proximo_numero_nfce,
@@ -843,6 +859,7 @@ class ConfiguracaoFiscalDAO {
           data.ambiente_nfe,
           data.serie_nfe_padrao,
           data.proximo_numero_nfe,
+          data.ambiente_nfce,
           data.nfce_habilitada,
           data.serie_nfce_padrao,
           data.proximo_numero_nfce,
