@@ -303,5 +303,11 @@ export function buildNfceIni(context) {
     });
   }
 
+  if (nfce.observacao) {
+    appendSection(lines, "infAdic", {
+      infCpl: nfce.observacao,
+    });
+  }
+
   return `${lines.join("\n").trim()}\n`;
 }

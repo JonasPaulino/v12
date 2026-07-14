@@ -14,6 +14,24 @@ function onlyDigits(value) {
   return String(value || "").replace(/\D/g, "");
 }
 
+const SUPPORTED_ICMS_CST_NORMAL = new Set(["00", "20"]);
+const SUPPORTED_ICMS_CSOSN = new Set(["102", "103", "300", "400"]);
+const SUPPORTED_PIS_CST = new Set(["01", "02", "49", "99"]);
+const SUPPORTED_COFINS_CST = new Set(["01", "02", "49", "99"]);
+const TRANSIENT_CSTAT = new Set(["103", "104", "105", "106", "108", "109"]);
+const TRANSIENT_ERROR_PATTERNS = [
+  /timeout/i,
+  /time[\s-]?out/i,
+  /socket/i,
+  /conex[aã]o/i,
+  /internet/i,
+  /servidor/i,
+  /servi[cç]o.*indispon/i,
+  /falha.*comunica/i,
+  /nao foi possivel.*sefaz/i,
+  /status.*paralisad/i,
+];
+
 function hasClientIdentification(venda) {
   const tipoDocumento = String(venda?.cliente_tipo_documento || "").trim().toUpperCase();
   if (tipoDocumento === "ESTRANGEIRO") {
@@ -74,11 +92,47 @@ function validarProntidaoNfce() {
   };
 }
 
+function isContingenciaCandidate({ cStat = null, message = "" } = {}) {
+  const normalizedCode = String(cStat || "").trim();
+  if (TRANSIENT_CSTAT.has(normalizedCode)) {
+    return true;
+  }
+
+  return TRANSIENT_ERROR_PATTERNS.some((pattern) => pattern.test(String(message || "")));
+}
+
+function validateFiscalItemSupport(item, crt) {
+  if (String(crt || "3") === "3") {
+    if (!SUPPORTED_ICMS_CST_NORMAL.has(String(item.icms_cst || "").trim())) {
+      throw new Error(
+        `O produto ${item.descricao} usa CST ICMS ${item.icms_cst || "não informado"}, ainda não suportado pelo PDV para NFC-e.`,
+      );
+    }
+  } else if (!SUPPORTED_ICMS_CSOSN.has(String(item.icms_csosn || "").trim())) {
+    throw new Error(
+      `O produto ${item.descricao} usa CSOSN ${item.icms_csosn || "não informado"}, ainda não suportado pelo PDV para NFC-e.`,
+    );
+  }
+
+  if (!SUPPORTED_PIS_CST.has(String(item.pis_cst || "").trim())) {
+    throw new Error(
+      `O produto ${item.descricao} usa CST PIS ${item.pis_cst || "não informado"}, ainda não suportado pelo PDV para NFC-e.`,
+    );
+  }
+
+  if (!SUPPORTED_COFINS_CST.has(String(item.cofins_cst || "").trim())) {
+    throw new Error(
+      `O produto ${item.descricao} usa CST COFINS ${item.cofins_cst || "não informado"}, ainda não suportado pelo PDV para NFC-e.`,
+    );
+  }
+}
+
 function calculateFiscalTotals(itens = []) {
   return itens.reduce(
     (acc, item) => {
       const total = Number(item.valor_total || 0);
-      const icmsBase = total;
+      const reducao = Math.max(0, Math.min(100, Number(item.icms_reducao_base || 0)));
+      const icmsBase = Number((total * (1 - reducao / 100)).toFixed(2));
       const icmsAliquota = Number(item.icms_aliquota || 0);
       const icmsValor =
         String(item.crt_emitente || item.crt || "3") === "3"
@@ -217,6 +271,18 @@ function loadNfceContext(vendaId, fiscal, sequencial) {
     );
   }
 
+  const destinatarioIdentificado = hasClientIdentification(venda)
+    ? {
+        tipo_documento: venda.cliente_tipo_documento,
+        documento: venda.cliente_documento,
+        nome: venda.cliente_nome,
+        email: venda.cliente_email,
+        uf: fiscal.emitente_uf,
+      }
+    : null;
+
+  itens.forEach((item) => validateFiscalItemSupport(item, fiscal.crt));
+
   const pagamentos = db
     .prepare(
       `SELECT pagamento_id, forma, valor
@@ -241,6 +307,8 @@ function loadNfceContext(vendaId, fiscal, sequencial) {
     );
   }
 
+  const observacoes = ["Documento emitido pelo V12 PDV."].filter(Boolean);
+
   return {
     configuracao: fiscal,
     emitente: {
@@ -261,15 +329,7 @@ function loadNfceContext(vendaId, fiscal, sequencial) {
       codigo_ibge: fiscal.emitente_codigo_ibge,
       pais: fiscal.emitente_pais || "Brasil",
     },
-    destinatario: hasClientIdentification(venda)
-      ? {
-          tipo_documento: venda.cliente_tipo_documento,
-          documento: venda.cliente_documento,
-          nome: venda.cliente_nome,
-          email: venda.cliente_email,
-          uf: fiscal.emitente_uf,
-        }
-      : null,
+    destinatario: destinatarioIdentificado,
     responsavel_tecnico: {
       cnpj: fiscal.responsavel_tecnico_cnpj,
       nome: fiscal.responsavel_tecnico_nome,
@@ -291,6 +351,7 @@ function loadNfceContext(vendaId, fiscal, sequencial) {
       ind_pres: fiscal.nfce_ind_pres_padrao || "1",
       operador_nome: venda.operador_nome || "Operador",
       terminal_codigo: venda.terminal_codigo || terminal?.terminal_codigo || "PDV-01",
+      observacao: observacoes.join(" "),
       ...totals,
     },
     venda,
@@ -339,8 +400,12 @@ export async function emitirNfce(venda) {
         : metadata.mappedStatus === "cancelada"
           ? nfceStatus.CANCELADA
           : metadata.mappedStatus === "rejeitada"
-            ? nfceStatus.REJEITADA
-            : nfceStatus.PENDENTE;
+            ? isContingenciaCandidate({ cStat: metadata.cStat, message: metadata.xMotivo })
+              ? nfceStatus.CONTINGENCIA
+              : nfceStatus.REJEITADA
+            : isContingenciaCandidate({ cStat: metadata.cStat, message: metadata.xMotivo })
+              ? nfceStatus.CONTINGENCIA
+              : nfceStatus.PENDENTE;
 
     updateNfceResult(vendaId, {
       status,
@@ -374,20 +439,32 @@ export async function emitirNfce(venda) {
         metadata.xMotivo ||
         (status === nfceStatus.AUTORIZADA
           ? "NFC-e autorizada pela SEFAZ."
+          : status === nfceStatus.CONTINGENCIA
+            ? "NFC-e gravada em contingência local. Reenvie quando a SEFAZ voltar a responder."
           : "NFC-e enviada para processamento."),
       pdfPath: workerResult.pdfPath || null,
     };
   } catch (error) {
+    const status = isContingenciaCandidate({
+      message: error.message || error.details?.stderr || "",
+    })
+      ? nfceStatus.CONTINGENCIA
+      : nfceStatus.REJEITADA;
+
     updateNfceResult(vendaId, {
-      status: nfceStatus.REJEITADA,
+      status,
       motivo: error.message,
       raw_retorno: error.details?.workerResult?.lastReturn || null,
     });
 
     return {
       success: false,
-      status: nfceStatus.REJEITADA,
-      message: error.message || "Falha ao emitir NFC-e.",
+      status,
+      message:
+        status === nfceStatus.CONTINGENCIA
+          ? error.message ||
+            "A SEFAZ não respondeu. A venda pode seguir apenas em contingência local até o reenvio."
+          : error.message || "Falha ao emitir NFC-e.",
       vendaId,
     };
   }

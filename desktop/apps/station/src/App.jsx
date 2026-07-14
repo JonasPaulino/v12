@@ -139,6 +139,8 @@ export default function App() {
         openModule={session.openModule}
         carregarHistoricoVendas={historico.carregarHistoricoVendas}
         atualizarPdvCompleto={session.atualizarPdvCompleto}
+        consultarStatusFiscalLocal={session.consultarStatusFiscalLocal}
+        enviarContingenciasFiscais={session.enviarContingenciasFiscais}
         alternarTelaCheia={session.alternarTelaCheia}
         sairDoSistema={session.sairDoSistema}
       />
@@ -285,8 +287,7 @@ export default function App() {
                   venda.setPagamentosConfirmados(null);
                 }}
                 onChange={(nextCart) => {
-                  venda.setCart(nextCart);
-                  venda.setPagamentosConfirmados(null);
+                  venda.atualizarCart(nextCart);
                 }}
                 onFinish={venda.iniciarFinalizacaoVenda}
                 onPrintBudget={venda.imprimirOrcamentoComRecebimento}

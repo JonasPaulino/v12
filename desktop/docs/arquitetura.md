@@ -39,10 +39,10 @@ O servidor local envia movimentos para o ERP:
 - itens
 - pagamentos
 - abertura/fechamento de caixa
-- NFC-e emitida/autorizada/contingencia
+- NFC-e autorizada/contingencia/rejeitada/cancelada
 - cancelamentos
 - eventos de erro
 
 ## Fiscal
 
-Comecar com adaptador para ACBrMonitorPLUS por ser mais simples de instalar e diagnosticar. A interface foi desenhada para permitir troca futura para ACBrLib.
+O PDV usa ACBrLib para emissao local da NFC-e. O adaptador fiscal continua isolado para permitir evolucoes futuras sem acoplar a interface do caixa a detalhes da biblioteca.

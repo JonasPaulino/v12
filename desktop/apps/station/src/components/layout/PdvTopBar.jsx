@@ -18,6 +18,8 @@ export function PdvTopBar({
   openModule,
   carregarHistoricoVendas,
   atualizarPdvCompleto,
+  consultarStatusFiscalLocal,
+  enviarContingenciasFiscais,
   alternarTelaCheia,
   sairDoSistema,
 }) {
@@ -46,11 +48,11 @@ export function PdvTopBar({
               carregarHistoricoVendas({ keepSelection: false });
             }}
           >
-            <FiFileText /> Reimpressao e cancelamento
+            <FiFileText /> Reimpressão e cancelamento
           </button>
-          <button onClick={() => openModule("configuracao")}><FiSettings /> Configuracoes locais</button>
+          <button onClick={() => openModule("configuracao")}><FiSettings /> Configurações locais</button>
           <div className="top-dropdown-section">
-            <span className="top-dropdown-section-title">Atualizacoes</span>
+            <span className="top-dropdown-section-title">Atualizações</span>
             <button
               className={`submenu-button ${syncState?.running ? "sync-running" : ""}`.trim()}
               onClick={() => atualizarPdvCompleto()}
@@ -77,9 +79,16 @@ export function PdvTopBar({
           <FiChevronDown className="chevron" />
         </button>
         <div className="top-dropdown">
-          <button>Status SEFAZ</button>
-          <button>Enviar contingencias</button>
-          <button>Consultar NFC-e</button>
+          <button onClick={consultarStatusFiscalLocal}>Status fiscal local</button>
+          <button onClick={enviarContingenciasFiscais}>Enviar contingências</button>
+          <button
+            onClick={() => {
+              openModule("historico_vendas");
+              carregarHistoricoVendas({ keepSelection: false });
+            }}
+          >
+            Consultar NFC-e
+          </button>
         </div>
       </div>
     </header>

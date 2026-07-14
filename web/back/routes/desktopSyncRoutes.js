@@ -50,21 +50,21 @@ router.post("/desktop/sync", async (req, res) => {
     if (!Number.isInteger(tenantId) || tenantId <= 0) {
       return res.status(400).json({
         success: false,
-        message: "tenantId obrigatorio.",
+        message: "tenantId obrigatório.",
       });
     }
 
     if (!Number.isInteger(localSyncId) || localSyncId <= 0) {
       return res.status(400).json({
         success: false,
-        message: "localSyncId obrigatorio.",
+        message: "localSyncId obrigatório.",
       });
     }
 
     if (!eventType) {
       return res.status(400).json({
         success: false,
-        message: "eventType obrigatorio.",
+        message: "eventType obrigatório.",
       });
     }
 
@@ -109,7 +109,7 @@ router.post("/desktop/sync", async (req, res) => {
     });
     return res.status(500).json({
       success: false,
-      message: error?.message || "Nao foi possivel registrar o evento do PDV.",
+      message: error?.message || "Não foi possível registrar o evento do PDV.",
     });
   }
 });
@@ -443,6 +443,14 @@ router.get("/desktop/sync/tenant-config", async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "tenant_id obrigatório.",
+      });
+    }
+
+    const tenantAtivo = await DesktopSyncDAO.validarTenantAtivo(pool, tenantId);
+    if (!tenantAtivo) {
+      return res.status(403).json({
+        success: false,
+        message: "Filial inativa, bloqueada, sem integração PDV ou não encontrada.",
       });
     }
 

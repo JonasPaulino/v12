@@ -76,7 +76,7 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
   function addProduto(produto, quantidade = 1) {
     if (pagamentosConfirmados?.length) {
       showAlert({
-        title: "Recebimento ja informado",
+        title: "Recebimento já informado",
         text: "Cancele os pagamentos antes de adicionar ou alterar itens da venda.",
         icon: "warning",
       });
@@ -86,10 +86,31 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
     setCart((current) => {
       const existing = current.find((item) => item.produto_id === produto.produto_id);
       const quantidadeAdicionar = Math.max(1, Number(quantidade) || 1);
+      const estoqueDisponivel = Math.max(0, Number(produto.estoque_atual || 0));
+
+      if (quantidadeAdicionar > estoqueDisponivel) {
+        showAlert({
+          title: "Estoque insuficiente",
+          text: `Disponível para ${produto.descricao}: ${estoqueDisponivel}.`,
+          icon: "warning",
+        });
+        return current;
+      }
+
       if (existing) {
+        const proximaQuantidade = Number(existing.quantidade) + quantidadeAdicionar;
+        if (proximaQuantidade > estoqueDisponivel) {
+          showAlert({
+            title: "Estoque insuficiente",
+            text: `Disponível para ${produto.descricao}: ${estoqueDisponivel}.`,
+            icon: "warning",
+          });
+          return current;
+        }
+
         return current.map((item) =>
           item.produto_id === produto.produto_id
-            ? { ...item, quantidade: Number(item.quantidade) + quantidadeAdicionar }
+            ? { ...item, quantidade: proximaQuantidade }
             : item,
         );
       }
@@ -102,11 +123,34 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
           descricao: produto.descricao,
           unidade: produto.unidade || "UN",
           quantidade: quantidadeAdicionar,
+          estoque_atual: estoqueDisponivel,
           valor_unitario: Number(produto.preco_venda || 0),
         },
       ];
     });
     setPagamentosConfirmados(null);
+  }
+
+  function atualizarCart(nextCart) {
+    const normalizedCart = Array.isArray(nextCart) ? nextCart : [];
+
+    for (const item of normalizedCart) {
+      const quantidade = Number(item.quantidade || 0);
+      const estoqueDisponivel = Math.max(0, Number(item.estoque_atual || 0));
+
+      if (quantidade > estoqueDisponivel) {
+        showAlert({
+          title: "Estoque insuficiente",
+          text: `Disponível para ${item.descricao}: ${estoqueDisponivel}.`,
+          icon: "warning",
+        });
+        return false;
+      }
+    }
+
+    setCart(normalizedCart);
+    setPagamentosConfirmados(null);
+    return true;
   }
 
   async function carregarFinanceiroSupportData({ silent = false, refresh = false } = {}) {
@@ -185,7 +229,7 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
       if (total >= LIMITE_IDENTIFICACAO_CLIENTE && !clienteIdentificado) {
         const wantsToIdentify = await askYesNoQuestion(
           "Identificar cliente",
-          "Esta venda esta acima de R$ 10.000,00. Deseja identificar o cliente antes de finalizar?",
+          "Esta venda está acima de R$ 10.000,00. Deseja identificar o cliente antes de finalizar?",
         );
 
         if (wantsToIdentify) {
@@ -198,10 +242,10 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
         const loaded = await carregarFinanceiroSupportData();
         if (!loaded?.success) {
           showAlert({
-            title: "Formas de pagamento indisponiveis",
+            title: "Formas de pagamento indisponíveis",
             text: loaded?.message
-              ? `${loaded.message}. O PDV seguira com os meios locais padrao.`
-              : "Nao foi possivel carregar o apoio financeiro do ERP. O PDV seguira com os meios locais padrao.",
+              ? `${loaded.message}. O PDV seguirá com os meios locais padrão.`
+              : "Não foi possível carregar o apoio financeiro do ERP. O PDV seguirá com os meios locais padrão.",
             icon: "warning",
           });
         }
@@ -222,7 +266,7 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
     setPagamentoModalAberto(false);
     showAlert({
       title: "Pagamento informado",
-      text: "Agora escolha se deseja imprimir orcamento, emitir cupom fiscal ou apenas finalizar a venda.",
+      text: "Agora escolha se deseja imprimir orçamento, emitir cupom fiscal ou apenas finalizar a venda.",
       icon: "success",
     });
   }
@@ -242,7 +286,7 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
             };
           })
         : [],
-      cliente: clienteResumo || "Consumidor nao identificado",
+      cliente: clienteResumo || "Consumidor não identificado",
       operador: operador?.nome || caixa?.operador_nome || "Operador",
       data: new Date().toLocaleString("pt-BR"),
       terminal: config?.terminal_codigo || config?.terminal_nome || "PDV",
@@ -333,7 +377,9 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
       const ehCupom = modoFinalizacao === "cupom";
       showAlert({
         title: ehCupom
-          ? vendaRegistradaSemFiscal
+          ? result.fiscal?.status === "contingencia"
+            ? "Venda em contingência fiscal"
+            : vendaRegistradaSemFiscal
             ? "Venda registrada com pendência fiscal"
             : "NFC-e emitida"
           : "Venda registrada",
@@ -375,7 +421,7 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
     if (!Array.isArray(pagamentosConfirmados) || !pagamentosConfirmados.length) {
       showAlert({
         title: "Pagamento pendente",
-        text: "Informe as formas de pagamento antes de imprimir o orcamento.",
+        text: "Informe as formas de pagamento antes de imprimir o orçamento.",
         icon: "warning",
       });
       return;
@@ -391,7 +437,7 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
 
     const confirmed = await askYesNoQuestion(
       "Cancelar recebimento",
-      "Deseja cancelar os pagamentos informados e liberar a venda para edicao?",
+      "Deseja cancelar os pagamentos informados e liberar a venda para edição?",
     );
 
     if (!confirmed) return;
@@ -399,7 +445,7 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
     setPagamentosConfirmados(null);
     showAlert({
       title: "Pagamentos cancelados",
-      text: "A venda voltou a ficar editavel.",
+      text: "A venda voltou a ficar editável.",
       icon: "success",
     });
   }
@@ -407,7 +453,7 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
   function abrirModalCliente() {
     if (pagamentosConfirmados?.length) {
       showAlert({
-        title: "Recebimento ja informado",
+        title: "Recebimento já informado",
         text: "Cancele os pagamentos antes de alterar o cliente desta venda.",
         icon: "warning",
       });
@@ -436,7 +482,7 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
 
     if (!documento) {
       showAlert({
-        title: "Documento obrigatorio",
+        title: "Documento obrigatório",
         text: "Informe o documento do cliente para identificar a venda.",
         icon: "warning",
       });
@@ -445,7 +491,7 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
 
     if (!nome) {
       showAlert({
-        title: "Nome obrigatorio",
+        title: "Nome obrigatório",
         text: "Informe o nome do cliente para continuar.",
         icon: "warning",
       });
@@ -454,8 +500,8 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
 
     if (tipoDocumento === "CPF" && documento.length !== 11) {
       showAlert({
-        title: "CPF invalido",
-        text: "O CPF precisa ter 11 digitos.",
+        title: "CPF inválido",
+        text: "O CPF precisa ter 11 dígitos.",
         icon: "warning",
       });
       return;
@@ -463,8 +509,8 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
 
     if (tipoDocumento === "CNPJ" && documento.length !== 14) {
       showAlert({
-        title: "CNPJ invalido",
-        text: "O CNPJ precisa ter 14 digitos.",
+        title: "CNPJ inválido",
+        text: "O CNPJ precisa ter 14 dígitos.",
         icon: "warning",
       });
       return;
@@ -517,6 +563,7 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
     formasPagamento,
     clienteResumo,
     setCart,
+    atualizarCart,
     setClienteIdentificado,
     setClienteForm,
     setPagamentoModalAberto,

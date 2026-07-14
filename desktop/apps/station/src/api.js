@@ -56,6 +56,10 @@ export const api = {
       method: "POST",
       body: JSON.stringify(payload),
     }),
+  reenviarContingenciasNfce: () =>
+    request("/vendas/nfce/contingencias/enviar", {
+      method: "POST",
+    }),
   criarVenda: (payload) => request("/vendas", { method: "POST", body: JSON.stringify(payload) }),
   syncPendencias: () => request("/sync/pendencias"),
   processarSync: () => request("/sync/processar", { method: "POST" }),

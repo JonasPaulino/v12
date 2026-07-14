@@ -4,6 +4,28 @@ import { getTerminalConfig } from "../modules/configuracao/localConfigRepository
 import { getVendaDetalhe } from "../modules/vendas/vendaRepository.js";
 import { listPendingSync, markSyncError, markSyncSuccess, updateSyncPayload } from "./syncQueueService.js";
 
+const ERP_SYNC_TIMEOUT_MS = 15000;
+
+async function fetchJsonWithTimeout(url, options = {}, timeoutMs = ERP_SYNC_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    const result = await response.json().catch(() => ({}));
+
+    return {
+      response,
+      result,
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 function vendaPayloadIncompleto(payload) {
   return !Array.isArray(payload?.itens) || !Array.isArray(payload?.pagamentos);
 }
@@ -78,23 +100,24 @@ export async function processSyncQueue() {
         tentativas: normalizedEvent.tentativas,
       });
 
-      const response = await fetch(`${env.erpApiUrl.replace(/\/$/, "")}/desktop/sync`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${env.erpSyncToken}`,
+      const { response, result } = await fetchJsonWithTimeout(
+        `${env.erpApiUrl.replace(/\/$/, "")}/desktop/sync`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${env.erpSyncToken}`,
+          },
+          body: JSON.stringify({
+            tenantId: Number(config.tenant_erp_id),
+            terminalCodigo: config.terminal_codigo || null,
+            terminalNome: config.terminal_nome || null,
+            eventType: normalizedEvent.tipo_evento,
+            payload: normalizedEvent.payload,
+            localSyncId: normalizedEvent.sync_id,
+          }),
         },
-        body: JSON.stringify({
-          tenantId: Number(config.tenant_erp_id),
-          terminalCodigo: config.terminal_codigo || null,
-          terminalNome: config.terminal_nome || null,
-          eventType: normalizedEvent.tipo_evento,
-          payload: normalizedEvent.payload,
-          localSyncId: normalizedEvent.sync_id,
-        }),
-      });
-
-      const result = await response.json().catch(() => ({}));
+      );
 
       if (!response.ok || result.success === false) {
         throw new Error(result.message || `ERP respondeu ${response.status}`);

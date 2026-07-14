@@ -1,6 +1,7 @@
 import { env } from "../config/env.js";
 
 const DEFAULT_TIMEOUT_MS = 3500;
+const ERP_TIMEOUT_MS = 5000;
 
 function normalizeUrl(url) {
   const value = String(url || "").trim();
@@ -8,13 +9,16 @@ function normalizeUrl(url) {
   return value.replace(/\/+$/, "");
 }
 
-function buildCheckTargets() {
+function buildPublicCheckTargets() {
   const erpApiUrl = normalizeUrl(env.erpApiUrl);
   const targets = [
-    erpApiUrl,
     "https://www.google.com/generate_204",
     "https://www.uol.com.br",
   ].filter(Boolean);
+
+  if (!erpApiUrl) {
+    return [];
+  }
 
   return [...new Set(targets)];
 }
@@ -47,26 +51,38 @@ async function probeUrl(url, timeoutMs = DEFAULT_TIMEOUT_MS) {
 }
 
 export async function verificarConectividadeInternet() {
-  const targets = buildCheckTargets();
+  const erpApiUrl = normalizeUrl(env.erpApiUrl);
+  const publicTargets = buildPublicCheckTargets();
 
-  if (!targets.length) {
+  if (!erpApiUrl) {
     return {
       online: false,
+      internetOnline: false,
+      erpOnline: false,
       checkedAt: new Date().toISOString(),
       targets: [],
       message: "Não foi possível validar a internet porque a retaguarda não está configurada.",
     };
   }
 
-  const results = await Promise.all(targets.map((url) => probeUrl(url)));
-  const online = results.some((item) => item.ok);
+  const [erpResult, ...publicResults] = await Promise.all([
+    probeUrl(erpApiUrl, ERP_TIMEOUT_MS),
+    ...publicTargets.map((url) => probeUrl(url)),
+  ]);
+  const internetOnline = publicResults.some((item) => item.ok);
+  const erpOnline = !!erpResult?.ok;
+  const online = erpOnline || internetOnline;
 
   return {
     online,
+    internetOnline,
+    erpOnline,
     checkedAt: new Date().toISOString(),
-    targets: results,
-    message: online
-      ? "Conectividade externa validada."
-      : "Não foi possível comunicar com a retaguarda nem com os endpoints de internet configurados.",
+    targets: [erpResult, ...publicResults],
+    message: erpOnline
+      ? "Conectividade com a retaguarda validada."
+      : internetOnline
+        ? "A internet externa está ativa, mas a retaguarda do ERP não respondeu."
+        : "Não foi possível comunicar com a retaguarda nem com os endpoints públicos de internet.",
   };
 }

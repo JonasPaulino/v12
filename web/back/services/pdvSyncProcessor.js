@@ -7,6 +7,7 @@ const NFCE_EVENT_MAP = {
   NFCE_CONTINGENCIA: "contingencia",
   NFCE_AUTORIZADA: "autorizada",
   NFCE_CANCELADA: "cancelada",
+  NFCE_REJEITADA: "rejeitada",
 };
 
 async function processarEventoComClient(client, evento) {
@@ -137,7 +138,8 @@ async function processarEventoComClient(client, evento) {
     case "NFCE_EMITIDA":
     case "NFCE_CONTINGENCIA":
     case "NFCE_AUTORIZADA":
-    case "NFCE_CANCELADA": {
+    case "NFCE_CANCELADA":
+    case "NFCE_REJEITADA": {
       await PdvDAO.atualizarStatusNfce(client, {
         tenantId: evento.tenantId,
         vendaLocalId: evento.payload?.vendaId || evento.payload?.venda_id,

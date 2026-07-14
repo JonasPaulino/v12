@@ -216,6 +216,57 @@ export function usePdvSession({ onResetVenda, onCarregarFinanceiroSupportData })
     return loadInitialData({ silent, suppressErrorAlert: true });
   }
 
+  async function consultarStatusFiscalLocal() {
+    try {
+      showLoading("Consultando status fiscal...");
+      const healthData = await api.health();
+      setHealth(healthData);
+      showAlert({
+        title: "Status fiscal do terminal",
+        text:
+          healthData?.fiscal?.message ||
+          "O terminal respondeu, mas não retornou detalhes fiscais adicionais.",
+        icon: healthData?.fiscal?.ready ? "success" : "info",
+      });
+    } catch (error) {
+      showAlert({
+        title: "Falha na consulta",
+        text: error.message,
+        icon: "error",
+      });
+    } finally {
+      hideLoading();
+    }
+  }
+
+  async function enviarContingenciasFiscais() {
+    try {
+      showLoading("Reenviando NFC-e em contingência...");
+      const data = await api.reenviarContingenciasNfce();
+      const total = Number(data?.total || 0);
+      const autorizadas = Number(data?.autorizadas || 0);
+      const pendentes = Number(data?.em_contingencia || 0);
+      const rejeitadas = Number(data?.rejeitadas || 0);
+      await loadInitialData({ silent: true, suppressErrorAlert: true });
+      showAlert({
+        title: "Contingências processadas",
+        text:
+          total > 0
+            ? `${autorizadas} autorizada(s), ${pendentes} ainda em contingência e ${rejeitadas} rejeitada(s).`
+            : "Não há NFC-e em contingência neste terminal.",
+        icon: total > 0 ? "success" : "info",
+      });
+    } catch (error) {
+      showAlert({
+        title: "Falha no reenvio",
+        text: error.message,
+        icon: "error",
+      });
+    } finally {
+      hideLoading();
+    }
+  }
+
   function openModule(module) {
     if (
       !["configuracao", "historico_vendas"].includes(module) &&
@@ -293,6 +344,8 @@ export function usePdvSession({ onResetVenda, onCarregarFinanceiroSupportData })
     caixaPendenteDiaAnterior: !!caixa?.caixa_pendente_dia_anterior,
     loadInitialData,
     refreshTerminalStatus,
+    consultarStatusFiscalLocal,
+    enviarContingenciasFiscais,
     atualizarPdvCompleto,
     handleOperadorLogin,
     openModule,

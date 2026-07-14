@@ -23,6 +23,98 @@ function normalizeIdentificacaoCliente(cliente) {
   };
 }
 
+function getProdutoLocal(db, tenantErpId, produtoId) {
+  return db
+    .prepare(
+      `SELECT produto_id, tenant_erp_id, descricao, ativo, estoque_atual
+       FROM produto
+       WHERE tenant_erp_id = ?
+         AND produto_id = ?
+       LIMIT 1`,
+    )
+    .get(tenantErpId, Number(produtoId));
+}
+
+function validarItensVenda(db, tenantErpId, items = []) {
+  const validatedItems = [];
+
+  for (const item of items) {
+    const quantidade = Number(item.quantidade || 0);
+    const valorUnitario = Number(item.valor_unitario || 0);
+    const produtoId = Number(item.produto_id || 0);
+
+    if (!produtoId) {
+      throw new Error("Produto inválido na venda.");
+    }
+
+    if (quantidade <= 0) {
+      throw new Error("A quantidade do item deve ser maior que zero.");
+    }
+
+    const produto = getProdutoLocal(db, tenantErpId, produtoId);
+    if (!produto || !Number(produto.ativo)) {
+      throw new Error(`O produto ${item.descricao || produtoId} não está ativo no PDV.`);
+    }
+
+    const estoqueDisponivel = Number(produto.estoque_atual || 0);
+    if (quantidade > estoqueDisponivel) {
+      throw new Error(
+        `Estoque insuficiente para ${produto.descricao || item.descricao}. Disponível: ${estoqueDisponivel}.`,
+      );
+    }
+
+    validatedItems.push({
+      ...item,
+      quantidade,
+      valor_unitario: valorUnitario,
+      estoque_atual: estoqueDisponivel,
+    });
+  }
+
+  return validatedItems;
+}
+
+function aplicarMovimentoEstoque(db, tenantErpId, items = [], direction = "saida") {
+  for (const item of items) {
+    const quantidade = Number(item.quantidade || 0);
+    const delta = direction === "entrada" ? quantidade : -quantidade;
+    db.prepare(
+      `UPDATE produto
+       SET estoque_atual = estoque_atual + ?, atualizado_em = CURRENT_TIMESTAMP
+       WHERE tenant_erp_id = ?
+         AND produto_id = ?`,
+    ).run(delta, tenantErpId, item.produto_id);
+  }
+}
+
+function marcarVendaConcluida(db, tenantErpId, vendaId) {
+  db.prepare(
+    `UPDATE venda
+     SET status = ?, concluida_em = CURRENT_TIMESTAMP
+     WHERE tenant_erp_id = ?
+       AND venda_id = ?`,
+  ).run(vendaStatus.CONCLUIDA, tenantErpId, Number(vendaId));
+}
+
+function descartarVendaProvisoria(db, tenantErpId, vendaId) {
+  db.prepare(`DELETE FROM venda_pagamento WHERE tenant_erp_id = ? AND venda_id = ?`).run(
+    tenantErpId,
+    Number(vendaId),
+  );
+  db.prepare(`DELETE FROM venda_item WHERE tenant_erp_id = ? AND venda_id = ?`).run(
+    tenantErpId,
+    Number(vendaId),
+  );
+  db.prepare(`DELETE FROM nfce WHERE tenant_erp_id = ? AND venda_id = ?`).run(
+    tenantErpId,
+    Number(vendaId),
+  );
+  db.prepare(`DELETE FROM venda WHERE tenant_erp_id = ? AND venda_id = ?`).run(
+    tenantErpId,
+    Number(vendaId),
+  );
+}
+
 export async function criarVenda({
   pessoaId,
   cliente,
@@ -37,11 +129,11 @@ export async function criarVenda({
   const caixa = getCaixaAberto();
   const tenantErpId = getTerminalTenantErpId();
   if (!caixa) {
-    throw new Error("Nao existe caixa aberto.");
+    throw new Error("Não existe caixa aberto.");
   }
 
   if (!tenantErpId || Number(caixa.tenant_erp_id) !== Number(tenantErpId)) {
-    throw new Error("O caixa aberto nao pertence a filial configurada neste PDV.");
+    throw new Error("O caixa aberto não pertence à filial configurada neste PDV.");
   }
 
   if (!items.length) {
@@ -50,8 +142,9 @@ export async function criarVenda({
 
   const clienteIdentificado = normalizeIdentificacaoCliente(cliente);
   const db = getDb();
+  const itensValidados = validarItensVenda(db, tenantErpId, items);
   const create = db.transaction(() => {
-    const totalProdutosCalculado = items.reduce((acc, item) => {
+    const totalProdutosCalculado = itensValidados.reduce((acc, item) => {
       return acc + Number(item.quantidade || 0) * Number(item.valor_unitario || 0);
     }, 0);
     const totalProdutos = subtotal == null ? totalProdutosCalculado : Number(subtotal || 0);
@@ -84,7 +177,7 @@ export async function criarVenda({
            total_liquido,
            concluida_em
          )
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         tenantErpId,
@@ -94,10 +187,11 @@ export async function criarVenda({
         clienteIdentificado.documento,
         clienteIdentificado.nome,
         clienteIdentificado.email,
-        vendaStatus.CONCLUIDA,
+        emitirFiscal ? vendaStatus.RASCUNHO : vendaStatus.CONCLUIDA,
         totalProdutos,
         totalDesconto,
         totalLiquidoVenda,
+        emitirFiscal ? null : new Date().toISOString(),
       );
 
     const vendaId = vendaResult.lastInsertRowid;
@@ -107,9 +201,9 @@ export async function criarVenda({
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     );
 
-    for (const item of items) {
-      const quantidade = Number(item.quantidade || 0);
-      const valorUnitario = Number(item.valor_unitario || 0);
+    for (const item of itensValidados) {
+      const quantidade = item.quantidade;
+      const valorUnitario = item.valor_unitario;
       insertItem.run(
         tenantErpId,
         vendaId,
@@ -121,13 +215,6 @@ export async function criarVenda({
         item.unidade || "UN",
         quantidade * valorUnitario,
       );
-
-      db.prepare(
-        `UPDATE produto
-         SET estoque_atual = estoque_atual - ?, atualizado_em = CURRENT_TIMESTAMP
-         WHERE tenant_erp_id = ?
-           AND produto_id = ?`,
-      ).run(quantidade, tenantErpId, item.produto_id);
     }
 
     const insertPagamento = db.prepare(
@@ -146,18 +233,48 @@ export async function criarVenda({
       ).run(tenantErpId, vendaId, nfceStatus.PENDENTE);
     }
 
+    if (!emitirFiscal) {
+      aplicarMovimentoEstoque(db, tenantErpId, itensValidados, "saida");
+    }
+
     return getVendaDetalhe(vendaId);
   });
 
-  const venda = create();
-  enqueueSyncEvent(syncEventTypes.VENDA_CRIADA, venda);
+  let venda = create();
 
   let fiscal = null;
+  if (!emitirFiscal) {
+    enqueueSyncEvent(syncEventTypes.VENDA_CRIADA, venda);
+    return { venda, fiscal };
+  }
+
   if (emitirFiscal) {
     fiscal = await emitirNfce(venda);
-    if (fiscal.success) {
-      enqueueSyncEvent(syncEventTypes.NFCE_EMITIDA, fiscal);
+
+    if (fiscal.success || fiscal.status === nfceStatus.CONTINGENCIA) {
+      const finalize = db.transaction(() => {
+        aplicarMovimentoEstoque(db, tenantErpId, itensValidados, "saida");
+        marcarVendaConcluida(db, tenantErpId, venda.venda_id);
+        return getVendaDetalhe(venda.venda_id);
+      });
+
+      venda = finalize();
+      enqueueSyncEvent(syncEventTypes.VENDA_CRIADA, venda);
+      enqueueSyncEvent(
+        fiscal.success ? syncEventTypes.NFCE_AUTORIZADA : syncEventTypes.NFCE_CONTINGENCIA,
+        fiscal,
+      );
+      return { venda, fiscal };
     }
+
+    const rollback = db.transaction(() => {
+      descartarVendaProvisoria(db, tenantErpId, venda.venda_id);
+    });
+    rollback();
+
+    throw new Error(
+      fiscal?.message || "A NFC-e não foi autorizada e a venda local foi descartada para evitar pendência fiscal.",
+    );
   }
 
   return { venda, fiscal };
@@ -200,7 +317,10 @@ export function searchVendas({ search = "", status = "", limit = 50 } = {}) {
        LEFT JOIN pessoa p ON p.pessoa_id = v.pessoa_id
        LEFT JOIN nfce n ON n.venda_id = v.venda_id
        WHERE v.tenant_erp_id = ?
-         AND (? = '' OR v.status = ?)
+         AND (
+           (? = '' AND v.status <> 'rascunho')
+           OR (? <> '' AND v.status = ?)
+         )
          AND (
            ? = ''
            OR CAST(v.venda_id AS TEXT) LIKE ?
@@ -214,6 +334,7 @@ export function searchVendas({ search = "", status = "", limit = 50 } = {}) {
     )
     .all(
       tenantErpId,
+      String(status || "").trim().toLowerCase(),
       String(status || "").trim().toLowerCase(),
       String(status || "").trim().toLowerCase(),
       String(search || "").trim().toLowerCase(),
@@ -367,4 +488,52 @@ export function cancelarVenda(vendaId, { motivo = "Cancelamento manual no PDV." 
     status: vendaCancelada.nfce_status,
   });
   return vendaCancelada;
+}
+
+export async function reenviarContingenciasNfce({ limit = 20 } = {}) {
+  assertTerminalConfigurado();
+  const db = getDb();
+  const tenantErpId = getTerminalTenantErpId();
+  const pendencias = db
+    .prepare(
+      `SELECT v.venda_id
+       FROM venda v
+       JOIN nfce n
+         ON n.venda_id = v.venda_id
+        AND n.tenant_erp_id = v.tenant_erp_id
+       WHERE v.tenant_erp_id = ?
+         AND v.status = ?
+         AND n.status = ?
+       ORDER BY COALESCE(n.atualizado_em, n.emitida_em) ASC, v.venda_id ASC
+       LIMIT ?`,
+    )
+    .all(tenantErpId, vendaStatus.CONCLUIDA, nfceStatus.CONTINGENCIA, Number(limit) || 20);
+
+  const resultados = [];
+
+  for (const item of pendencias) {
+    const venda = getVendaDetalhe(item.venda_id);
+    const fiscal = await emitirNfce(venda);
+
+    if (fiscal.success) {
+      enqueueSyncEvent(syncEventTypes.NFCE_AUTORIZADA, fiscal);
+    } else if (fiscal.status === nfceStatus.REJEITADA) {
+      enqueueSyncEvent(syncEventTypes.NFCE_REJEITADA, fiscal);
+    }
+
+    resultados.push({
+      venda_id: venda.venda_id,
+      status: fiscal.status,
+      message: fiscal.message,
+      chave_acesso: fiscal.chave_acesso || null,
+    });
+  }
+
+  return {
+    total: pendencias.length,
+    autorizadas: resultados.filter((item) => item.status === nfceStatus.AUTORIZADA).length,
+    em_contingencia: resultados.filter((item) => item.status === nfceStatus.CONTINGENCIA).length,
+    rejeitadas: resultados.filter((item) => item.status === nfceStatus.REJEITADA).length,
+    resultados,
+  };
 }

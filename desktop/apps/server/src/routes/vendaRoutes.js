@@ -4,6 +4,7 @@ import {
   cancelarVenda,
   criarVenda,
   getVendaDetalhe,
+  reenviarContingenciasNfce,
   searchVendas,
 } from "../modules/vendas/vendaRepository.js";
 
@@ -52,6 +53,15 @@ router.post("/:vendaId/cancelar", (req, res, next) => {
     const data = cancelarVenda(req.params.vendaId, {
       motivo: req.body?.motivo,
     });
+    res.json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/nfce/contingencias/enviar", async (_req, res, next) => {
+  try {
+    const data = await reenviarContingenciasNfce();
     res.json({ success: true, data });
   } catch (error) {
     next(error);

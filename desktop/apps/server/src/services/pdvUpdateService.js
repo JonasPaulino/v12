@@ -10,9 +10,15 @@ export async function atualizarPdvCompleto() {
 
   try {
     const conectividade = await verificarConectividadeInternet();
-    if (!conectividade.online) {
+    if (!conectividade.internetOnline && !conectividade.erpOnline) {
       throw new Error(
         "Não foi possível atualizar o PDV porque o terminal está sem internet ou sem comunicação com a retaguarda.",
+      );
+    }
+
+    if (!conectividade.erpOnline) {
+      throw new Error(
+        "A internet está ativa, mas a retaguarda do ERP não respondeu. Tente novamente em instantes.",
       );
     }
 
