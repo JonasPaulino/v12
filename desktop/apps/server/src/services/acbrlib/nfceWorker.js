@@ -22,6 +22,23 @@ function safeGetXml(acbr) {
   }
 }
 
+function applyOptionalConfig(acbr, sessao, chave, valor) {
+  if (valor === undefined || valor === null || valor === "") return;
+  try {
+    acbr.configGravarValor(sessao, chave, String(valor));
+  } catch (error) {
+    const message = String(error?.message || error);
+    if (
+      /Chave .* não existe na Sessão|Chave .* nao existe na Sessao|Sessão .* não existe|Sessao .* nao existe/i.test(
+        message,
+      )
+    ) {
+      return;
+    }
+    throw error;
+  }
+}
+
 async function hasOpenSsl() {
   try {
     await execFileAsync("openssl", ["version"], { timeout: 10000, maxBuffer: 1024 * 256 });
@@ -31,56 +48,144 @@ async function hasOpenSsl() {
   }
 }
 
-async function validateCertificateFile({ certPath, certificadoSenha }) {
+function isLegacyOpenSslError(text = "") {
+  return /unsupported|RC2|inner_evp_generic_fetch|digital envelope routines/i.test(
+    String(text || ""),
+  );
+}
+
+function isInvalidPasswordError(text = "") {
+  return /invalid password|mac verify error|mac verify failure/i.test(String(text || ""));
+}
+
+async function extractPkcs12ToPem({
+  certPath,
+  pemPath,
+  certificadoSenha,
+  legacy = false,
+  includeKeys = false,
+}) {
+  return execFileAsync(
+    "openssl",
+    [
+      "pkcs12",
+      ...(legacy ? ["-legacy"] : []),
+      "-in",
+      certPath,
+      ...(includeKeys ? ["-nodes"] : ["-nokeys"]),
+      "-clcerts",
+      "-passin",
+      `pass:${certificadoSenha || ""}`,
+      "-out",
+      pemPath,
+    ],
+    { maxBuffer: 1024 * 1024, timeout: 30000 },
+  );
+}
+
+async function exportPemToPkcs12({ pemPath, outputPath, certificadoSenha }) {
+  return execFileAsync(
+    "openssl",
+    [
+      "pkcs12",
+      "-export",
+      "-in",
+      pemPath,
+      "-out",
+      outputPath,
+      "-passout",
+      `pass:${certificadoSenha || ""}`,
+    ],
+    { maxBuffer: 1024 * 1024, timeout: 30000 },
+  );
+}
+
+async function ensureCompatibleCertificateFile({ certPath, certificadoSenha }) {
   if (!(await hasOpenSsl())) {
-    return;
+    return {
+      certPath,
+      normalized: false,
+      checked: false,
+      usedLegacyInput: false,
+    };
   }
 
   const tempPem = path.join(os.tmpdir(), `v12-pdv-cert-${process.pid}-${Date.now()}.pem`);
-  const runExtract = (legacy = false) =>
-    execFileAsync(
-      "openssl",
-      [
-        "pkcs12",
-        ...(legacy ? ["-legacy"] : []),
-        "-in",
-        certPath,
-        "-nokeys",
-        "-clcerts",
-        "-passin",
-        `pass:${certificadoSenha || ""}`,
-        "-out",
-        tempPem,
-      ],
-      { maxBuffer: 1024 * 1024, timeout: 30000 },
-    );
+  const normalizedPfx = path.join(
+    path.dirname(certPath),
+    `certificado-a1-runtime-${process.pid}-${Date.now()}.pfx`,
+  );
+  let usedLegacyInput = false;
 
   try {
-    await runExtract();
+    await extractPkcs12ToPem({
+      certPath,
+      pemPath: tempPem,
+      certificadoSenha,
+      includeKeys: true,
+    });
   } catch (error) {
     const stderr = String(error.stderr || "").trim();
-    if (/invalid password|mac verify error/i.test(stderr)) {
+    if (isInvalidPasswordError(stderr)) {
       throw new Error("Senha do certificado A1 inválida ou certificado incompatível.");
     }
 
-    if (/unsupported|RC2|inner_evp_generic_fetch|digital envelope routines/i.test(stderr)) {
+    if (isLegacyOpenSslError(stderr)) {
       try {
         await fs.rm(tempPem, { force: true }).catch(() => {});
-        await runExtract(true);
-        return;
+        await extractPkcs12ToPem({
+          certPath,
+          pemPath: tempPem,
+          certificadoSenha,
+          legacy: true,
+          includeKeys: true,
+        });
+        usedLegacyInput = true;
       } catch (legacyError) {
         const legacyStderr = String(legacyError.stderr || "").trim();
-        if (/invalid password|mac verify error/i.test(legacyStderr)) {
+        if (isInvalidPasswordError(legacyStderr)) {
           throw new Error("Senha do certificado A1 inválida ou certificado incompatível.");
         }
         throw new Error(legacyStderr || "Não foi possível validar o certificado A1.");
       }
+    } else {
+      throw new Error(stderr || error.message || "Não foi possível validar o certificado A1.");
     }
+  }
 
-    throw new Error(stderr || error.message || "Não foi possível validar o certificado A1.");
+  try {
+    await exportPemToPkcs12({
+      pemPath: tempPem,
+      outputPath: normalizedPfx,
+      certificadoSenha,
+    });
+
+    return {
+      certPath: normalizedPfx,
+      normalized: true,
+      checked: true,
+      usedLegacyInput,
+    };
+  } catch (error) {
+    const stderr = String(error.stderr || "").trim();
+    if (isInvalidPasswordError(stderr)) {
+      throw new Error("Senha do certificado A1 inválida ou certificado incompatível.");
+    }
+    throw new Error(
+      stderr || "Não foi possível preparar o certificado A1 em formato compatível para o PDV.",
+    );
   } finally {
     await fs.rm(tempPem, { force: true }).catch(() => {});
   }
+}
+
+function normalizeAcbrCertificateMessage(message = "") {
+  const text = String(message || "").trim();
+  if (!isLegacyOpenSslError(text)) {
+    return text;
+  }
+
+  return "O certificado A1 da filial foi sincronizado, mas a assinatura local falhou por incompatibilidade criptografica do PFX. Reimporte ou converta o certificado para um formato compativel com o OpenSSL atual.";
 }
 
 async function tryGeneratePdf(session) {
@@ -136,6 +241,7 @@ async function run() {
   } = payload;
   let phase = "init";
   let iniPath = null;
+  let runtimeCertInfo = null;
 
   const session = await createAcbrSession({
     tenantId,
@@ -161,7 +267,24 @@ async function run() {
     });
 
     phase = "validar_certificado";
-    await validateCertificateFile({ certPath: session.certPath, certificadoSenha });
+    runtimeCertInfo = await ensureCompatibleCertificateFile({
+      certPath: session.certPath,
+      certificadoSenha,
+    });
+    if (runtimeCertInfo?.certPath && runtimeCertInfo.certPath !== session.certPath) {
+      session.certPath = runtimeCertInfo.certPath;
+      applyOptionalConfig(session.acbr, "DFe", "ArquivoPFX", session.certPath);
+      applyOptionalConfig(session.acbr, "DFe", "Senha", certificadoSenha || "");
+      applyOptionalConfig(session.acbr, "Certificado", "ArquivoPFX", session.certPath);
+      applyOptionalConfig(session.acbr, "Certificado", "Senha", certificadoSenha || "");
+      session.acbr.configGravar(session.configPath);
+    }
+    console.log("[acbr:nfce:worker] Certificado preparado", {
+      vendaId,
+      normalized: Boolean(runtimeCertInfo?.normalized),
+      usedLegacyInput: Boolean(runtimeCertInfo?.usedLegacyInput),
+      runtimeCertPath: runtimeCertInfo?.certPath || session.certPath,
+    });
 
     phase = "configurar_csc";
     session.acbr.configGravarValor("NFE", "IdCSC", String(context.configuracao.nfce_id_token_csc || ""));
@@ -281,15 +404,21 @@ async function run() {
       },
     });
 
+    const normalizedMessage = normalizeAcbrCertificateMessage(error.message || "");
+    const normalizedLastReturn = normalizeAcbrCertificateMessage(lastReturn || "");
+
     await writeOutput({
       ok: false,
       phase,
-      message: error.message || "Falha na emissão da NFC-e.",
-      lastReturn,
+      message: normalizedMessage || "Falha na emissão da NFC-e.",
+      lastReturn: normalizedLastReturn,
     });
 
-    throw error;
+    throw new Error(normalizedMessage || error.message || "Falha na emissão da NFC-e.");
   } finally {
+    if (runtimeCertInfo?.normalized && runtimeCertInfo.certPath) {
+      await fs.rm(runtimeCertInfo.certPath, { force: true }).catch(() => {});
+    }
     await destroyAcbrSession(session);
   }
 }
