@@ -146,12 +146,10 @@ export function calculateFiscalTotals(itens = []) {
     (acc, item) => {
       const total = Number(item.valor_total || 0);
       const reducao = Math.max(0, Math.min(100, Number(item.icms_reducao_base || 0)));
-      const icmsBase = Number((total * (1 - reducao / 100)).toFixed(2));
+      const regimeNormal = String(item.crt_emitente || item.crt || "3") === "3";
+      const icmsBase = regimeNormal ? Number((total * (1 - reducao / 100)).toFixed(2)) : 0;
       const icmsAliquota = Number(item.icms_aliquota || 0);
-      const icmsValor =
-        String(item.crt_emitente || item.crt || "3") === "3"
-          ? Number(((icmsBase * icmsAliquota) / 100).toFixed(2))
-          : 0;
+      const icmsValor = regimeNormal ? Number(((icmsBase * icmsAliquota) / 100).toFixed(2)) : 0;
       const pisValor = Number((((total || 0) * Number(item.pis_aliquota || 0)) / 100).toFixed(2));
       const cofinsValor = Number(
         (((total || 0) * Number(item.cofins_aliquota || 0)) / 100).toFixed(2),
@@ -160,9 +158,9 @@ export function calculateFiscalTotals(itens = []) {
 
       acc.icms_base_total += icmsBase;
       acc.icms_valor_total += icmsValor;
-      acc.icms_fcp_total += Number(
-        (((total || 0) * Number(item.icms_aliquota_fcp || 0)) / 100).toFixed(2),
-      );
+      acc.icms_fcp_total += regimeNormal
+        ? Number((((total || 0) * Number(item.icms_aliquota_fcp || 0)) / 100).toFixed(2))
+        : 0;
       acc.pis_valor_total += pisValor;
       acc.cofins_valor_total += cofinsValor;
       acc.ipi_valor_total += ipiValor;
