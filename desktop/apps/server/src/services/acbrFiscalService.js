@@ -91,6 +91,8 @@ function persistContingenciaOfflineResult({ vendaId, sequencial, context, worker
     pdfBase64: workerResult.pdfBase64 || null,
     xml: workerResult.postXml || workerResult.preXml || null,
     danfceHtmlFallback: Boolean(workerResult.pdfUnsupported),
+    danfcePrintedByAcbr: Boolean(workerResult.danfcePrintedByAcbr),
+    danfcePrint: workerResult.danfcePrint || null,
   };
 }
 
@@ -139,6 +141,8 @@ function persistWorkerEmissionResult({
     pdfBase64: workerResult.pdfBase64 || null,
     xml: workerResult.postXml || workerResult.preXml || null,
     danfceHtmlFallback: Boolean(workerResult.pdfUnsupported),
+    danfcePrintedByAcbr: Boolean(workerResult.danfcePrintedByAcbr),
+    danfcePrint: workerResult.danfcePrint || null,
   };
 }
 

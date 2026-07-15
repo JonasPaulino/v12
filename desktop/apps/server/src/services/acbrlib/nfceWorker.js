@@ -5,6 +5,7 @@ import path from "node:path";
 import { promisify } from "node:util";
 import { buildNfceIni } from "./nfceIniBuilder.js";
 import { createAcbrSession, destroyAcbrSession, writeAcbrIni } from "./runtime.js";
+import { getPrinterConfig } from "../printerConfigService.js";
 
 const execFileAsync = promisify(execFile);
 const [, , inputPath, outputPath] = process.argv;
@@ -324,6 +325,44 @@ async function tryGeneratePdfFromXml(session, xmlContent) {
   return tryGeneratePdf(session, xmlContent);
 }
 
+async function tryPrintDanfceWithAcbr(session, xmlContent = null) {
+  if (typeof session.acbr.imprimir !== "function") {
+    return {
+      printed: false,
+      skipped: true,
+      message: "Método NFE_Imprimir não disponível na integração ACBrLibNFe.",
+    };
+  }
+
+  const printerConfig = getPrinterConfig();
+  const printerName = printerConfig.enabled && printerConfig.deviceName ? printerConfig.deviceName : "";
+  const copies = Number.isInteger(Number(printerConfig.copies))
+    ? Math.max(1, Math.min(10, Number(printerConfig.copies)))
+    : 1;
+
+  try {
+    if (xmlContent) {
+      const xmlPath = await writeXmlArtifact(session, "nfce-danfce.xml", xmlContent);
+      session.acbr.limparLista();
+      session.acbr.carregarXML(xmlPath);
+    }
+
+    session.acbr.imprimir(printerName, copies, "", "False", "", "True", "False");
+    return {
+      printed: true,
+      printerName: printerName || "impressora padrão",
+      copies,
+    };
+  } catch (error) {
+    return {
+      printed: false,
+      printerName: printerName || "impressora padrão",
+      copies,
+      message: String(error?.message || error),
+    };
+  }
+}
+
 function extractAccessKeyFromXml(xmlContent) {
   const match = String(xmlContent || "").match(/<infNFe[^>]+Id="NFe(\d{44})"/i);
   return match?.[1] || null;
@@ -398,6 +437,7 @@ async function run() {
     let postXml = null;
     let rawResponse = null;
     let pdf = null;
+    let danfcePrint = null;
     let chaveAcesso = null;
 
     if (operation === "transmitir_xml_contingencia") {
@@ -454,12 +494,16 @@ async function run() {
       });
 
       if (operation === "emitir_contingencia_offline") {
+        phase = "imprimir_danfce_contingencia_acbr";
+        danfcePrint = await tryPrintDanfceWithAcbr(session, postXml || preXml || "");
         phase = "gerar_pdf_contingencia_offline";
         pdf = await tryGeneratePdfFromXml(session, postXml || preXml || "");
       } else {
         phase = "enviar";
         rawResponse = session.acbr.enviar(1, false, true, false);
         postXml = safeGetXml(session.acbr) || postXml || preXml;
+        phase = "imprimir_danfce_acbr";
+        danfcePrint = await tryPrintDanfceWithAcbr(session, postXml || preXml || "");
         phase = "gerar_pdf";
         pdf = await tryGeneratePdf(session, postXml || preXml || "");
       }
@@ -477,6 +521,8 @@ async function run() {
       pdfBase64: pdf?.buffer ? pdf.buffer.toString("base64") : null,
       pdfUnsupported: Boolean(pdf?.unsupported),
       pdfMessage: pdf?.message || null,
+      danfcePrintedByAcbr: Boolean(danfcePrint?.printed),
+      danfcePrint,
       chaveAcesso,
       paths: {
         configPath: session.configPath,
