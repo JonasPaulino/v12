@@ -1,5 +1,6 @@
 import path from "node:path";
 import process from "node:process";
+import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
 
@@ -15,10 +16,24 @@ const desktopAcbrRoot = path.resolve(desktopRoot, "lib", "ACBrLibNFE");
 dotenv.config({ path: desktopEnvPath });
 
 const rootDir = process.cwd();
-const defaultAcbrLibPath =
-  process.platform === "win32"
-    ? path.join(desktopAcbrRoot, "win64", "ACBrNFe64.dll")
-    : path.join(desktopAcbrRoot, "linux", "CONSOLE-MT", "libacbrnfe64.so");
+function resolveDefaultAcbrLibPath() {
+  const candidates =
+    process.platform === "win32"
+      ? [
+          path.join(desktopAcbrRoot, "Windows", "MT", "Cdecl", "ACBrNFe64.dll"),
+          path.join(desktopAcbrRoot, "Windows", "CONSOLE-MT", "ACBrNFe64.dll"),
+          path.join(desktopAcbrRoot, "Windows", "MT", "StdCall", "ACBrNFe64.dll"),
+          path.join(desktopAcbrRoot, "win64", "ACBrNFe64.dll"),
+        ]
+      : [
+          path.join(desktopAcbrRoot, "linux", "CONSOLE-MT", "libacbrnfe64.so"),
+          path.join(desktopAcbrRoot, "linux", "mt", "libacbrnfe64.so"),
+        ];
+
+  return candidates.find((candidate) => fs.existsSync(candidate)) || candidates[0];
+}
+
+const defaultAcbrLibPath = resolveDefaultAcbrLibPath();
 
 export const env = {
   port: Number(process.env.V12_LOCAL_PORT || 5100),

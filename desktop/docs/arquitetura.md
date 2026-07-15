@@ -53,6 +53,6 @@ A biblioteca fiscal do PDV deve existir dentro da propria pasta `desktop`, para 
 
 Padrao esperado:
 
-- `desktop/lib/ACBrLibNFE/win64/ACBrNFe64.dll`
+- `desktop/lib/ACBrLibNFE/Windows/MT/Cdecl/ACBrNFe64.dll`
 - `desktop/lib/ACBrLibNFE/dep/ACBrNFeServicos.ini`
 - `desktop/lib/ACBrLibNFE/dep/Schemas/NFe/`

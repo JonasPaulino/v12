@@ -17,7 +17,7 @@ function loadAcbrLibRuntime() {
       return legacyModule?.default || legacyModule?.ACBrLibNFeMT || legacyModule;
     } catch {
       const error = new Error(
-        "Pacote @projetoacbr/acbrlib-nfe-node não está disponível no desktop.",
+        "A dependência Node da ACBrLibNFe não está instalada no desktop.",
       );
       error.cause = firstError;
       throw error;

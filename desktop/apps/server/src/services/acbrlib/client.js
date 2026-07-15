@@ -19,6 +19,24 @@ async function safeReadJsonFile(targetPath) {
   }
 }
 
+function sanitizeAcbrWorkerMessage(message = "", diagnostics = null) {
+  const raw = String(message || "").trim();
+
+  if (/depend[êe]ncia node da acbrlibnfe n[aã]o est[aá] instalada no desktop/i.test(raw)) {
+    return "A integração fiscal local não está completa. Instale as dependências do desktop antes de emitir NFC-e.";
+  }
+
+  if (/Pacote @projetoacbr\/acbrlib-nfe-node/i.test(raw) || /Cannot find module '@projetoacbr\/acbrlib-nfe-node'/i.test(raw)) {
+    return "A integração fiscal local não está completa. O pacote Node da ACBrLibNFe não foi encontrado no desktop.";
+  }
+
+  if (/ACBrLibNFe n[aã]o encontrada em/i.test(raw) && diagnostics?.libPath) {
+    return `A biblioteca fiscal da NFC-e não foi encontrada no terminal. Verifique o arquivo em ${diagnostics.libPath}.`;
+  }
+
+  return raw;
+}
+
 export async function runNfceEmissionWorker({
   tenantId,
   vendaId,
@@ -73,12 +91,16 @@ export async function runNfceEmissionWorker({
   } catch (error) {
     const result = await safeReadJsonFile(outputPath);
     const stderr = String(error.stderr || "").trim();
+    const diagnostics = getAcbrLibDiagnostics();
     const message =
-      result?.lastReturn ||
-      result?.message ||
-      stderr ||
-      error.message ||
-      "Falha na emissão da NFC-e pela ACBrLib.";
+      sanitizeAcbrWorkerMessage(
+        result?.lastReturn ||
+          result?.message ||
+          stderr ||
+          error.message ||
+          "Falha na emissão da NFC-e pela ACBrLib.",
+        diagnostics,
+      ) || "Falha na emissão da NFC-e pela ACBrLib.";
 
     const wrapped = new Error(message);
     wrapped.details = {
@@ -100,6 +122,14 @@ export function getAcbrLibReadiness() {
       ready: false,
       diagnostics,
       reason: "O PDV está configurado para outro adaptador fiscal. Defina V12_ACBR_MODE=lib.",
+    };
+  }
+
+  if (!diagnostics.packageAvailable) {
+    return {
+      ready: false,
+      diagnostics,
+      reason: sanitizeAcbrWorkerMessage(diagnostics.packageMessage, diagnostics),
     };
   }
 
