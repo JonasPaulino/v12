@@ -7,6 +7,25 @@ import { useVendaFinanceiro } from "./venda/useVendaFinanceiro.js";
 import { buildBudgetPayload, buildBudgetPayloadFromVenda } from "./venda/vendaPayloads.js";
 import { sendBudgetToPrint as printBudgetDocument, sendDanfceToPrint as printDanfceDocument } from "./venda/vendaPrintService.js";
 
+function isProdutoControlaEstoque(value) {
+  if (value === undefined || value === null || value === "") {
+    return true;
+  }
+
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  if (typeof value === "number") {
+    return value === 1;
+  }
+
+  const normalized = String(value).trim().toLowerCase();
+  if (["1", "true", "sim", "yes", "t"].includes(normalized)) return true;
+  if (["0", "false", "nao", "não", "no", "f"].includes(normalized)) return false;
+  return true;
+}
+
 function getClienteResumo(clienteIdentificado) {
   if (!clienteIdentificado) {
     return null;
@@ -101,7 +120,7 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
       const existing = current.find((item) => item.produto_id === produto.produto_id);
       const quantidadeAdicionar = Math.max(1, Number(quantidade) || 1);
       const estoqueDisponivel = Math.max(0, Number(produto.estoque_atual || 0));
-      const controlaEstoque = produto.controla_estoque !== false;
+      const controlaEstoque = isProdutoControlaEstoque(produto.controla_estoque);
 
       if (controlaEstoque && quantidadeAdicionar > estoqueDisponivel) {
         showAlert({
@@ -153,7 +172,7 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
     for (const item of normalizedCart) {
       const quantidade = Number(item.quantidade || 0);
       const estoqueDisponivel = Math.max(0, Number(item.estoque_atual || 0));
-      const controlaEstoque = item.controla_estoque !== false;
+      const controlaEstoque = isProdutoControlaEstoque(item.controla_estoque);
 
       if (controlaEstoque && quantidade > estoqueDisponivel) {
         showAlert({

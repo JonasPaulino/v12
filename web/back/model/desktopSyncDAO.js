@@ -1,3 +1,14 @@
+const parseBooleanFlag = (value, defaultValue = false) => {
+  if (value === undefined || value === null || value === "") return defaultValue;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value === 1;
+
+  const normalized = String(value).trim().toLowerCase();
+  if (["true", "1", "sim", "yes", "t"].includes(normalized)) return true;
+  if (["false", "0", "nao", "não", "no", "f"].includes(normalized)) return false;
+  return defaultValue;
+};
+
 class DesktopSyncDAO {
   static async validarTenantAtivo(client, tenantId) {
     const { rows } = await client.query(
@@ -121,14 +132,14 @@ class DesktopSyncDAO {
       regra_tributaria_id: row.regra_tributaria_id ? Number(row.regra_tributaria_id) : null,
       preco_venda: Number(row.preco_venda || 0),
       estoque_atual: Number(row.estoque_atual || 0),
-      controla_estoque: !!row.controla_estoque,
+      controla_estoque: parseBooleanFlag(row.controla_estoque, true),
       icms_aliquota: Number(row.icms_aliquota || 0),
       icms_reducao_base: Number(row.icms_reducao_base || 0),
       icms_aliquota_fcp: Number(row.icms_aliquota_fcp || 0),
       pis_aliquota: Number(row.pis_aliquota || 0),
       cofins_aliquota: Number(row.cofins_aliquota || 0),
       ipi_aliquota: Number(row.ipi_aliquota || 0),
-      ativo: !!row.ativo,
+      ativo: parseBooleanFlag(row.ativo, true),
     }));
   }
 
@@ -176,8 +187,8 @@ class DesktopSyncDAO {
 
     return rows.map((row) => ({
       ...row,
-      ativo: !!row.ativo,
-      primeiro_acesso: !!row.primeiro_acesso,
+      ativo: parseBooleanFlag(row.ativo, true),
+      primeiro_acesso: parseBooleanFlag(row.primeiro_acesso, false),
       perfis: Array.isArray(row.perfis) ? row.perfis : [],
     }));
   }

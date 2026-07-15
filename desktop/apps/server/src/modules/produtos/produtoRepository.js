@@ -1,6 +1,25 @@
 import { getDb } from "../../db/connection.js";
 import { getTerminalTenantErpId } from "../configuracao/localConfigRepository.js";
 
+function toBooleanFlag(value, defaultValue = true) {
+  if (value === undefined || value === null || value === "") {
+    return defaultValue;
+  }
+
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  if (typeof value === "number") {
+    return value === 1;
+  }
+
+  const normalized = String(value).trim().toLowerCase();
+  if (["1", "true", "sim", "yes", "t"].includes(normalized)) return true;
+  if (["0", "false", "nao", "não", "no", "f"].includes(normalized)) return false;
+  return defaultValue;
+}
+
 const PRODUTO_COLUMNS = [
   "tenant_erp_id",
   "erp_id",
@@ -92,7 +111,14 @@ export function listProdutos({ search = "", limit = 50 } = {}) {
        ORDER BY descricao
        LIMIT ?`,
     )
-    .all(tenantErpId, search, like, like, limit);
+    .all(tenantErpId, search, like, like, limit)
+    .map((row) => ({
+      ...row,
+      preco_venda: Number(row.preco_venda || 0),
+      estoque_atual: Number(row.estoque_atual || 0),
+      controla_estoque: toBooleanFlag(row.controla_estoque, true),
+      ativo: toBooleanFlag(row.ativo, true),
+    }));
 }
 
 export function upsertProduto(produto) {
@@ -133,7 +159,7 @@ export function upsertProduto(produto) {
     ipi_aliquota: Number(produto.ipi_aliquota || 0),
     preco_venda: Number(produto.preco_venda || 0),
     estoque_atual: Number(produto.estoque_atual || 0),
-    controla_estoque: produto.controla_estoque === false ? 0 : 1,
+    controla_estoque: toBooleanFlag(produto.controla_estoque, true) ? 1 : 0,
     ativo: produto.ativo === false ? 0 : 1,
   };
 

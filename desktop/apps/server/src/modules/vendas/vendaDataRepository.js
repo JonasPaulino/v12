@@ -3,6 +3,25 @@ import { getDb } from "../../db/connection.js";
 import { assertTerminalConfigurado, getTerminalTenantErpId } from "../configuracao/localConfigRepository.js";
 import { getNfceByVendaId } from "./nfceRepository.js";
 
+function toBooleanFlag(value, defaultValue = true) {
+  if (value === undefined || value === null || value === "") {
+    return defaultValue;
+  }
+
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  if (typeof value === "number") {
+    return value === 1;
+  }
+
+  const normalized = String(value).trim().toLowerCase();
+  if (["1", "true", "sim", "yes", "t"].includes(normalized)) return true;
+  if (["0", "false", "nao", "não", "no", "f"].includes(normalized)) return false;
+  return defaultValue;
+}
+
 export function normalizePayment(payment) {
   return {
     forma: payment.forma || formaPagamento.DINHEIRO,
@@ -54,7 +73,7 @@ export function validarItensVenda(db, tenantErpId, items = []) {
       throw new Error(`O produto ${item.descricao || produtoId} não está ativo no PDV.`);
     }
 
-    const controlaEstoque = Number(produto.controla_estoque ?? 1) === 1;
+    const controlaEstoque = toBooleanFlag(produto.controla_estoque, true);
     const estoqueDisponivel = Number(produto.estoque_atual || 0);
     if (controlaEstoque && quantidade > estoqueDisponivel) {
       throw new Error(
@@ -76,7 +95,7 @@ export function validarItensVenda(db, tenantErpId, items = []) {
 
 export function aplicarMovimentoEstoque(db, tenantErpId, items = [], direction = "saida") {
   for (const item of items) {
-    if (Number(item.controla_estoque ?? 1) !== 1) {
+    if (!toBooleanFlag(item.controla_estoque, true)) {
       continue;
     }
 
