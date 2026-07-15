@@ -71,6 +71,11 @@ const ensureDir = async (targetPath) => {
   await fs.mkdir(targetPath, { recursive: true });
 };
 
+const escapeIniValue = (value) =>
+  String(value ?? "")
+    .replace(/\r?\n/g, " ")
+    .trim();
+
 function normalizePathList(value) {
   return String(value || "")
     .split(path.delimiter)
@@ -187,8 +192,67 @@ function applyConfig(acbr, sessao, chave, valor) {
     if (/Chave .* não existe na Sessão|Chave .* nao existe na Sessao|Sessão .* não existe|Sessao .* nao existe/i.test(message)) {
       return;
     }
-    throw error;
+    throw new Error(
+      `Falha ao gravar configuração ACBr [${sessao}] ${chave}: ${message}`,
+    );
   }
+}
+
+function buildBaseNfceConfig({
+  logDir,
+  schemaDir,
+  certPath = "",
+  certificadoSenha = "",
+  xmlDir = "",
+  pdfDir = "",
+  uf = "",
+  ambiente = "2",
+  iniServicosPath = "",
+}) {
+  const sslConfig = resolveSslConfig();
+
+  return `[Principal]
+TipoResposta=0
+CodificacaoResposta=0
+LogNivel=4
+LogPath=${escapeIniValue(logDir)}
+
+[DFe]
+SSLCryptLib=${escapeIniValue(sslConfig.sslCryptLib)}
+SSLHttpLib=${escapeIniValue(sslConfig.sslHttpLib)}
+SSLXmlSignLib=${escapeIniValue(sslConfig.sslXmlSignLib)}
+UF=${escapeIniValue(String(uf || "").toUpperCase())}
+ArquivoPFX=${escapeIniValue(certPath)}
+Senha=${escapeIniValue(certificadoSenha)}
+
+[NFe]
+Ambiente=${escapeIniValue(mapAcbrAmbiente(ambiente))}
+FormaEmissao=0
+ModeloDF=1
+VersaoDF=3
+SSLType=${escapeIniValue(sslConfig.sslType)}
+PathSchemas=${escapeIniValue(schemaDir)}
+PathSalvar=${escapeIniValue(xmlDir)}
+PathNFe=${escapeIniValue(xmlDir)}
+IniServicos=${escapeIniValue(iniServicosPath)}
+SepararPorCNPJ=1
+
+[DANFE]
+PathPDF=${escapeIniValue(pdfDir)}
+
+[Arquivos]
+Salvar=1
+PathSalvar=${escapeIniValue(xmlDir)}
+PathSchemas=${escapeIniValue(schemaDir)}
+
+[Geral]
+PathSchemas=${escapeIniValue(schemaDir)}
+IniServicos=${escapeIniValue(iniServicosPath)}
+
+[Certificado]
+ArquivoPFX=${escapeIniValue(certPath)}
+Senha=${escapeIniValue(certificadoSenha)}
+`;
 }
 
 function configurePrinter(acbr, pdfDir, printerConfig = getPrinterConfig()) {
@@ -236,6 +300,21 @@ export async function createAcbrSession({
   await ensureDir(pdfDir);
   await ensureDir(logDir);
   await fs.writeFile(certPath, certificadoBuffer);
+  await fs.writeFile(
+    configPath,
+    buildBaseNfceConfig({
+      logDir,
+      schemaDir: env.acbrLibSchemaPath,
+      certPath,
+      certificadoSenha,
+      xmlDir,
+      pdfDir,
+      uf: emitenteUf,
+      ambiente,
+      iniServicosPath: env.acbrLibIniServicosPath,
+    }),
+    "utf8",
+  );
 
   const ACBrLibNFeMT = loadAcbrLibRuntime();
   const acbr = new ACBrLibNFeMT(env.acbrLibPath, configPath, "");
@@ -254,15 +333,15 @@ export async function createAcbrSession({
   applyConfig(acbr, "DFe", "ArquivoPFX", certPath);
   applyConfig(acbr, "DFe", "Senha", certificadoSenha || "");
 
-  applyConfig(acbr, "NFE", "Ambiente", mapAcbrAmbiente(ambiente));
-  applyConfig(acbr, "NFE", "FormaEmissao", formaEmissao);
-  applyConfig(acbr, "NFE", "ModeloDF", "1");
-  applyConfig(acbr, "NFE", "VersaoDF", "3");
-  applyConfig(acbr, "NFE", "SSLType", sslConfig.sslType);
-  applyConfig(acbr, "NFE", "PathSchemas", env.acbrLibSchemaPath);
-  applyConfig(acbr, "NFE", "PathSalvar", xmlDir);
-  applyConfig(acbr, "NFE", "PathNFe", xmlDir);
-  applyConfig(acbr, "NFE", "IniServicos", env.acbrLibIniServicosPath);
+  applyConfig(acbr, "NFe", "Ambiente", mapAcbrAmbiente(ambiente));
+  applyConfig(acbr, "NFe", "FormaEmissao", formaEmissao);
+  applyConfig(acbr, "NFe", "ModeloDF", "1");
+  applyConfig(acbr, "NFe", "VersaoDF", "3");
+  applyConfig(acbr, "NFe", "SSLType", sslConfig.sslType);
+  applyConfig(acbr, "NFe", "PathSchemas", env.acbrLibSchemaPath);
+  applyConfig(acbr, "NFe", "PathSalvar", xmlDir);
+  applyConfig(acbr, "NFe", "PathNFe", xmlDir);
+  applyConfig(acbr, "NFe", "IniServicos", env.acbrLibIniServicosPath);
 
   applyConfig(acbr, "Arquivos", "Salvar", "1");
   applyConfig(acbr, "Arquivos", "PathSalvar", xmlDir);
@@ -273,7 +352,7 @@ export async function createAcbrSession({
   applyConfig(acbr, "Certificado", "Senha", certificadoSenha || "");
 
   configurePrinter(acbr, pdfDir);
-  acbr.configGravar(configPath);
+  acbr.configGravar();
 
   return {
     acbr,

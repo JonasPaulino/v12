@@ -188,25 +188,40 @@ function normalizeAcbrCertificateMessage(message = "") {
   return "O certificado A1 da filial foi sincronizado, mas a assinatura local falhou por incompatibilidade criptografica do PFX. Reimporte ou converta o certificado para um formato compativel com o OpenSSL atual.";
 }
 
-async function tryGeneratePdf(session) {
+function pdfBufferFromBase64(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+
+  try {
+    const buffer = Buffer.from(raw, "base64");
+    return buffer.subarray(0, 4).toString("utf8") === "%PDF" ? buffer : null;
+  } catch {
+    return null;
+  }
+}
+
+async function readGeneratedPdf({ pdfResponse, pdfDir }) {
   try {
     const candidates = [];
+    const directPdf = pdfBufferFromBase64(pdfResponse);
 
-    if (typeof session.acbr.salvarPDF === "function") {
-      const pdfResponse = session.acbr.salvarPDF();
-      if (pdfResponse) {
-        candidates.push(String(pdfResponse).trim());
-      }
-    } else if (typeof session.acbr.imprimirPDF === "function") {
-      session.acbr.imprimirPDF();
-    } else {
-      return null;
+    if (directPdf) {
+      const generatedPath = path.join(pdfDir, `danfce-${Date.now()}.pdf`);
+      await fs.writeFile(generatedPath, directPdf);
+      return {
+        path: generatedPath,
+        buffer: directPdf,
+      };
     }
 
-    const files = await fs.readdir(session.pdfDir).catch(() => []);
+    if (pdfResponse) {
+      candidates.push(String(pdfResponse).trim());
+    }
+
+    const files = await fs.readdir(pdfDir).catch(() => []);
     const pdfFiles = files
       .filter((file) => file.toLowerCase().endsWith(".pdf"))
-      .map((file) => path.join(session.pdfDir, file));
+      .map((file) => path.join(pdfDir, file));
 
     candidates.push(...pdfFiles);
 
@@ -220,10 +235,52 @@ async function tryGeneratePdf(session) {
       } catch {}
     }
 
-    return newest?.path || null;
+    if (!newest) {
+      return null;
+    }
+
+    return {
+      path: newest.path,
+      buffer: await fs.readFile(newest.path),
+    };
   } catch {
     return null;
   }
+}
+
+async function savePdf(session) {
+  if (typeof session.acbr.salvarPDF === "function") {
+    return session.acbr.salvarPDF();
+  }
+
+  if (typeof session.acbr.imprimirPDF === "function") {
+    session.acbr.imprimirPDF();
+    return null;
+  }
+
+  return null;
+}
+
+async function tryGeneratePdf(session, xmlContent = null) {
+  let pdfResponse = null;
+
+  try {
+    pdfResponse = await savePdf(session);
+  } catch (error) {
+    if (!xmlContent) {
+      throw error;
+    }
+
+    const xmlPath = await writeXmlArtifact(session, "nfce-pdf.xml", xmlContent);
+    session.acbr.limparLista();
+    session.acbr.carregarXML(xmlPath);
+    pdfResponse = await savePdf(session);
+  }
+
+  return readGeneratedPdf({
+    pdfResponse,
+    pdfDir: session.pdfDir,
+  });
 }
 
 async function writeXmlArtifact(session, filename, xmlContent) {
@@ -240,7 +297,7 @@ async function tryGeneratePdfFromXml(session, xmlContent) {
   } catch {
     // segue para tentar gerar PDF do contexto já carregado
   }
-  return tryGeneratePdf(session);
+  return tryGeneratePdf(session, xmlContent);
 }
 
 function extractAccessKeyFromXml(xmlContent) {
@@ -299,7 +356,7 @@ async function run() {
       applyOptionalConfig(session.acbr, "DFe", "Senha", certificadoSenha || "");
       applyOptionalConfig(session.acbr, "Certificado", "ArquivoPFX", session.certPath);
       applyOptionalConfig(session.acbr, "Certificado", "Senha", certificadoSenha || "");
-      session.acbr.configGravar(session.configPath);
+      session.acbr.configGravar();
     }
     console.log("[acbr:nfce:worker] Certificado preparado", {
       vendaId,
@@ -309,14 +366,14 @@ async function run() {
     });
 
     phase = "configurar_csc";
-    session.acbr.configGravarValor("NFE", "IdCSC", String(context.configuracao.nfce_id_token_csc || ""));
-    session.acbr.configGravarValor("NFE", "CSC", String(context.configuracao.nfce_csc || ""));
-    session.acbr.configGravar(session.configPath);
+    session.acbr.configGravarValor("NFe", "IdCSC", String(context.configuracao.nfce_id_token_csc || ""));
+    session.acbr.configGravarValor("NFe", "CSC", String(context.configuracao.nfce_csc || ""));
+    session.acbr.configGravar();
 
     let preXml = null;
     let postXml = null;
     let rawResponse = null;
-    let pdfPath = null;
+    let pdf = null;
     let chaveAcesso = null;
 
     if (operation === "transmitir_xml_contingencia") {
@@ -335,7 +392,7 @@ async function run() {
       rawResponse = session.acbr.enviar(1, false, true, false);
       postXml = safeGetXml(session.acbr) || preXml;
       phase = "gerar_pdf_contingencia_transmissao";
-      pdfPath = await tryGeneratePdfFromXml(session, postXml || preXml || "");
+      pdf = await tryGeneratePdfFromXml(session, postXml || preXml || "");
       chaveAcesso = extractAccessKeyFromXml(postXml || preXml || "");
     } else {
       phase = "montar_ini";
@@ -374,13 +431,13 @@ async function run() {
 
       if (operation === "emitir_contingencia_offline") {
         phase = "gerar_pdf_contingencia_offline";
-        pdfPath = await tryGeneratePdfFromXml(session, postXml || preXml || "");
+        pdf = await tryGeneratePdfFromXml(session, postXml || preXml || "");
       } else {
         phase = "enviar";
         rawResponse = session.acbr.enviar(1, false, true, false);
         postXml = safeGetXml(session.acbr) || postXml || preXml;
         phase = "gerar_pdf";
-        pdfPath = await tryGeneratePdf(session);
+        pdf = await tryGeneratePdf(session, postXml || preXml || "");
       }
     }
 
@@ -392,7 +449,8 @@ async function run() {
       rawResponse,
       preXml,
       postXml,
-      pdfPath,
+      pdfPath: pdf?.path || null,
+      pdfBase64: pdf?.buffer ? pdf.buffer.toString("base64") : null,
       chaveAcesso,
       paths: {
         configPath: session.configPath,
