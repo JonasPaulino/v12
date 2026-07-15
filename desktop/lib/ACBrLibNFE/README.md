@@ -10,6 +10,15 @@ Estrutura esperada:
 - `desktop/lib/ACBrLibNFE/dep/ACBrNFeServicos.ini`
 - `desktop/lib/ACBrLibNFE/dep/Schemas/NFe/`
 
+No Windows, a ACBrLibNFe tambem precisa das DLLs nativas de XML/OpenSSL. O runtime do PDV tenta localizar essas dependencias nas pastas:
+
+- `desktop/lib/ACBrLibNFE/dep/LibXml2/x64`
+- `desktop/lib/ACBrLibNFE/dep/OpenSSL/x64`
+- `web/acbr/lib/ACBrLibMDFe/dep/LibXml2/x64`
+- `web/acbr/lib/ACBrLibMDFe/dep/OpenSSL/x64`
+
+Para uma instalacao desktop independente, copie as DLLs de `LibXml2/x64` e `OpenSSL/x64` para dentro de `desktop/lib/ACBrLibNFE/dep`.
+
 Fallbacks aceitos no Windows:
 
 - `desktop/lib/ACBrLibNFE/Windows/CONSOLE-MT/ACBrNFe64.dll`

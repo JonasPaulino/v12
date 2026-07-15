@@ -206,7 +206,7 @@ async function run() {
 
       phase = "carregar_ini";
       session.acbr.limparLista();
-      session.acbr.carregarINI(iniPath);
+      session.acbr.carregarINI(await fs.readFile(iniPath, "utf8"));
 
       preXml = safeGetXml(session.acbr);
       console.log("[acbr:nfce:worker] INI carregado", {

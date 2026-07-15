@@ -59,9 +59,62 @@ const DEFAULT_SSL_CONFIG = {
   sslType: "5",
 };
 
+const WINDOWS_NATIVE_DEPENDENCIES = [
+  "libxml2.dll",
+  "libiconv.dll",
+  "libxslt.dll",
+  "libssl-1_1-x64.dll",
+  "libcrypto-1_1-x64.dll",
+];
+
 const ensureDir = async (targetPath) => {
   await fs.mkdir(targetPath, { recursive: true });
 };
+
+function normalizePathList(value) {
+  return String(value || "")
+    .split(path.delimiter)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function configureNativeDependencyPath() {
+  if (process.platform !== "win32") return;
+
+  const currentPaths = normalizePathList(process.env.PATH);
+  const missingPaths = env.acbrLibNativeDependencyDirs.filter(
+    (dependencyDir) => !currentPaths.some((currentPath) => currentPath.toLowerCase() === dependencyDir.toLowerCase()),
+  );
+
+  if (!missingPaths.length) return;
+
+  process.env.PATH = [...missingPaths, ...currentPaths].join(path.delimiter);
+}
+
+function getWindowsNativeDependencyStatus() {
+  if (process.platform !== "win32") {
+    return {
+      required: false,
+      dirs: [],
+      missing: [],
+    };
+  }
+
+  const found = new Set();
+  for (const dependencyDir of env.acbrLibNativeDependencyDirs) {
+    for (const dependency of WINDOWS_NATIVE_DEPENDENCIES) {
+      if (existsSync(path.join(dependencyDir, dependency))) {
+        found.add(dependency.toLowerCase());
+      }
+    }
+  }
+
+  return {
+    required: true,
+    dirs: env.acbrLibNativeDependencyDirs,
+    missing: WINDOWS_NATIVE_DEPENDENCIES.filter((dependency) => !found.has(dependency.toLowerCase())),
+  };
+}
 
 const mapAcbrAmbiente = (value) => (String(value || "2") === "1" ? "0" : "1");
 
@@ -74,6 +127,7 @@ const resolveSslConfig = () => ({
 
 export function getAcbrLibDiagnostics() {
   const runtimeEntry = resolveAcbrLibRuntimeEntry();
+  configureNativeDependencyPath();
   let packageAvailable = runtimeEntry.available;
   let packageMessage = runtimeEntry.message;
 
@@ -99,10 +153,12 @@ export function getAcbrLibDiagnostics() {
     configDir: env.acbrLibConfigDir,
     tempDir: env.acbrLibTempDir,
     logDir: env.acbrLibLogDir,
+    nativeDependencies: getWindowsNativeDependencyStatus(),
   };
 }
 
 export async function ensureAcbrLibRuntime() {
+  configureNativeDependencyPath();
   loadAcbrLibRuntime();
 
   if (!existsSync(env.acbrLibPath)) {

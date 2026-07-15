@@ -12,6 +12,7 @@ const desktopEnvPath = path.resolve(__dirname, "../../../../.env");
 const workspaceRoot = path.resolve(__dirname, "../../../../../");
 const desktopRoot = path.resolve(workspaceRoot, "desktop");
 const desktopAcbrRoot = path.resolve(desktopRoot, "lib", "ACBrLibNFE");
+const webAcbrMdfeRoot = path.resolve(workspaceRoot, "web", "acbr", "lib", "ACBrLibMDFe");
 
 dotenv.config({ path: desktopEnvPath });
 
@@ -35,6 +36,20 @@ function resolveDefaultAcbrLibPath() {
 
 const defaultAcbrLibPath = resolveDefaultAcbrLibPath();
 
+function resolveAcbrNativeDependencyDirs() {
+  const candidates =
+    process.platform === "win32"
+      ? [
+          path.join(desktopAcbrRoot, "dep", "LibXml2", "x64"),
+          path.join(desktopAcbrRoot, "dep", "OpenSSL", "x64"),
+          path.join(webAcbrMdfeRoot, "dep", "LibXml2", "x64"),
+          path.join(webAcbrMdfeRoot, "dep", "OpenSSL", "x64"),
+        ]
+      : [];
+
+  return candidates.filter((candidate) => fs.existsSync(candidate));
+}
+
 export const env = {
   port: Number(process.env.V12_LOCAL_PORT || 5100),
   dbPath: process.env.V12_LOCAL_DB_PATH || path.join(rootDir, "data", "v12-pdv.sqlite"),
@@ -57,4 +72,5 @@ export const env = {
     process.env.V12_ACBRLIB_TEMP_DIR || path.join(desktopRoot, "data", "acbrlib", "runtime"),
   acbrLibLogDir:
     process.env.V12_ACBRLIB_LOG_DIR || path.join(desktopRoot, "data", "acbrlib", "log"),
+  acbrLibNativeDependencyDirs: resolveAcbrNativeDependencyDirs(),
 };
