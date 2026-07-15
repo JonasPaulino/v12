@@ -1,4 +1,5 @@
 import { pool } from "../config/conexao.js";
+import ConfiguracaoFiscalDAO from "../model/configuracaoFiscalDAO.js";
 import DesktopSyncDAO from "../model/desktopSyncDAO.js";
 import PdvDAO from "../model/pdvDAO.js";
 
@@ -148,6 +149,14 @@ async function processarEventoComClient(client, evento) {
           status: NFCE_EVENT_MAP[evento.eventType] || evento.payload?.status,
         },
       });
+
+      if (["NFCE_CONTINGENCIA", "NFCE_AUTORIZADA"].includes(evento.eventType)) {
+        await ConfiguracaoFiscalDAO.avancarProximoNumeroNfce(client, {
+          tenantId: evento.tenantId,
+          numeroAtual: evento.payload?.numero,
+        });
+      }
+
       return "Status fiscal do PDV sincronizado.";
     }
 

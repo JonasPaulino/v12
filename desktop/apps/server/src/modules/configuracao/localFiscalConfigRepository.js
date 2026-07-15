@@ -78,6 +78,13 @@ export function saveFiscalConfig(payload = {}) {
     throw new Error("Filial fiscal do NFC-e inválida para o PDV.");
   }
 
+  const currentConfig = getFiscalConfig();
+  const incomingNextNumber = Number(payload.proximo_numero_nfce || 1);
+  const preservedNextNumber =
+    currentConfig && Number(currentConfig.tenant_erp_id) === tenantErpId
+      ? Math.max(Number(currentConfig.proximo_numero_nfce || 1), incomingNextNumber)
+      : incomingNextNumber;
+
   db.prepare(
     `INSERT INTO fiscal_config (
       config_id,
@@ -171,7 +178,7 @@ export function saveFiscalConfig(payload = {}) {
     payload.natureza_operacao_padrao || "Venda de mercadoria",
     toBooleanFlag(payload.nfce_habilitada, false) ? 1 : 0,
     Number(payload.serie_nfce_padrao || 1),
-    Number(payload.proximo_numero_nfce || 1),
+    preservedNextNumber,
     payload.nfce_id_token_csc || null,
     payload.nfce_csc || null,
     payload.nfce_ind_pres_padrao || "1",

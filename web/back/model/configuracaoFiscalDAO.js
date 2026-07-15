@@ -114,6 +114,31 @@ const mapGatewayRowToViewRow = (row) => ({
 });
 
 class ConfiguracaoFiscalDAO {
+  static async avancarProximoNumeroNfce(client, { tenantId, numeroAtual }) {
+    const safeTenantId = Number(tenantId);
+    const safeNumeroAtual = Number(numeroAtual);
+
+    if (!Number.isInteger(safeTenantId) || safeTenantId <= 0) {
+      throw new Error("Tenant inválido para avanço da numeração NFC-e.");
+    }
+
+    if (!Number.isInteger(safeNumeroAtual) || safeNumeroAtual <= 0) {
+      return;
+    }
+
+    await client.query(
+      `
+        UPDATE tenant_configuracao_fiscal
+        SET proximo_numero_nfce = GREATEST(
+          COALESCE(proximo_numero_nfce, 1),
+          $2
+        )
+        WHERE tenant_id = $1
+      `,
+      [safeTenantId, safeNumeroAtual + 1],
+    );
+  }
+
   static async legacyGatewayTableExists(client) {
     const { rows } = await client.query(
       `

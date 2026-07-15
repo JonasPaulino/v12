@@ -4,6 +4,7 @@ import { pool } from "../config/conexao.js";
 import desktopSyncAuth from "../middleware/desktopSyncAuth.js";
 import DesktopSyncDAO from "../model/desktopSyncDAO.js";
 import FinanceiroDAO from "../model/financeiroDAO.js";
+import ConfiguracaoFiscalDAO from "../model/configuracaoFiscalDAO.js";
 import loginDAO from "../model/loginDAO.js";
 import { processarEventoDesktopSync } from "../services/pdvSyncProcessor.js";
 import { hashPassword, verifyPassword } from "../utils/password.js";
@@ -311,6 +312,30 @@ async function getTenantWithCompanyData(client, tenantId) {
     return null;
   }
 
+  const maxNfceConsumidaResult = await client.query(
+    `
+      SELECT COALESCE(MAX(nfce_numero), 0)::int AS max_numero
+      FROM pdv.venda
+      WHERE tenant_id = $1
+        AND nfce_status IN ('autorizada', 'contingencia', 'cancelada')
+        AND nfce_numero IS NOT NULL
+    `,
+    [tenantId],
+  );
+
+  const maxNfceConsumida = Number(maxNfceConsumidaResult.rows[0]?.max_numero || 0);
+  if (maxNfceConsumida > 0) {
+    await ConfiguracaoFiscalDAO.avancarProximoNumeroNfce(client, {
+      tenantId,
+      numeroAtual: maxNfceConsumida,
+    });
+  }
+
+  const proximoNumeroNfce = Math.max(
+    Number(row.proximo_numero_nfce ?? 1),
+    maxNfceConsumida > 0 ? maxNfceConsumida + 1 : 1,
+  );
+
   return {
     tenant_id: row.tenant_id,
     tenant_nome: row.tenant_nome,
@@ -357,7 +382,7 @@ async function getTenantWithCompanyData(client, tenantId) {
       natureza_operacao_padrao: row.natureza_operacao_padrao || "Venda de mercadoria",
       nfce_habilitada: parseBooleanFlag(row.nfce_habilitada, false),
       serie_nfce_padrao: Number(row.serie_nfce_padrao ?? 1),
-      proximo_numero_nfce: Number(row.proximo_numero_nfce ?? 1),
+      proximo_numero_nfce: proximoNumeroNfce,
       nfce_id_token_csc: row.nfce_id_token_csc || "",
       nfce_csc: row.nfce_csc_criptografado
         ? decryptSecret(row.nfce_csc_criptografado)
