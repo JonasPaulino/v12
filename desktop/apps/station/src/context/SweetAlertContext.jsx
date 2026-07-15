@@ -78,6 +78,24 @@ export function SweetAlertProvider({ children }) {
 
         return result.isConfirmed ? result.value : null;
       },
+      showToast: ({ title, text, icon = "success", timer = 1800, position = "top-end" }) => {
+        hideGlobalLoading();
+        return Swal.fire({
+          toast: true,
+          position,
+          icon,
+          title,
+          text,
+          timer,
+          timerProgressBar: true,
+          showConfirmButton: false,
+          background: "#f8fbff",
+          didOpen: (toast) => {
+            toast.addEventListener("mouseenter", Swal.stopTimer);
+            toast.addEventListener("mouseleave", Swal.resumeTimer);
+          },
+        });
+      },
     }),
     [],
   );

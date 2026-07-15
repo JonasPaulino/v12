@@ -134,6 +134,8 @@ async function run() {
     formaEmissao = "0",
     xmlContent = null,
   } = payload;
+  let phase = "init";
+  let iniPath = null;
 
   const session = await createAcbrSession({
     tenantId,
@@ -146,13 +148,26 @@ async function run() {
   });
 
   try {
+    console.log("[acbr:nfce:worker] Inicio", {
+      tenantId,
+      vendaId,
+      operation,
+      formaEmissao,
+      ambiente: context?.nfce?.ambiente,
+      serie: context?.nfce?.serie,
+      numero: context?.nfce?.numero,
+      itens: Array.isArray(context?.itens) ? context.itens.length : 0,
+      pagamentos: Array.isArray(context?.pagamentos) ? context.pagamentos.length : 0,
+    });
+
+    phase = "validar_certificado";
     await validateCertificateFile({ certPath: session.certPath, certificadoSenha });
 
+    phase = "configurar_csc";
     session.acbr.configGravarValor("NFE", "IdCSC", String(context.configuracao.nfce_id_token_csc || ""));
     session.acbr.configGravarValor("NFE", "CSC", String(context.configuracao.nfce_csc || ""));
     session.acbr.configGravar(session.configPath);
 
-    let iniPath = null;
     let preXml = null;
     let postXml = null;
     let rawResponse = null;
@@ -160,36 +175,71 @@ async function run() {
     let chaveAcesso = null;
 
     if (operation === "transmitir_xml_contingencia") {
+      phase = "gravar_xml_contingencia";
       const xmlPath = await writeXmlArtifact(session, "nfce-contingencia.xml", xmlContent || "");
+      phase = "carregar_xml_contingencia";
       session.acbr.limparLista();
       session.acbr.carregarXML(xmlPath);
       preXml = safeGetXml(session.acbr);
+      console.log("[acbr:nfce:worker] XML contingencia carregado", {
+        vendaId,
+        xmlPath,
+        hasPreXml: Boolean(preXml),
+      });
+      phase = "enviar_xml_contingencia";
       rawResponse = session.acbr.enviar(1, false, true, false);
       postXml = safeGetXml(session.acbr) || preXml;
+      phase = "gerar_pdf_contingencia_transmissao";
       pdfPath = await tryGeneratePdfFromXml(session, postXml || preXml || "");
       chaveAcesso = extractAccessKeyFromXml(postXml || preXml || "");
     } else {
+      phase = "montar_ini";
       const iniContent = buildNfceIni(context);
       iniPath = await writeAcbrIni(session, iniContent);
+      console.log("[acbr:nfce:worker] INI gerado", {
+        vendaId,
+        iniPath,
+        rootDir: session.rootDir,
+        xmlDir: session.xmlDir,
+        pdfDir: session.pdfDir,
+      });
 
+      phase = "carregar_ini";
       session.acbr.limparLista();
       session.acbr.carregarINI(iniPath);
 
       preXml = safeGetXml(session.acbr);
+      console.log("[acbr:nfce:worker] INI carregado", {
+        vendaId,
+        hasPreXml: Boolean(preXml),
+        chavePreXml: extractAccessKeyFromXml(preXml || ""),
+      });
 
+      phase = "assinar";
       session.acbr.assinar();
+      phase = "validar";
       session.acbr.validar();
       postXml = safeGetXml(session.acbr) || preXml;
       chaveAcesso = extractAccessKeyFromXml(postXml || preXml || "");
+      console.log("[acbr:nfce:worker] XML assinado/validado", {
+        vendaId,
+        hasPostXml: Boolean(postXml),
+        chaveAcesso,
+      });
 
       if (operation === "emitir_contingencia_offline") {
+        phase = "gerar_pdf_contingencia_offline";
         pdfPath = await tryGeneratePdfFromXml(session, postXml || preXml || "");
       } else {
+        phase = "enviar";
         rawResponse = session.acbr.enviar(1, false, true, false);
         postXml = safeGetXml(session.acbr) || postXml || preXml;
+        phase = "gerar_pdf";
         pdfPath = await tryGeneratePdf(session);
       }
     }
+
+    phase = "finalizar";
 
     await writeOutput({
       ok: true,
@@ -215,8 +265,25 @@ async function run() {
       lastReturn = null;
     }
 
+    console.error("[acbr:nfce:worker] Erro detalhado", {
+      tenantId,
+      vendaId,
+      operation,
+      phase,
+      message: error?.message || String(error),
+      lastReturn,
+      paths: {
+        configPath: session?.configPath,
+        iniPath,
+        rootDir: session?.rootDir,
+        xmlDir: session?.xmlDir,
+        pdfDir: session?.pdfDir,
+      },
+    });
+
     await writeOutput({
       ok: false,
+      phase,
       message: error.message || "Falha na emissão da NFC-e.",
       lastReturn,
     });

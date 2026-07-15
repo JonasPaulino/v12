@@ -68,7 +68,7 @@ export async function runNfceEmissionWorker({
   );
 
   try {
-    const { stderr } = await execFileAsync(
+    const { stdout, stderr } = await execFileAsync(
       process.execPath,
       [workerPath, inputPath, outputPath],
       {
@@ -77,6 +77,10 @@ export async function runNfceEmissionWorker({
         timeout: 180000,
       },
     );
+
+    if (stdout) {
+      console.log(stdout.trim());
+    }
 
     if (stderr) {
       console.error(stderr.trim());
@@ -90,8 +94,18 @@ export async function runNfceEmissionWorker({
     return result;
   } catch (error) {
     const result = await safeReadJsonFile(outputPath);
+    const stdout = String(error.stdout || "").trim();
     const stderr = String(error.stderr || "").trim();
     const diagnostics = getAcbrLibDiagnostics();
+
+    if (stdout) {
+      console.log(stdout);
+    }
+
+    if (stderr) {
+      console.error(stderr);
+    }
+
     const message =
       sanitizeAcbrWorkerMessage(
         result?.lastReturn ||
@@ -105,6 +119,7 @@ export async function runNfceEmissionWorker({
     const wrapped = new Error(message);
     wrapped.details = {
       workerResult: result,
+      stdout,
       stderr,
       signal: error.signal || null,
     };
@@ -126,6 +141,7 @@ export function getAcbrLibReadiness() {
   }
 
   if (!diagnostics.packageAvailable) {
+    console.error("[desktop-acbr] Pacote Node da ACBrLib indisponivel", diagnostics);
     return {
       ready: false,
       diagnostics,
@@ -134,6 +150,7 @@ export function getAcbrLibReadiness() {
   }
 
   if (!diagnostics.libExists) {
+    console.error("[desktop-acbr] Biblioteca nativa da ACBrLib nao encontrada", diagnostics);
     return {
       ready: false,
       diagnostics,
@@ -142,6 +159,7 @@ export function getAcbrLibReadiness() {
   }
 
   if (!diagnostics.schemaExists) {
+    console.error("[desktop-acbr] Schemas da ACBrLib nao encontrados", diagnostics);
     return {
       ready: false,
       diagnostics,
@@ -150,6 +168,7 @@ export function getAcbrLibReadiness() {
   }
 
   if (!diagnostics.iniServicosExists) {
+    console.error("[desktop-acbr] INI de servicos da ACBrLib nao encontrado", diagnostics);
     return {
       ready: false,
       diagnostics,

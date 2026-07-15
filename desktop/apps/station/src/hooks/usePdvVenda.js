@@ -50,7 +50,7 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
   const [descontoEntrada, setDescontoEntrada] = useState("");
   const productSearchRef = useRef(null);
   const { showLoading, hideLoading } = useContext(AppContext);
-  const { showAlert, askYesNoQuestion } = useSweetAlert();
+  const { showAlert, showToast, askYesNoQuestion } = useSweetAlert();
   const { financeiroSupportData, formasPagamento, carregarFinanceiroSupportData } = useVendaFinanceiro({
     showLoading,
     hideLoading,
@@ -229,9 +229,9 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
   function confirmarRecebimentoVenda(pagamentos) {
     setPagamentosConfirmados(pagamentos);
     setPagamentoModalAberto(false);
-    showAlert({
+    showToast({
       title: "Pagamento informado",
-      text: "Agora escolha se deseja finalizar o orçamento ou finalizar o cupom fiscal.",
+      text: "Escolha agora se deseja finalizar como orçamento ou cupom fiscal.",
       icon: "success",
     });
   }

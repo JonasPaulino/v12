@@ -232,30 +232,55 @@ export async function emitirNfce(venda, options = {}) {
     });
 
     if (emitirEmContingenciaOffline) {
-      return persistContingenciaOfflineResult({
+      const result = persistContingenciaOfflineResult({
         vendaId,
         sequencial,
         context,
         workerResult,
       });
+      console.log("[desktop-fiscal] Resultado NFC-e", {
+        vendaId,
+        mode,
+        status: result.status,
+        success: result.success,
+        message: result.message,
+      });
+      return result;
     }
 
     const metadata = parseWorkerNfceResult(workerResult.rawResponse, vendaId);
-    return persistWorkerEmissionResult({
+    const result = persistWorkerEmissionResult({
       vendaId,
       sequencial,
       metadata,
       workerResult,
       transmitirXmlContingencia,
     });
+    console.log("[desktop-fiscal] Resultado NFC-e", {
+      vendaId,
+      mode,
+      status: result.status,
+      success: result.success,
+      cStat: result.cStat,
+      message: result.message,
+    });
+    return result;
   } catch (error) {
-    return persistFiscalError({
+    const result = persistFiscalError({
       vendaId,
       error,
       transmitirXmlContingencia,
       emitirEmContingenciaOffline,
       options,
     });
+    console.error("[desktop-fiscal] Falha NFC-e", {
+      vendaId,
+      mode,
+      message: error?.message,
+      details: error?.details || null,
+      result,
+    });
+    return result;
   }
 }
 

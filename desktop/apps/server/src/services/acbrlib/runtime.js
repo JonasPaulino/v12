@@ -7,6 +7,33 @@ import { getPrinterConfig } from "../printerConfigService.js";
 
 const require = createRequire(import.meta.url);
 
+function resolveAcbrLibRuntimeEntry() {
+  try {
+    return {
+      available: true,
+      entryPath: require.resolve("@projetoacbr/acbrlib-nfe-node"),
+      legacyEntryPath: null,
+      message: null,
+    };
+  } catch (firstError) {
+    try {
+      return {
+        available: true,
+        entryPath: require.resolve("@projetoacbr/acbrlib-nfe-node/dist/src"),
+        legacyEntryPath: "@projetoacbr/acbrlib-nfe-node/dist/src",
+        message: null,
+      };
+    } catch {
+      return {
+        available: false,
+        entryPath: null,
+        legacyEntryPath: null,
+        message: firstError?.message || "Pacote ACBrLibNFe Node não encontrado.",
+      };
+    }
+  }
+}
+
 function loadAcbrLibRuntime() {
   try {
     const runtimeModule = require("@projetoacbr/acbrlib-nfe-node");
@@ -46,8 +73,9 @@ const resolveSslConfig = () => ({
 });
 
 export function getAcbrLibDiagnostics() {
-  let packageAvailable = true;
-  let packageMessage = null;
+  const runtimeEntry = resolveAcbrLibRuntimeEntry();
+  let packageAvailable = runtimeEntry.available;
+  let packageMessage = runtimeEntry.message;
 
   try {
     loadAcbrLibRuntime();
@@ -60,6 +88,8 @@ export function getAcbrLibDiagnostics() {
     mode: env.acbrMode,
     packageAvailable,
     packageMessage,
+    packageEntryPath: runtimeEntry.entryPath,
+    packageLegacyEntryPath: runtimeEntry.legacyEntryPath,
     libPath: env.acbrLibPath,
     libExists: existsSync(env.acbrLibPath),
     schemaPath: env.acbrLibSchemaPath,

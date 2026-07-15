@@ -233,8 +233,9 @@ export function buildNfceIni(context) {
     cUF: cUfEmitente,
     cNF: String(nfce.codigo_numerico || 0).padStart(8, "0"),
     natOp: nfce.natureza_operacao,
-    modelo: "65",
-    Serie: nfce.serie,
+    indPag: "0",
+    mod: "65",
+    serie: nfce.serie,
     nNF: nfce.numero,
     dhEmi: buildDhEmi(),
     tpNF: "1",
@@ -322,7 +323,7 @@ export function buildNfceIni(context) {
   }
 
   if (nfce.observacao) {
-    appendSection(lines, "infAdic", {
+    appendSection(lines, "DadosAdicionais", {
       infCpl: nfce.observacao,
     });
   }
