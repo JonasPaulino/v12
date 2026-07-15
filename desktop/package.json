@@ -10,6 +10,7 @@
   "scripts": {
     "dev:server": "npm --workspace @v12-desktop/server run dev",
     "dev:station": "npm --workspace @v12-desktop/station run dev",
+    "startpdv": "sh ./startpdv.sh",
     "start:server": "npm --workspace @v12-desktop/server start",
     "start:station": "npm --workspace @v12-desktop/station start"
   }

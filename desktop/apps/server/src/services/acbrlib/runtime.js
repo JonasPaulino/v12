@@ -6,7 +6,24 @@ import { env } from "../../config/env.js";
 import { getPrinterConfig } from "../printerConfigService.js";
 
 const require = createRequire(import.meta.url);
-const ACBrLibNFeMT = require("@projetoacbr/acbrlib-nfe-node/dist/src").default;
+
+function loadAcbrLibRuntime() {
+  try {
+    const runtimeModule = require("@projetoacbr/acbrlib-nfe-node");
+    return runtimeModule?.default || runtimeModule?.ACBrLibNFeMT || runtimeModule;
+  } catch (firstError) {
+    try {
+      const legacyModule = require("@projetoacbr/acbrlib-nfe-node/dist/src");
+      return legacyModule?.default || legacyModule?.ACBrLibNFeMT || legacyModule;
+    } catch {
+      const error = new Error(
+        "Pacote @projetoacbr/acbrlib-nfe-node não está disponível no desktop.",
+      );
+      error.cause = firstError;
+      throw error;
+    }
+  }
+}
 
 const DEFAULT_SSL_CONFIG = {
   sslCryptLib: "1",
@@ -29,8 +46,20 @@ const resolveSslConfig = () => ({
 });
 
 export function getAcbrLibDiagnostics() {
+  let packageAvailable = true;
+  let packageMessage = null;
+
+  try {
+    loadAcbrLibRuntime();
+  } catch (error) {
+    packageAvailable = false;
+    packageMessage = error.message;
+  }
+
   return {
     mode: env.acbrMode,
+    packageAvailable,
+    packageMessage,
     libPath: env.acbrLibPath,
     libExists: existsSync(env.acbrLibPath),
     schemaPath: env.acbrLibSchemaPath,
@@ -44,6 +73,8 @@ export function getAcbrLibDiagnostics() {
 }
 
 export async function ensureAcbrLibRuntime() {
+  loadAcbrLibRuntime();
+
   if (!existsSync(env.acbrLibPath)) {
     throw new Error(`ACBrLibNFe não encontrada em ${env.acbrLibPath}.`);
   }
@@ -120,6 +151,7 @@ export async function createAcbrSession({
   await ensureDir(logDir);
   await fs.writeFile(certPath, certificadoBuffer);
 
+  const ACBrLibNFeMT = loadAcbrLibRuntime();
   const acbr = new ACBrLibNFeMT(env.acbrLibPath, configPath, "");
   acbr.inicializar();
 
