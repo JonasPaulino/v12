@@ -53,6 +53,7 @@ export function usePdvShortcuts({
 
       if (key === "F4") {
         if (!caixa || caixaPendenteDiaAnterior) return;
+        if (!cartLength) return;
         if (clienteModalAberto || pagamentoModalAberto || activeModule !== "venda") return;
 
         event.preventDefault();

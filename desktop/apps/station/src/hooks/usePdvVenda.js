@@ -63,6 +63,9 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
     if (cart.length) return;
     setDescontoEntrada("");
     setDescontoTipo("valor");
+    setClienteIdentificado(null);
+    setClienteModalAberto(false);
+    setPagamentosConfirmados(null);
   }, [cart.length]);
 
   const subtotal = useMemo(() => {
@@ -88,6 +91,7 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
     return Math.max(0, Number((subtotal - descontoCalculado).toFixed(2)));
   }, [descontoCalculado, subtotal]);
 
+  const hasVendaEmAndamento = cart.length > 0;
   const vendaProntaParaConclusao = Array.isArray(pagamentosConfirmados) && pagamentosConfirmados.length > 0;
   const clienteResumo = getClienteResumo(clienteIdentificado);
 
@@ -433,6 +437,15 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
   }
 
   function abrirModalCliente() {
+    if (!hasVendaEmAndamento) {
+      showAlert({
+        title: "Venda não iniciada",
+        text: "Lance ao menos um item antes de identificar o cliente.",
+        icon: "warning",
+      });
+      return;
+    }
+
     if (pagamentosConfirmados?.length) {
       showAlert({
         title: "Recebimento já informado",
@@ -539,6 +552,7 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
     descontoCalculado,
     subtotal,
     total,
+    hasVendaEmAndamento,
     financeiroSupportData,
     productSearchRef,
     vendaProntaParaConclusao,

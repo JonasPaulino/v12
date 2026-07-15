@@ -158,7 +158,11 @@ export default function App() {
           {showSaleShortcuts ? (
             <div className="shortcut-grid">
               <button className="shortcut primary" onClick={() => session.openModule("venda")}>Registro de item <small>F3</small></button>
-              <button className="shortcut" onClick={venda.abrirModalCliente} disabled={venda.vendaProntaParaConclusao}>
+              <button
+                className="shortcut"
+                onClick={venda.abrirModalCliente}
+                disabled={!session.caixa || !venda.hasVendaEmAndamento || venda.vendaProntaParaConclusao}
+              >
                 Informar cliente <small>F4</small>
               </button>
               <button className="shortcut" onClick={() => session.openModule("fechamento")}>Fechamento <small>F5</small></button>
