@@ -10,15 +10,15 @@ const __dirname = path.dirname(__filename);
 const desktopEnvPath = path.resolve(__dirname, "../../../../.env");
 const workspaceRoot = path.resolve(__dirname, "../../../../../");
 const desktopRoot = path.resolve(workspaceRoot, "desktop");
-const webAcbrRoot = path.resolve(workspaceRoot, "web", "acbr", "lib", "ACBrLibNFE");
+const desktopAcbrRoot = path.resolve(desktopRoot, "lib", "ACBrLibNFE");
 
 dotenv.config({ path: desktopEnvPath });
 
 const rootDir = process.cwd();
 const defaultAcbrLibPath =
   process.platform === "win32"
-    ? path.join(webAcbrRoot, "win64", "ACBrNFe64.dll")
-    : path.join(webAcbrRoot, "linux", "CONSOLE-MT", "libacbrnfe64.so");
+    ? path.join(desktopAcbrRoot, "win64", "ACBrNFe64.dll")
+    : path.join(desktopAcbrRoot, "linux", "CONSOLE-MT", "libacbrnfe64.so");
 
 export const env = {
   port: Number(process.env.V12_LOCAL_PORT || 5100),
@@ -32,10 +32,10 @@ export const env = {
   acbrLibPath: process.env.V12_ACBRLIB_NFE_PATH || defaultAcbrLibPath,
   acbrLibSchemaPath:
     process.env.V12_ACBRLIB_SCHEMA_PATH ||
-    path.join(webAcbrRoot, "dep", "Schemas", "NFe"),
+    path.join(desktopAcbrRoot, "dep", "Schemas", "NFe"),
   acbrLibIniServicosPath:
     process.env.V12_ACBRLIB_NFE_SERVICOS_PATH ||
-    path.join(webAcbrRoot, "dep", "ACBrNFeServicos.ini"),
+    path.join(desktopAcbrRoot, "dep", "ACBrNFeServicos.ini"),
   acbrLibConfigDir:
     process.env.V12_ACBRLIB_CONFIG_DIR || path.join(desktopRoot, "data", "acbrlib", "config"),
   acbrLibTempDir:

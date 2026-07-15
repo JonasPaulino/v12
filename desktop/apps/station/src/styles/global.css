@@ -1662,14 +1662,30 @@ label {
 
 .receipt {
   min-height: 0;
-  display: grid;
-  grid-template-rows: 1fr auto auto;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
   background: #fff;
 }
 
+.receipt-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .receipt-table {
+  height: 100%;
   min-height: 0;
   overflow: auto;
+}
+
+.receipt-bottom {
+  flex: 0 0 auto;
+  display: grid;
+  background: #fff;
+  border-top: 1px solid #d5dde5;
+  box-shadow: 0 -10px 24px rgba(15, 23, 42, 0.06);
 }
 
 .receipt-row {
@@ -1770,7 +1786,6 @@ label {
   align-items: center;
   padding: 10px 22px;
   background: #f3f6f9;
-  border-top: 1px solid #d5dde5;
 }
 
 .receipt-footer > div:first-child {
@@ -1784,7 +1799,7 @@ label {
 .discount-panel {
   display: grid;
   gap: 12px;
-  padding: 14px 22px 0;
+  padding: 14px 22px 12px;
 }
 
 .discount-panel-header {

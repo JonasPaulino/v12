@@ -46,3 +46,13 @@ O servidor local envia movimentos para o ERP:
 ## Fiscal
 
 O PDV usa ACBrLib para emissao local da NFC-e. O adaptador fiscal continua isolado para permitir evolucoes futuras sem acoplar a interface do caixa a detalhes da biblioteca.
+
+### Estrutura local da ACBrLib
+
+A biblioteca fiscal do PDV deve existir dentro da propria pasta `desktop`, para que a estacao possa ser distribuida sem depender da pasta `web`.
+
+Padrao esperado:
+
+- `desktop/lib/ACBrLibNFE/win64/ACBrNFe64.dll`
+- `desktop/lib/ACBrLibNFE/dep/ACBrNFeServicos.ini`
+- `desktop/lib/ACBrLibNFE/dep/Schemas/NFe/`
