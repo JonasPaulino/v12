@@ -1898,32 +1898,52 @@ label {
 
 .finish-actions {
   display: grid;
-  gap: 8px;
+  gap: 12px;
   margin: 10px 22px 18px;
 }
 
 .finish-actions-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 12px;
 }
 
 .finish-actions-grid .finish {
   margin: 0;
 }
 
-.finish-actions-grid .finish:last-child {
-  grid-column: 1 / -1;
+.finish-budget,
+.finish-fiscal {
+  min-width: 0;
+}
+
+.finish-actions-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 10px;
+  border-top: 1px solid #d9e3ec;
 }
 
 .finish-link {
-  justify-self: end;
-  padding: 0;
-  background: transparent;
+  min-height: 38px;
+  padding: 0 16px;
+  border: 1px solid #c7d3df;
+  border-radius: 999px;
+  background: #f8fbff;
   color: #0a5d89;
-  font-size: 0.76rem;
+  font-size: 0.78rem;
   font-weight: 900;
   text-transform: uppercase;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.finish-link:hover:not(:disabled) {
+  border-color: #8db5cc;
+  background: #eef6fb;
+}
+
+.finish-link:disabled {
+  opacity: 0.6;
 }
 
 .customer-modal-backdrop {
@@ -2397,12 +2417,12 @@ label {
     grid-template-columns: 1fr;
   }
 
-  .finish-actions-grid .finish:last-child {
-    grid-column: auto;
+  .finish-actions-footer {
+    justify-content: stretch;
   }
 
   .finish-link {
-    justify-self: stretch;
+    width: 100%;
     text-align: center;
   }
 }
