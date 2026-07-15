@@ -69,8 +69,10 @@ export function HistoricoVendaDetalhe({
   const clienteEmail = venda.cliente_email || "Não informado";
   const numeroVenda = String(venda.venda_id).padStart(6, "0");
   const statusNfce = venda.nfce_status || "";
+  const nfceCancelPolicy = venda.nfce_cancel_policy || null;
   const isCancelada = venda.status === "cancelada";
   const isContingencia = statusNfce === "contingencia";
+  const isAutorizada = statusNfce === "autorizada";
   const canIssueCupom =
     venda.status === "concluida" && (!statusNfce || statusNfce === "rejeitada");
 
@@ -102,6 +104,16 @@ export function HistoricoVendaDetalhe({
               {venda.nfce_contingencia_justificativa ||
                 "A NFC-e foi impressa em contingência e ainda precisa ser transmitida para a SEFAZ."}
             </span>
+          </div>
+        ) : null}
+
+        {isAutorizada && nfceCancelPolicy?.applies ? (
+          <div className="sales-detail-warning">
+            <strong>Prazo de cancelamento fiscal</strong>
+            <span>{nfceCancelPolicy.message}</span>
+            {nfceCancelPolicy.deadlineAt ? (
+              <span>Disponível até: {formatDateTime(nfceCancelPolicy.deadlineAt)}</span>
+            ) : null}
           </div>
         ) : null}
 
@@ -282,7 +294,7 @@ export function HistoricoVendaDetalhe({
             type="button"
             className="danger-action"
             onClick={onCancel}
-            disabled={loading || isCancelada}
+            disabled={loading || isCancelada || isAutorizada}
           >
             <FiSlash />
             Cancelar venda

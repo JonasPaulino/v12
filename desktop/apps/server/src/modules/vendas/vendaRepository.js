@@ -15,6 +15,8 @@ import {
   searchVendas,
   validarItensVenda,
 } from "./vendaDataRepository.js";
+import { getFiscalConfig } from "../configuracao/localFiscalConfigRepository.js";
+import { buildNfceCancelPolicy } from "./nfceCancelPolicy.js";
 import {
   registrarResultadoFiscal,
   registrarVendaCancelada,
@@ -163,7 +165,13 @@ export function cancelarVenda(vendaId, { motivo = "Cancelamento manual no PDV." 
     }
 
     if (venda.nfce_status === nfceStatus.AUTORIZADA) {
-      throw new Error("A venda possui NFC-e autorizada. Faça primeiro o cancelamento fiscal.");
+      const fiscalConfig = getFiscalConfig();
+      const cancelPolicy = buildNfceCancelPolicy(venda, {
+        emitenteUf: fiscalConfig?.emitente_uf,
+      });
+      throw new Error(
+        cancelPolicy?.message || "A venda possui NFC-e autorizada. Faça primeiro o cancelamento fiscal.",
+      );
     }
 
     if ([nfceStatus.CONTINGENCIA, nfceStatus.REJEITADA].includes(venda.nfce_status)) {

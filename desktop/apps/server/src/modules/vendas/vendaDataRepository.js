@@ -1,7 +1,9 @@
 import { formaPagamento, nfceStatus, vendaStatus } from "@v12-desktop/shared";
 import { getDb } from "../../db/connection.js";
 import { assertTerminalConfigurado, getTerminalTenantErpId } from "../configuracao/localConfigRepository.js";
+import { getFiscalConfig } from "../configuracao/localFiscalConfigRepository.js";
 import { getNfceByVendaId } from "./nfceRepository.js";
+import { buildNfceCancelPolicy } from "./nfceCancelPolicy.js";
 
 function toBooleanFlag(value, defaultValue = true) {
   if (value === undefined || value === null || value === "") {
@@ -414,5 +416,10 @@ export function getVendaDetalhe(vendaId) {
     )
     .all(tenantErpId, Number(vendaId));
 
-  return { ...venda, itens, pagamentos };
+  const fiscalConfig = getFiscalConfig();
+  const nfceCancelPolicy = buildNfceCancelPolicy(venda, {
+    emitenteUf: fiscalConfig?.emitente_uf,
+  });
+
+  return { ...venda, itens, pagamentos, nfce_cancel_policy: nfceCancelPolicy };
 }
