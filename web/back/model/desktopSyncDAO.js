@@ -71,6 +71,7 @@ class DesktopSyncDAO {
           ipi.aliquota AS ipi_aliquota,
           COALESCE(pp.preco_venda, 0) AS preco_venda,
           COALESCE(pe.estoque_atual, 0) AS estoque_atual,
+          COALESCE(p.controla_estoque, TRUE) AS controla_estoque,
           p.ativo,
           ${syncTimestampSql} AS sincronizacao_atualizada_em
         FROM produto p
@@ -120,6 +121,7 @@ class DesktopSyncDAO {
       regra_tributaria_id: row.regra_tributaria_id ? Number(row.regra_tributaria_id) : null,
       preco_venda: Number(row.preco_venda || 0),
       estoque_atual: Number(row.estoque_atual || 0),
+      controla_estoque: !!row.controla_estoque,
       icms_aliquota: Number(row.icms_aliquota || 0),
       icms_reducao_base: Number(row.icms_reducao_base || 0),
       icms_aliquota_fcp: Number(row.icms_aliquota_fcp || 0),

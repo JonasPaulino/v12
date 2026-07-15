@@ -33,6 +33,7 @@ const PRODUTO_COLUMNS = [
   "ipi_aliquota",
   "preco_venda",
   "estoque_atual",
+  "controla_estoque",
   "ativo",
 ];
 
@@ -82,6 +83,7 @@ export function listProdutos({ search = "", limit = 50 } = {}) {
          ipi_aliquota,
          preco_venda,
          estoque_atual,
+         controla_estoque,
          ativo
        FROM produto
        WHERE tenant_erp_id = ?
@@ -131,6 +133,7 @@ export function upsertProduto(produto) {
     ipi_aliquota: Number(produto.ipi_aliquota || 0),
     preco_venda: Number(produto.preco_venda || 0),
     estoque_atual: Number(produto.estoque_atual || 0),
+    controla_estoque: produto.controla_estoque === false ? 0 : 1,
     ativo: produto.ativo === false ? 0 : 1,
   };
 

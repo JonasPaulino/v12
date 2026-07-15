@@ -101,8 +101,9 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
       const existing = current.find((item) => item.produto_id === produto.produto_id);
       const quantidadeAdicionar = Math.max(1, Number(quantidade) || 1);
       const estoqueDisponivel = Math.max(0, Number(produto.estoque_atual || 0));
+      const controlaEstoque = produto.controla_estoque !== false;
 
-      if (quantidadeAdicionar > estoqueDisponivel) {
+      if (controlaEstoque && quantidadeAdicionar > estoqueDisponivel) {
         showAlert({
           title: "Estoque insuficiente",
           text: `Disponível para ${produto.descricao}: ${estoqueDisponivel}.`,
@@ -113,7 +114,7 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
 
       if (existing) {
         const proximaQuantidade = Number(existing.quantidade) + quantidadeAdicionar;
-        if (proximaQuantidade > estoqueDisponivel) {
+        if (controlaEstoque && proximaQuantidade > estoqueDisponivel) {
           showAlert({
             title: "Estoque insuficiente",
             text: `Disponível para ${produto.descricao}: ${estoqueDisponivel}.`,
@@ -138,6 +139,7 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
           unidade: produto.unidade || "UN",
           quantidade: quantidadeAdicionar,
           estoque_atual: estoqueDisponivel,
+          controla_estoque: controlaEstoque,
           valor_unitario: Number(produto.preco_venda || 0),
         },
       ];
@@ -151,8 +153,9 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
     for (const item of normalizedCart) {
       const quantidade = Number(item.quantidade || 0);
       const estoqueDisponivel = Math.max(0, Number(item.estoque_atual || 0));
+      const controlaEstoque = item.controla_estoque !== false;
 
-      if (quantidade > estoqueDisponivel) {
+      if (controlaEstoque && quantidade > estoqueDisponivel) {
         showAlert({
           title: "Estoque insuficiente",
           text: `Disponível para ${item.descricao}: ${estoqueDisponivel}.`,

@@ -24,7 +24,7 @@ export function normalizeIdentificacaoCliente(cliente) {
 function getProdutoLocal(db, tenantErpId, produtoId) {
   return db
     .prepare(
-      `SELECT produto_id, tenant_erp_id, descricao, ativo, estoque_atual
+      `SELECT produto_id, tenant_erp_id, descricao, ativo, estoque_atual, controla_estoque
        FROM produto
        WHERE tenant_erp_id = ?
          AND produto_id = ?
@@ -54,8 +54,9 @@ export function validarItensVenda(db, tenantErpId, items = []) {
       throw new Error(`O produto ${item.descricao || produtoId} não está ativo no PDV.`);
     }
 
+    const controlaEstoque = Number(produto.controla_estoque ?? 1) === 1;
     const estoqueDisponivel = Number(produto.estoque_atual || 0);
-    if (quantidade > estoqueDisponivel) {
+    if (controlaEstoque && quantidade > estoqueDisponivel) {
       throw new Error(
         `Estoque insuficiente para ${produto.descricao || item.descricao}. Disponível: ${estoqueDisponivel}.`,
       );
@@ -66,6 +67,7 @@ export function validarItensVenda(db, tenantErpId, items = []) {
       quantidade,
       valor_unitario: valorUnitario,
       estoque_atual: estoqueDisponivel,
+      controla_estoque: controlaEstoque,
     });
   }
 
@@ -74,6 +76,10 @@ export function validarItensVenda(db, tenantErpId, items = []) {
 
 export function aplicarMovimentoEstoque(db, tenantErpId, items = [], direction = "saida") {
   for (const item of items) {
+    if (Number(item.controla_estoque ?? 1) !== 1) {
+      continue;
+    }
+
     const quantidade = Number(item.quantidade || 0);
     const delta = direction === "entrada" ? quantidade : -quantidade;
     db.prepare(

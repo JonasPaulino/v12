@@ -214,7 +214,12 @@ export const ProdutoSearch = forwardRef(function ProdutoSearch({ onSelect, disab
                       >
                       <span>
                         <strong>{produto.descricao}</strong>
-                          <small>{produto.codigo || "Sem codigo"} | Estoque {produto.estoque_atual}</small>
+                          <small>
+                            {produto.codigo || "Sem codigo"} |{" "}
+                            {produto.controla_estoque === false
+                              ? "Sem controle de estoque"
+                              : `Estoque ${produto.estoque_atual}`}
+                          </small>
                         </span>
                         <b>R$ {Number(produto.preco_venda || 0).toFixed(2)}</b>
                       </button>
@@ -254,7 +259,13 @@ export const ProdutoSearch = forwardRef(function ProdutoSearch({ onSelect, disab
           </div>
           <div>
             <span>Estoque</span>
-            <strong>{selectedProduto ? Number(selectedProduto.estoque_atual || 0) : "--"}</strong>
+            <strong>
+              {selectedProduto
+                ? selectedProduto.controla_estoque === false
+                  ? "Livre"
+                  : Number(selectedProduto.estoque_atual || 0)
+                : "--"}
+            </strong>
           </div>
         </div>
 
