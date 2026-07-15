@@ -171,7 +171,7 @@ class DesktopSyncDAO {
         WHERE u.usuario_excluido = FALSE
           AND u.usuario_ativo = TRUE
           AND COALESCE(u.usuario_master, FALSE) = FALSE
-          AND utp.perfil IN ('pdv_operador', 'pdv_supervisor', 'gerente')
+          AND utp.perfil IN ('vendedor', 'pdv_operador', 'pdv_supervisor', 'gerente')
         GROUP BY
           u.usuario_id,
           u.usuario_nome,
@@ -215,7 +215,7 @@ class DesktopSyncDAO {
             WHERE p.usuario_id = u.usuario_id
               AND p.tenant_id = ut.tenant_id
               AND p.ativo = TRUE
-              AND p.perfil IN ('pdv_operador', 'pdv_supervisor', 'gerente')
+              AND p.perfil IN ('vendedor', 'pdv_operador', 'pdv_supervisor', 'gerente')
           )
         RETURNING
           u.usuario_id AS erp_usuario_id,

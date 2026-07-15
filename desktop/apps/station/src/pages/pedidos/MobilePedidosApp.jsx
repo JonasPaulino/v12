@@ -19,6 +19,13 @@ const REFERENCIA_TIPOS = [
   { value: "retirada", label: "Retirada" },
 ];
 
+const PEDIDO_ALLOWED_PROFILES = new Set(["vendedor", "pdv_operador", "pdv_supervisor", "gerente"]);
+
+function podeLancarPedido(operador) {
+  const perfis = Array.isArray(operador?.perfis) ? operador.perfis : [];
+  return perfis.some((perfil) => PEDIDO_ALLOWED_PROFILES.has(perfil));
+}
+
 export function MobilePedidosApp() {
   const [operador, setOperador] = useState(() => {
     try {
@@ -48,6 +55,20 @@ export function MobilePedidosApp() {
     return cart.reduce((acc, item) => acc + Number(item.quantidade || 0), 0);
   }, [cart]);
 
+  useEffect(() => {
+    if (!operador) return;
+    if (podeLancarPedido(operador)) return;
+
+    setOperador(null);
+    setCart([]);
+    window.localStorage.removeItem("v12_pedido_operador");
+    showAlert({
+      title: "Acesso não permitido",
+      text: "Seu usuário não possui permissão para lançar pedidos.",
+      icon: "warning",
+    });
+  }, [operador, showAlert]);
+
   async function login(event) {
     event.preventDefault();
     try {
@@ -57,6 +78,15 @@ export function MobilePedidosApp() {
         showAlert({
           title: "Primeiro acesso pendente",
           text: "Altere a senha no PDV principal antes de usar o lançamento móvel.",
+          icon: "warning",
+        });
+        return;
+      }
+
+      if (!podeLancarPedido(data)) {
+        showAlert({
+          title: "Acesso não permitido",
+          text: "Seu usuário não possui permissão para lançar pedidos.",
           icon: "warning",
         });
         return;

@@ -3,6 +3,7 @@ import { verifyPassword } from "../../utils/password.js";
 import { assertTerminalConfigurado, getTerminalTenantErpId } from "../configuracao/localConfigRepository.js";
 
 export const OPERADOR_PERFIS = Object.freeze({
+  VENDEDOR: "vendedor",
   PDV_OPERADOR: "pdv_operador",
   PDV_SUPERVISOR: "pdv_supervisor",
   GERENTE: "gerente",
