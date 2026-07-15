@@ -15,6 +15,7 @@ const perfilLabel = {
 };
 
 const emptyForm = {
+  usuario_id: null,
   usuario_nome: "",
   usuario_email: "",
   usuario_senha: "",
@@ -34,6 +35,7 @@ export const GestaoV12Usuarios = () => {
   const [saving, setSaving] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
+  const [editingId, setEditingId] = useState(null);
   const [menuOpenId, setMenuOpenId] = useState(null);
   const [anchorEl, setAnchorEl] = useState(null);
 
@@ -87,6 +89,7 @@ export const GestaoV12Usuarios = () => {
 
   const openNewUser = () => {
     setForm(emptyForm);
+    setEditingId(null);
     setModalOpen(true);
   };
 
@@ -94,6 +97,7 @@ export const GestaoV12Usuarios = () => {
     if (saving) return;
     setModalOpen(false);
     setForm(emptyForm);
+    setEditingId(null);
   };
 
   const updateField = (field, value) => {
@@ -103,26 +107,61 @@ export const GestaoV12Usuarios = () => {
     }));
   };
 
+  const openEditUser = async (usuarioId) => {
+    closeMenu();
+    showLoading("Carregando usuário...");
+    try {
+      const { data } = await api.get(`/gestao/usuarios/${usuarioId}`);
+      const usuario = data?.data;
+
+      setEditingId(usuarioId);
+      setForm({
+        usuario_id: usuario?.usuario_id || null,
+        usuario_nome: usuario?.usuario_nome || "",
+        usuario_email: usuario?.usuario_email || "",
+        usuario_senha: "",
+        perfil: usuario?.perfil || "suporte",
+        usuario_ativo: usuario?.usuario_ativo && usuario?.acesso_gestao_ativo,
+      });
+      setModalOpen(true);
+    } catch (error) {
+      showAlert?.({
+        title: "Não foi possível abrir",
+        text: error?.response?.data?.message || "Falha ao carregar o usuário interno.",
+        icon: "error",
+      });
+    } finally {
+      hideLoading();
+    }
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     setSaving(true);
-    showLoading("Cadastrando usuário...");
+    showLoading(editingId ? "Atualizando usuário..." : "Cadastrando usuário...");
     try {
-      await api.post("/gestao/usuarios", form);
+      if (editingId) {
+        await api.put(`/gestao/usuarios/${editingId}`, form);
+      } else {
+        await api.post("/gestao/usuarios", form);
+      }
       hideLoading();
       showAlert?.({
-        title: "Usuário cadastrado",
-        text: "O usuário foi criado como master da Gestão V12.",
+        title: editingId ? "Usuário atualizado" : "Usuário cadastrado",
+        text: editingId
+          ? "Os dados do usuário interno foram atualizados."
+          : "O usuário foi criado como master da Gestão V12.",
         icon: "success",
         timer: 1800,
       });
       setModalOpen(false);
       setForm(emptyForm);
+      setEditingId(null);
       await loadUsuarios();
     } catch (error) {
       hideLoading();
       showAlert?.({
-        title: "Não foi possível cadastrar",
+        title: editingId ? "Não foi possível atualizar" : "Não foi possível cadastrar",
         text: error?.response?.data?.message || "Revise os dados informados.",
         icon: "error",
       });
@@ -204,6 +243,12 @@ export const GestaoV12Usuarios = () => {
                             minWidth={150}
                             items={[
                               {
+                                label: "Editar",
+                                onClick: () => {
+                                  openEditUser(usuario.usuario_id);
+                                },
+                              },
+                              {
                                 label: "Ver detalhes",
                                 onClick: () => {
                                   closeMenu();
@@ -251,8 +296,12 @@ export const GestaoV12Usuarios = () => {
           <C.Modal onSubmit={handleSubmit}>
             <C.ModalHeader>
               <C.ModalTitle>
-                <h2>Novo usuário interno</h2>
-                <p>Usuários cadastrados aqui serão criados como master da Gestão V12.</p>
+                <h2>{editingId ? "Editar usuário interno" : "Novo usuário interno"}</h2>
+                <p>
+                  {editingId
+                    ? "Atualize os dados do usuário master da Gestão V12."
+                    : "Usuários cadastrados aqui serão criados como master da Gestão V12."}
+                </p>
               </C.ModalTitle>
               <C.CloseButton type="button" onClick={closeModal} aria-label="Fechar">
                 ×
@@ -286,14 +335,15 @@ export const GestaoV12Usuarios = () => {
 
                 <C.Field>
                   <C.Label>
-                    Senha inicial <C.Required>*</C.Required>
+                    {editingId ? "Nova senha opcional" : "Senha inicial"}{" "}
+                    {!editingId ? <C.Required>*</C.Required> : null}
                   </C.Label>
                   <C.Input
                     type="password"
                     value={form.usuario_senha}
                     onChange={(event) => updateField("usuario_senha", event.target.value)}
                     minLength={6}
-                    required
+                    required={!editingId}
                   />
                 </C.Field>
 
@@ -325,8 +375,8 @@ export const GestaoV12Usuarios = () => {
 
                 <C.FieldFull>
                   <C.InfoBox>
-                    Este usuário será salvo como <strong>master</strong>. Ao entrar no login, ele
-                    poderá acessar o ambiente Gestão V12.
+                    Este usuário é do tipo <strong>master</strong> e pode acessar o ambiente Gestão
+                    V12.
                   </C.InfoBox>
                 </C.FieldFull>
               </C.FormGrid>
@@ -337,7 +387,7 @@ export const GestaoV12Usuarios = () => {
                 Cancelar
               </C.SecondaryButton>
               <C.PrimaryButton type="submit" disabled={saving}>
-                {saving ? "Salvando..." : "Salvar usuário"}
+                {saving ? "Salvando..." : editingId ? "Salvar alterações" : "Salvar usuário"}
               </C.PrimaryButton>
             </C.ModalFooter>
           </C.Modal>

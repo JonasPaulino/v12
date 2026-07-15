@@ -201,6 +201,152 @@ class GestaoUsuarioDAO {
       throw error;
     }
   }
+
+  static async buscarPorId(client, usuarioId) {
+    const { rows } = await client.query(
+      `
+        SELECT
+          u.usuario_id,
+          u.usuario_nome,
+          u.usuario_email,
+          u.usuario_username,
+          u.usuario_ativo,
+          u.usuario_master,
+          u.usuario_primeiro_login,
+          COALESCE(gi.perfil, CASE WHEN u.usuario_master THEN 'admin' ELSE 'suporte' END) AS perfil,
+          COALESCE(gi.ativo, u.usuario_ativo) AS acesso_gestao_ativo,
+          gi.usuario_interno_id
+        FROM usuario u
+        LEFT JOIN gestao.usuario_interno gi
+          ON gi.usuario_id = u.usuario_id
+        WHERE u.usuario_excluido = FALSE
+          AND (
+            u.usuario_master = TRUE
+            OR gi.usuario_interno_id IS NOT NULL
+          )
+          AND u.usuario_id = $1
+        LIMIT 1
+      `,
+      [Number(usuarioId)]
+    );
+
+    return rows[0] || null;
+  }
+
+  static async atualizar(client, { actorUserId, usuarioId, payload = {} }) {
+    const targetUserId = Number(usuarioId);
+    const actorId = Number(actorUserId || 0);
+    const existing = await this.buscarPorId(client, targetUserId);
+
+    if (!existing) {
+      throw new Error("Usuário interno não encontrado.");
+    }
+
+    const usuarioNome = String(payload.usuario_nome || "").trim();
+    const usuarioEmail = String(payload.usuario_email || "").trim().toLowerCase();
+    const usuarioUsername = usuarioEmail;
+    const usuarioSenha = String(payload.usuario_senha || "");
+    const perfil = ALLOWED_PROFILES.has(String(payload.perfil || "").trim())
+      ? String(payload.perfil).trim()
+      : existing.perfil || "suporte";
+    const usuarioAtivo = payload.usuario_ativo !== false;
+
+    if (!usuarioNome || !usuarioEmail) {
+      throw new Error("Preencha nome e e-mail.");
+    }
+
+    if (usuarioSenha && usuarioSenha.length < 6) {
+      throw new Error("A nova senha precisa ter pelo menos 6 caracteres.");
+    }
+
+    if (actorId === targetUserId && !usuarioAtivo) {
+      throw new Error("Não é permitido desativar o próprio usuário.");
+    }
+
+    await client.query("BEGIN");
+
+    try {
+      const duplicateUser = await client.query(
+        `
+          SELECT usuario_id
+          FROM usuario
+          WHERE usuario_excluido = FALSE
+            AND usuario_id <> $2
+            AND LOWER(usuario_email) = LOWER($1)
+          LIMIT 1
+        `,
+        [usuarioEmail, targetUserId]
+      );
+
+      if (duplicateUser.rowCount > 0) {
+        throw new Error("Já existe um usuário com este e-mail.");
+      }
+
+      const passwordHash = usuarioSenha ? hashPassword(usuarioSenha) : null;
+      const forceFirstLogin = passwordHash && actorId !== targetUserId;
+      const passwordSql = passwordHash
+        ? `, usuario_senha = $4, usuario_primeiro_login = ${forceFirstLogin ? "TRUE" : "FALSE"}`
+        : "";
+      const userParams = passwordHash
+        ? [usuarioNome, usuarioEmail, usuarioUsername, passwordHash, usuarioAtivo, targetUserId]
+        : [usuarioNome, usuarioEmail, usuarioUsername, usuarioAtivo, targetUserId];
+      const ativoIndex = passwordHash ? 5 : 4;
+      const usuarioIdIndex = passwordHash ? 6 : 5;
+
+      const updateResult = await client.query(
+        `
+          UPDATE usuario
+          SET
+            usuario_nome = $1,
+            usuario_email = $2,
+            usuario_username = $3
+            ${passwordSql},
+            usuario_ativo = $${ativoIndex},
+            atualizado_em = NOW()
+          WHERE usuario_id = $${usuarioIdIndex}
+            AND usuario_excluido = FALSE
+          RETURNING
+            usuario_id,
+            usuario_nome,
+            usuario_email,
+            usuario_username,
+            usuario_ativo,
+            usuario_primeiro_login,
+            usuario_master
+        `,
+        userParams
+      );
+
+      const usuario = updateResult.rows[0];
+      if (!usuario) {
+        throw new Error("Usuário interno não encontrado.");
+      }
+
+      await client.query(
+        `
+          INSERT INTO gestao.usuario_interno (usuario_id, perfil, ativo)
+          VALUES ($1, $2, $3)
+          ON CONFLICT (usuario_id)
+          DO UPDATE SET
+            perfil = EXCLUDED.perfil,
+            ativo = EXCLUDED.ativo,
+            atualizado_em = NOW()
+        `,
+        [targetUserId, perfil, usuarioAtivo]
+      );
+
+      await client.query("COMMIT");
+
+      return {
+        ...usuario,
+        perfil,
+        acesso_gestao_ativo: usuarioAtivo,
+      };
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    }
+  }
 }
 
 export default GestaoUsuarioDAO;
