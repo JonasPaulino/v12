@@ -190,15 +190,37 @@ function normalizeAcbrCertificateMessage(message = "") {
 
 async function tryGeneratePdf(session) {
   try {
-    if (typeof session.acbr.imprimirPDF === "function") {
+    const candidates = [];
+
+    if (typeof session.acbr.salvarPDF === "function") {
+      const pdfResponse = session.acbr.salvarPDF();
+      if (pdfResponse) {
+        candidates.push(String(pdfResponse).trim());
+      }
+    } else if (typeof session.acbr.imprimirPDF === "function") {
       session.acbr.imprimirPDF();
     } else {
       return null;
     }
 
     const files = await fs.readdir(session.pdfDir).catch(() => []);
-    const pdfFiles = files.filter((file) => file.toLowerCase().endsWith(".pdf")).sort();
-    return pdfFiles.length ? path.join(session.pdfDir, pdfFiles[pdfFiles.length - 1]) : null;
+    const pdfFiles = files
+      .filter((file) => file.toLowerCase().endsWith(".pdf"))
+      .map((file) => path.join(session.pdfDir, file));
+
+    candidates.push(...pdfFiles);
+
+    let newest = null;
+    for (const candidate of candidates.filter(Boolean)) {
+      try {
+        const stat = await fs.stat(candidate);
+        if (!newest || stat.mtimeMs > newest.stat.mtimeMs) {
+          newest = { path: candidate, stat };
+        }
+      } catch {}
+    }
+
+    return newest?.path || null;
   } catch {
     return null;
   }
