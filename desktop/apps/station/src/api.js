@@ -1,4 +1,13 @@
-const LOCAL_API_URL = import.meta.env.VITE_LOCAL_API_URL || "http://127.0.0.1:5100/api/local";
+function getDefaultLocalApiUrl() {
+  const hostname = window.location?.hostname;
+  if (hostname) {
+    return `http://${hostname}:5100/api/local`;
+  }
+
+  return "http://127.0.0.1:5100/api/local";
+}
+
+const LOCAL_API_URL = import.meta.env.VITE_LOCAL_API_URL || getDefaultLocalApiUrl();
 
 async function request(path, options = {}) {
   const response = await fetch(`${LOCAL_API_URL}${path}`, {
@@ -49,6 +58,21 @@ export const api = {
     request("/caixa/movimento", { method: "POST", body: JSON.stringify(payload) }),
   fecharCaixa: (payload) => request("/caixa/fechar", { method: "POST", body: JSON.stringify(payload) }),
   produtos: (search = "") => request(`/produtos?search=${encodeURIComponent(search)}`),
+  pedidos: ({ status = "enviado", search = "", limit = 80 } = {}) =>
+    request(
+      `/pedidos?status=${encodeURIComponent(status)}&search=${encodeURIComponent(search)}&limit=${encodeURIComponent(limit)}`,
+    ),
+  pedidoDetalhe: (pedidoId) => request(`/pedidos/${pedidoId}`),
+  criarPedido: (payload) => request("/pedidos", { method: "POST", body: JSON.stringify(payload) }),
+  importarPedido: (pedidoId, payload = {}) =>
+    request(`/pedidos/${pedidoId}/importar`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  cancelarPedido: (pedidoId) =>
+    request(`/pedidos/${pedidoId}/cancelar`, {
+      method: "POST",
+    }),
   pessoas: (search = "") => request(`/pessoas?search=${encodeURIComponent(search)}`),
   vendas: ({ search = "", status = "", limit = 50 } = {}) =>
     request(

@@ -10,6 +10,7 @@ import { ConfiguracaoLocal } from "./components/configuracao/ConfiguracaoLocal.j
 import { PdvFooter } from "./components/layout/PdvFooter.jsx";
 import { PdvTopBar } from "./components/layout/PdvTopBar.jsx";
 import { VendaPagamentoModal } from "./components/pagamento/VendaPagamentoModal.jsx";
+import { PedidosPendentes } from "./components/pedidos/PedidosPendentes.jsx";
 import { LoginOperador } from "./components/setup/LoginOperador.jsx";
 import { SetupLocal } from "./components/setup/SetupLocal.jsx";
 import { HistoricoVendaDetalhe } from "./components/vendas/HistoricoVendaDetalhe.jsx";
@@ -19,9 +20,10 @@ import { usePdvHistorico } from "./hooks/usePdvHistorico.js";
 import { usePdvSession } from "./hooks/usePdvSession.js";
 import { usePdvShortcuts } from "./hooks/usePdvShortcuts.js";
 import { usePdvVenda } from "./hooks/usePdvVenda.js";
+import { MobilePedidosApp } from "./pages/pedidos/MobilePedidosApp.jsx";
 import logoPdvWhite from "./assets/logo_pdv_branca.png";
 
-export default function App() {
+function PdvApp() {
   const vendaBridgeRef = useRef({
     resetVendaState: () => {},
     carregarFinanceiroSupportData: async () => ({ success: true }),
@@ -126,11 +128,11 @@ export default function App() {
 
   const showSaleShortcuts =
     !session.caixaPendenteDiaAnterior &&
-    !["abertura", "fechamento", "configuracao", "historico_vendas"].includes(session.activeModule);
+    !["abertura", "fechamento", "configuracao", "historico_vendas", "pedidos_pendentes"].includes(session.activeModule);
 
   const showBackToSale =
     Boolean(session.caixa) &&
-    ["fechamento", "configuracao", "historico_vendas", "sangria", "suprimento"].includes(session.activeModule);
+    ["fechamento", "configuracao", "historico_vendas", "pedidos_pendentes", "sangria", "suprimento"].includes(session.activeModule);
 
   return (
     <div className="pdv-shell">
@@ -177,6 +179,7 @@ export default function App() {
               >
                 Reimpressão <small>F8</small>
               </button>
+              <button className="shortcut" onClick={() => session.openModule("pedidos_pendentes")}>Pedidos <small>Local</small></button>
             </div>
           ) : null}
 
@@ -281,6 +284,11 @@ export default function App() {
               onTransmitContingencia={historico.transmitirContingenciaHistorico}
               onCancel={historico.cancelarVendaHistorico}
             />
+          ) : session.activeModule === "pedidos_pendentes" ? (
+            <PedidosPendentes
+              onImportPedido={venda.importarPedidoLocal}
+              onBackToSale={() => session.openModule("venda")}
+            />
           ) : (
             <>
               <div className="receipt-header">
@@ -347,4 +355,12 @@ export default function App() {
       />
     </div>
   );
+}
+
+export default function App() {
+  if (window.location.pathname.startsWith("/pedidos")) {
+    return <MobilePedidosApp />;
+  }
+
+  return <PdvApp />;
 }

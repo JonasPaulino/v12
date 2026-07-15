@@ -3,6 +3,7 @@ import {
   FiFileText,
   FiMaximize2,
   FiMenu,
+  FiPackage,
   FiPower,
   FiRefreshCcw,
   FiSettings,
@@ -39,6 +40,7 @@ export function PdvTopBar({
         </button>
         <div className="top-dropdown">
           <button onClick={() => openModule("venda")}><FiShoppingCart /> Nova venda</button>
+          <button onClick={() => openModule("pedidos_pendentes")}><FiPackage /> Pedidos pendentes</button>
           <button onClick={() => openModule("sangria")}><FiFileText /> Sangria</button>
           <button onClick={() => openModule("suprimento")}><FiFileText /> Suprimento</button>
           <button onClick={() => openModule("fechamento")}><FiFileText /> Fechamento de caixa</button>

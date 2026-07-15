@@ -196,6 +196,71 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
     return true;
   }
 
+  async function importarPedidoLocal(pedido) {
+    const itensPedido = Array.isArray(pedido?.itens) ? pedido.itens : [];
+
+    if (!itensPedido.length) {
+      showAlert({
+        title: "Pedido vazio",
+        text: "Este pedido não possui itens para importar.",
+        icon: "warning",
+      });
+      return false;
+    }
+
+    if (validarEdicaoComPagamento()) {
+      return false;
+    }
+
+    if (cart.length) {
+      const confirmed = await askYesNoQuestion(
+        "Adicionar ao carrinho",
+        "A venda atual já possui itens. Deseja adicionar os itens deste pedido ao carrinho?",
+      );
+
+      if (!confirmed) return false;
+    }
+
+    const itensConvertidos = itensPedido.map((item) => ({
+      produto_id: Number(item.produto_id),
+      codigo_produto: item.codigo_produto,
+      descricao: item.descricao,
+      unidade: item.unidade || "UN",
+      quantidade: Number(item.quantidade || 0),
+      estoque_atual: Number(item.estoque_atual || 0),
+      controla_estoque: isProdutoControlaEstoque(item.controla_estoque),
+      valor_unitario: Number(item.valor_unitario || 0),
+    }));
+
+    const mergedByProduct = new Map();
+    for (const item of [...cart, ...itensConvertidos]) {
+      const current = mergedByProduct.get(item.produto_id);
+      if (!current) {
+        mergedByProduct.set(item.produto_id, { ...item });
+        continue;
+      }
+
+      mergedByProduct.set(item.produto_id, {
+        ...current,
+        quantidade: Number(current.quantidade || 0) + Number(item.quantidade || 0),
+      });
+    }
+
+    const nextCart = Array.from(mergedByProduct.values());
+    const updated = atualizarCart(nextCart);
+
+    if (!updated) {
+      return false;
+    }
+
+    showToast({
+      title: "Pedido importado",
+      text: `Pedido ${pedido.referencia || `#${pedido.pedido_id}`} adicionado ao carrinho.`,
+      icon: "success",
+    });
+    return true;
+  }
+
   async function iniciarFinalizacaoVenda() {
     try {
       if (total >= LIMITE_IDENTIFICACAO_CLIENTE && !clienteIdentificado) {
@@ -560,6 +625,7 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
     clienteResumo,
     setCart,
     atualizarCart,
+    importarPedidoLocal,
     setClienteIdentificado,
     setClienteForm,
     setPagamentoModalAberto,
