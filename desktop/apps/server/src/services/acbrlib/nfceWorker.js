@@ -267,14 +267,38 @@ async function tryGeneratePdf(session, xmlContent = null) {
   try {
     pdfResponse = await savePdf(session);
   } catch (error) {
+    const message = String(error?.message || error);
+    if (/ImprimirDANFEPDF n[aã]o implementado|TACBrNFeDANFeESCPOS/i.test(message)) {
+      return {
+        path: null,
+        buffer: null,
+        unsupported: true,
+        message,
+      };
+    }
+
     if (!xmlContent) {
       throw error;
     }
 
-    const xmlPath = await writeXmlArtifact(session, "nfce-pdf.xml", xmlContent);
-    session.acbr.limparLista();
-    session.acbr.carregarXML(xmlPath);
-    pdfResponse = await savePdf(session);
+    try {
+      const xmlPath = await writeXmlArtifact(session, "nfce-pdf.xml", xmlContent);
+      session.acbr.limparLista();
+      session.acbr.carregarXML(xmlPath);
+      pdfResponse = await savePdf(session);
+    } catch (retryError) {
+      const retryMessage = String(retryError?.message || retryError);
+      if (/ImprimirDANFEPDF n[aã]o implementado|TACBrNFeDANFeESCPOS/i.test(retryMessage)) {
+        return {
+          path: null,
+          buffer: null,
+          unsupported: true,
+          message: retryMessage,
+        };
+      }
+
+      throw retryError;
+    }
   }
 
   return readGeneratedPdf({
@@ -451,6 +475,8 @@ async function run() {
       postXml,
       pdfPath: pdf?.path || null,
       pdfBase64: pdf?.buffer ? pdf.buffer.toString("base64") : null,
+      pdfUnsupported: Boolean(pdf?.unsupported),
+      pdfMessage: pdf?.message || null,
       chaveAcesso,
       paths: {
         configPath: session.configPath,

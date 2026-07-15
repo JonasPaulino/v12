@@ -457,6 +457,230 @@ function buildBudgetHtml(payload = {}, config = {}) {
   `;
 }
 
+function formatAccessKey(value = "") {
+  const digits = String(value || "").replace(/\D/g, "");
+  if (digits.length !== 44) return String(value || "").trim();
+  return digits.replace(/(\d{4})(?=\d)/g, "$1 ").trim();
+}
+
+function extractXmlTag(xml = "", tagName = "") {
+  const pattern = new RegExp(`<${tagName}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${tagName}>`, "i");
+  const match = String(xml || "").match(pattern);
+  return String(match?.[1] || "")
+    .replace(/^<!\[CDATA\[/i, "")
+    .replace(/\]\]>$/i, "")
+    .trim();
+}
+
+function buildDanfceHtml(payload = {}, config = {}) {
+  const printerConfig = normalizePrinterConfig(config);
+  const sale = payload.sale || {};
+  const fiscal = payload.fiscal || {};
+  const xml = String(fiscal.xml || fiscal.xmlAutorizado || "");
+  const items = Array.isArray(sale.items) ? sale.items : [];
+  const pagamentos = Array.isArray(sale.pagamentos) ? sale.pagamentos : [];
+  const isThermal = printerConfig.layout !== "a4";
+  const pageWidth = printerConfig.layout === "thermal-58" ? "58mm" : printerConfig.layout === "thermal-80" ? "80mm" : "210mm";
+  const separator = isThermal ? "-".repeat(printerConfig.layout === "thermal-58" ? 32 : 46) : "";
+  const emitente = escapeHtml(sale.emitente?.nome || "V12 ERP");
+  const emitenteDocumentoRaw = sale.emitente?.documento || "";
+  const documentoEmitente = escapeHtml(formatDocument(emitenteDocumentoRaw));
+  const documentoEmitenteLabel = escapeHtml(getDocumentLabel(emitenteDocumentoRaw));
+  const enderecoEmitente = escapeHtml(sale.emitente?.endereco || "");
+  const inscricaoEstadual = escapeHtml(sale.emitente?.inscricaoEstadual || "");
+  const chaveAcesso = fiscal.chave_acesso || fiscal.chaveAcesso || extractXmlTag(xml, "chNFe");
+  const protocolo = fiscal.protocolo || extractXmlTag(xml, "nProt");
+  const dataAutorizacao = extractXmlTag(xml, "dhRecbto") || sale.data || new Date().toLocaleString("pt-BR");
+  const qrCodeUrl = extractXmlTag(xml, "qrCode");
+  const numero = fiscal.numero || extractXmlTag(xml, "nNF") || "";
+  const serie = fiscal.serie || extractXmlTag(xml, "serie") || "";
+  const ambiente = String(fiscal.status || "").toLowerCase() === "contingencia" ? "EM CONTINGÊNCIA" : "NORMAL";
+  const subtotal = formatCurrency(sale.subtotal || 0);
+  const desconto = formatCurrency(sale.desconto || 0);
+  const total = formatCurrency(sale.total || 0);
+  const cliente = escapeHtml(sale.cliente || "Consumidor não identificado");
+  const terminal = escapeHtml(sale.terminal || "PDV");
+  const operador = escapeHtml(sale.operador || "Operador");
+  const rows = items
+    .map((item, index) => {
+      const quantidade = Number(item.quantidade || 0);
+      const valorUnitario = formatCurrency(item.valor_unitario || 0);
+      const valorTotal = formatCurrency(quantidade * Number(item.valor_unitario || 0));
+      const codigo = escapeHtml(item.codigo_produto || item.codigo || String(index + 1).padStart(3, "0"));
+      const descricao = escapeHtml(String(item.descricao || "").toUpperCase());
+      const unidade = escapeHtml(String(item.unidade || "UN").toUpperCase());
+
+      return `
+        <div class="item-line">
+          <div class="item-head">${String(index + 1).padStart(3, "0")} ${codigo} ${descricao}</div>
+          <div class="item-detail">
+            <span>${escapeHtml(String(quantidade))} ${unidade} x ${valorUnitario}</span>
+            <strong>${valorTotal}</strong>
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+  const paymentRows = pagamentos
+    .map((pagamento) => {
+      const descricao = escapeHtml(pagamento.descricao || pagamento.forma_descricao || pagamento.forma || "Pagamento");
+      return `<div class="payment-row"><span>${descricao}</span><strong>${formatCurrency(pagamento.valor || 0)}</strong></div>`;
+    })
+    .join("");
+
+  return `
+    <!doctype html>
+    <html lang="pt-BR">
+      <head>
+        <meta charset="utf-8" />
+        <title>DANFCe V12 ERP</title>
+        <style>
+          :root {
+            color: #111827;
+            font-family: ${isThermal ? '"Courier New", monospace' : 'Arial, Helvetica, sans-serif'};
+          }
+          @page {
+            size: ${pageWidth} auto;
+            margin: ${isThermal ? "4mm" : "12mm"};
+          }
+          body {
+            margin: 0;
+            padding: ${isThermal ? "0" : "20px"};
+            background: #fff;
+          }
+          .sheet {
+            max-width: ${isThermal ? pageWidth : "780px"};
+            margin: 0 auto;
+          }
+          .coupon {
+            display: grid;
+            gap: ${isThermal ? "6px" : "10px"};
+            font-size: ${isThermal ? "11px" : "12px"};
+          }
+          .center { text-align: center; }
+          .title { font-weight: 700; font-size: ${isThermal ? "13px" : "18px"}; }
+          .muted { color: #475569; }
+          .stripe {
+            padding: 6px 4px;
+            border-top: 1px dashed #000;
+            border-bottom: 1px dashed #000;
+            text-align: center;
+            font-weight: 700;
+            text-transform: uppercase;
+          }
+          .separator {
+            white-space: pre;
+            overflow: hidden;
+            color: #475569;
+          }
+          .row,
+          .item-detail,
+          .payment-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+          }
+          .item-line {
+            display: grid;
+            gap: 2px;
+            padding: 3px 0;
+            border-bottom: 1px dotted #9ca3af;
+          }
+          .item-head {
+            font-weight: 700;
+            word-break: break-word;
+          }
+          .block {
+            display: grid;
+            gap: 3px;
+          }
+          .small {
+            font-size: ${isThermal ? "10px" : "11px"};
+          }
+          .grand-total {
+            font-size: ${isThermal ? "14px" : "18px"};
+            font-weight: 700;
+          }
+          .break {
+            word-break: break-all;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="sheet">
+          <div class="coupon">
+            <div class="center block">
+              <div class="title">${emitente}</div>
+              ${documentoEmitente ? `<div>${documentoEmitenteLabel}: ${documentoEmitente}</div>` : ""}
+              ${inscricaoEstadual ? `<div>IE: ${inscricaoEstadual}</div>` : ""}
+              ${enderecoEmitente ? `<div class="small">${enderecoEmitente}</div>` : ""}
+            </div>
+
+            <div class="stripe">DANFE NFC-e - Documento Auxiliar da Nota Fiscal de Consumidor Eletrônica</div>
+            <div class="center small">NFC-e nº ${escapeHtml(numero)} Série ${escapeHtml(serie)} - ${escapeHtml(ambiente)}</div>
+            <div class="center small muted">Não permite aproveitamento de crédito de ICMS</div>
+
+            <div class="separator">${separator}</div>
+
+            <div class="block">
+              <strong>ITENS</strong>
+              ${rows || `<div class="item-line"><div class="item-head">SEM ITENS INFORMADOS</div></div>`}
+            </div>
+
+            <div class="separator">${separator}</div>
+
+            <div class="block">
+              <div class="row"><span>QTD TOTAL DE ITENS</span><strong>${items.reduce((acc, item) => acc + Number(item.quantidade || 0), 0)}</strong></div>
+              <div class="row"><span>VALOR TOTAL R$</span><strong>${subtotal}</strong></div>
+              <div class="row"><span>DESCONTO TOTAL R$</span><strong>${desconto}</strong></div>
+              <div class="row grand-total"><span>VALOR A PAGAR R$</span><strong>${total}</strong></div>
+            </div>
+
+            <div class="separator">${separator}</div>
+
+            <div class="block">
+              <strong>FORMA DE PAGAMENTO</strong>
+              ${paymentRows || `<div class="payment-row"><span>NÃO INFORMADA</span><strong>${total}</strong></div>`}
+            </div>
+
+            <div class="separator">${separator}</div>
+
+            <div class="block">
+              <div class="row"><span>CONSUMIDOR</span><strong>${cliente}</strong></div>
+              <div class="row"><span>OPERADOR</span><strong>${operador}</strong></div>
+              <div class="row"><span>TERMINAL</span><strong>${terminal}</strong></div>
+            </div>
+
+            <div class="separator">${separator}</div>
+
+            <div class="center block small">
+              <strong>CHAVE DE ACESSO</strong>
+              <div>${escapeHtml(formatAccessKey(chaveAcesso))}</div>
+              ${protocolo ? `<div>Protocolo de autorização: ${escapeHtml(protocolo)}</div>` : ""}
+              <div>Data de autorização: ${escapeHtml(dataAutorizacao)}</div>
+            </div>
+
+            ${qrCodeUrl ? `
+              <div class="separator">${separator}</div>
+              <div class="center block small">
+                <strong>CONSULTE PELA CHAVE DE ACESSO OU QR CODE</strong>
+                <div class="break">${escapeHtml(qrCodeUrl)}</div>
+              </div>
+            ` : ""}
+
+            <div class="separator">${separator}</div>
+
+            <div class="center block small muted">
+              <div>V12 ERP</div>
+              <div>jhes.com.br</div>
+            </div>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+}
+
 async function createWindow() {
   const win = new BrowserWindow({
     width: 1280,
@@ -531,6 +755,29 @@ ipcMain.handle("sale:print-budget", async (_event, payload = {}, config = {}) =>
     return true;
   } finally {
     budgetWindow.close();
+  }
+});
+
+ipcMain.handle("sale:print-danfce", async (_event, payload = {}, config = {}) => {
+  const { printerConfig } = buildPrintOptions(config);
+  const danfceWindow = new BrowserWindow({
+    show: false,
+    width: 900,
+    height: 1200,
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+
+  try {
+    const html = buildDanfceHtml(payload, printerConfig);
+    await danfceWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+    await printBrowserWindow(danfceWindow, printerConfig);
+
+    return true;
+  } finally {
+    danfceWindow.close();
   }
 });
 

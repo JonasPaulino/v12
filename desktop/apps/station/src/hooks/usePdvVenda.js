@@ -5,7 +5,10 @@ import { AppContext } from "../context/AppContext.jsx";
 import { useSweetAlert } from "../context/SweetAlertContext.jsx";
 import { useVendaFinanceiro } from "./venda/useVendaFinanceiro.js";
 import { buildBudgetPayload, buildBudgetPayloadFromVenda } from "./venda/vendaPayloads.js";
-import { sendBudgetToPrint as printBudgetDocument, sendDanfceToPrint as printDanfceDocument } from "./venda/vendaPrintService.js";
+import {
+  sendBudgetToPrint as printBudgetDocument,
+  sendDanfceHtmlToPrint as printDanfceDocument,
+} from "./venda/vendaPrintService.js";
 
 function isProdutoControlaEstoque(value) {
   if (value === undefined || value === null || value === "") {
@@ -279,8 +282,12 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
     }
   }
 
-  async function imprimirDanfce(pdfPath) {
-    await printDanfceDocument(pdfPath);
+  async function imprimirDanfce({ fiscal, venda }) {
+    await printDanfceDocument({
+      fiscal,
+      sale: montarPayloadOrcamento(venda),
+      pdfPath: fiscal?.pdfPath || null,
+    });
   }
 
   async function concluirVendaComSucesso({ result, modoFinalizacao }) {
@@ -300,7 +307,7 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
       (result.fiscal?.success || result.fiscal?.status === "contingencia")
     ) {
       try {
-        await imprimirDanfce(result.fiscal?.pdfPath);
+        await imprimirDanfce({ fiscal: result.fiscal, venda: result.venda });
       } catch (printError) {
         avisoImpressao = ` NFC-e autorizada, mas o DANFCe não foi impresso: ${printError.message}`;
       }
@@ -345,7 +352,7 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
 
       let avisoImpressao = "";
       try {
-        await imprimirDanfce(result.fiscal?.pdfPath);
+        await imprimirDanfce({ fiscal: result.fiscal, venda: result.venda });
       } catch (printError) {
         avisoImpressao = ` DANFCe de contingência emitido, mas não foi possível imprimir: ${printError.message}`;
       }

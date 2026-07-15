@@ -88,6 +88,9 @@ function persistContingenciaOfflineResult({ vendaId, sequencial, context, worker
     xMotivo: contingenciaJustificativa,
     message: "NFC-e emitida em contingência offline. Reenvie quando a SEFAZ voltar a responder.",
     pdfPath: workerResult.pdfPath || null,
+    pdfBase64: workerResult.pdfBase64 || null,
+    xml: workerResult.postXml || workerResult.preXml || null,
+    danfceHtmlFallback: Boolean(workerResult.pdfUnsupported),
   };
 }
 
@@ -133,6 +136,9 @@ function persistWorkerEmissionResult({
     xMotivo: metadata.xMotivo || null,
     message: buildFiscalStatusMessage({ metadata, status, transmitirXmlContingencia }),
     pdfPath: workerResult.pdfPath || null,
+    pdfBase64: workerResult.pdfBase64 || null,
+    xml: workerResult.postXml || workerResult.preXml || null,
+    danfceHtmlFallback: Boolean(workerResult.pdfUnsupported),
   };
 }
 
