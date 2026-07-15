@@ -892,6 +892,11 @@ label {
   border: 1px solid #a61f2d;
 }
 
+.sales-detail-footer-actions .danger-action.is-soft-disabled {
+  opacity: 0.58;
+  cursor: not-allowed;
+}
+
 .sales-detail-footer-actions button:disabled {
   opacity: 0.55;
   cursor: not-allowed;

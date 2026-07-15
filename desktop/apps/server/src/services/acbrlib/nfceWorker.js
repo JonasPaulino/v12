@@ -248,6 +248,64 @@ async function readGeneratedPdf({ pdfResponse, pdfDir }) {
   }
 }
 
+async function findNewestXmlFile(dir, chaveAcesso = "") {
+  const normalizedKey = String(chaveAcesso || "").trim();
+  let newest = null;
+
+  async function visit(targetDir) {
+    const entries = await fs.readdir(targetDir, { withFileTypes: true }).catch(() => []);
+    for (const entry of entries) {
+      const fullPath = path.join(targetDir, entry.name);
+      if (entry.isDirectory()) {
+        await visit(fullPath);
+        continue;
+      }
+
+      if (!entry.isFile() || !entry.name.toLowerCase().endsWith(".xml")) {
+        continue;
+      }
+
+      const content = await fs.readFile(fullPath, "utf8").catch(() => "");
+      if (normalizedKey && !content.includes(normalizedKey)) {
+        continue;
+      }
+
+      const stat = await fs.stat(fullPath).catch(() => null);
+      if (stat && (!newest || stat.mtimeMs > newest.stat.mtimeMs)) {
+        newest = { path: fullPath, stat, content };
+      }
+    }
+  }
+
+  await visit(dir);
+  return newest;
+}
+
+async function readNewestEventXml(session, chaveAcesso) {
+  const dirs = [];
+
+  try {
+    const eventPath = session.acbr.getPathEvento("110111");
+    if (eventPath) {
+      dirs.push(String(eventPath).trim());
+    }
+  } catch {}
+
+  dirs.push(session.xmlDir, session.rootDir);
+
+  for (const dir of dirs.filter(Boolean)) {
+    const xml = await findNewestXmlFile(dir, chaveAcesso);
+    if (xml?.content) {
+      return {
+        path: xml.path,
+        content: xml.content,
+      };
+    }
+  }
+
+  return null;
+}
+
 async function savePdf(session) {
   if (typeof session.acbr.salvarPDF === "function") {
     return session.acbr.salvarPDF();
@@ -349,6 +407,7 @@ async function run() {
     operation = "emitir_normal",
     formaEmissao = "0",
     xmlContent = null,
+    cancelamento = null,
   } = payload;
   let phase = "init";
   let iniPath = null;
@@ -408,6 +467,39 @@ async function run() {
     let pdf = null;
     let danfcePrint = null;
     let chaveAcesso = null;
+
+    if (operation === "cancelar_nfce") {
+      const chaveCancelamento = String(cancelamento?.chaveAcesso || "").replace(/\D/g, "");
+      const justificativaCancelamento = String(cancelamento?.justificativa || "").trim();
+      const documentoEmitente = String(cancelamento?.documentoEmitente || "").replace(/\D/g, "");
+      const loteCancelamento = Number(cancelamento?.lote || 1);
+
+      phase = "cancelar_nfce";
+      rawResponse = session.acbr.cancelar(
+        chaveCancelamento,
+        justificativaCancelamento,
+        documentoEmitente,
+        loteCancelamento,
+      );
+      const eventXml = await readNewestEventXml(session, chaveCancelamento);
+
+      await writeOutput({
+        ok: true,
+        operation,
+        rawResponse,
+        eventXml: eventXml?.content || null,
+        eventXmlPath: eventXml?.path || null,
+        chaveAcesso: chaveCancelamento,
+        paths: {
+          configPath: session.configPath,
+          iniPath,
+          rootDir: session.rootDir,
+          xmlDir: session.xmlDir,
+          pdfDir: session.pdfDir,
+        },
+      });
+      return;
+    }
 
     if (operation === "transmitir_xml_contingencia") {
       phase = "gravar_xml_contingencia";

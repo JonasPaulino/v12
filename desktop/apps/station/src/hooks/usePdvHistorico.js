@@ -220,27 +220,51 @@ export function usePdvHistorico({ config, operador, caixa, onPrintBudget }) {
   async function cancelarVendaHistorico() {
     if (!historicoVendaDetalhe) return;
 
+    const isNfceAutorizada = historicoVendaDetalhe.nfce_status === "autorizada";
+    const cancelPolicy = historicoVendaDetalhe.nfce_cancel_policy || null;
+
+    if (isNfceAutorizada && cancelPolicy?.canCancelFiscal === false) {
+      showAlert({
+        title: "Cancelamento indisponível",
+        text: cancelPolicy.message || "O prazo de cancelamento da NFC-e expirou.",
+        icon: "warning",
+      });
+      return;
+    }
+
     const confirmed = await askYesNoQuestion(
-      "Cancelar venda",
-      `Deseja cancelar a venda #${String(historicoVendaDetalhe.venda_id).padStart(6, "0")}? O estoque sera devolvido.`,
+      isNfceAutorizada ? "Cancelar NFC-e" : "Cancelar venda",
+      isNfceAutorizada
+        ? `Deseja enviar o cancelamento fiscal da NFC-e #${String(historicoVendaDetalhe.nfce_numero || "").padStart(6, "0")} para a SEFAZ?`
+        : `Deseja cancelar a venda #${String(historicoVendaDetalhe.venda_id).padStart(6, "0")}? O estoque será devolvido.`,
     );
 
     if (!confirmed) return;
 
     try {
-      showLoading("Cancelando venda...");
-      await api.cancelarVenda(historicoVendaDetalhe.venda_id, {
-        motivo: "Cancelamento manual no PDV.",
-      });
+      showLoading(isNfceAutorizada ? "Cancelando NFC-e..." : "Cancelando venda...");
+      const data = isNfceAutorizada
+        ? await api.cancelarNfceVenda(historicoVendaDetalhe.venda_id, {
+            motivo: "Cancelamento solicitado pelo operador do PDV.",
+          })
+        : await api.cancelarVenda(historicoVendaDetalhe.venda_id, {
+            motivo: "Cancelamento manual no PDV.",
+          });
+
+      if (data?.venda) {
+        setHistoricoVendaDetalhe(data.venda);
+      }
       await carregarHistoricoVendas({ keepSelection: true });
       showAlert({
-        title: "Venda cancelada",
-        text: "A venda foi cancelada e o estoque foi devolvido ao terminal.",
+        title: isNfceAutorizada ? "NFC-e cancelada" : "Venda cancelada",
+        text: isNfceAutorizada
+          ? data?.fiscal?.message || "Cancelamento fiscal homologado pela SEFAZ."
+          : "A venda foi cancelada e o estoque foi devolvido ao terminal.",
         icon: "success",
       });
     } catch (error) {
       showAlert({
-        title: "Falha ao cancelar venda",
+        title: isNfceAutorizada ? "Falha ao cancelar NFC-e" : "Falha ao cancelar venda",
         text: error.message,
         icon: "error",
       });

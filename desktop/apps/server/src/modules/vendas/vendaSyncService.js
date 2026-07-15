@@ -11,6 +11,13 @@ export function registrarVendaCancelada(vendaCancelada) {
     venda_id: vendaCancelada.venda_id,
     motivo: vendaCancelada.cancelamento_motivo,
     status: vendaCancelada.nfce_status,
+    chave_acesso: vendaCancelada.chave_acesso,
+    protocolo: vendaCancelada.nfce_cancelamento_protocolo,
+    cStat: vendaCancelada.nfce_cancelamento_cstat,
+    xMotivo: vendaCancelada.nfce_cancelamento_motivo,
+    xml: vendaCancelada.nfce_cancelamento_xml,
+    rawResponse: vendaCancelada.nfce_cancelamento_raw_retorno,
+    cancelada_em: vendaCancelada.nfce_cancelada_em || vendaCancelada.cancelada_em,
   });
 }
 

@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { assertTerminalConfigurado } from "../modules/configuracao/localConfigRepository.js";
 import {
+  cancelarFiscalVenda,
   cancelarVenda,
   criarVenda,
   descartarVendaRascunho,
@@ -82,6 +83,17 @@ router.get("/:vendaId", (req, res, next) => {
 router.post("/:vendaId/cancelar", (req, res, next) => {
   try {
     const data = cancelarVenda(req.params.vendaId, {
+      motivo: req.body?.motivo,
+    });
+    res.json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/:vendaId/nfce/cancelar", async (req, res, next) => {
+  try {
+    const data = await cancelarFiscalVenda(req.params.vendaId, {
       motivo: req.body?.motivo,
     });
     res.json({ success: true, data });

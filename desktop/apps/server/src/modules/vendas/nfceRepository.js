@@ -39,6 +39,12 @@ export function getNfceByVendaId(vendaId) {
            tp_emis,
            contingencia_em,
            contingencia_justificativa,
+           cancelamento_protocolo,
+           cancelamento_cstat,
+           cancelamento_motivo,
+           cancelamento_xml,
+           cancelamento_raw_retorno,
+           cancelada_em,
            emitida_em,
            atualizado_em
          FROM nfce
@@ -187,6 +193,42 @@ export function updateNfceResult(vendaId, payload = {}) {
     payload.contingencia_em || null,
     payload.contingencia_justificativa || null,
     [nfceStatus.AUTORIZADA, nfceStatus.CONTINGENCIA].includes(payload.status) ? 1 : null,
+    tenantErpId,
+    vendaLocalId,
+  );
+
+  return getNfceByVendaId(vendaLocalId);
+}
+
+export function updateNfceCancelResult(vendaId, payload = {}) {
+  const db = getDb();
+  const tenantErpId = getTenantErpIdOrThrow();
+  const vendaLocalId = Number(vendaId);
+
+  db.prepare(
+    `UPDATE nfce
+     SET
+       status = ?,
+       cstat = COALESCE(?, cstat),
+       motivo = COALESCE(?, motivo),
+       cancelamento_protocolo = COALESCE(?, cancelamento_protocolo),
+       cancelamento_cstat = COALESCE(?, cancelamento_cstat),
+       cancelamento_motivo = COALESCE(?, cancelamento_motivo),
+       cancelamento_xml = COALESCE(?, cancelamento_xml),
+       cancelamento_raw_retorno = COALESCE(?, cancelamento_raw_retorno),
+       cancelada_em = COALESCE(cancelada_em, CURRENT_TIMESTAMP),
+       atualizado_em = CURRENT_TIMESTAMP
+     WHERE tenant_erp_id = ?
+       AND venda_id = ?`,
+  ).run(
+    nfceStatus.CANCELADA,
+    payload.cstat || null,
+    payload.motivo || null,
+    payload.protocolo || null,
+    payload.cstat || null,
+    payload.motivo || null,
+    payload.xml || null,
+    payload.raw_retorno || null,
     tenantErpId,
     vendaLocalId,
   );

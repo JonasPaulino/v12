@@ -46,6 +46,7 @@ export async function runNfceEmissionWorker({
   operation = "emitir_normal",
   formaEmissao = "0",
   xmlContent = null,
+  cancelamento = null,
 }) {
   const workerPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "nfceWorker.js");
   const workDir = await fs.mkdtemp(path.join(os.tmpdir(), "v12-pdv-nfce-"));
@@ -63,6 +64,7 @@ export async function runNfceEmissionWorker({
         operation,
         formaEmissao,
         xmlContent,
+        cancelamento,
       }),
     "utf8",
   );

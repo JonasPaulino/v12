@@ -2,7 +2,7 @@ import { nfceStatus, vendaStatus } from "@v12-desktop/shared";
 import { getDb } from "../../db/connection.js";
 import { getCaixaAberto } from "../caixa/caixaRepository.js";
 import { assertTerminalConfigurado, getTerminalTenantErpId } from "../configuracao/localConfigRepository.js";
-import { emitirNfce } from "../../services/acbrFiscalService.js";
+import { cancelarNfce, emitirNfce } from "../../services/acbrFiscalService.js";
 import {
   aplicarMovimentoEstoque,
   criarVendaPersistida,
@@ -170,7 +170,9 @@ export function cancelarVenda(vendaId, { motivo = "Cancelamento manual no PDV." 
         emitenteUf: fiscalConfig?.emitente_uf,
       });
       throw new Error(
-        cancelPolicy?.message || "A venda possui NFC-e autorizada. Faça primeiro o cancelamento fiscal.",
+        cancelPolicy?.applies && !cancelPolicy.canCancelFiscal
+          ? cancelPolicy.message
+          : "A venda possui NFC-e autorizada. Use a opção Cancelar NFC-e para enviar o evento fiscal à SEFAZ.",
       );
     }
 
@@ -201,6 +203,62 @@ export function cancelarVenda(vendaId, { motivo = "Cancelamento manual no PDV." 
 
   registrarVendaCancelada(vendaCancelada);
   return vendaCancelada;
+}
+
+export async function cancelarFiscalVenda(
+  vendaId,
+  { motivo = "Cancelamento solicitado pelo operador do PDV." } = {},
+) {
+  assertTerminalConfigurado();
+  const db = getDb();
+  const tenantErpId = getTerminalTenantErpId();
+  const saleId = Number(vendaId);
+  const cancelReason = String(motivo || "").trim() || "Cancelamento solicitado pelo operador do PDV.";
+  const venda = getVendaDetalhe(saleId);
+
+  if (venda.status === vendaStatus.CANCELADA) {
+    throw new Error("Esta venda já está cancelada.");
+  }
+
+  if (venda.nfce_status !== nfceStatus.AUTORIZADA) {
+    throw new Error("Somente NFC-e autorizada pode passar pelo cancelamento fiscal.");
+  }
+
+  const fiscalConfig = getFiscalConfig();
+  const cancelPolicy = buildNfceCancelPolicy(venda, {
+    emitenteUf: fiscalConfig?.emitente_uf,
+  });
+
+  if (cancelPolicy?.applies && !cancelPolicy.canCancelFiscal) {
+    throw new Error(cancelPolicy.message || "Prazo de cancelamento da NFC-e expirado.");
+  }
+
+  const fiscal = await cancelarNfce(venda, {
+    motivo: cancelReason,
+  });
+
+  if (!fiscal.success || fiscal.status !== nfceStatus.CANCELADA) {
+    throw new Error(fiscal.message || "Cancelamento fiscal da NFC-e não foi homologado.");
+  }
+
+  const vendaCancelada = db.transaction(() => {
+    aplicarMovimentoEstoque(db, tenantErpId, venda.itens || [], "entrada");
+
+    db.prepare(
+      `UPDATE venda
+       SET status = ?, cancelada_em = CURRENT_TIMESTAMP, cancelamento_motivo = ?
+       WHERE tenant_erp_id = ?
+         AND venda_id = ?`,
+    ).run(vendaStatus.CANCELADA, fiscal.message || cancelReason, tenantErpId, saleId);
+
+    return getVendaDetalhe(saleId);
+  })();
+
+  registrarVendaCancelada(vendaCancelada);
+  return {
+    venda: vendaCancelada,
+    fiscal,
+  };
 }
 
 export function descartarVendaRascunho(vendaId) {

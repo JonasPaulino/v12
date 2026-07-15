@@ -4,8 +4,11 @@ const CANCEL_WINDOW_BY_UF_MINUTES = {
 
 function parseDateTime(value) {
   if (!value) return null;
-  const normalized = String(value).includes("T") ? String(value) : String(value).replace(" ", "T");
-  const date = new Date(normalized);
+  const raw = String(value).trim();
+  const normalized = raw.includes("T") ? raw : raw.replace(" ", "T");
+  const hasExplicitTimezone = /(?:z|[+-]\d{2}:?\d{2})$/i.test(normalized);
+  const dateInput = hasExplicitTimezone ? normalized : `${normalized}Z`;
+  const date = new Date(dateInput);
   return Number.isNaN(date.getTime()) ? null : date;
 }
 

@@ -60,6 +60,11 @@ export const api = {
       method: "POST",
       body: JSON.stringify(payload),
     }),
+  cancelarNfceVenda: (vendaId, payload = {}) =>
+    request(`/vendas/${vendaId}/nfce/cancelar`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
   descartarVendaRascunho: (vendaId) =>
     request(`/vendas/${vendaId}/descartar-rascunho`, {
       method: "POST",

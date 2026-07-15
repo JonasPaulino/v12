@@ -2,6 +2,7 @@ import { nfceStatus } from "@v12-desktop/shared";
 import {
   getNfceByVendaId,
   reserveNextNfceNumber,
+  updateNfceCancelResult,
   updateNfceResult,
 } from "../modules/vendas/nfceRepository.js";
 import { parseWorkerNfceResult, runNfceEmissionWorker } from "./acbrlib/client.js";
@@ -16,8 +17,21 @@ import {
   buildFiscalStatusMessage,
   isContingenciaCandidate,
   normalizeContingenciaJustificativa,
+  onlyDigits,
   validarProntidaoNfce,
 } from "./fiscal/acbrFiscalSupport.js";
+
+function normalizeCancelamentoJustificativa(message = "") {
+  const value = String(message || "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (value.length < 15) {
+    throw new Error("A justificativa do cancelamento fiscal deve ter pelo menos 15 caracteres.");
+  }
+
+  return value.slice(0, 255);
+}
 
 function resolveFiscalStatus(metadata, transmitirXmlContingencia) {
   const baseStatus =
@@ -291,6 +305,121 @@ export async function emitirNfce(venda, options = {}) {
       result,
     });
     return result;
+  }
+}
+
+export async function cancelarNfce(venda, options = {}) {
+  const readiness = validarProntidaoNfce();
+  const vendaId = Number(venda?.venda_id || venda || 0);
+
+  if (!vendaId) {
+    return {
+      success: false,
+      status: nfceStatus.REJEITADA,
+      message: "Venda inválida para cancelamento de NFC-e.",
+      vendaId: null,
+    };
+  }
+
+  if (!readiness.ready) {
+    return buildFiscalFailureResult({ readiness, vendaId });
+  }
+
+  const nfceAtual = getNfceByVendaId(vendaId);
+  const chaveAcesso = onlyDigits(nfceAtual?.chave_acesso || venda?.chave_acesso);
+  const documentoEmitente = onlyDigits(readiness.fiscal.emitente_cpf_cnpj);
+  const justificativa = normalizeCancelamentoJustificativa(
+    options.justificativa || options.motivo || "Cancelamento solicitado no PDV.",
+  );
+
+  if (chaveAcesso.length !== 44) {
+    throw new Error("Chave de acesso da NFC-e inválida para cancelamento fiscal.");
+  }
+
+  if (![11, 14].includes(documentoEmitente.length)) {
+    throw new Error("Documento do emitente inválido para cancelamento fiscal.");
+  }
+
+  try {
+    const workerResult = await runNfceEmissionWorker({
+      tenantId: Number(readiness.fiscal.tenant_erp_id),
+      vendaId,
+      context: {
+        nfce: {
+          ambiente: nfceAtual?.ambiente || readiness.fiscal.ambiente_nfce || "2",
+        },
+        emitente: {
+          uf: readiness.fiscal.emitente_uf,
+        },
+        configuracao: readiness.fiscal,
+      },
+      certificadoBase64: readiness.fiscal.certificado_conteudo_base64,
+      certificadoSenha: readiness.fiscal.certificado_senha,
+      operation: "cancelar_nfce",
+      formaEmissao: ACBR_FORMA_EMISSAO_NORMAL,
+      cancelamento: {
+        chaveAcesso,
+        justificativa,
+        documentoEmitente,
+        lote: Number(options.lote || 1),
+      },
+    });
+
+    const metadata = parseWorkerNfceResult(
+      [workerResult.rawResponse, workerResult.eventXml].filter(Boolean).join("\n"),
+      vendaId,
+    );
+    const status =
+      metadata.mappedStatus === "cancelada" ? nfceStatus.CANCELADA : nfceStatus.REJEITADA;
+
+    if (status !== nfceStatus.CANCELADA) {
+      return {
+        success: false,
+        status,
+        vendaId,
+        chave_acesso: chaveAcesso,
+        cStat: metadata.cStat || null,
+        xMotivo: metadata.xMotivo || "Cancelamento fiscal rejeitado pela SEFAZ.",
+        message: metadata.xMotivo || "Cancelamento fiscal rejeitado pela SEFAZ.",
+        rawResponse: metadata.raw,
+      };
+    }
+
+    updateNfceCancelResult(vendaId, {
+      protocolo: metadata.protocolo,
+      cstat: metadata.cStat,
+      motivo: metadata.xMotivo || "Cancelamento homologado pela SEFAZ.",
+      xml: workerResult.eventXml || null,
+      raw_retorno: metadata.raw,
+    });
+
+    return {
+      success: true,
+      status: nfceStatus.CANCELADA,
+      vendaId,
+      chave_acesso: chaveAcesso,
+      protocolo: metadata.protocolo || null,
+      cStat: metadata.cStat || null,
+      xMotivo: metadata.xMotivo || null,
+      message: metadata.xMotivo || "Cancelamento da NFC-e homologado pela SEFAZ.",
+      xml: workerResult.eventXml || null,
+      eventXmlPath: workerResult.eventXmlPath || null,
+      rawResponse: metadata.raw,
+    };
+  } catch (error) {
+    console.error("[desktop-fiscal] Falha no cancelamento NFC-e", {
+      vendaId,
+      message: error?.message,
+      details: error?.details || null,
+    });
+
+    return {
+      success: false,
+      status: nfceStatus.REJEITADA,
+      vendaId,
+      chave_acesso: chaveAcesso,
+      message: error.message || "Falha ao cancelar NFC-e.",
+    };
   }
 }
 
