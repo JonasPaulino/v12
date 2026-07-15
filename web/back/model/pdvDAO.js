@@ -21,8 +21,25 @@ const toInteger = (value, fallback = null) => {
   return Number.isInteger(parsed) ? parsed : fallback;
 };
 
+const toBooleanFlag = (value, fallback = false) => {
+  if (value === undefined || value === null || value === "") return fallback;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value === 1;
+
+  const normalized = String(value).trim().toLowerCase();
+  if (["true", "1", "sim", "yes", "t"].includes(normalized)) return true;
+  if (["false", "0", "nao", "não", "no", "f"].includes(normalized)) return false;
+  return fallback;
+};
+
 const toText = (value, maxLength = null) => {
   const normalized = String(value ?? "").trim();
+  if (!normalized) return null;
+  return maxLength ? normalized.slice(0, maxLength) : normalized;
+};
+
+const toEmail = (value, maxLength = 180) => {
+  const normalized = String(value ?? "").trim().toLowerCase();
   if (!normalized) return null;
   return maxLength ? normalized.slice(0, maxLength) : normalized;
 };
@@ -364,7 +381,7 @@ class PdvDAO {
         toText(payload.cliente_tipo_documento, 20),
         toText(payload.cliente_documento, 30),
         toText(payload.cliente_nome, 180),
-        toText(payload.cliente_email, 180),
+        toEmail(payload.cliente_email, 180),
         normalizeVendaStatus(payload.status),
         toNumber(payload.total_produtos, 0),
         toNumber(payload.total_desconto, 0),
@@ -462,7 +479,7 @@ class PdvDAO {
           toInteger(pagamento.pagamento_id),
           toText(pagamento.forma, 40) || "dinheiro",
           toNumber(pagamento.valor, 0),
-          pagamento.autorizado === true,
+          toBooleanFlag(pagamento.autorizado, false),
           pagamento.criado_em || null,
           JSON.stringify(pagamento || {}),
         ],

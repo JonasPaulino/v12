@@ -1,5 +1,24 @@
 import { getDb } from "../../db/connection.js";
 
+function toBooleanFlag(value, defaultValue = false) {
+  if (value === undefined || value === null || value === "") {
+    return defaultValue;
+  }
+
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  if (typeof value === "number") {
+    return value === 1;
+  }
+
+  const normalized = String(value).trim().toLowerCase();
+  if (["true", "1", "sim", "yes", "t"].includes(normalized)) return true;
+  if (["false", "0", "nao", "não", "no", "f"].includes(normalized)) return false;
+  return defaultValue;
+}
+
 export function getFiscalConfig() {
   return (
     getDb()
@@ -150,7 +169,7 @@ export function saveFiscalConfig(payload = {}) {
     payload.crt || "3",
     payload.cnae || null,
     payload.natureza_operacao_padrao || "Venda de mercadoria",
-    payload.nfce_habilitada ? 1 : 0,
+    toBooleanFlag(payload.nfce_habilitada, false) ? 1 : 0,
     Number(payload.serie_nfce_padrao || 1),
     Number(payload.proximo_numero_nfce || 1),
     payload.nfce_id_token_csc || null,

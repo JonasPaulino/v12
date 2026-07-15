@@ -9,6 +9,25 @@ import { syncFinanceiroSupportDataFromErp } from "./financeiroSupportDataSyncSer
 import { syncProdutosFromErp } from "./produtoSyncService.js";
 import { syncUsuariosFromErp } from "./usuarioSyncService.js";
 
+function toBooleanFlag(value, defaultValue = false) {
+  if (value === undefined || value === null || value === "") {
+    return defaultValue;
+  }
+
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  if (typeof value === "number") {
+    return value === 1;
+  }
+
+  const normalized = String(value).trim().toLowerCase();
+  if (["true", "1", "sim", "yes", "t"].includes(normalized)) return true;
+  if (["false", "0", "nao", "não", "no", "f"].includes(normalized)) return false;
+  return defaultValue;
+}
+
 function getErpBaseUrl() {
   if (!env.erpApiUrl) {
     throw new Error("URL do ERP web não configurada no desktop.");
@@ -82,7 +101,7 @@ function salvarConfiguracaoFiscalLocal(tenant = {}) {
     crt: fiscal.crt || "3",
     cnae: fiscal.cnae || "",
     natureza_operacao_padrao: fiscal.natureza_operacao_padrao || "Venda de mercadoria",
-    nfce_habilitada: !!fiscal.nfce_habilitada,
+    nfce_habilitada: toBooleanFlag(fiscal.nfce_habilitada, false),
     serie_nfce_padrao: Number(fiscal.serie_nfce_padrao || 1),
     proximo_numero_nfce: Number(fiscal.proximo_numero_nfce || 1),
     nfce_id_token_csc: fiscal.nfce_id_token_csc || "",
@@ -124,7 +143,7 @@ export async function configurarTerminalPorTenant({
     throw new Error("Selecione a filial do ERP web para parear este terminal.");
   }
 
-  if (tenant.tenant_usa_pdv !== true) {
+  if (!toBooleanFlag(tenant.tenant_usa_pdv, false)) {
     throw new Error("Esta filial não está habilitada para integração com o PDV. Ative a opção no ERP web antes do setup.");
   }
 
@@ -141,9 +160,9 @@ export async function configurarTerminalPorTenant({
       tenant_endereco: tenantDetalhado.tenant_endereco || null,
       tenant_inscricao_estadual: tenantDetalhado.tenant_inscricao_estadual || null,
       tenant_inscricao_municipal: tenantDetalhado.tenant_inscricao_municipal || null,
-      tenant_ativo: tenantDetalhado.tenant_ativo !== false,
-      tenant_usa_pdv: tenantDetalhado.tenant_usa_pdv !== false,
-      tenant_acesso_bloqueado: !!tenantDetalhado.tenant_acesso_bloqueado,
+      tenant_ativo: toBooleanFlag(tenantDetalhado.tenant_ativo, true),
+      tenant_usa_pdv: toBooleanFlag(tenantDetalhado.tenant_usa_pdv, false),
+      tenant_acesso_bloqueado: toBooleanFlag(tenantDetalhado.tenant_acesso_bloqueado, false),
       tenant_bloqueio_motivo: tenantDetalhado.tenant_bloqueio_motivo || null,
       terminal_codigo,
       terminal_nome,
@@ -206,9 +225,9 @@ export async function atualizarDadosFilialAtual() {
     tenant_endereco: tenant.tenant_endereco || null,
     tenant_inscricao_estadual: tenant.tenant_inscricao_estadual || null,
     tenant_inscricao_municipal: tenant.tenant_inscricao_municipal || null,
-    tenant_ativo: tenant.tenant_ativo !== false,
-    tenant_usa_pdv: tenant.tenant_usa_pdv !== false,
-    tenant_acesso_bloqueado: !!tenant.tenant_acesso_bloqueado,
+    tenant_ativo: toBooleanFlag(tenant.tenant_ativo, true),
+    tenant_usa_pdv: toBooleanFlag(tenant.tenant_usa_pdv, false),
+    tenant_acesso_bloqueado: toBooleanFlag(tenant.tenant_acesso_bloqueado, false),
     tenant_bloqueio_motivo: tenant.tenant_bloqueio_motivo || null,
     terminal_codigo: configAtual.terminal_codigo,
     terminal_nome: configAtual.terminal_nome,

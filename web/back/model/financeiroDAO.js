@@ -23,6 +23,17 @@ const buildOrderBy = (sort = {}) => {
   return entries.length ? entries.join(", ") : "ft.data_vencimento ASC, ft.financeiro_titulo_id DESC";
 };
 
+const parseBooleanFlag = (value, defaultValue = false) => {
+  if (value === undefined || value === null || value === "") return defaultValue;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value === 1;
+
+  const normalized = String(value).trim().toLowerCase();
+  if (["true", "1", "sim", "yes", "t"].includes(normalized)) return true;
+  if (["false", "0", "nao", "não", "no", "f"].includes(normalized)) return false;
+  return defaultValue;
+};
+
 const normalizeText = (value, maxLength, { required = false, label = "Campo" } = {}) => {
   const normalized = String(value ?? "").trim();
 
@@ -161,8 +172,12 @@ class FinanceiroDAO {
     );
 
     return rows.map((row) => ({
-      ...row,
-      sincronizar_pdv: !!row.sincronizar_pdv,
+      financeiro_forma_pagamento_id: Number(row.financeiro_forma_pagamento_id || 0),
+      descricao: String(row.descricao || "").trim(),
+      tipo: String(row.tipo || "").trim().toLowerCase(),
+      padrao: parseBooleanFlag(row.padrao, false),
+      sincronizar_pdv: parseBooleanFlag(row.sincronizar_pdv, false),
+      ordem: Number(row.ordem || 0),
     }));
   }
 
@@ -241,8 +256,14 @@ class FinanceiroDAO {
     );
 
     return rows.map((row) => ({
-      ...row,
-      gera_boleto: !!row.gera_boleto,
+      financeiro_condicao_pagamento_id: Number(row.financeiro_condicao_pagamento_id || 0),
+      descricao: String(row.descricao || "").trim(),
+      tipo: String(row.tipo || "").trim().toLowerCase(),
+      quantidade_parcelas: Number(row.quantidade_parcelas || 0),
+      dias_primeiro_vencimento: Number(row.dias_primeiro_vencimento || 0),
+      intervalo_dias: Number(row.intervalo_dias || 0),
+      gera_boleto: parseBooleanFlag(row.gera_boleto, false),
+      padrao: parseBooleanFlag(row.padrao, false),
       percentual_entrada: Number(row.percentual_entrada || 0),
     }));
   }

@@ -13,11 +13,22 @@ const router = express.Router();
 
 router.use("/desktop/sync", desktopSyncAuth);
 
+const parseBooleanFlag = (value, defaultValue = false) => {
+  if (value === undefined || value === null || value === "") return defaultValue;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value === 1;
+
+  const normalized = String(value).trim().toLowerCase();
+  if (["true", "1", "sim", "yes", "t"].includes(normalized)) return true;
+  if (["false", "0", "nao", "não", "no", "f"].includes(normalized)) return false;
+  return defaultValue;
+};
+
 const buildTenantGuardPayload = (tenant) => ({
   tenant_id: Number(tenant.tenant_id),
-  tenant_ativo: tenant.tenant_ativo ?? tenant.ativo ?? true,
-  tenant_usa_pdv: !!tenant.tenant_usa_pdv,
-  tenant_acesso_bloqueado: !!tenant.tenant_acesso_bloqueado,
+  tenant_ativo: parseBooleanFlag(tenant.tenant_ativo ?? tenant.ativo, true),
+  tenant_usa_pdv: parseBooleanFlag(tenant.tenant_usa_pdv, false),
+  tenant_acesso_bloqueado: parseBooleanFlag(tenant.tenant_acesso_bloqueado, false),
   tenant_bloqueio_motivo: tenant.tenant_bloqueio_motivo || null,
   issued_at: new Date().toISOString(),
 });
@@ -118,7 +129,7 @@ const buildPublicSetupUser = (usuario) => ({
   usuario_id: usuario.usuario_id,
   usuario_nome: usuario.usuario_nome,
   usuario_email: usuario.usuario_email,
-  usuario_master: !!usuario.usuario_master,
+  usuario_master: parseBooleanFlag(usuario.usuario_master, false),
 });
 
 const buildTenantAddress = (tenant) => {
@@ -145,9 +156,9 @@ const buildTenantPayload = (tenant) => ({
   tenant_inscricao_municipal: tenant.tenant_inscricao_municipal || "",
   tenant_endereco: tenant.tenant_endereco || buildTenantAddress(tenant),
   perfil: tenant.perfil || null,
-  tenant_ativo: tenant.tenant_ativo ?? tenant.ativo ?? true,
-  tenant_usa_pdv: !!tenant.tenant_usa_pdv,
-  tenant_acesso_bloqueado: !!tenant.tenant_acesso_bloqueado,
+  tenant_ativo: parseBooleanFlag(tenant.tenant_ativo ?? tenant.ativo, true),
+  tenant_usa_pdv: parseBooleanFlag(tenant.tenant_usa_pdv, false),
+  tenant_acesso_bloqueado: parseBooleanFlag(tenant.tenant_acesso_bloqueado, false),
   tenant_bloqueio_motivo: tenant.tenant_bloqueio_motivo || null,
   ...encodeTenantAccessGuard(tenant),
 });
@@ -316,9 +327,9 @@ async function getTenantWithCompanyData(client, tenantId) {
       uf: row.emitente_uf,
       cep: row.emitente_cep,
     }),
-    tenant_ativo: row.tenant_ativo,
-    tenant_usa_pdv: !!row.tenant_usa_pdv,
-    tenant_acesso_bloqueado: !!row.tenant_acesso_bloqueado,
+    tenant_ativo: parseBooleanFlag(row.tenant_ativo, true),
+    tenant_usa_pdv: parseBooleanFlag(row.tenant_usa_pdv, false),
+    tenant_acesso_bloqueado: parseBooleanFlag(row.tenant_acesso_bloqueado, false),
     tenant_bloqueio_motivo: row.tenant_bloqueio_motivo || null,
     emitente: {
       nome_razao: row.emitente_nome_razao || row.tenant_nome || "",
@@ -344,7 +355,7 @@ async function getTenantWithCompanyData(client, tenantId) {
       crt: row.crt || "3",
       cnae: row.cnae || "",
       natureza_operacao_padrao: row.natureza_operacao_padrao || "Venda de mercadoria",
-      nfce_habilitada: !!row.nfce_habilitada,
+      nfce_habilitada: parseBooleanFlag(row.nfce_habilitada, false),
       serie_nfce_padrao: Number(row.serie_nfce_padrao ?? 1),
       proximo_numero_nfce: Number(row.proximo_numero_nfce ?? 1),
       nfce_id_token_csc: row.nfce_id_token_csc || "",
@@ -657,8 +668,8 @@ router.post("/desktop/sync/usuarios/:usuarioId/senha", async (req, res) => {
       success: true,
       data: {
         ...usuario,
-        ativo: !!usuario.ativo,
-        primeiro_acesso: !!usuario.primeiro_acesso,
+        ativo: parseBooleanFlag(usuario.ativo, true),
+        primeiro_acesso: parseBooleanFlag(usuario.primeiro_acesso, false),
       },
     });
   } catch (error) {

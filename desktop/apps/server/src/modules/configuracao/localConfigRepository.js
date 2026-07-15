@@ -4,6 +4,25 @@ import {
   normalizeBlockMessage,
 } from "./tenantAccessGuard.js";
 
+function toBooleanFlag(value, defaultValue = false) {
+  if (value === undefined || value === null || value === "") {
+    return defaultValue;
+  }
+
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  if (typeof value === "number") {
+    return value === 1;
+  }
+
+  const normalized = String(value).trim().toLowerCase();
+  if (["true", "1", "sim", "yes", "t"].includes(normalized)) return true;
+  if (["false", "0", "nao", "não", "no", "f"].includes(normalized)) return false;
+  return defaultValue;
+}
+
 export function getTerminalConfig() {
   return getDb()
     .prepare(
@@ -137,10 +156,10 @@ export function salvarTerminalConfig(payload = {}) {
     payload.tenant_endereco || null,
     payload.tenant_inscricao_estadual || null,
     payload.tenant_inscricao_municipal || null,
-    payload.tenant_ativo === false ? 0 : 1,
-    payload.tenant_usa_pdv === false ? 0 : 1,
-    payload.tenant_acesso_bloqueado ? 1 : 0,
-    payload.tenant_acesso_bloqueado
+    toBooleanFlag(payload.tenant_ativo, true) ? 1 : 0,
+    toBooleanFlag(payload.tenant_usa_pdv, false) ? 1 : 0,
+    toBooleanFlag(payload.tenant_acesso_bloqueado, false) ? 1 : 0,
+    toBooleanFlag(payload.tenant_acesso_bloqueado, false)
       ? normalizeBlockMessage(payload.tenant_bloqueio_motivo)
       : null,
     terminalCodigo,

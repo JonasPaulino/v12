@@ -9,6 +9,25 @@ export const OPERADOR_PERFIS = Object.freeze({
   ADMIN_LOCAL: "admin_local",
 });
 
+function toBooleanFlag(value, defaultValue = false) {
+  if (value === undefined || value === null || value === "") {
+    return defaultValue;
+  }
+
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  if (typeof value === "number") {
+    return value === 1;
+  }
+
+  const normalized = String(value).trim().toLowerCase();
+  if (["true", "1", "sim", "yes", "t"].includes(normalized)) return true;
+  if (["false", "0", "nao", "não", "no", "f"].includes(normalized)) return false;
+  return defaultValue;
+}
+
 export function sincronizarOperadoresErp(usuarios = []) {
   const db = getDb();
   const tenantErpId = getTerminalTenantErpId();
@@ -71,8 +90,8 @@ export function sincronizarOperadoresErp(usuarios = []) {
         nome: String(usuario.nome || "").trim(),
         email: String(usuario.email || "").trim().toLowerCase(),
         senha_hash: usuario.senha_hash,
-        ativo: usuario.ativo === false ? 0 : 1,
-        primeiro_acesso: usuario.primeiro_acesso ? 1 : 0,
+        ativo: toBooleanFlag(usuario.ativo, true) ? 1 : 0,
+        primeiro_acesso: toBooleanFlag(usuario.primeiro_acesso, false) ? 1 : 0,
       });
 
       const operador = findOperador.get(tenantErpId, Number(usuario.erp_usuario_id));

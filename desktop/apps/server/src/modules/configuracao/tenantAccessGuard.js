@@ -4,6 +4,25 @@ import { env } from "../../config/env.js";
 const DEFAULT_BLOCK_MESSAGE =
   "Todos os acessos desta filial foram bloqueados. Entre em contato com o suporte.";
 
+function toBooleanFlag(value, defaultValue = false) {
+  if (value === undefined || value === null || value === "") {
+    return defaultValue;
+  }
+
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  if (typeof value === "number") {
+    return value === 1;
+  }
+
+  const normalized = String(value).trim().toLowerCase();
+  if (["true", "1", "sim", "yes", "t"].includes(normalized)) return true;
+  if (["false", "0", "nao", "não", "no", "f"].includes(normalized)) return false;
+  return defaultValue;
+}
+
 function normalizeBlockMessage(message) {
   const normalized = String(message || "").trim();
   if (!normalized) {
@@ -30,9 +49,9 @@ function signPayload(payload) {
 }
 
 function fallbackState(config) {
-  const tenantAtivo = Number(config?.tenant_ativo) !== 0;
-  const tenantUsaPdv = Number(config?.tenant_usa_pdv) !== 0;
-  const tenantBloqueado = Number(config?.tenant_acesso_bloqueado) !== 0;
+  const tenantAtivo = toBooleanFlag(config?.tenant_ativo, true);
+  const tenantUsaPdv = toBooleanFlag(config?.tenant_usa_pdv, false);
+  const tenantBloqueado = toBooleanFlag(config?.tenant_acesso_bloqueado, false);
   const motivoBloqueio = normalizeBlockMessage(config?.tenant_bloqueio_motivo);
 
   return {
@@ -100,9 +119,9 @@ export function getSignedTenantAccessState(config) {
       throw new Error("tenant mismatch");
     }
 
-    const tenantAtivo = decoded?.tenant_ativo !== false;
-    const tenantUsaPdv = decoded?.tenant_usa_pdv !== false;
-    const tenantBloqueado = !!decoded?.tenant_acesso_bloqueado;
+    const tenantAtivo = toBooleanFlag(decoded?.tenant_ativo, true);
+    const tenantUsaPdv = toBooleanFlag(decoded?.tenant_usa_pdv, false);
+    const tenantBloqueado = toBooleanFlag(decoded?.tenant_acesso_bloqueado, false);
     const motivoBloqueio = tenantBloqueado
       ? normalizeBlockMessage(decoded?.tenant_bloqueio_motivo)
       : null;
