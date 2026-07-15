@@ -71,6 +71,10 @@ export default function App() {
     pagamentoModalAberto: venda.pagamentoModalAberto,
     vendaProntaParaConclusao: venda.vendaProntaParaConclusao,
     openModule: session.openModule,
+    abrirReimpressao: () => {
+      session.openModule("historico_vendas");
+      historico.carregarHistoricoVendas({ keepSelection: false });
+    },
     abrirModalCliente: venda.abrirModalCliente,
     focarConsultaProduto: handleFocarConsultaProduto,
     abrirPagamentoVenda: venda.abrirPagamentoVenda,
@@ -160,7 +164,15 @@ export default function App() {
               <button className="shortcut" onClick={() => session.openModule("fechamento")}>Fechamento <small>F5</small></button>
               <button className="shortcut" onClick={() => session.openModule("sangria")}>Sangria <small>F6</small></button>
               <button className="shortcut" onClick={() => session.openModule("suprimento")}>Suprimento <small>F7</small></button>
-              <button className="shortcut" onClick={handleFocarConsultaProduto}>Consultar produto <small>F8</small></button>
+              <button
+                className="shortcut"
+                onClick={() => {
+                  session.openModule("historico_vendas");
+                  historico.carregarHistoricoVendas({ keepSelection: false });
+                }}
+              >
+                Reimpressão <small>F8</small>
+              </button>
             </div>
           ) : null}
 

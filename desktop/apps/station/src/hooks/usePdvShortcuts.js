@@ -9,6 +9,7 @@ export function usePdvShortcuts({
   pagamentoModalAberto,
   vendaProntaParaConclusao,
   openModule,
+  abrirReimpressao,
   abrirModalCliente,
   focarConsultaProduto,
   abrirPagamentoVenda,
@@ -79,7 +80,12 @@ export function usePdvShortcuts({
 
       if (key === "F8") {
         event.preventDefault();
-        focarConsultaProduto();
+        if (typeof abrirReimpressao === "function") {
+          abrirReimpressao();
+          return;
+        }
+
+        openModule("historico_vendas");
       }
     };
 
@@ -87,6 +93,7 @@ export function usePdvShortcuts({
     return () => window.removeEventListener("keydown", handleKeyboardShortcut);
   }, [
     activeModule,
+    abrirReimpressao,
     abrirModalCliente,
     abrirPagamentoVenda,
     caixa,
