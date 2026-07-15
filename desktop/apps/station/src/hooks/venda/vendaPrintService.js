@@ -39,8 +39,14 @@ export async function sendDanfceHtmlToPrint(payload) {
   const printerConfig = await api.obterConfiguracaoImpressora().catch(() => null);
 
   if (payload?.pdfPath) {
-    await sendDanfceToPrint(payload.pdfPath);
-    return;
+    try {
+      await sendDanfceToPrint(payload.pdfPath);
+      return;
+    } catch (error) {
+      if (!payload?.fiscal) {
+        throw error;
+      }
+    }
   }
 
   if (!payload?.fiscal) {

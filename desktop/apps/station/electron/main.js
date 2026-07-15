@@ -1,14 +1,36 @@
 import { app, BrowserWindow, Menu, globalShortcut, ipcMain } from "electron";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { createRequire } from "node:module";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const require = createRequire(import.meta.url);
 
 const isDev = !app.isPackaged;
 const appIconPath = path.resolve(__dirname, "../src/assets/favicon.png");
 const DEFAULT_DEV_PORT = "5174";
+
+async function buildQrDataUrl(value = "") {
+  const qrText = String(value || "").trim();
+  if (!qrText) return "";
+
+  try {
+    const qrcode = require("qrcode");
+    return qrcode.toDataURL(qrText, {
+      errorCorrectionLevel: "M",
+      margin: 1,
+      width: 180,
+      color: {
+        dark: "#111827",
+        light: "#ffffff",
+      },
+    });
+  } catch {
+    return "";
+  }
+}
 
 function getCandidateDevUrls() {
   const envUrl = String(process.env.VITE_DEV_SERVER_URL || "").trim();
@@ -472,7 +494,7 @@ function extractXmlTag(xml = "", tagName = "") {
     .trim();
 }
 
-function buildDanfceHtml(payload = {}, config = {}) {
+async function buildDanfceHtml(payload = {}, config = {}) {
   const printerConfig = normalizePrinterConfig(config);
   const sale = payload.sale || {};
   const fiscal = payload.fiscal || {};
@@ -492,9 +514,13 @@ function buildDanfceHtml(payload = {}, config = {}) {
   const protocolo = fiscal.protocolo || extractXmlTag(xml, "nProt");
   const dataAutorizacao = extractXmlTag(xml, "dhRecbto") || sale.data || new Date().toLocaleString("pt-BR");
   const qrCodeUrl = extractXmlTag(xml, "qrCode");
+  const qrCodeImage = await buildQrDataUrl(qrCodeUrl);
   const numero = fiscal.numero || extractXmlTag(xml, "nNF") || "";
   const serie = fiscal.serie || extractXmlTag(xml, "serie") || "";
+  const tpAmb = String(fiscal.tpAmb || extractXmlTag(xml, "tpAmb") || "").trim();
+  const isHomologacao = tpAmb === "2";
   const ambiente = String(fiscal.status || "").toLowerCase() === "contingencia" ? "EM CONTINGÊNCIA" : "NORMAL";
+  const ambienteDocumento = isHomologacao ? "HOMOLOGACAO" : "PRODUCAO";
   const subtotal = formatCurrency(sale.subtotal || 0);
   const desconto = formatCurrency(sale.desconto || 0);
   const total = formatCurrency(sale.total || 0);
@@ -568,6 +594,14 @@ function buildDanfceHtml(payload = {}, config = {}) {
             font-weight: 700;
             text-transform: uppercase;
           }
+          .alert-stripe {
+            padding: 8px 6px;
+            border: 2px solid #111827;
+            text-align: center;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+          }
           .separator {
             white-space: pre;
             overflow: hidden;
@@ -604,6 +638,12 @@ function buildDanfceHtml(payload = {}, config = {}) {
           .break {
             word-break: break-all;
           }
+          .qr-code {
+            display: block;
+            width: ${isThermal ? "150px" : "180px"};
+            height: ${isThermal ? "150px" : "180px"};
+            margin: 6px auto;
+          }
         </style>
       </head>
       <body>
@@ -617,8 +657,9 @@ function buildDanfceHtml(payload = {}, config = {}) {
             </div>
 
             <div class="stripe">DANFE NFC-e - Documento Auxiliar da Nota Fiscal de Consumidor Eletrônica</div>
-            <div class="center small">NFC-e nº ${escapeHtml(numero)} Série ${escapeHtml(serie)} - ${escapeHtml(ambiente)}</div>
+            <div class="center small">NFC-e nº ${escapeHtml(numero)} Série ${escapeHtml(serie)} - ${escapeHtml(ambiente)} - ${escapeHtml(ambienteDocumento)}</div>
             <div class="center small muted">Não permite aproveitamento de crédito de ICMS</div>
+            ${isHomologacao ? `<div class="alert-stripe">EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL</div>` : ""}
 
             <div class="separator">${separator}</div>
 
@@ -664,6 +705,7 @@ function buildDanfceHtml(payload = {}, config = {}) {
               <div class="separator">${separator}</div>
               <div class="center block small">
                 <strong>CONSULTE PELA CHAVE DE ACESSO OU QR CODE</strong>
+                ${qrCodeImage ? `<img class="qr-code" src="${qrCodeImage}" alt="QR Code NFC-e" />` : ""}
                 <div class="break">${escapeHtml(qrCodeUrl)}</div>
               </div>
             ` : ""}
@@ -771,7 +813,7 @@ ipcMain.handle("sale:print-danfce", async (_event, payload = {}, config = {}) =>
   });
 
   try {
-    const html = buildDanfceHtml(payload, printerConfig);
+    const html = await buildDanfceHtml(payload, printerConfig);
     await danfceWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
     await printBrowserWindow(danfceWindow, printerConfig);
 

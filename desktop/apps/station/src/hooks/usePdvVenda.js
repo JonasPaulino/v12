@@ -283,10 +283,6 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
   }
 
   async function imprimirDanfce({ fiscal, venda }) {
-    if (fiscal?.danfcePrintedByAcbr) {
-      return;
-    }
-
     await printDanfceDocument({
       fiscal,
       sale: montarPayloadOrcamento(venda),

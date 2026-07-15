@@ -2,6 +2,7 @@ import { useContext, useState } from "react";
 import { api } from "../api.js";
 import { AppContext } from "../context/AppContext.jsx";
 import { useSweetAlert } from "../context/SweetAlertContext.jsx";
+import { sendDanfceHtmlToPrint } from "./venda/vendaPrintService.js";
 
 export function usePdvHistorico({ config, operador, caixa, onPrintBudget }) {
   const [historicoBusca, setHistoricoBusca] = useState("");
@@ -105,26 +106,30 @@ export function usePdvHistorico({ config, operador, caixa, onPrintBudget }) {
     };
   }
 
+  async function imprimirDanfceHistorico(venda) {
+    await sendDanfceHtmlToPrint({
+      fiscal: {
+        status: venda?.nfce_status,
+        chave_acesso: venda?.chave_acesso,
+        protocolo: venda?.protocolo,
+        numero: venda?.nfce_numero,
+        serie: venda?.nfce_serie,
+        cstat: venda?.nfce_cstat,
+        xMotivo: venda?.nfce_motivo,
+        xml: venda?.nfce_xml_assinado || venda?.nfce_xml || null,
+      },
+      sale: buildBudgetPayloadFromVenda(venda),
+      pdfPath: venda?.nfce_pdf_path || null,
+    });
+  }
+
   async function reimprimirVendaHistorico() {
     if (!historicoVendaDetalhe) return;
 
-    if (
-      ["autorizada", "contingencia"].includes(historicoVendaDetalhe.nfce_status) &&
-      historicoVendaDetalhe.nfce_pdf_path
-    ) {
-      if (!window.v12Desktop?.printPdfFile) {
-        showAlert({
-          title: "Electron indisponível",
-          text: "A reimpressão do DANFCe funciona somente no app Electron.",
-          icon: "info",
-        });
-        return;
-      }
-
+    if (["autorizada", "contingencia"].includes(historicoVendaDetalhe.nfce_status)) {
       try {
         showLoading("Reimprimindo DANFCe...");
-        const printerConfig = await api.obterConfiguracaoImpressora().catch(() => null);
-        await window.v12Desktop.printPdfFile(historicoVendaDetalhe.nfce_pdf_path, printerConfig);
+        await imprimirDanfceHistorico(historicoVendaDetalhe);
       } catch (error) {
         showAlert({
           title: "Falha ao reimprimir DANFCe",
@@ -179,12 +184,15 @@ export function usePdvHistorico({ config, operador, caixa, onPrintBudget }) {
       await carregarHistoricoVendas({ keepSelection: true });
 
       let avisoImpressao = "";
-      if (data?.fiscal?.pdfPath && window.v12Desktop?.printPdfFile) {
+      if (data?.fiscal?.success || data?.fiscal?.status === "contingencia") {
         try {
-          const printerConfig = await api.obterConfiguracaoImpressora().catch(() => null);
-          await window.v12Desktop.printPdfFile(data.fiscal.pdfPath, printerConfig);
+          await sendDanfceHtmlToPrint({
+            fiscal: data.fiscal,
+            sale: buildBudgetPayloadFromVenda(data?.venda || historicoVendaDetalhe),
+            pdfPath: data?.fiscal?.pdfPath || null,
+          });
         } catch (printError) {
-          avisoImpressao = ` O DANFCe foi gerado, mas não foi possível imprimir: ${printError.message}`;
+          avisoImpressao = ` A NFC-e foi emitida, mas o DANFCe não foi impresso: ${printError.message}`;
         }
       }
 
