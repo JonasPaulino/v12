@@ -10,9 +10,11 @@ import DesktopSyncDAO from "../model/desktopSyncDAO.js";
 import FinanceiroDAO from "../model/financeiroDAO.js";
 import ConfiguracaoFiscalDAO from "../model/configuracaoFiscalDAO.js";
 import GestaoBackupDAO from "../model/gestaoBackupDAO.js";
+import GestaoPdvReleaseDAO from "../model/gestaoPdvReleaseDAO.js";
 import PdvDAO from "../model/pdvDAO.js";
 import loginDAO from "../model/loginDAO.js";
 import { uploadBackupToGoogleDrive } from "../services/googleDriveBackupService.js";
+import { openReleaseReadStream } from "../services/pdvReleaseStorageService.js";
 import { processarEventoDesktopSync } from "../services/pdvSyncProcessor.js";
 import { hashPassword, verifyPassword } from "../utils/password.js";
 import { decryptSecret } from "../utils/secret.js";
@@ -83,6 +85,48 @@ const parseJsonField = (value, fallback = {}) => {
   }
 };
 
+const parseVersionParts = (version) =>
+  String(version || "")
+    .trim()
+    .replace(/^v/i, "")
+    .split(/[.-]/)
+    .map((part) => Number.parseInt(part, 10))
+    .map((part) => (Number.isFinite(part) ? part : 0));
+
+const compareVersions = (left, right) => {
+  const a = parseVersionParts(left);
+  const b = parseVersionParts(right);
+  const length = Math.max(a.length, b.length, 3);
+
+  for (let index = 0; index < length; index += 1) {
+    const diff = (a[index] || 0) - (b[index] || 0);
+    if (diff !== 0) return diff;
+  }
+
+  return 0;
+};
+
+const buildReleasePayload = (release, req) => {
+  const query = new URLSearchParams({
+    tenantId: String(req.query?.tenantId || req.body?.tenantId || ""),
+  });
+
+  return {
+    release_id: release.pdv_release_id,
+    versao: release.versao,
+    canal: release.canal,
+    plataforma: release.plataforma,
+    obrigatorio: release.obrigatorio === true,
+    arquivo_nome: release.arquivo_nome,
+    arquivo_original: release.arquivo_original,
+    arquivo_sha256: release.arquivo_sha256,
+    tamanho_bytes: Number(release.tamanho_bytes || 0),
+    notas: release.notas || "",
+    publicado_em: release.publicado_em,
+    download_url: `/desktop/sync/releases/${release.pdv_release_id}/download?${query.toString()}`,
+  };
+};
+
 router.post("/desktop/sync", async (req, res) => {
   try {
     const tenantId = Number(req.body?.tenantId);
@@ -113,11 +157,11 @@ router.post("/desktop/sync", async (req, res) => {
       });
     }
 
-    const tenantPermitido = await DesktopSyncDAO.validarTenantParaBackup(pool, tenantId);
-    if (!tenantPermitido) {
+    const tenantAtivo = await DesktopSyncDAO.validarTenantAtivo(pool, tenantId);
+    if (!tenantAtivo) {
       return res.status(403).json({
         success: false,
-        message: "Filial sem integração PDV ou não encontrada para retenção fiscal.",
+        message: "Filial inativa, bloqueada, sem integração PDV ou não encontrada.",
       });
     }
 
@@ -191,11 +235,11 @@ router.post("/desktop/sync/backups", backupUpload.single("arquivo"), async (req,
       });
     }
 
-    const tenantAtivo = await DesktopSyncDAO.validarTenantAtivo(pool, tenantId);
-    if (!tenantAtivo) {
+    const tenantPermitido = await DesktopSyncDAO.validarTenantParaBackup(pool, tenantId);
+    if (!tenantPermitido) {
       return res.status(403).json({
         success: false,
-        message: "Filial inativa, bloqueada, sem integração PDV ou não encontrada.",
+        message: "Filial sem integração PDV ou não encontrada para retenção fiscal.",
       });
     }
 
@@ -309,6 +353,103 @@ router.post("/desktop/sync/backups", backupUpload.single("arquivo"), async (req,
     if (uploadedPath) {
       await fs.rm(uploadedPath, { force: true }).catch(() => {});
     }
+  }
+});
+
+router.get("/desktop/sync/releases/latest", async (req, res) => {
+  try {
+    const tenantId = Number(req.query?.tenantId);
+    const canal = String(req.query?.channel || req.query?.canal || "stable").trim();
+    const plataforma = String(req.query?.platform || req.query?.plataforma || "win32-x64").trim();
+    const currentVersion = String(req.query?.currentVersion || req.query?.versaoAtual || "").trim();
+
+    if (!Number.isInteger(tenantId) || tenantId <= 0) {
+      return res.status(400).json({ success: false, message: "tenantId obrigatório." });
+    }
+
+    const tenantAtivo = await DesktopSyncDAO.validarTenantAtivo(pool, tenantId);
+    if (!tenantAtivo) {
+      return res.status(403).json({
+        success: false,
+        message: "Filial inativa, bloqueada, sem integração PDV ou não encontrada.",
+      });
+    }
+
+    const release = await GestaoPdvReleaseDAO.buscarReleasePublicado(pool, {
+      canal,
+      plataforma,
+    });
+
+    if (!release) {
+      return res.json({
+        success: true,
+        data: {
+          update_available: false,
+          release: null,
+        },
+      });
+    }
+
+    const updateAvailable =
+      !currentVersion || compareVersions(release.versao, currentVersion) > 0;
+
+    return res.json({
+      success: true,
+      data: {
+        update_available: updateAvailable,
+        current_version: currentVersion || null,
+        release: updateAvailable ? buildReleasePayload(release, req) : null,
+        latest: buildReleasePayload(release, req),
+      },
+    });
+  } catch (error) {
+    console.error("[desktop-sync:release] Falha ao consultar release:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Não foi possível consultar atualização do PDV.",
+    });
+  }
+});
+
+router.get("/desktop/sync/releases/:releaseId/download", async (req, res) => {
+  try {
+    const tenantId = Number(req.query?.tenantId);
+    const releaseId = Number(req.params.releaseId);
+
+    if (!Number.isInteger(tenantId) || tenantId <= 0) {
+      return res.status(400).json({ success: false, message: "tenantId obrigatório." });
+    }
+
+    const tenantAtivo = await DesktopSyncDAO.validarTenantAtivo(pool, tenantId);
+    if (!tenantAtivo) {
+      return res.status(403).json({
+        success: false,
+        message: "Filial inativa, bloqueada, sem integração PDV ou não encontrada.",
+      });
+    }
+
+    const release = await GestaoPdvReleaseDAO.buscarReleasePorId(pool, releaseId);
+    if (!release || release.status !== "publicado") {
+      return res.status(404).json({ success: false, message: "Release não encontrado." });
+    }
+
+    const stream = await openReleaseReadStream(release);
+    res.setHeader("Content-Type", "application/octet-stream");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${String(release.arquivo_original || release.arquivo_nome).replace(
+        /"/g,
+        "",
+      )}"`,
+    );
+    res.setHeader("X-V12-Release-Sha256", release.arquivo_sha256);
+    stream.pipe(res);
+  } catch (error) {
+    console.error("[desktop-sync:release] Falha ao baixar release:", error);
+    return res.status(400).json({
+      success: false,
+      message: error?.message || "Não foi possível baixar atualização do PDV.",
+    });
   }
 });
 

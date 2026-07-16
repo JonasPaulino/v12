@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { spawn } from "node:child_process";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,6 +12,62 @@ const require = createRequire(import.meta.url);
 const isDev = !app.isPackaged;
 const appIconPath = path.resolve(__dirname, "../src/assets/favicon.png");
 const DEFAULT_DEV_PORT = "5174";
+let localServerProcess = null;
+
+function resolvePackagedServerEntry() {
+  return path.resolve(__dirname, "../../server/src/index.js");
+}
+
+function resolvePackagedAcbrRoot() {
+  return path.resolve(process.resourcesPath, "lib", "ACBrLibNFE");
+}
+
+function buildPackagedServerEnv() {
+  const userDataDir = app.getPath("userData");
+  const dataDir = path.join(userDataDir, "data");
+  const acbrRoot = resolvePackagedAcbrRoot();
+
+  return {
+    ...process.env,
+    ELECTRON_RUN_AS_NODE: "1",
+    V12_LOCAL_DB_PATH:
+      process.env.V12_LOCAL_DB_PATH || path.join(dataDir, "v12-pdv.sqlite"),
+    V12_BACKUP_DIR: process.env.V12_BACKUP_DIR || path.join(dataDir, "backups"),
+    V12_PDV_RELEASE_DIR: process.env.V12_PDV_RELEASE_DIR || path.join(dataDir, "releases"),
+    V12_ACBRLIB_CONFIG_DIR:
+      process.env.V12_ACBRLIB_CONFIG_DIR || path.join(dataDir, "acbrlib", "config"),
+    V12_ACBRLIB_TEMP_DIR:
+      process.env.V12_ACBRLIB_TEMP_DIR || path.join(dataDir, "acbrlib", "runtime"),
+    V12_ACBRLIB_LOG_DIR:
+      process.env.V12_ACBRLIB_LOG_DIR || path.join(dataDir, "acbrlib", "log"),
+    V12_ACBRLIB_NFE_PATH:
+      process.env.V12_ACBRLIB_NFE_PATH ||
+      path.join(acbrRoot, "Windows", "MT", "Cdecl", "ACBrNFe64.dll"),
+    V12_ACBRLIB_SCHEMA_PATH:
+      process.env.V12_ACBRLIB_SCHEMA_PATH || path.join(acbrRoot, "dep", "Schemas", "NFe"),
+    V12_ACBRLIB_NFE_SERVICOS_PATH:
+      process.env.V12_ACBRLIB_NFE_SERVICOS_PATH || path.join(acbrRoot, "dep", "ACBrNFeServicos.ini"),
+  };
+}
+
+async function startPackagedLocalServer() {
+  if (isDev || localServerProcess) return;
+
+  const serverEntry = resolvePackagedServerEntry();
+  const serverEnv = buildPackagedServerEnv();
+  await fs.mkdir(path.dirname(serverEnv.V12_LOCAL_DB_PATH), { recursive: true });
+
+  localServerProcess = spawn(process.execPath, [serverEntry], {
+    env: serverEnv,
+    cwd: path.dirname(serverEntry),
+    stdio: "ignore",
+    detached: false,
+  });
+
+  localServerProcess.on("exit", () => {
+    localServerProcess = null;
+  });
+}
 
 async function buildQrDataUrl(value = "") {
   const qrText = String(value || "").trim();
@@ -942,8 +999,9 @@ ipcMain.handle("sale:print-pdf-file", async (_event, pdfPath, config = {}) => {
   }
 });
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   Menu.setApplicationMenu(null);
+  await startPackagedLocalServer();
   createWindow();
 
   globalShortcut.register("F11", () => {
@@ -959,6 +1017,10 @@ app.whenReady().then(() => {
 
 app.on("will-quit", () => {
   globalShortcut.unregisterAll();
+  if (localServerProcess) {
+    localServerProcess.kill();
+    localServerProcess = null;
+  }
 });
 
 app.on("window-all-closed", () => {

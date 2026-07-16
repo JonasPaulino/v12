@@ -31,6 +31,18 @@ const initialChatForm = {
   notificacao_whatsapp_minutos: 10,
 };
 
+const initialReleaseForm = {
+  versao: "",
+  canal: "stable",
+  plataforma: "win32-x64",
+  status: "rascunho",
+  obrigatorio: false,
+  notas: "",
+};
+
+const apiBaseUrl = String(api.defaults.baseURL || "/api").replace(/\/$/, "");
+const buildApiUrl = (path) => `${apiBaseUrl}${path}`;
+
 const normalizeWhatsAppStatus = (value) => {
   const normalized = String(value || "").trim().toLowerCase();
 
@@ -131,6 +143,11 @@ export const GestaoV12Configuracoes = () => {
   const [chatForm, setChatForm] = useState(initialChatForm);
   const [chatCategorias, setChatCategorias] = useState([]);
   const [savingChat, setSavingChat] = useState(false);
+  const [releaseForm, setReleaseForm] = useState(initialReleaseForm);
+  const [releaseFile, setReleaseFile] = useState(null);
+  const [releases, setReleases] = useState([]);
+  const [loadingReleases, setLoadingReleases] = useState(false);
+  const [savingRelease, setSavingRelease] = useState(false);
 
   const loadAsaasConfig = useCallback(async () => {
     setLoading(true);
@@ -245,6 +262,26 @@ export const GestaoV12Configuracoes = () => {
     loadChatConfig();
   }, [loadChatConfig]);
 
+  const loadReleases = useCallback(async () => {
+    setLoadingReleases(true);
+    try {
+      const { data } = await api.get("/gestao/pdv/releases");
+      setReleases(Array.isArray(data.data) ? data.data : []);
+    } catch (error) {
+      showAlert?.({
+        title: "Falha ao carregar releases",
+        text: error?.response?.data?.message || "Não foi possível carregar os releases do PDV.",
+        icon: "error",
+      });
+    } finally {
+      setLoadingReleases(false);
+    }
+  }, [showAlert]);
+
+  useEffect(() => {
+    loadReleases();
+  }, [loadReleases]);
+
   const updateAsaasField = (field, value) => {
     setAsaasForm((current) => ({
       ...current,
@@ -261,6 +298,13 @@ export const GestaoV12Configuracoes = () => {
 
   const updateChatField = (field, value) => {
     setChatForm((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  };
+
+  const updateReleaseField = (field, value) => {
+    setReleaseForm((current) => ({
       ...current,
       [field]: value,
     }));
@@ -316,6 +360,98 @@ export const GestaoV12Configuracoes = () => {
     } finally {
       setSavingChat(false);
       hideLoading();
+    }
+  };
+
+  const handleSubmitRelease = async (event) => {
+    event.preventDefault();
+
+    if (!releaseFile) {
+      showAlert?.({
+        title: "Arquivo obrigatório",
+        text: "Selecione o instalador ou pacote do PDV para publicar.",
+        icon: "warning",
+      });
+      return;
+    }
+
+    const formData = new FormData();
+    Object.entries(releaseForm).forEach(([key, value]) => {
+      formData.append(key, value);
+    });
+    formData.append("arquivo", releaseFile);
+
+    setSavingRelease(true);
+    showLoading("Enviando release do PDV...");
+    try {
+      await api.post("/gestao/pdv/releases", formData);
+
+      setReleaseForm(initialReleaseForm);
+      setReleaseFile(null);
+      event.currentTarget.reset();
+      await loadReleases();
+      hideLoading();
+      showAlert?.({
+        title: "Release cadastrado",
+        text: "O arquivo do PDV foi salvo na retaguarda.",
+        icon: "success",
+        timer: 1800,
+      });
+    } catch (error) {
+      hideLoading();
+      showAlert?.({
+        title: "Falha ao salvar release",
+        text: error?.response?.data?.message || "Não foi possível salvar o release do PDV.",
+        icon: "error",
+      });
+    } finally {
+      setSavingRelease(false);
+      hideLoading();
+    }
+  };
+
+  const handlePublishRelease = async (releaseId) => {
+    try {
+      await api.put(`/gestao/pdv/releases/${releaseId}/publicar`);
+      await loadReleases();
+      showAlert?.({
+        title: "Release publicado",
+        text: "Os PDVs poderão baixar esta versão na próxima verificação.",
+        icon: "success",
+        timer: 1800,
+      });
+    } catch (error) {
+      showAlert?.({
+        title: "Falha ao publicar",
+        text: error?.response?.data?.message || "Não foi possível publicar o release.",
+        icon: "error",
+      });
+    }
+  };
+
+  const handleDisableRelease = async (releaseId) => {
+    const confirmed = await askYesNoQuestion?.(
+      "Desativar release",
+      "Deseja desativar este release do PDV?"
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await api.put(`/gestao/pdv/releases/${releaseId}/desativar`);
+      await loadReleases();
+      showAlert?.({
+        title: "Release desativado",
+        text: "Esta versão não será mais oferecida aos PDVs.",
+        icon: "success",
+        timer: 1800,
+      });
+    } catch (error) {
+      showAlert?.({
+        title: "Falha ao desativar",
+        text: error?.response?.data?.message || "Não foi possível desativar o release.",
+        icon: "error",
+      });
     }
   };
 
@@ -662,6 +798,13 @@ export const GestaoV12Configuracoes = () => {
               onClick={() => setActiveTab("chat")}
             >
               Chat
+            </C.TabButton>
+            <C.TabButton
+              type="button"
+              $active={activeTab === "releases"}
+              onClick={() => setActiveTab("releases")}
+            >
+              Releases PDV
             </C.TabButton>
           </C.Tabs>
 
@@ -1099,6 +1242,163 @@ export const GestaoV12Configuracoes = () => {
                   {savingChat ? "Salvando..." : "Salvar chat"}
                 </C.PrimaryButton>
               </C.Actions>
+            </C.SectionBody>
+          ) : null}
+
+          {activeTab === "releases" ? (
+            <C.SectionBody>
+              <C.CardHeader>
+                <C.CardTitle>Atualização do PDV</C.CardTitle>
+                <C.CardText>
+                  Publique o instalador ou pacote do PDV. Os terminais consultam a versão
+                  publicada, baixam o arquivo, conferem o SHA-256 e deixam a instalação pronta.
+                </C.CardText>
+              </C.CardHeader>
+
+              <C.ConnectionCard as="form" onSubmit={handleSubmitRelease}>
+                <C.FieldsGrid>
+                  <C.Field>
+                    <C.FieldSpan>Versão</C.FieldSpan>
+                    <C.Input
+                      value={releaseForm.versao}
+                      onChange={(event) => updateReleaseField("versao", event.target.value)}
+                      placeholder="Ex.: 1.0.0"
+                    />
+                  </C.Field>
+
+                  <C.Field>
+                    <C.FieldSpan>Canal</C.FieldSpan>
+                    <C.Select
+                      value={releaseForm.canal}
+                      onChange={(event) => updateReleaseField("canal", event.target.value)}
+                    >
+                      <option value="stable">Stable</option>
+                      <option value="beta">Beta</option>
+                    </C.Select>
+                  </C.Field>
+
+                  <C.Field>
+                    <C.FieldSpan>Plataforma</C.FieldSpan>
+                    <C.Select
+                      value={releaseForm.plataforma}
+                      onChange={(event) => updateReleaseField("plataforma", event.target.value)}
+                    >
+                      <option value="win32-x64">Windows x64</option>
+                      <option value="linux-x64">Linux x64</option>
+                    </C.Select>
+                  </C.Field>
+
+                  <C.Field>
+                    <C.FieldSpan>Status inicial</C.FieldSpan>
+                    <C.Select
+                      value={releaseForm.status}
+                      onChange={(event) => updateReleaseField("status", event.target.value)}
+                    >
+                      <option value="rascunho">Rascunho</option>
+                      <option value="publicado">Publicado</option>
+                    </C.Select>
+                  </C.Field>
+
+                  <C.Field>
+                    <C.FieldSpan>Arquivo</C.FieldSpan>
+                    <C.Input
+                      type="file"
+                      accept=".exe,.msi,.zip,.7z"
+                      onChange={(event) => setReleaseFile(event.target.files?.[0] || null)}
+                    />
+                    <C.FieldHint>Use o instalador final do PDV ou pacote de distribuição.</C.FieldHint>
+                  </C.Field>
+                </C.FieldsGrid>
+
+                <C.ToggleList>
+                  <C.ToggleRow>
+                    <C.Checkbox
+                      type="checkbox"
+                      checked={releaseForm.obrigatorio}
+                      onChange={(event) =>
+                        updateReleaseField("obrigatorio", event.target.checked)
+                      }
+                    />
+                    <span>Marcar atualização como obrigatória</span>
+                  </C.ToggleRow>
+                </C.ToggleList>
+
+                <C.Field>
+                  <C.FieldSpan>Notas da versão</C.FieldSpan>
+                  <C.Textarea
+                    value={releaseForm.notas}
+                    onChange={(event) => updateReleaseField("notas", event.target.value)}
+                    placeholder="Resumo das correções e mudanças desta versão."
+                  />
+                </C.Field>
+
+                <C.Actions>
+                  <C.PrimaryButton type="submit" disabled={savingRelease}>
+                    {savingRelease ? "Enviando..." : "Cadastrar release"}
+                  </C.PrimaryButton>
+                </C.Actions>
+              </C.ConnectionCard>
+
+              <C.ReleaseList>
+                <C.ReleaseListHeader>
+                  <strong>Releases cadastrados</strong>
+                  <C.SecondaryButton
+                    type="button"
+                    onClick={loadReleases}
+                    disabled={loadingReleases}
+                  >
+                    {loadingReleases ? "Atualizando..." : "Recarregar"}
+                  </C.SecondaryButton>
+                </C.ReleaseListHeader>
+
+                {releases.length ? (
+                  releases.map((release) => (
+                    <C.ReleaseItem key={release.pdv_release_id}>
+                      <C.ReleaseInfo>
+                        <strong>V12 PDV {release.versao}</strong>
+                        <span>
+                          {release.canal} · {release.plataforma} · {release.status}
+                          {release.obrigatorio ? " · obrigatório" : ""}
+                        </span>
+                        <small>
+                          SHA-256: {release.arquivo_sha256 || "não informado"}
+                        </small>
+                      </C.ReleaseInfo>
+
+                      <C.ReleaseActions>
+                        <C.SecondaryButton
+                          type="button"
+                          as="a"
+                          href={buildApiUrl(
+                            `/gestao/pdv/releases/${release.pdv_release_id}/download`
+                          )}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Baixar
+                        </C.SecondaryButton>
+                        {release.status !== "publicado" ? (
+                          <C.PrimaryInlineButton
+                            type="button"
+                            onClick={() => handlePublishRelease(release.pdv_release_id)}
+                          >
+                            Publicar
+                          </C.PrimaryInlineButton>
+                        ) : (
+                          <C.SecondaryButton
+                            type="button"
+                            onClick={() => handleDisableRelease(release.pdv_release_id)}
+                          >
+                            Desativar
+                          </C.SecondaryButton>
+                        )}
+                      </C.ReleaseActions>
+                    </C.ReleaseItem>
+                  ))
+                ) : (
+                  <C.Placeholder>Nenhum release do PDV cadastrado.</C.Placeholder>
+                )}
+              </C.ReleaseList>
             </C.SectionBody>
           ) : null}
         </C.Card>

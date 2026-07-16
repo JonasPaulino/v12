@@ -1,0 +1,33 @@
+appId: br.com.jhes.v12pdv
+productName: V12 PDV
+directories:
+  output: dist/releases
+asarUnpack:
+  - node_modules/better-sqlite3/**
+  - node_modules/@projetoacbr/**
+files:
+  - apps/station/dist/**
+  - apps/station/electron/**
+  - apps/station/package.json
+  - apps/server/**
+  - package.json
+  - package-lock.json
+  - node_modules/**
+extraResources:
+  - from: lib
+    to: lib
+    filter:
+      - "**/*"
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: apps/station/src/assets/favicon.png
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: V12 PDV

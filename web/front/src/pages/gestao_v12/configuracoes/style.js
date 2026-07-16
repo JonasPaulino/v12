@@ -325,6 +325,10 @@ export const SecondaryButton = styled.button`
   color: ${({ theme }) => theme.colors.text};
   font-weight: 800;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
 `;
 
 export const Placeholder = styled.div`
@@ -334,4 +338,66 @@ export const Placeholder = styled.div`
   color: ${({ theme }) => theme.colors.textSoft};
   background: rgba(248, 251, 255, 0.74);
   line-height: 1.6;
+`;
+
+export const ReleaseList = styled.div`
+  display: grid;
+  gap: 12px;
+`;
+
+export const ReleaseListHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+`;
+
+export const ReleaseItem = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radius.md};
+  background: rgba(248, 251, 255, 0.92);
+
+  @media (max-width: 760px) {
+    align-items: stretch;
+    flex-direction: column;
+  }
+`;
+
+export const ReleaseInfo = styled.div`
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+
+  strong {
+    color: ${({ theme }) => theme.colors.text};
+  }
+
+  span,
+  small {
+    color: ${({ theme }) => theme.colors.textSoft};
+    word-break: break-word;
+  }
+
+  small {
+    font-size: 0.78rem;
+  }
+`;
+
+export const ReleaseActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+
+  @media (max-width: 560px) {
+    > * {
+      width: 100%;
+    }
+  }
 `;

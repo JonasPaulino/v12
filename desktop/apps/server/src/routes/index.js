@@ -8,6 +8,7 @@ import operadorRoutes from "./operadorRoutes.js";
 import pedidoRoutes from "./pedidoRoutes.js";
 import pessoaRoutes from "./pessoaRoutes.js";
 import produtoRoutes from "./produtoRoutes.js";
+import releaseRoutes from "./releaseRoutes.js";
 import syncRoutes from "./syncRoutes.js";
 import vendaRoutes from "./vendaRoutes.js";
 
@@ -22,6 +23,7 @@ router.use("/operadores", operadorRoutes);
 router.use("/pedidos", pedidoRoutes);
 router.use("/pessoas", pessoaRoutes);
 router.use("/produtos", produtoRoutes);
+router.use("/release", releaseRoutes);
 router.use("/sync", syncRoutes);
 router.use("/vendas", vendaRoutes);
 

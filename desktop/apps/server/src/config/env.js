@@ -78,4 +78,10 @@ export const env = {
   backupSevenZipPath: process.env.V12_BACKUP_7Z_PATH || "7z",
   backupLocalRetentionDays: Number(process.env.V12_BACKUP_LOCAL_RETENTION_DAYS || 30),
   backupAutoIntervalMinutes: Number(process.env.V12_BACKUP_AUTO_INTERVAL_MINUTES || 0),
+  pdvVersion: process.env.V12_PDV_VERSION || "0.1.0",
+  pdvReleaseChannel: process.env.V12_PDV_RELEASE_CHANNEL || "stable",
+  pdvReleasePlatform:
+    process.env.V12_PDV_RELEASE_PLATFORM ||
+    (process.platform === "win32" ? "win32-x64" : `${process.platform}-${process.arch}`),
+  pdvReleaseDir: process.env.V12_PDV_RELEASE_DIR || path.join(desktopRoot, "data", "releases"),
 };

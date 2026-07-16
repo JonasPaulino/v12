@@ -38,6 +38,7 @@ import gestaoUsuarioRoutes from "./routes/gestaoUsuarioRoutes.js";
 import gestaoMensagemRoutes from "./routes/gestaoMensagemRoutes.js";
 import gestaoChatRoutes from "./routes/gestaoChatRoutes.js";
 import gestaoBackupRoutes from "./routes/gestaoBackupRoutes.js";
+import gestaoPdvReleaseRoutes from "./routes/gestaoPdvReleaseRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
 import desktopSyncRoutes from "./routes/desktopSyncRoutes.js";
 import requireMaster from "./middleware/requireMaster.js";
@@ -97,7 +98,8 @@ app.use(
   gestaoUsuarioRoutes,
   gestaoMensagemRoutes,
   gestaoChatRoutes,
-  gestaoBackupRoutes
+  gestaoBackupRoutes,
+  gestaoPdvReleaseRoutes
 );
 app.use("/integracoes/pagamentos", paymentIntegrationRoutes);
 

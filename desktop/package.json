@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "main": "apps/station/electron/main.js",
   "workspaces": [
     "apps/*",
     "packages/*"
@@ -12,6 +13,8 @@
     "dev:station": "npm --workspace @v12-desktop/station run dev",
     "startpdv": "sh ./startpdv.sh",
     "start:server": "npm --workspace @v12-desktop/server start",
-    "start:station": "npm --workspace @v12-desktop/station start"
+    "start:station": "npm --workspace @v12-desktop/station start",
+    "build:station": "npm --workspace @v12-desktop/station run build",
+    "package:win": "npm run build:station && npx electron-builder --win nsis --config electron-builder.yml"
   }
 }
