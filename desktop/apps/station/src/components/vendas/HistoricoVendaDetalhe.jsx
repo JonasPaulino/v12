@@ -12,7 +12,7 @@ function formatDateTime(value) {
   const raw = String(value).trim();
   const normalized = raw.includes("T") ? raw : raw.replace(" ", "T");
   const hasExplicitTimezone = /(?:z|[+-]\d{2}:?\d{2})$/i.test(normalized);
-  const date = new Date(hasExplicitTimezone ? normalized : `${normalized}Z`);
+  const date = new Date(hasExplicitTimezone ? normalized : `${normalized}-03:00`);
   if (Number.isNaN(date.getTime())) return String(value);
 
   return new Intl.DateTimeFormat("pt-BR", {

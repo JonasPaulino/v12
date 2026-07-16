@@ -18,9 +18,9 @@ router.post("/processar", async (_req, res) => {
   res.json(data);
 });
 
-router.post("/atualizar-pdv", async (_req, res, next) => {
+router.post("/atualizar-pdv", async (req, res, next) => {
   try {
-    const data = await atualizarPdvCompleto();
+    const data = await atualizarPdvCompleto({ full: req.body?.full !== false });
     res.json({ success: true, data });
   } catch (error) {
     next(error);

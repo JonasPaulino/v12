@@ -2,6 +2,7 @@ import { env } from "../config/env.js";
 
 const DEFAULT_TIMEOUT_MS = 3500;
 const ERP_TIMEOUT_MS = 5000;
+let cachedConnectivity = null;
 
 function normalizeUrl(url) {
   const value = String(url || "").trim();
@@ -50,12 +51,23 @@ async function probeUrl(url, timeoutMs = DEFAULT_TIMEOUT_MS) {
   }
 }
 
-export async function verificarConectividadeInternet() {
+export async function verificarConectividadeInternet({ cacheMs = 0 } = {}) {
+  if (
+    cacheMs > 0 &&
+    cachedConnectivity?.checkedAt &&
+    Date.now() - new Date(cachedConnectivity.checkedAt).getTime() <= cacheMs
+  ) {
+    return {
+      ...cachedConnectivity,
+      cached: true,
+    };
+  }
+
   const erpApiUrl = normalizeUrl(env.erpApiUrl);
   const publicTargets = buildPublicCheckTargets();
 
   if (!erpApiUrl) {
-    return {
+    const result = {
       online: false,
       internetOnline: false,
       erpOnline: false,
@@ -63,6 +75,8 @@ export async function verificarConectividadeInternet() {
       targets: [],
       message: "Não foi possível validar a internet porque a retaguarda não está configurada.",
     };
+    cachedConnectivity = result;
+    return result;
   }
 
   const [erpResult, ...publicResults] = await Promise.all([
@@ -73,7 +87,7 @@ export async function verificarConectividadeInternet() {
   const erpOnline = !!erpResult?.ok;
   const online = erpOnline || internetOnline;
 
-  return {
+  const result = {
     online,
     internetOnline,
     erpOnline,
@@ -85,4 +99,6 @@ export async function verificarConectividadeInternet() {
         ? "A internet externa está ativa, mas a retaguarda do ERP não respondeu."
         : "Não foi possível comunicar com a retaguarda nem com os endpoints públicos de internet.",
   };
+  cachedConnectivity = result;
+  return result;
 }

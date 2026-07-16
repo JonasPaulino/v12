@@ -688,6 +688,8 @@
   min-height: 320px;
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .mobile-order-list-header {
@@ -711,6 +713,9 @@
   flex: 1;
   min-height: 0;
   align-content: start;
+  overflow: auto;
+  padding-right: 2px;
+  padding-bottom: 10px;
 }
 
 .mobile-order-card {

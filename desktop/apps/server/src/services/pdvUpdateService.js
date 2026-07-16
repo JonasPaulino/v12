@@ -6,7 +6,7 @@ import { verificarConectividadeInternet } from "./networkService.js";
 import { syncProdutosFromErp } from "./produtoSyncService.js";
 import { syncUsuariosFromErp } from "./usuarioSyncService.js";
 
-export async function atualizarPdvCompleto() {
+export async function atualizarPdvCompleto({ full = true } = {}) {
   const steps = [];
 
   try {
@@ -49,7 +49,7 @@ export async function atualizarPdvCompleto() {
     });
     console.info("[desktop-sync] Etapa concluida", steps[steps.length - 1]);
 
-    const produtos = await syncProdutosFromErp({ full: true });
+    const produtos = await syncProdutosFromErp({ full });
     if (produtos.success === false) {
       throw new Error(produtos.message || "Não foi possível sincronizar os produtos.");
     }
@@ -59,7 +59,7 @@ export async function atualizarPdvCompleto() {
       success: true,
       details: {
         imported: Number(produtos.imported || 0),
-        full: true,
+        full,
       },
     });
     console.info("[desktop-sync] Etapa concluida", steps[steps.length - 1]);

@@ -136,7 +136,13 @@ export const api = {
     }),
   syncPendencias: () => request("/sync/pendencias"),
   processarSync: () => request("/sync/processar", { method: "POST" }),
-  atualizarPdvCompleto: () => request("/sync/atualizar-pdv", { method: "POST" }),
+  atualizarPdvCompleto: (payload = {}) =>
+    request("/sync/atualizar-pdv", {
+      method: "POST",
+      body: JSON.stringify({
+        full: payload.full !== false,
+      }),
+    }),
   sincronizarProdutos: (payload = {}) =>
     request("/sync/produtos", { method: "POST", body: JSON.stringify(payload) }),
   sincronizarUsuarios: () => request("/sync/usuarios", { method: "POST" }),

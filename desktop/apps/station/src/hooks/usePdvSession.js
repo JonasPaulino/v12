@@ -106,7 +106,7 @@ export function usePdvSession({ onResetVenda, onCarregarFinanceiroSupportData })
 
     try {
       if (!silent) showLoading("Atualizando PDV...");
-      const result = await api.atualizarPdvCompleto();
+      const result = await api.atualizarPdvCompleto({ full: !silent });
       await loadInitialData({ silent: true, suppressErrorAlert: true });
       setSyncState((current) => ({
         ...current,

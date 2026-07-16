@@ -2,6 +2,8 @@ import { env } from "../config/env.js";
 import { getTerminalConfigStatus } from "../modules/configuracao/localConfigRepository.js";
 import { verificarConectividadeInternet } from "./networkService.js";
 
+const CHAT_CONNECTIVITY_CACHE_MS = 30000;
+
 function getErpBaseUrl() {
   const baseUrl = String(env.erpApiUrl || "").trim().replace(/\/+$/, "");
   if (!baseUrl) {
@@ -47,7 +49,7 @@ async function fetchErpChat(path, options = {}) {
 }
 
 async function ensureErpSupportOnline() {
-  const connectivity = await verificarConectividadeInternet();
+  const connectivity = await verificarConectividadeInternet({ cacheMs: CHAT_CONNECTIVITY_CACHE_MS });
   if (!connectivity?.erpOnline) {
     throw new Error(
       connectivity?.message ||
@@ -85,7 +87,7 @@ export async function getChatSupportSnapshot() {
     };
   }
 
-  const connectivity = await verificarConectividadeInternet();
+  const connectivity = await verificarConectividadeInternet({ cacheMs: CHAT_CONNECTIVITY_CACHE_MS });
   if (!connectivity?.erpOnline) {
     return {
       available: false,

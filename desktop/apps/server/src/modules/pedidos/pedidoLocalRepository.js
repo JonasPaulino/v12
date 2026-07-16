@@ -133,6 +133,11 @@ function validarCaixaAberto() {
   if (!caixa) {
     throw new Error("Não existe caixa aberto para receber pedidos nesta filial.");
   }
+  if (caixa.caixa_pendente_dia_anterior) {
+    throw new Error(
+      `Existe um caixa aberto do dia ${caixa.data_operacional}. Feche esse caixa antes de registrar pedidos.`,
+    );
+  }
   return caixa;
 }
 
