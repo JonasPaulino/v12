@@ -51,6 +51,20 @@ export const api = {
     request("/operadores/login", { method: "POST", body: JSON.stringify(payload) }),
   trocarSenhaPrimeiroAcesso: (payload) =>
     request("/operadores/primeiro-acesso", { method: "POST", body: JSON.stringify(payload) }),
+  chatConfig: () => request("/chat/config"),
+  chatIniciarAtendimento: (payload) =>
+    request("/chat/atendimentos", { method: "POST", body: JSON.stringify(payload) }),
+  chatAtendimento: (token) => request(`/chat/atendimentos/${encodeURIComponent(token)}`),
+  chatEnviarMensagem: (token, payload) =>
+    request(`/chat/atendimentos/${encodeURIComponent(token)}/mensagens`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  chatAvaliarAtendimento: (token, payload) =>
+    request(`/chat/atendimentos/${encodeURIComponent(token)}/avaliacao`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
   caixaAtual: () => request("/caixa/atual"),
   caixaResumo: () => request("/caixa/resumo"),
   abrirCaixa: (payload) => request("/caixa/abrir", { method: "POST", body: JSON.stringify(payload) }),

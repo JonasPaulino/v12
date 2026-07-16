@@ -3265,7 +3265,7 @@ label {
 .pdv-footer {
   display: grid;
   min-height: 34px;
-  grid-template-columns: 1fr auto 190px;
+  grid-template-columns: 1fr auto;
   align-items: center;
   gap: 16px;
   padding: 0 18px;
@@ -3280,6 +3280,13 @@ label {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.footer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
 }
 
 .footer-status button {
@@ -3297,6 +3304,31 @@ label {
 .footer-status button.sync-running {
   background: rgba(123, 214, 255, 0.16);
   color: #ffffff;
+}
+
+.footer-support {
+  height: 24px;
+  padding: 0 10px;
+  border: 1px solid rgba(123, 214, 255, 0.2);
+  border-radius: 999px;
+  background: rgba(123, 214, 255, 0.08);
+  color: #d8ecf8;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.footer-support.unread {
+  border-color: rgba(255, 223, 153, 0.4);
+  background: rgba(255, 223, 153, 0.14);
+  color: #fff2c2;
+}
+
+.footer-support:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .footer-brand {

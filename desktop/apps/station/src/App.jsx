@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useCallback, useRef, useState } from "react";
 import { FiUser } from "react-icons/fi";
 import { AberturaCaixa } from "./components/caixa/AberturaCaixa.jsx";
 import { FechamentoCaixa } from "./components/caixa/FechamentoCaixa.jsx";
@@ -11,6 +11,7 @@ import { PdvFooter } from "./components/layout/PdvFooter.jsx";
 import { PdvTopBar } from "./components/layout/PdvTopBar.jsx";
 import { VendaPagamentoModal } from "./components/pagamento/VendaPagamentoModal.jsx";
 import { PedidosPendentes } from "./components/pedidos/PedidosPendentes.jsx";
+import { SupportChatWidget } from "./components/chat/SupportChatWidget.jsx";
 import { LoginOperador } from "./components/setup/LoginOperador.jsx";
 import { SetupLocal } from "./components/setup/SetupLocal.jsx";
 import { HistoricoVendaDetalhe } from "./components/vendas/HistoricoVendaDetalhe.jsx";
@@ -24,6 +25,41 @@ import { MobilePedidosApp } from "./pages/pedidos/MobilePedidosApp.jsx";
 import logoPdvWhite from "./assets/logo_pdv_branca.png";
 
 function PdvApp() {
+  const [supportChatState, setSupportChatState] = useState({
+    available: false,
+    active: false,
+    reason: null,
+    unread: false,
+  });
+  const [supportChatOpenRequestId, setSupportChatOpenRequestId] = useState(0);
+
+  const handleSupportAvailabilityChange = useCallback((state) => {
+    setSupportChatState((current) => {
+      const next = {
+        ...current,
+        available: state?.available === true,
+        active: state?.active === true,
+        reason: state?.reason || null,
+      };
+
+      if (
+        current.available === next.available &&
+        current.active === next.active &&
+        current.reason === next.reason
+      ) {
+        return current;
+      }
+
+      return next;
+    });
+  }, []);
+
+  const handleSupportUnreadChange = useCallback((unread) => {
+    setSupportChatState((current) => {
+      const nextUnread = !!unread;
+      return current.unread === nextUnread ? current : { ...current, unread: nextUnread };
+    });
+  }, []);
   const vendaBridgeRef = useRef({
     resetVendaState: () => {},
     carregarFinanceiroSupportData: async () => ({ success: true }),
@@ -107,15 +143,18 @@ function PdvApp() {
 
   if (!session.operador) {
     return (
-      <LoginOperador
-        config={{
-          ...(session.configStatus?.config || {}),
-          bloqueado: !!session.configStatus?.bloqueado,
-          motivo_bloqueio: session.configStatus?.motivo_bloqueio || null,
-        }}
-        onLogin={session.handleOperadorLogin}
-        onRefreshStatus={session.refreshTerminalStatus}
-      />
+      <>
+        <LoginOperador
+          config={{
+            ...(session.configStatus?.config || {}),
+            bloqueado: !!session.configStatus?.bloqueado,
+            motivo_bloqueio: session.configStatus?.motivo_bloqueio || null,
+          }}
+          onLogin={session.handleOperadorLogin}
+          onRefreshStatus={session.refreshTerminalStatus}
+        />
+        <SupportChatWidget entryPoint="floating" />
+      </>
     );
   }
 
@@ -361,8 +400,18 @@ function PdvApp() {
       <PdvFooter
         caixa={session.caixa}
         syncState={session.syncState}
+        supportChatState={supportChatState}
+        onOpenSupportChat={() => setSupportChatOpenRequestId((current) => current + 1)}
         atualizarPdvCompleto={session.atualizarPdvCompleto}
         sairDoSistema={session.sairDoSistema}
+      />
+
+      <SupportChatWidget
+        entryPoint="footer"
+        operator={session.operador}
+        openRequestId={supportChatOpenRequestId}
+        onAvailabilityChange={handleSupportAvailabilityChange}
+        onUnreadChange={handleSupportUnreadChange}
       />
     </div>
   );

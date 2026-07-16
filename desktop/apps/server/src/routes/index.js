@@ -1,5 +1,6 @@
 import { Router } from "express";
 import caixaRoutes from "./caixaRoutes.js";
+import chatRoutes from "./chatRoutes.js";
 import configuracaoRoutes from "./configuracaoRoutes.js";
 import healthRoutes from "./healthRoutes.js";
 import operadorRoutes from "./operadorRoutes.js";
@@ -13,6 +14,7 @@ const router = Router();
 
 router.use(healthRoutes);
 router.use("/caixa", caixaRoutes);
+router.use("/chat", chatRoutes);
 router.use("/configuracao", configuracaoRoutes);
 router.use("/operadores", operadorRoutes);
 router.use("/pedidos", pedidoRoutes);
