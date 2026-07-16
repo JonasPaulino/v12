@@ -12,6 +12,8 @@ export function PdvFooter({
     ? "Uma atualização automática está sendo executada em segundo plano."
     : syncState?.lastError
       ? syncState.lastError
+      : syncState?.releaseMessage
+        ? syncState.releaseMessage
       : "Atualizar PDV agora";
 
   const supportTitle =
@@ -30,7 +32,7 @@ export function PdvFooter({
           title={syncTitle}
         >
           <FiRefreshCcw className={syncState?.running ? "spinning-icon" : ""} />
-          Atualizar PDV
+          {syncState?.running ? "Atualizando..." : "Atualizar PDV"}
         </button>
       </div>
       <div className="footer-actions">

@@ -116,11 +116,15 @@ const buildReleasePayload = (release, req) => {
     versao: release.versao,
     canal: release.canal,
     plataforma: release.plataforma,
+    tipo_release: release.tipo_release || "app",
+    modo_aplicacao: release.modo_aplicacao || "manual",
     obrigatorio: release.obrigatorio === true,
+    rollback_habilitado: release.rollback_habilitado !== false,
     arquivo_nome: release.arquivo_nome,
     arquivo_original: release.arquivo_original,
     arquivo_sha256: release.arquivo_sha256,
     tamanho_bytes: Number(release.tamanho_bytes || 0),
+    manifest_json: release.manifest_json || {},
     notas: release.notas || "",
     publicado_em: release.publicado_em,
     download_url: `/desktop/sync/releases/${release.pdv_release_id}/download?${query.toString()}`,
@@ -361,6 +365,7 @@ router.get("/desktop/sync/releases/latest", async (req, res) => {
     const tenantId = Number(req.query?.tenantId);
     const canal = String(req.query?.channel || req.query?.canal || "stable").trim();
     const plataforma = String(req.query?.platform || req.query?.plataforma || "win32-x64").trim();
+    const tipoRelease = String(req.query?.type || req.query?.tipo_release || "").trim() || null;
     const currentVersion = String(req.query?.currentVersion || req.query?.versaoAtual || "").trim();
 
     if (!Number.isInteger(tenantId) || tenantId <= 0) {
@@ -378,6 +383,7 @@ router.get("/desktop/sync/releases/latest", async (req, res) => {
     const release = await GestaoPdvReleaseDAO.buscarReleasePublicado(pool, {
       canal,
       plataforma,
+      tipoRelease,
     });
 
     if (!release) {

@@ -28,6 +28,33 @@ const withClient = async (handler) => {
   }
 };
 
+const parseJsonField = (value, fallback = {}) => {
+  if (!value) return fallback;
+  if (typeof value === "object") return value;
+  try {
+    return JSON.parse(String(value));
+  } catch {
+    return fallback;
+  }
+};
+
+const buildReleaseManifest = (body, fileInfo = {}) => {
+  const manifest = parseJsonField(body?.manifest_json, {});
+  return {
+    tipo_release: String(body?.tipo_release || "app").trim(),
+    modo_aplicacao: String(body?.modo_aplicacao || "manual").trim(),
+    rollback_habilitado: body?.rollback_habilitado !== "false",
+    criado_em: new Date().toISOString(),
+    arquivo: {
+      nome: fileInfo.arquivoNome || null,
+      original: fileInfo.arquivoOriginal || null,
+      sha256: fileInfo.arquivoSha256 || null,
+      tamanho_bytes: Number(fileInfo.tamanhoBytes || 0),
+    },
+    ...manifest,
+  };
+};
+
 router.get("/pdv/releases", async (req, res) => {
   try {
     const data = await withClient((client) =>
@@ -57,6 +84,8 @@ router.post("/pdv/releases", upload.single("arquivo"), async (req, res) => {
     const versao = String(req.body?.versao || "").trim();
     const canal = String(req.body?.canal || "stable").trim();
     const plataforma = String(req.body?.plataforma || "win32-x64").trim();
+    const tipoRelease = String(req.body?.tipo_release || "app").trim();
+    const modoAplicacao = String(req.body?.modo_aplicacao || "manual").trim();
     const status = String(req.body?.status || "rascunho").trim();
 
     if (!versao) {
@@ -83,8 +112,12 @@ router.post("/pdv/releases", upload.single("arquivo"), async (req, res) => {
         versao,
         canal,
         plataforma,
+        tipoRelease,
+        modoAplicacao,
         status: status === "publicado" ? "publicado" : "rascunho",
         obrigatorio: req.body?.obrigatorio,
+        rollbackHabilitado: req.body?.rollback_habilitado,
+        manifest: buildReleaseManifest(req.body, storedFile),
         notas: req.body?.notas,
         criadoPor: Number(req.user?.userId) || null,
         ...storedFile,

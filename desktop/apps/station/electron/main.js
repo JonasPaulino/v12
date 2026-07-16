@@ -1,4 +1,5 @@
 import { app, BrowserWindow, Menu, globalShortcut, ipcMain } from "electron";
+import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { createRequire } from "node:module";
@@ -14,7 +15,39 @@ const appIconPath = path.resolve(__dirname, "../src/assets/favicon.png");
 const DEFAULT_DEV_PORT = "5174";
 let localServerProcess = null;
 
+function readJsonSync(filePath) {
+  try {
+    return JSON.parse(fsSync.readFileSync(filePath, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+function getRuntimeDataDir() {
+  return path.join(app.getPath("userData"), "data");
+}
+
+function getActiveAppVersion() {
+  const manifest = readJsonSync(path.join(getRuntimeDataDir(), "versions", "current.json"));
+  if (!manifest?.staging_dir) return null;
+  return manifest;
+}
+
+function getActiveResourceVersion() {
+  const manifest = readJsonSync(path.join(getRuntimeDataDir(), "resources", "current.json"));
+  if (!manifest?.staging_dir) return null;
+  return manifest;
+}
+
 function resolvePackagedServerEntry() {
+  const activeVersion = getActiveAppVersion();
+  const activeServerEntry = activeVersion?.staging_dir
+    ? path.resolve(activeVersion.staging_dir, "server", "src", "index.js")
+    : null;
+  if (activeServerEntry && fsSync.existsSync(activeServerEntry)) {
+    return activeServerEntry;
+  }
+
   return path.resolve(__dirname, "../../server/src/index.js");
 }
 
@@ -23,9 +56,15 @@ function resolvePackagedAcbrRoot() {
 }
 
 function buildPackagedServerEnv() {
-  const userDataDir = app.getPath("userData");
-  const dataDir = path.join(userDataDir, "data");
-  const acbrRoot = resolvePackagedAcbrRoot();
+  const dataDir = getRuntimeDataDir();
+  const activeResource = getActiveResourceVersion();
+  const resourceAcbrRoot = activeResource?.staging_dir
+    ? path.resolve(activeResource.staging_dir, "ACBrLibNFE")
+    : null;
+  const acbrRoot =
+    resourceAcbrRoot && fsSync.existsSync(resourceAcbrRoot)
+      ? resourceAcbrRoot
+      : resolvePackagedAcbrRoot();
 
   return {
     ...process.env,
@@ -893,6 +932,16 @@ async function createWindow() {
     } catch {
       await win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(buildDevServerErrorHtml())}`);
     }
+    return;
+  }
+
+  const activeVersion = getActiveAppVersion();
+  const activeIndex = activeVersion?.staging_dir
+    ? path.resolve(activeVersion.staging_dir, "station", "dist", "index.html")
+    : null;
+
+  if (activeIndex && fsSync.existsSync(activeIndex)) {
+    win.loadFile(activeIndex);
     return;
   }
 

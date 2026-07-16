@@ -18,6 +18,7 @@ export function usePdvSession({ onResetVenda, onCarregarFinanceiroSupportData })
     reason: null,
     lastSuccessAt: null,
     lastError: null,
+    releaseMessage: null,
   });
   const { showLoading, hideLoading } = useContext(AppContext);
   const { showAlert, askYesNoQuestion } = useSweetAlert();
@@ -114,6 +115,26 @@ export function usePdvSession({ onResetVenda, onCarregarFinanceiroSupportData })
         lastError: null,
       }));
       const steps = Array.isArray(result?.steps) ? result.steps.map((step) => step.label) : [];
+      const releaseStep = Array.isArray(result?.steps)
+        ? result.steps.find((step) => step.key === "release")
+        : null;
+      const statusLocal = releaseStep?.details?.statusLocal;
+      const releaseMessage =
+        statusLocal === "pendente_reinicio"
+          ? "Atualização aplicada. Reinicie o PDV para concluir."
+          : statusLocal === "recursos_aplicado"
+            ? "Recursos do PDV atualizados."
+            : statusLocal === "baixado" || statusLocal === "staged"
+              ? "Atualização baixada. Será aplicada quando o caixa estiver fechado."
+              : releaseStep?.details?.updateAvailable
+                ? `Atualização ${releaseStep.details.versaoDisponivel || ""} disponível.`
+                : releaseStep?.success
+                  ? "PDV sem atualização pendente."
+                  : releaseStep?.details?.message || null;
+      setSyncState((current) => ({
+        ...current,
+        releaseMessage,
+      }));
       if (!silent) {
         showAlert({
           title: "PDV atualizado",

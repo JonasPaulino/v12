@@ -35,8 +35,11 @@ const initialReleaseForm = {
   versao: "",
   canal: "stable",
   plataforma: "win32-x64",
+  tipo_release: "app",
+  modo_aplicacao: "auto_inicio",
   status: "rascunho",
   obrigatorio: false,
+  rollback_habilitado: true,
   notas: "",
 };
 
@@ -1300,6 +1303,36 @@ export const GestaoV12Configuracoes = () => {
                   </C.Field>
 
                   <C.Field>
+                    <C.FieldSpan>Tipo do release</C.FieldSpan>
+                    <C.Select
+                      value={releaseForm.tipo_release}
+                      onChange={(event) => updateReleaseField("tipo_release", event.target.value)}
+                    >
+                      <option value="instalador">Instalador inicial</option>
+                      <option value="app">Atualização do PDV</option>
+                      <option value="recursos">Recursos / ACBr</option>
+                    </C.Select>
+                    <C.FieldHint>
+                      Instalador é usado em máquina nova. Atualização e recursos entram no fluxo de
+                      staging/rollback do PDV.
+                    </C.FieldHint>
+                  </C.Field>
+
+                  <C.Field>
+                    <C.FieldSpan>Aplicação</C.FieldSpan>
+                    <C.Select
+                      value={releaseForm.modo_aplicacao}
+                      onChange={(event) =>
+                        updateReleaseField("modo_aplicacao", event.target.value)
+                      }
+                    >
+                      <option value="manual">Manual</option>
+                      <option value="auto_inicio">Automática no início</option>
+                      <option value="auto_fechamento">Automática após fechamento</option>
+                    </C.Select>
+                  </C.Field>
+
+                  <C.Field>
                     <C.FieldSpan>Arquivo</C.FieldSpan>
                     <C.Input
                       type="file"
@@ -1320,6 +1353,16 @@ export const GestaoV12Configuracoes = () => {
                       }
                     />
                     <span>Marcar atualização como obrigatória</span>
+                  </C.ToggleRow>
+                  <C.ToggleRow>
+                    <C.Checkbox
+                      type="checkbox"
+                      checked={releaseForm.rollback_habilitado}
+                      onChange={(event) =>
+                        updateReleaseField("rollback_habilitado", event.target.checked)
+                      }
+                    />
+                    <span>Manter versão anterior para restauração rápida</span>
                   </C.ToggleRow>
                 </C.ToggleList>
 
@@ -1358,6 +1401,8 @@ export const GestaoV12Configuracoes = () => {
                         <strong>V12 PDV {release.versao}</strong>
                         <span>
                           {release.canal} · {release.plataforma} · {release.status}
+                          {" · "}
+                          {release.tipo_release || "app"} · {release.modo_aplicacao || "manual"}
                           {release.obrigatorio ? " · obrigatório" : ""}
                         </span>
                         <small>

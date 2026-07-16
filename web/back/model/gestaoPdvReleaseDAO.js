@@ -15,13 +15,17 @@ class GestaoPdvReleaseDAO {
       versao,
       canal,
       plataforma,
+      tipoRelease,
+      modoAplicacao,
       status,
       obrigatorio,
+      rollbackHabilitado,
       arquivoNome,
       arquivoOriginal,
       arquivoPath,
       arquivoSha256,
       tamanhoBytes,
+      manifest,
       notas,
       criadoPor,
     } = payload;
@@ -35,19 +39,23 @@ class GestaoPdvReleaseDAO {
           versao,
           canal,
           plataforma,
+          tipo_release,
+          modo_aplicacao,
           status,
           obrigatorio,
+          rollback_habilitado,
           arquivo_nome,
           arquivo_original,
           arquivo_path,
           arquivo_sha256,
           tamanho_bytes,
+          manifest_json,
           notas,
           publicado_em,
           criado_por
         )
         VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, ${publicadoEm}, $12
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, ${publicadoEm}, $14
         )
         RETURNING *
       `,
@@ -55,13 +63,17 @@ class GestaoPdvReleaseDAO {
         normalizeText(versao),
         normalizeText(canal, "stable"),
         normalizeText(plataforma, "win32-x64"),
+        normalizeText(tipoRelease, "app"),
+        normalizeText(modoAplicacao, "manual"),
         finalStatus,
         normalizeBoolean(obrigatorio),
+        rollbackHabilitado === undefined ? true : normalizeBoolean(rollbackHabilitado),
         arquivoNome,
         arquivoOriginal,
         arquivoPath,
         arquivoSha256,
         Number(tamanhoBytes || 0),
+        manifest && typeof manifest === "object" ? manifest : {},
         normalizeText(notas, null),
         criadoPor || null,
       ],
@@ -119,18 +131,29 @@ class GestaoPdvReleaseDAO {
     return rows[0] || null;
   }
 
-  static async buscarReleasePublicado(client, { canal, plataforma }) {
+  static async buscarReleasePublicado(client, { canal, plataforma, tipoRelease = null }) {
+    const values = [normalizeText(canal, "stable"), normalizeText(plataforma, "win32-x64")];
+    let tipoWhere = "";
+
+    if (tipoRelease) {
+      values.push(normalizeText(tipoRelease, "app"));
+      tipoWhere = `AND tipo_release = $${values.length}`;
+    } else {
+      tipoWhere = "AND tipo_release IN ('app', 'recursos', 'instalador')";
+    }
+
     const { rows } = await client.query(
       `
         SELECT *
         FROM gestao.pdv_release
         WHERE canal = $1
           AND plataforma = $2
+          ${tipoWhere}
           AND status = 'publicado'
         ORDER BY publicado_em DESC NULLS LAST, criado_em DESC, pdv_release_id DESC
         LIMIT 1
       `,
-      [normalizeText(canal, "stable"), normalizeText(plataforma, "win32-x64")],
+      values,
     );
 
     return rows[0] || null;

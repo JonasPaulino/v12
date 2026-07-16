@@ -28,6 +28,8 @@ export function PdvTopBar({
     ? "Uma atualização automática está sendo executada em segundo plano."
     : syncState?.lastError
       ? syncState.lastError
+      : syncState?.releaseMessage
+        ? syncState.releaseMessage
       : "Atualizar PDV agora";
 
   return (

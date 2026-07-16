@@ -84,4 +84,7 @@ export const env = {
     process.env.V12_PDV_RELEASE_PLATFORM ||
     (process.platform === "win32" ? "win32-x64" : `${process.platform}-${process.arch}`),
   pdvReleaseDir: process.env.V12_PDV_RELEASE_DIR || path.join(desktopRoot, "data", "releases"),
+  pdvVersionDir: process.env.V12_PDV_VERSION_DIR || path.join(desktopRoot, "data", "versions"),
+  pdvResourceDir: process.env.V12_PDV_RESOURCE_DIR || path.join(desktopRoot, "data", "resources"),
+  pdvReleaseAutoCheckMinutes: Number(process.env.V12_PDV_RELEASE_AUTO_CHECK_MINUTES || 30),
 };

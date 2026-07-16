@@ -10,12 +10,18 @@ files:
   - apps/station/electron/**
   - apps/station/package.json
   - apps/server/**
+  - tools/**
+  - Restaurar V12 PDV.cmd
   - package.json
   - package-lock.json
   - node_modules/**
 extraResources:
   - from: lib
     to: lib
+    filter:
+      - "**/*"
+  - from: tools
+    to: tools
     filter:
       - "**/*"
 win:

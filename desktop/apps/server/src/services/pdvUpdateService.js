@@ -5,7 +5,10 @@ import { reenviarContingenciasNfce } from "../modules/vendas/vendaRepository.js"
 import { verificarConectividadeInternet } from "./networkService.js";
 import { syncProdutosFromErp } from "./produtoSyncService.js";
 import { syncUsuariosFromErp } from "./usuarioSyncService.js";
-import { verificarAtualizacaoPdv } from "./atualizacao/releaseUpdateService.js";
+import {
+  baixarAtualizacaoPdv,
+  verificarAtualizacaoPdv,
+} from "./atualizacao/releaseUpdateService.js";
 
 export async function atualizarPdvCompleto({ full = true } = {}) {
   const steps = [];
@@ -159,6 +162,10 @@ export async function atualizarPdvCompleto({ full = true } = {}) {
 
     try {
       const release = await verificarAtualizacaoPdv();
+      let releaseLocal = release.local || null;
+      if (release.update_available && release.release?.release_id) {
+        releaseLocal = await baixarAtualizacaoPdv(release.release.release_id);
+      }
       steps.push({
         key: "release",
         label: "Release do PDV",
@@ -167,6 +174,7 @@ export async function atualizarPdvCompleto({ full = true } = {}) {
           versaoAtual: release.versao_atual,
           updateAvailable: release.update_available === true,
           versaoDisponivel: release.release?.versao || release.latest?.versao || null,
+          statusLocal: releaseLocal?.status || null,
         },
       });
       console.info("[desktop-sync] Etapa concluida", steps[steps.length - 1]);
