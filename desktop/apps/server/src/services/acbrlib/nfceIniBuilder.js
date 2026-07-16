@@ -62,20 +62,15 @@ const buildDhEmi = (date = new Date()) => {
   return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
 };
 
-const buildDhUtc = (date = new Date()) => {
-  const pad = (value) => String(Math.trunc(Math.abs(value))).padStart(2, "0");
-  const year = date.getFullYear();
-  const month = pad(date.getMonth() + 1);
-  const day = pad(date.getDate());
-  const hours = pad(date.getHours());
-  const minutes = pad(date.getMinutes());
-  const seconds = pad(date.getSeconds());
-  const timezoneMinutes = -date.getTimezoneOffset();
-  const sign = timezoneMinutes >= 0 ? "+" : "-";
-  const offsetHours = pad(timezoneMinutes / 60);
-  const offsetMinutes = pad(timezoneMinutes % 60);
-  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${sign}${offsetHours}:${offsetMinutes}`;
+const normalizeDateInput = (value) => {
+  if (value instanceof Date) return value;
+  if (!value) return new Date();
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
 };
+
+const buildAcbrIniDateTime = (value = new Date()) => buildDhEmi(normalizeDateInput(value));
 
 const mapIdDest = (emitenteUf, destinatarioUf) => {
   if (!destinatarioUf) return "1";
@@ -249,7 +244,9 @@ export function buildNfceIni(context) {
     indPres: nfce.ind_pres || configuracao.nfce_ind_pres_padrao || "1",
     procEmi: "0",
     verProc: "v12-pdv",
-    dhCont: tpEmis !== "1" ? nfce.dh_contingencia || buildDhUtc() : undefined,
+    // A ACBrLib aceita melhor no CarregarINI o datetime local no padrão brasileiro.
+    // A serialização final para XML continua sendo responsabilidade da própria ACBr.
+    dhCont: tpEmis !== "1" ? buildAcbrIniDateTime(nfce.dh_contingencia || new Date()) : undefined,
     xJust: tpEmis !== "1" ? nfce.x_justificativa_contingencia : undefined,
   });
 

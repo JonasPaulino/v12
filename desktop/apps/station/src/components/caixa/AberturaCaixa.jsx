@@ -18,7 +18,13 @@ export function AberturaCaixa({ operador, onOpened }) {
         valor_abertura: valor,
         observacao,
       });
-      showAlert({ title: "Caixa aberto", text: "Fundo de troco registrado.", icon: "success" });
+      showAlert({
+        title: caixa?.reaberto ? "Caixa reaberto" : "Caixa aberto",
+        text: caixa?.reaberto
+          ? "O caixa do dia foi reaberto para ajustes e novas operações."
+          : "Fundo de troco registrado.",
+        icon: "success",
+      });
       onOpened(caixa);
     } catch (error) {
       showAlert({ title: "Falha ao abrir caixa", text: error.message, icon: "error" });

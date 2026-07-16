@@ -2,6 +2,7 @@ import { getDb } from "../../db/connection.js";
 import { getTerminalConfig, getTerminalTenantErpId } from "../../modules/configuracao/localConfigRepository.js";
 import {
   calculateFiscalTotals,
+  formatNfceDateTime,
   hasClientIdentification,
   normalizeContingenciaJustificativa,
   onlyDigits,
@@ -199,7 +200,9 @@ export function loadNfceContext(vendaId, fiscal, sequencial, options = {}) {
       terminal_codigo: venda.terminal_codigo || terminal?.terminal_codigo || "PDV-01",
       tp_emis: tpEmis,
       dh_contingencia:
-        tpEmis === TP_EMIS_CONTINGENCIA_OFFLINE ? options.contingenciaEm || new Date().toISOString() : null,
+        tpEmis === TP_EMIS_CONTINGENCIA_OFFLINE
+          ? formatNfceDateTime(options.contingenciaEm || new Date())
+          : null,
       x_justificativa_contingencia: contingenciaJustificativa,
       observacao: "Documento emitido pelo V12 PDV.",
       ...totals,

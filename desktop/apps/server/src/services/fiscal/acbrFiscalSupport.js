@@ -7,6 +7,29 @@ export function onlyDigits(value) {
   return String(value || "").replace(/\D/g, "");
 }
 
+export function formatNfceDateTime(value = new Date()) {
+  const parsed =
+    value instanceof Date
+      ? value
+      : value
+        ? new Date(value)
+        : new Date();
+
+  const date = Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+  const pad = (part) => String(Math.trunc(Math.abs(part))).padStart(2, "0");
+  const year = date.getFullYear();
+  const month = pad(date.getMonth() + 1);
+  const day = pad(date.getDate());
+  const hours = pad(date.getHours());
+  const minutes = pad(date.getMinutes());
+  const seconds = pad(date.getSeconds());
+  const timezoneMinutes = -date.getTimezoneOffset();
+  const sign = timezoneMinutes >= 0 ? "+" : "-";
+  const offsetHours = pad(timezoneMinutes / 60);
+  const offsetMinutes = pad(timezoneMinutes % 60);
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${sign}${offsetHours}:${offsetMinutes}`;
+}
+
 const SUPPORTED_ICMS_CST_NORMAL = new Set(["00", "20"]);
 const SUPPORTED_ICMS_CSOSN = new Set(["102", "103", "300", "400"]);
 const SUPPORTED_PIS_CST = new Set(["01", "02", "49", "99"]);
@@ -18,6 +41,12 @@ const TRANSIENT_ERROR_PATTERNS = [
   /socket/i,
   /conex[aã]o/i,
   /internet/i,
+  /dns/i,
+  /host\s+not\s+found/i,
+  /getaddrinfo/i,
+  /enotfound/i,
+  /name\s+or\s+service\s+not\s+known/i,
+  /temporary\s+failure\s+in\s+name\s+resolution/i,
   /servidor/i,
   /servi[cç]o.*indispon/i,
   /falha.*comunica/i,

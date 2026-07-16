@@ -15,6 +15,7 @@ import {
   buildConsultaStatusFiscalResult,
   buildFiscalFailureResult,
   buildFiscalStatusMessage,
+  formatNfceDateTime,
   isContingenciaCandidate,
   normalizeContingenciaJustificativa,
   onlyDigits,
@@ -64,7 +65,7 @@ function resolveFiscalStatus(metadata, transmitirXmlContingencia) {
 }
 
 function persistContingenciaOfflineResult({ vendaId, sequencial, context, workerResult }) {
-  const contingenciaEm = context.nfce.dh_contingencia || new Date().toISOString();
+  const contingenciaEm = formatNfceDateTime(context.nfce.dh_contingencia || new Date());
   const contingenciaJustificativa = normalizeContingenciaJustificativa(
     context.nfce.x_justificativa_contingencia,
   );
@@ -185,7 +186,9 @@ function persistFiscalError({
       emitirEmContingenciaOffline || transmitirXmlContingencia
         ? TP_EMIS_CONTINGENCIA_OFFLINE
         : TP_EMIS_NORMAL,
-    contingencia_em: emitirEmContingenciaOffline ? options.contingenciaEm || new Date().toISOString() : null,
+    contingencia_em: emitirEmContingenciaOffline
+      ? formatNfceDateTime(options.contingenciaEm || new Date())
+      : null,
     contingencia_justificativa: emitirEmContingenciaOffline
       ? normalizeContingenciaJustificativa(options.contingenciaJustificativa || error.message)
       : null,
@@ -230,7 +233,9 @@ export async function emitirNfce(venda, options = {}) {
     const nfceAtual = getNfceByVendaId(vendaId);
     const context = loadNfceContext(vendaId, readiness.fiscal, sequencial, {
       tpEmis: emitirEmContingenciaOffline ? TP_EMIS_CONTINGENCIA_OFFLINE : TP_EMIS_NORMAL,
-      contingenciaEm: nfceAtual?.contingencia_em || options.contingenciaEm || new Date().toISOString(),
+      contingenciaEm: formatNfceDateTime(
+        nfceAtual?.contingencia_em || options.contingenciaEm || new Date(),
+      ),
       contingenciaJustificativa:
         nfceAtual?.contingencia_justificativa ||
         options.contingenciaJustificativa ||

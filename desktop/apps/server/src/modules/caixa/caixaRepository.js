@@ -78,6 +78,39 @@ function buildSessaoCodigo({ tenantErpId, terminalCodigo }) {
   return `CX-${tenantErpId}-${terminal}-${day}-${suffix}`;
 }
 
+function getCaixaFechadoDoDia({ tenantErpId, terminalCodigo, operadorId }) {
+  const db = getDb();
+  const caixas = db
+    .prepare(
+      `SELECT
+         caixa_id,
+         tenant_erp_id,
+         terminal_codigo,
+         operador_id,
+         operador_nome,
+         sessao_codigo,
+         status,
+         valor_abertura,
+         valor_fechamento,
+         observacao_abertura,
+         observacao_fechamento,
+         diferenca_fechamento,
+         aberto_em,
+         fechado_em
+       FROM caixa
+       WHERE tenant_erp_id = ?
+         AND terminal_codigo = ?
+         AND operador_id = ?
+         AND status = ?
+       ORDER BY caixa_id DESC`,
+    )
+    .all(tenantErpId, terminalCodigo, Number(operadorId), caixaStatus.FECHADO);
+
+  const hoje = localDateOnly();
+  const caixaDoDia = caixas.find((item) => localDateOnly(item.aberto_em) === hoje);
+  return enrichCaixaDiaOperacional(caixaDoDia || null);
+}
+
 export function abrirCaixa({ operadorId, valorAbertura, observacao }) {
   const db = getDb();
   const config = assertTerminalConfigurado();
@@ -103,6 +136,39 @@ export function abrirCaixa({ operadorId, valorAbertura, observacao }) {
     OPERADOR_PERFIS.ADMIN_LOCAL,
   ])) {
     throw new Error("Operador sem permissao para abrir caixa.");
+  }
+
+  const caixaFechadoDoDia = getCaixaFechadoDoDia({
+    tenantErpId: config.tenant_erp_id,
+    terminalCodigo: config.terminal_codigo,
+    operadorId: operador.operador_id,
+  });
+
+  if (caixaFechadoDoDia) {
+    db.prepare(
+      `UPDATE caixa
+       SET
+         status = ?,
+         operador_nome = ?,
+         valor_fechamento = NULL,
+         observacao_fechamento = NULL,
+         diferenca_fechamento = 0,
+         fechado_em = NULL
+       WHERE tenant_erp_id = ?
+         AND caixa_id = ?`,
+    ).run(
+      caixaStatus.ABERTO,
+      operador.nome,
+      config.tenant_erp_id,
+      caixaFechadoDoDia.caixa_id,
+    );
+
+    const reaberto = {
+      ...getCaixaAberto(),
+      reaberto: true,
+    };
+    enqueueSyncEvent(syncEventTypes.CAIXA_ABERTO, reaberto);
+    return reaberto;
   }
 
   const sessaoCodigo = buildSessaoCodigo({
@@ -135,7 +201,10 @@ export function abrirCaixa({ operadorId, valorAbertura, observacao }) {
       observacao || null,
     );
 
-  const caixa = getCaixaAberto();
+  const caixa = {
+    ...getCaixaAberto(),
+    reaberto: false,
+  };
   enqueueSyncEvent(syncEventTypes.CAIXA_ABERTO, caixa);
   return caixa;
 }
