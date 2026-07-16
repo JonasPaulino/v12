@@ -250,6 +250,137 @@ class GestaoBackupDAO {
 
     return rows[0];
   }
+
+  static async listarBackups(client, filters = {}) {
+    const values = [];
+    const where = [];
+
+    if (Number.isInteger(Number(filters.tenantId)) && Number(filters.tenantId) > 0) {
+      values.push(Number(filters.tenantId));
+      where.push(`bf.tenant_id = $${values.length}`);
+    }
+
+    if (normalizeText(filters.status, 30)) {
+      values.push(normalizeText(filters.status, 30));
+      where.push(`bf.status = $${values.length}`);
+    }
+
+    if (normalizeText(filters.dateFrom, 40)) {
+      values.push(normalizeText(filters.dateFrom, 40));
+      where.push(`bf.recebido_em >= $${values.length}::timestamptz`);
+    }
+
+    if (normalizeText(filters.dateTo, 40)) {
+      values.push(normalizeText(filters.dateTo, 40));
+      where.push(`bf.recebido_em <= $${values.length}::timestamptz`);
+    }
+
+    const safeLimit = Math.min(Math.max(Number(filters.limit) || 50, 1), 200);
+    const safeOffset = Math.max(Number(filters.offset) || 0, 0);
+    values.push(safeLimit);
+    const limitParam = `$${values.length}`;
+    values.push(safeOffset);
+    const offsetParam = `$${values.length}`;
+
+    const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+
+    const { rows } = await client.query(
+      `
+        SELECT
+          bf.pdv_backup_fiscal_id,
+          bf.tenant_id,
+          t.tenant_nome,
+          bf.pdv_terminal_id,
+          bf.terminal_codigo,
+          bf.terminal_nome,
+          bf.status,
+          bf.arquivo_nome,
+          bf.arquivo_sha256,
+          bf.tamanho_bytes,
+          bf.drive_file_id,
+          bf.drive_web_view_link,
+          bf.erro,
+          bf.recebido_em,
+          bf.enviado_drive_em,
+          bf.atualizado_em,
+          COALESCE(COUNT(bfi.pdv_backup_fiscal_item_id), 0) AS itens_total,
+          COUNT(*) OVER() AS total_registros
+        FROM pdv.backup_fiscal bf
+        JOIN tenant t
+          ON t.tenant_id = bf.tenant_id
+        LEFT JOIN pdv.backup_fiscal_item bfi
+          ON bfi.pdv_backup_fiscal_id = bf.pdv_backup_fiscal_id
+        ${whereSql}
+        GROUP BY
+          bf.pdv_backup_fiscal_id,
+          bf.tenant_id,
+          t.tenant_nome,
+          bf.pdv_terminal_id,
+          bf.terminal_codigo,
+          bf.terminal_nome,
+          bf.status,
+          bf.arquivo_nome,
+          bf.arquivo_sha256,
+          bf.tamanho_bytes,
+          bf.drive_file_id,
+          bf.drive_web_view_link,
+          bf.erro,
+          bf.recebido_em,
+          bf.enviado_drive_em,
+          bf.atualizado_em
+        ORDER BY bf.recebido_em DESC, bf.pdv_backup_fiscal_id DESC
+        LIMIT ${limitParam}
+        OFFSET ${offsetParam}
+      `,
+      values
+    );
+
+    return {
+      items: rows.map((row) => ({
+        ...row,
+        itens_total: Number(row.itens_total || 0),
+        total_registros: Number(row.total_registros || 0),
+      })),
+      total: rows[0]?.total_registros ? Number(rows[0].total_registros) : 0,
+      limit: safeLimit,
+      offset: safeOffset,
+    };
+  }
+
+  static async buscarBackupPorId(client, backupId) {
+    const { rows } = await client.query(
+      `
+        SELECT
+          bf.*,
+          t.tenant_nome,
+          COALESCE(
+            JSON_AGG(
+              JSON_BUILD_OBJECT(
+                'origem_tipo', bfi.origem_tipo,
+                'origem_chave', bfi.origem_chave,
+                'caminho_relativo', bfi.caminho_relativo,
+                'tamanho_bytes', bfi.tamanho_bytes,
+                'sha256', bfi.sha256,
+                'criado_em', bfi.criado_em
+              )
+              ORDER BY bfi.pdv_backup_fiscal_item_id
+            ) FILTER (WHERE bfi.pdv_backup_fiscal_item_id IS NOT NULL),
+            '[]'::json
+          ) AS itens
+        FROM pdv.backup_fiscal bf
+        JOIN tenant t
+          ON t.tenant_id = bf.tenant_id
+        LEFT JOIN pdv.backup_fiscal_item bfi
+          ON bfi.pdv_backup_fiscal_id = bf.pdv_backup_fiscal_id
+        WHERE bf.pdv_backup_fiscal_id = $1
+        GROUP BY bf.pdv_backup_fiscal_id, t.tenant_nome
+        LIMIT 1
+      `,
+      [Number(backupId)]
+    );
+
+    return rows[0] || null;
+  }
 }
 
 export default GestaoBackupDAO;

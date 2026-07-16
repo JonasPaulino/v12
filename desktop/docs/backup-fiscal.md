@@ -13,6 +13,7 @@ O XML fiscal deve ser tratado como documento principal. O banco local guarda met
 - A retaguarda V12 valida tenant, terminal, hash e duplicidade.
 - A retaguarda V12 faz o upload para o Google Drive.
 - A credencial do Google Drive fica somente no web/gestor, nunca no computador do cliente.
+- O bloqueio comercial da filial nao deve impedir a retencao fiscal dos arquivos ja emitidos.
 
 ## Autenticacao no Google Drive
 
@@ -47,6 +48,8 @@ V12_BACKUP_LOCAL_RETENTION_DAYS=30
 - O pacote e compactado em `.7z`.
 - O upload do pacote e feito para a retaguarda V12.
 - A retaguarda V12 faz o upload para o Google Drive.
+- O backup automatico roda na inicializacao do servidor local e depois segue o agendamento configurado.
+- Eventos fiscais relevantes tambem podem disparar backup assincrono para reduzir a janela de perda.
 - As tabelas `backup_execucao` e `backup_item` registram historico, hashes e arquivo enviado.
 
 ## Rotas locais
@@ -62,6 +65,10 @@ POST /api/local/backup/executar
 POST /desktop/sync/backups
 GET  /gestao/backup/google-drive/configuracao
 PUT  /gestao/backup/google-drive/configuracao
+GET  /gestao/backup/fiscal
+GET  /gestao/backup/fiscal/:backupId
+GET  /gestao/backup/fiscal/:backupId/download
 ```
 
-O agendador automatico so inicia quando `V12_BACKUP_ENABLED=true` e `V12_BACKUP_AUTO_INTERVAL_MINUTES` for maior que zero.
+Com `V12_BACKUP_ENABLED=true`, o PDV executa uma tentativa inicial de backup ao subir.
+O agendamento recorrente so e criado quando `V12_BACKUP_AUTO_INTERVAL_MINUTES` for maior que zero.

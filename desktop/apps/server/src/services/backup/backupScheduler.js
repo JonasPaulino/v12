@@ -27,7 +27,13 @@ async function runScheduledBackup() {
 
 export function startBackupScheduler() {
   const intervalMinutes = Number(env.backupAutoIntervalMinutes || 0);
-  if (!env.backupEnabled || intervalMinutes <= 0 || timer) {
+  if (!env.backupEnabled) {
+    return;
+  }
+
+  void runScheduledBackup();
+
+  if (intervalMinutes <= 0 || timer) {
     return;
   }
 

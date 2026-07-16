@@ -22,6 +22,7 @@ import {
   registrarVendaCancelada,
   registrarVendaCriada,
 } from "./vendaSyncService.js";
+import { dispararBackupFiscalAssincrono } from "../../services/backup/backupService.js";
 
 function buildContingenciaDecisionError(vendaId, fiscal) {
   const error = new Error(
@@ -134,6 +135,7 @@ export async function criarVenda({
     });
     registrarVendaCriada(venda);
     registrarResultadoFiscal(fiscal);
+    dispararBackupFiscalAssincrono({ motivo: "nfce_emitida_venda" });
     return { venda, fiscal };
   }
 
@@ -255,6 +257,7 @@ export async function cancelarFiscalVenda(
   })();
 
   registrarVendaCancelada(vendaCancelada);
+  dispararBackupFiscalAssincrono({ motivo: "nfce_cancelada_venda" });
   return {
     venda: vendaCancelada,
     fiscal,
@@ -308,6 +311,7 @@ export async function emitirVendaEmContingencia(vendaId, options = {}) {
 
   registrarVendaCriada(vendaFinalizada);
   registrarResultadoFiscal(fiscal);
+  dispararBackupFiscalAssincrono({ motivo: "nfce_contingencia_offline" });
   return { venda: vendaFinalizada, fiscal };
 }
 
@@ -337,6 +341,7 @@ export async function emitirCupomFiscalVenda(vendaId, { permitirContingenciaAuto
   garantirRegistroNfce(db, tenantErpId, saleId);
   const fiscal = await emitirFiscalVenda(venda, { permitirContingenciaAutomatica });
   registrarResultadoFiscal(fiscal);
+  dispararBackupFiscalAssincrono({ motivo: "nfce_emitida_venda_existente" });
 
   return {
     venda: getVendaDetalhe(saleId),
@@ -359,6 +364,7 @@ export async function transmitirVendaContingencia(vendaId) {
   });
 
   registrarResultadoFiscal(fiscal);
+  dispararBackupFiscalAssincrono({ motivo: "nfce_contingencia_transmitida" });
   return {
     venda: getVendaDetalhe(saleId),
     fiscal,

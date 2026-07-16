@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { createReadStream } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 
@@ -150,14 +151,14 @@ export async function uploadBackupToGoogleDrive({
     throw new Error("Google Drive não retornou URL de upload resumível.");
   }
 
-  const content = await fs.readFile(filePath);
   const uploadResponse = await fetch(uploadUrl, {
     method: "PUT",
     headers: {
       "Content-Type": MIME_7Z,
       "Content-Length": String(stat.size),
     },
-    body: content,
+    body: createReadStream(filePath),
+    duplex: "half",
   });
   const uploaded = await uploadResponse.json().catch(() => ({}));
 
@@ -166,4 +167,36 @@ export async function uploadBackupToGoogleDrive({
   }
 
   return uploaded;
+}
+
+export async function downloadBackupFromGoogleDrive({ config, fileId }) {
+  if (!config?.ativo) {
+    throw new Error("Backup no Google Drive não está ativo na Gestão V12.");
+  }
+
+  if (!fileId) {
+    throw new Error("Arquivo do backup não possui identificador no Google Drive.");
+  }
+
+  const token = await getAccessToken(config);
+  const downloadUrl = new URL(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}`);
+  downloadUrl.searchParams.set("alt", "media");
+  downloadUrl.searchParams.set("supportsAllDrives", "true");
+
+  const response = await fetch(downloadUrl, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok || !response.body) {
+    let message = "Falha ao baixar backup do Google Drive.";
+    try {
+      const data = await response.json();
+      message = data?.error?.message || message;
+    } catch {}
+    throw new Error(message);
+  }
+
+  return response;
 }

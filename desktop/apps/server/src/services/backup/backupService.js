@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { createReadStream } from "node:fs";
+import { createReadStream, openAsBlob } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { env } from "../../config/env.js";
@@ -15,6 +15,7 @@ import {
 import { createSevenZipArchive } from "./sevenZipService.js";
 
 const BACKUP_UPLOAD_TIMEOUT_MS = 120000;
+const BACKUP_MIME_7Z = "application/x-7z-compressed";
 
 function pad(value) {
   return String(value).padStart(2, "0");
@@ -209,8 +210,7 @@ async function uploadBackupToRetaguarda({ filePath, archiveName, archiveSha256, 
 
   const terminal = getTerminalConfig();
   const form = new FormData();
-  const content = await fs.readFile(filePath);
-  const blob = new Blob([content], { type: "application/x-7z-compressed" });
+  const blob = await openAsBlob(filePath, { type: BACKUP_MIME_7Z });
   form.append("arquivo", blob, archiveName);
   form.append("tenantId", String(manifest.tenant_erp_id));
   form.append("terminalCodigo", terminal?.terminal_codigo || "");
@@ -241,6 +241,20 @@ async function uploadBackupToRetaguarda({ filePath, archiveName, archiveSha256, 
   } finally {
     clearTimeout(timer);
   }
+}
+
+export function dispararBackupFiscalAssincrono({ motivo = "evento_fiscal" } = {}) {
+  if (!env.backupEnabled) return;
+
+  queueMicrotask(() => {
+    executarBackupFiscal({ motivo }).catch((error) => {
+      console.error("[desktop-backup] Falha ao executar backup fiscal assíncrono", {
+        motivo,
+        message: error?.message,
+        stack: error?.stack,
+      });
+    });
+  });
 }
 
 export function getBackupStatus() {

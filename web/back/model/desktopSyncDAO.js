@@ -27,6 +27,21 @@ class DesktopSyncDAO {
     return !!rows[0];
   }
 
+  static async validarTenantParaBackup(client, tenantId) {
+    const { rows } = await client.query(
+      `
+        SELECT tenant_id
+        FROM tenant
+        WHERE tenant_id = $1
+          AND COALESCE(tenant_usa_pdv, FALSE) = TRUE
+        LIMIT 1
+      `,
+      [tenantId],
+    );
+
+    return !!rows[0];
+  }
+
   static async listarProdutos(client, { tenantId, since = null, limit = 1000 }) {
     const safeLimit = Number(limit) > 0 ? Math.min(Number(limit), 5000) : 1000;
     const values = [tenantId];

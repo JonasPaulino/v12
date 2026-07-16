@@ -1,5 +1,6 @@
 import express from "express";
 import crypto from "node:crypto";
+import { createReadStream } from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import multer from "multer";
@@ -63,8 +64,13 @@ const encodeTenantAccessGuard = (tenant) => {
 };
 
 const sha256File = async (filePath) => {
-  const content = await fs.readFile(filePath);
-  return crypto.createHash("sha256").update(content).digest("hex");
+  return new Promise((resolve, reject) => {
+    const hash = crypto.createHash("sha256");
+    const stream = createReadStream(filePath);
+    stream.on("data", (chunk) => hash.update(chunk));
+    stream.on("error", reject);
+    stream.on("end", () => resolve(hash.digest("hex")));
+  });
 };
 
 const parseJsonField = (value, fallback = {}) => {
@@ -107,11 +113,11 @@ router.post("/desktop/sync", async (req, res) => {
       });
     }
 
-    const tenantAtivo = await DesktopSyncDAO.validarTenantAtivo(pool, tenantId);
-    if (!tenantAtivo) {
+    const tenantPermitido = await DesktopSyncDAO.validarTenantParaBackup(pool, tenantId);
+    if (!tenantPermitido) {
       return res.status(403).json({
         success: false,
-        message: "Filial inativa, bloqueada, sem integração PDV ou não encontrada.",
+        message: "Filial sem integração PDV ou não encontrada para retenção fiscal.",
       });
     }
 
