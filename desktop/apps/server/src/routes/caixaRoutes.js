@@ -3,6 +3,7 @@ import { assertTerminalConfigurado } from "../modules/configuracao/localConfigRe
 import {
   abrirCaixa,
   fecharCaixa,
+  getContextoAberturaCaixa,
   getCaixaAberto,
   getResumoCaixa,
   registrarMovimentoCaixa,
@@ -25,6 +26,15 @@ router.get("/atual", (_req, res) => {
 
 router.get("/resumo", (_req, res) => {
   res.json({ success: true, data: getResumoCaixa() });
+});
+
+router.get("/contexto-abertura", (req, res, next) => {
+  try {
+    const data = getContextoAberturaCaixa(req.query.operador_id);
+    res.json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
 });
 
 router.post("/abrir", (req, res, next) => {

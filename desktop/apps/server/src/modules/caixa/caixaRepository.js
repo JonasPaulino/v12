@@ -111,6 +111,30 @@ function getCaixaFechadoDoDia({ tenantErpId, terminalCodigo, operadorId }) {
   return enrichCaixaDiaOperacional(caixaDoDia || null);
 }
 
+export function getContextoAberturaCaixa(operadorId) {
+  const config = assertTerminalConfigurado();
+  const operador = getOperadorById(Number(operadorId));
+
+  if (!operador || !Number(operador.ativo)) {
+    throw new Error("Operador local invalido ou inativo.");
+  }
+
+  const caixaAberto = getCaixaAberto();
+  const caixaFechadoDoDia = getCaixaFechadoDoDia({
+    tenantErpId: config.tenant_erp_id,
+    terminalCodigo: config.terminal_codigo,
+    operadorId: operador.operador_id,
+  });
+
+  return {
+    operador_id: operador.operador_id,
+    operador_nome: operador.nome,
+    modo: caixaFechadoDoDia ? "reabertura" : "abertura",
+    caixa_aberto: caixaAberto,
+    caixa_do_dia_fechado: caixaFechadoDoDia,
+  };
+}
+
 export function abrirCaixa({ operadorId, valorAbertura, observacao }) {
   const db = getDb();
   const config = assertTerminalConfigurado();

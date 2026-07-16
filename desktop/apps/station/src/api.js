@@ -67,6 +67,8 @@ export const api = {
     }),
   caixaAtual: () => request("/caixa/atual"),
   caixaResumo: () => request("/caixa/resumo"),
+  contextoAberturaCaixa: (operadorId) =>
+    request(`/caixa/contexto-abertura?operador_id=${encodeURIComponent(operadorId)}`),
   abrirCaixa: (payload) => request("/caixa/abrir", { method: "POST", body: JSON.stringify(payload) }),
   movimentoCaixa: (payload) =>
     request("/caixa/movimento", { method: "POST", body: JSON.stringify(payload) }),
