@@ -15,6 +15,42 @@ const appIconPath = path.resolve(__dirname, "../src/assets/favicon.png");
 const DEFAULT_DEV_PORT = "5174";
 let localServerProcess = null;
 
+function getLogDir() {
+  return path.join(app.getPath("userData"), "logs");
+}
+
+function getLogPaths() {
+  const logDir = getLogDir();
+  return {
+    logDir,
+    main: path.join(logDir, "main.log"),
+    server: path.join(logDir, "server.log"),
+  };
+}
+
+function appendLogSync(targetPath, message) {
+  try {
+    fsSync.mkdirSync(path.dirname(targetPath), { recursive: true });
+    fsSync.appendFileSync(
+      targetPath,
+      `[${new Date().toISOString()}] ${String(message).trimEnd()}\n`,
+      "utf8",
+    );
+  } catch {}
+}
+
+function logMain(message, extra = null) {
+  const payload =
+    extra == null
+      ? String(message)
+      : `${message} ${typeof extra === "string" ? extra : JSON.stringify(extra)}`;
+  appendLogSync(getLogPaths().main, payload);
+}
+
+function logServer(message) {
+  appendLogSync(getLogPaths().server, message);
+}
+
 function readJsonSync(filePath) {
   try {
     return JSON.parse(fsSync.readFileSync(filePath, "utf8"));
@@ -39,6 +75,11 @@ function getActiveResourceVersion() {
   return manifest;
 }
 
+function resolveUnpackedAppPath(...segments) {
+  if (!process.resourcesPath) return "";
+  return path.resolve(process.resourcesPath, "app.asar.unpacked", ...segments);
+}
+
 function resolvePackagedServerEntry() {
   const activeVersion = getActiveAppVersion();
   const activeServerEntry = activeVersion?.staging_dir
@@ -48,7 +89,36 @@ function resolvePackagedServerEntry() {
     return activeServerEntry;
   }
 
+  const unpackedServerEntry = resolveUnpackedAppPath("apps", "server", "src", "index.js");
+  if (unpackedServerEntry && fsSync.existsSync(unpackedServerEntry)) {
+    return unpackedServerEntry;
+  }
+
+  const resourceServerEntry = path.resolve(process.resourcesPath, "server", "src", "index.js");
+  if (resourceServerEntry && fsSync.existsSync(resourceServerEntry)) {
+    return resourceServerEntry;
+  }
+
   return path.resolve(__dirname, "../../server/src/index.js");
+}
+
+function resolvePackagedServerCwd(serverEntry) {
+  const entryDir = path.dirname(serverEntry);
+
+  if (fsSync.existsSync(entryDir) && !entryDir.includes("app.asar")) {
+    return entryDir;
+  }
+
+  const activeVersion = getActiveAppVersion();
+  if (activeVersion?.staging_dir && fsSync.existsSync(activeVersion.staging_dir)) {
+    return activeVersion.staging_dir;
+  }
+
+  if (process.resourcesPath && fsSync.existsSync(process.resourcesPath)) {
+    return process.resourcesPath;
+  }
+
+  return path.dirname(process.execPath);
 }
 
 function resolvePackagedAcbrRoot() {
@@ -86,6 +156,12 @@ function buildPackagedServerEnv() {
       process.env.V12_ACBRLIB_SCHEMA_PATH || path.join(acbrRoot, "dep", "Schemas", "NFe"),
     V12_ACBRLIB_NFE_SERVICOS_PATH:
       process.env.V12_ACBRLIB_NFE_SERVICOS_PATH || path.join(acbrRoot, "dep", "ACBrNFeServicos.ini"),
+    V12_ACBRLIB_NATIVE_DEP_DIRS:
+      process.env.V12_ACBRLIB_NATIVE_DEP_DIRS ||
+      [
+        path.join(acbrRoot, "dep", "LibXml2", "x64"),
+        path.join(acbrRoot, "dep", "OpenSSL", "x64"),
+      ].join(path.delimiter),
   };
 }
 
@@ -93,17 +169,41 @@ async function startPackagedLocalServer() {
   if (isDev || localServerProcess) return;
 
   const serverEntry = resolvePackagedServerEntry();
+  const serverCwd = resolvePackagedServerCwd(serverEntry);
   const serverEnv = buildPackagedServerEnv();
   await fs.mkdir(path.dirname(serverEnv.V12_LOCAL_DB_PATH), { recursive: true });
 
   localServerProcess = spawn(process.execPath, [serverEntry], {
     env: serverEnv,
-    cwd: path.dirname(serverEntry),
-    stdio: "ignore",
+    cwd: serverCwd,
+    stdio: ["ignore", "pipe", "pipe"],
     detached: false,
   });
 
-  localServerProcess.on("exit", () => {
+  logMain("Inicializando servidor local empacotado", {
+    serverEntry,
+    serverCwd,
+    execPath: process.execPath,
+  });
+
+  localServerProcess.stdout?.on("data", (chunk) => {
+    logServer(chunk.toString());
+  });
+
+  localServerProcess.stderr?.on("data", (chunk) => {
+    logServer(`[stderr] ${chunk.toString()}`);
+  });
+
+  localServerProcess.on("error", (error) => {
+    logMain("Falha ao iniciar servidor local", {
+      message: error?.message || "",
+      code: error?.code || "",
+      stack: error?.stack || "",
+    });
+  });
+
+  localServerProcess.on("exit", (code, signal) => {
+    logMain("Servidor local finalizado", { code, signal });
     localServerProcess = null;
   });
 }
@@ -910,6 +1010,7 @@ async function buildDanfceHtml(payload = {}, config = {}) {
 }
 
 async function createWindow() {
+  logMain("Criando janela principal");
   const win = new BrowserWindow({
     width: 1280,
     height: 800,
@@ -930,6 +1031,7 @@ async function createWindow() {
     try {
       await loadDevServer(win);
     } catch {
+      logMain("Falha ao carregar Vite no modo desenvolvimento");
       await win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(buildDevServerErrorHtml())}`);
     }
     return;
@@ -941,11 +1043,30 @@ async function createWindow() {
     : null;
 
   if (activeIndex && fsSync.existsSync(activeIndex)) {
+    logMain("Carregando front ativo da release", { activeIndex });
     win.loadFile(activeIndex);
     return;
   }
 
-  win.loadFile(path.resolve(__dirname, "../dist/index.html"));
+  const bundledIndex = path.resolve(__dirname, "../dist/index.html");
+  logMain("Carregando front empacotado", { bundledIndex });
+  win.loadFile(bundledIndex);
+
+  win.webContents.on("did-fail-load", (_event, errorCode, errorDescription, validatedURL) => {
+    logMain("Falha ao carregar conteúdo da janela", {
+      errorCode,
+      errorDescription,
+      validatedURL,
+    });
+  });
+
+  win.webContents.on("render-process-gone", (_event, details) => {
+    logMain("Processo de renderização encerrado", details);
+  });
+
+  win.webContents.on("console-message", (_event, level, message, line, sourceId) => {
+    logMain("Console renderer", { level, message, line, sourceId });
+  });
 }
 
 ipcMain.handle("app:quit", () => {
@@ -1049,6 +1170,11 @@ ipcMain.handle("sale:print-pdf-file", async (_event, pdfPath, config = {}) => {
 });
 
 app.whenReady().then(async () => {
+  logMain("Electron pronto", {
+    isDev,
+    userData: app.getPath("userData"),
+    resourcesPath: process.resourcesPath,
+  });
   Menu.setApplicationMenu(null);
   await startPackagedLocalServer();
   createWindow();
@@ -1065,6 +1191,7 @@ app.whenReady().then(async () => {
 });
 
 app.on("will-quit", () => {
+  logMain("Aplicação encerrando");
   globalShortcut.unregisterAll();
   if (localServerProcess) {
     localServerProcess.kill();
@@ -1078,4 +1205,20 @@ app.on("window-all-closed", () => {
 
 app.on("activate", () => {
   if (BrowserWindow.getAllWindows().length === 0) createWindow();
+});
+
+process.on("uncaughtException", (error) => {
+  logMain("uncaughtException", {
+    message: error?.message || "",
+    stack: error?.stack || "",
+  });
+});
+
+process.on("unhandledRejection", (reason) => {
+  logMain("unhandledRejection", {
+    reason:
+      reason instanceof Error
+        ? { message: reason.message, stack: reason.stack }
+        : String(reason),
+  });
 });

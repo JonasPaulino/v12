@@ -2,9 +2,6 @@ import path from "node:path";
 import process from "node:process";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
-import dotenv from "dotenv";
-
-dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -14,7 +11,36 @@ const desktopRoot = path.resolve(workspaceRoot, "desktop");
 const desktopAcbrRoot = path.resolve(desktopRoot, "lib", "ACBrLibNFE");
 const webAcbrMdfeRoot = path.resolve(workspaceRoot, "web", "acbr", "lib", "ACBrLibMDFe");
 
-dotenv.config({ path: desktopEnvPath });
+function applyEnvFile(filePath) {
+  if (!filePath || !fs.existsSync(filePath)) return;
+
+  const content = fs.readFileSync(filePath, "utf8");
+  const lines = content.split(/\r?\n/);
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) continue;
+
+    const separatorIndex = line.indexOf("=");
+    if (separatorIndex <= 0) continue;
+
+    const key = line.slice(0, separatorIndex).trim();
+    if (!key || process.env[key] != null) continue;
+
+    let value = line.slice(separatorIndex + 1).trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+
+    process.env[key] = value;
+  }
+}
+
+applyEnvFile(path.resolve(process.cwd(), ".env"));
+applyEnvFile(desktopEnvPath);
 
 const rootDir = process.cwd();
 function resolveDefaultAcbrLibPath() {
@@ -37,6 +63,15 @@ function resolveDefaultAcbrLibPath() {
 const defaultAcbrLibPath = resolveDefaultAcbrLibPath();
 
 function resolveAcbrNativeDependencyDirs() {
+  const configuredDirs = String(process.env.V12_ACBRLIB_NATIVE_DEP_DIRS || "")
+    .split(path.delimiter)
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  if (configuredDirs.length) {
+    return configuredDirs.filter((candidate) => fs.existsSync(candidate));
+  }
+
   const candidates =
     process.platform === "win32"
       ? [
@@ -78,7 +113,7 @@ export const env = {
   backupSevenZipPath: process.env.V12_BACKUP_7Z_PATH || "7z",
   backupLocalRetentionDays: Number(process.env.V12_BACKUP_LOCAL_RETENTION_DAYS || 30),
   backupAutoIntervalMinutes: Number(process.env.V12_BACKUP_AUTO_INTERVAL_MINUTES || 0),
-  pdvVersion: process.env.V12_PDV_VERSION || "0.1.0",
+  pdvVersion: process.env.V12_PDV_VERSION || "0.1.1",
   pdvReleaseChannel: process.env.V12_PDV_RELEASE_CHANNEL || "stable",
   pdvReleasePlatform:
     process.env.V12_PDV_RELEASE_PLATFORM ||

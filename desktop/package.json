@@ -1,6 +1,6 @@
 {
   "name": "v12-desktop",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "main": "apps/station/electron/main.js",
@@ -8,6 +8,15 @@
     "apps/*",
     "packages/*"
   ],
+  "dependencies": {
+    "@projetoacbr/acbrlib-nfe-node": "^1.0.11",
+    "@v12-desktop/shared": "file:packages/shared",
+    "better-sqlite3": "^11.10.0",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "helmet": "^8.1.0",
+    "qrcode": "^1.5.4"
+  },
   "scripts": {
     "dev:server": "npm --workspace @v12-desktop/server run dev",
     "dev:station": "npm --workspace @v12-desktop/station run dev",
