@@ -45,6 +45,14 @@ function podeLancarPedido(operador) {
   return perfis.some((perfil) => PEDIDO_ALLOWED_PROFILES.has(perfil));
 }
 
+function produtoControlaEstoque(value) {
+  return value === true || value === 1 || value === "1" || value === "true";
+}
+
+function produtoSemEstoque(produto) {
+  return produtoControlaEstoque(produto?.controla_estoque) && Number(produto?.estoque_atual || 0) <= 0;
+}
+
 export function MobilePedidosApp() {
   const [operador, setOperador] = useState(() => {
     try {
@@ -336,6 +344,8 @@ export function MobilePedidosApp() {
               descricao: item.descricao || "",
               unidade: item.unidade || "UN",
               preco_venda: Number(item.valor_unitario || 0),
+              estoque_atual: Math.max(0, Number(item.estoque_atual || 0)),
+              controla_estoque: produtoControlaEstoque(item.controla_estoque),
               quantidade: Number(item.quantidade || 0),
               observacao: item.observacao || "",
             }))
@@ -383,9 +393,31 @@ export function MobilePedidosApp() {
   }
 
   function addProduto(produto) {
+    const controlaEstoque = produtoControlaEstoque(produto.controla_estoque);
+    const estoqueDisponivel = Math.max(0, Number(produto.estoque_atual || 0));
+    if (controlaEstoque && estoqueDisponivel <= 0) {
+      showToast({
+        title: "Estoque indisponível",
+        text: `${produto.descricao} controla estoque e está zerado.`,
+        icon: "warning",
+        position: "top",
+      });
+      return;
+    }
+
     setCart((current) => {
       const existing = current.find((item) => Number(item.produto_id) === Number(produto.produto_id));
       if (existing) {
+        if (controlaEstoque && Number(existing.quantidade || 0) + 1 > estoqueDisponivel) {
+          showToast({
+            title: "Estoque insuficiente",
+            text: `Disponível para ${produto.descricao}: ${estoqueDisponivel}.`,
+            icon: "warning",
+            position: "top",
+          });
+          return current;
+        }
+
         return current.map((item) =>
           Number(item.produto_id) === Number(produto.produto_id)
             ? { ...item, quantidade: Number(item.quantidade || 0) + 1 }
@@ -401,6 +433,8 @@ export function MobilePedidosApp() {
           descricao: produto.descricao,
           unidade: produto.unidade || "UN",
           preco_venda: Number(produto.preco_venda || 0),
+          estoque_atual: estoqueDisponivel,
+          controla_estoque: controlaEstoque,
           quantidade: 1,
           observacao: "",
         },
@@ -412,11 +446,24 @@ export function MobilePedidosApp() {
   function updateQuantidade(produtoId, delta) {
     setCart((current) =>
       current
-        .map((item) =>
-          Number(item.produto_id) === Number(produtoId)
-            ? { ...item, quantidade: Math.max(0, Number(item.quantidade || 0) + delta) }
-            : item,
-        )
+        .map((item) => {
+          if (Number(item.produto_id) !== Number(produtoId)) {
+            return item;
+          }
+
+          const nextQuantidade = Math.max(0, Number(item.quantidade || 0) + delta);
+          if (produtoControlaEstoque(item.controla_estoque) && nextQuantidade > Number(item.estoque_atual || 0)) {
+            showToast({
+              title: "Estoque insuficiente",
+              text: `Disponível para ${item.descricao}: ${Number(item.estoque_atual || 0)}.`,
+              icon: "warning",
+              position: "top",
+            });
+            return item;
+          }
+
+          return { ...item, quantidade: nextQuantidade };
+        })
         .filter((item) => Number(item.quantidade || 0) > 0),
     );
   }
@@ -728,18 +775,30 @@ export function MobilePedidosApp() {
                 {loadingProdutos ? (
                   <div className="mobile-empty-state">Buscando itens...</div>
                 ) : produtos.length ? (
-                  produtos.map((produto) => (
-                    <button type="button" key={produto.produto_id} onClick={() => addProduto(produto)}>
-                      <span className="mobile-product-main">
-                        <strong>{produto.descricao}</strong>
-                        <small>{produto.codigo || "Sem código"} · {produto.unidade || "UN"}</small>
-                      </span>
-                      <strong className="price">{formatCurrency(produto.preco_venda)}</strong>
-                      <span className="add-icon">
-                        <FiPlus />
-                      </span>
-                    </button>
-                  ))
+                  produtos.map((produto) => {
+                    const semEstoque = produtoSemEstoque(produto);
+                    return (
+                      <button
+                        type="button"
+                        key={produto.produto_id}
+                        className={semEstoque ? "is-unavailable" : ""}
+                        onClick={() => addProduto(produto)}
+                        aria-disabled={semEstoque}
+                      >
+                        <span className="mobile-product-main">
+                          <strong>{produto.descricao}</strong>
+                          <small>
+                            {produto.codigo || "Sem código"} · {produto.unidade || "UN"}
+                            {semEstoque ? " · Estoque zerado" : ""}
+                          </small>
+                        </span>
+                        <strong className="price">{formatCurrency(produto.preco_venda)}</strong>
+                        <span className="add-icon">
+                          <FiPlus />
+                        </span>
+                      </button>
+                    );
+                  })
                 ) : (
                   <div className="mobile-empty-state">Nenhum item encontrado.</div>
                 )}

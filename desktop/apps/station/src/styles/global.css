@@ -912,6 +912,24 @@
   text-align: left;
 }
 
+.mobile-product-list button.is-unavailable {
+  background: #f1f5f9;
+  border-color: #d8e2ec;
+  color: #8291a3;
+  cursor: not-allowed;
+  opacity: 0.78;
+}
+
+.mobile-product-list button.is-unavailable .price,
+.mobile-product-list button.is-unavailable .mobile-product-main strong {
+  color: #64748b;
+}
+
+.mobile-product-list button.is-unavailable .add-icon {
+  background: #e5e7eb;
+  color: #94a3b8;
+}
+
 .mobile-product-main strong {
   font-size: 0.83rem;
   text-transform: uppercase;

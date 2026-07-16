@@ -12,6 +12,10 @@ function normalizeText(value) {
   return String(value || "").trim();
 }
 
+function isProdutoControlaEstoque(value) {
+  return value === true || value === 1 || value === "1" || value === "true";
+}
+
 function getTenantContext() {
   assertTerminalConfigurado();
   const tenantErpId = getTerminalTenantErpId();
@@ -195,6 +199,12 @@ function validatePedidoPayload({ db, tenantErpId, payload }) {
     const produto = getProdutoPedido(db, tenantErpId, produtoId);
     if (!produto || !Number(produto.ativo)) {
       throw new Error(`Produto ${item.descricao || produtoId} indisponível no PDV.`);
+    }
+
+    const controlaEstoque = isProdutoControlaEstoque(produto.controla_estoque);
+    const estoqueDisponivel = Math.max(0, Number(produto.estoque_atual || 0));
+    if (controlaEstoque && quantidade > estoqueDisponivel) {
+      throw new Error(`Estoque insuficiente para ${produto.descricao}. Disponível: ${estoqueDisponivel}.`);
     }
 
     return {
