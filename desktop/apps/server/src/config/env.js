@@ -73,4 +73,9 @@ export const env = {
   acbrLibLogDir:
     process.env.V12_ACBRLIB_LOG_DIR || path.join(desktopRoot, "data", "acbrlib", "log"),
   acbrLibNativeDependencyDirs: resolveAcbrNativeDependencyDirs(),
+  backupEnabled: String(process.env.V12_BACKUP_ENABLED || "false").toLowerCase() === "true",
+  backupDir: process.env.V12_BACKUP_DIR || path.join(desktopRoot, "data", "backups"),
+  backupSevenZipPath: process.env.V12_BACKUP_7Z_PATH || "7z",
+  backupLocalRetentionDays: Number(process.env.V12_BACKUP_LOCAL_RETENTION_DAYS || 30),
+  backupAutoIntervalMinutes: Number(process.env.V12_BACKUP_AUTO_INTERVAL_MINUTES || 0),
 };

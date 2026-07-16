@@ -1,5 +1,21 @@
 import crypto from "crypto";
 
+export const encryptSecret = (text) => {
+  if (!text) return null;
+
+  const key = crypto.createHash("sha256").update(String(process.env.CHAVE_TOKEN || "")).digest();
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
+  const encrypted = Buffer.concat([cipher.update(String(text), "utf8"), cipher.final()]);
+  const tag = cipher.getAuthTag();
+
+  return JSON.stringify({
+    iv: iv.toString("base64"),
+    tag: tag.toString("base64"),
+    value: encrypted.toString("base64"),
+  });
+};
+
 export const decryptSecret = (payload) => {
   if (!payload) return null;
 

@@ -1,16 +1,28 @@
 import express from "express";
 import crypto from "node:crypto";
+import fs from "node:fs/promises";
+import os from "node:os";
+import multer from "multer";
 import { pool } from "../config/conexao.js";
 import desktopSyncAuth from "../middleware/desktopSyncAuth.js";
 import DesktopSyncDAO from "../model/desktopSyncDAO.js";
 import FinanceiroDAO from "../model/financeiroDAO.js";
 import ConfiguracaoFiscalDAO from "../model/configuracaoFiscalDAO.js";
+import GestaoBackupDAO from "../model/gestaoBackupDAO.js";
+import PdvDAO from "../model/pdvDAO.js";
 import loginDAO from "../model/loginDAO.js";
+import { uploadBackupToGoogleDrive } from "../services/googleDriveBackupService.js";
 import { processarEventoDesktopSync } from "../services/pdvSyncProcessor.js";
 import { hashPassword, verifyPassword } from "../utils/password.js";
 import { decryptSecret } from "../utils/secret.js";
 
 const router = express.Router();
+const backupUpload = multer({
+  dest: os.tmpdir(),
+  limits: {
+    fileSize: Number(process.env.PDV_BACKUP_MAX_FILE_SIZE || 1024 * 1024 * 1024),
+  },
+});
 
 router.use("/desktop/sync", desktopSyncAuth);
 
@@ -48,6 +60,21 @@ const encodeTenantAccessGuard = (tenant) => {
     sync_guard_signature: signature,
     sync_guard_issued_at: guardPayload.issued_at,
   };
+};
+
+const sha256File = async (filePath) => {
+  const content = await fs.readFile(filePath);
+  return crypto.createHash("sha256").update(content).digest("hex");
+};
+
+const parseJsonField = (value, fallback = {}) => {
+  if (!value) return fallback;
+  if (typeof value === "object") return value;
+  try {
+    return JSON.parse(String(value));
+  } catch {
+    return fallback;
+  }
 };
 
 router.post("/desktop/sync", async (req, res) => {
@@ -123,6 +150,159 @@ router.post("/desktop/sync", async (req, res) => {
       success: false,
       message: error?.message || "Não foi possível registrar o evento do PDV.",
     });
+  }
+});
+
+router.post("/desktop/sync/backups", backupUpload.single("arquivo"), async (req, res) => {
+  const uploadedPath = req.file?.path || null;
+  let backup = null;
+
+  try {
+    const tenantId = Number(req.body?.tenantId);
+    const terminalCodigo = String(req.body?.terminalCodigo || "").trim() || null;
+    const terminalNome = String(req.body?.terminalNome || "").trim() || terminalCodigo;
+    const arquivoSha256 = String(req.body?.arquivoSha256 || "").trim().toLowerCase();
+    const tamanhoBytes = Number(req.body?.tamanhoBytes || req.file?.size || 0);
+    const manifest = parseJsonField(req.body?.manifest, {});
+
+    if (!Number.isInteger(tenantId) || tenantId <= 0) {
+      return res.status(400).json({ success: false, message: "tenantId obrigatório." });
+    }
+
+    if (!req.file?.path) {
+      return res.status(400).json({ success: false, message: "Arquivo de backup obrigatório." });
+    }
+
+    if (!/^[a-f0-9]{64}$/.test(arquivoSha256)) {
+      return res.status(400).json({ success: false, message: "Hash SHA-256 do backup inválido." });
+    }
+
+    const realSha256 = await sha256File(req.file.path);
+    if (realSha256 !== arquivoSha256) {
+      return res.status(400).json({
+        success: false,
+        message: "Hash do arquivo de backup não confere.",
+      });
+    }
+
+    const tenantAtivo = await DesktopSyncDAO.validarTenantAtivo(pool, tenantId);
+    if (!tenantAtivo) {
+      return res.status(403).json({
+        success: false,
+        message: "Filial inativa, bloqueada, sem integração PDV ou não encontrada.",
+      });
+    }
+
+    const existing = await GestaoBackupDAO.buscarBackupPorHash(pool, {
+      tenantId,
+      arquivoSha256,
+    });
+
+    if (existing?.status === "concluido") {
+      return res.json({
+        success: true,
+        data: {
+          backup_id: existing.pdv_backup_fiscal_id,
+          status: existing.status,
+          drive_file_id: existing.drive_file_id,
+          drive_web_view_link: existing.drive_web_view_link,
+          reused: true,
+        },
+      });
+    }
+
+    const client = await pool.connect();
+
+    try {
+      await client.query("BEGIN");
+      const terminal = terminalCodigo
+        ? await PdvDAO.ensureTerminal(client, { tenantId, terminalCodigo, terminalNome })
+        : null;
+
+      backup = await GestaoBackupDAO.registrarBackupRecebido(client, {
+        tenantId,
+        terminal,
+        terminalCodigo,
+        terminalNome,
+        arquivoNome: req.file.originalname,
+        arquivoSha256,
+        tamanhoBytes,
+        manifest,
+      });
+      await GestaoBackupDAO.substituirItensBackup(client, {
+        tenantId,
+        backupId: backup.pdv_backup_fiscal_id,
+        itens: Array.isArray(manifest.itens) ? manifest.itens : [],
+      });
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
+
+    const config = await GestaoBackupDAO.buscarConfiguracaoGoogleDrive(pool);
+    const driveFile = await uploadBackupToGoogleDrive({
+      config,
+      filePath: req.file.path,
+      name: req.file.originalname,
+      sha256: arquivoSha256,
+      tenantId,
+      terminalCodigo,
+    });
+
+    const updateClient = await pool.connect();
+    try {
+      const updated = await GestaoBackupDAO.marcarBackupEnviadoDrive(updateClient, {
+        backupId: backup.pdv_backup_fiscal_id,
+        driveFile,
+        payload: driveFile,
+      });
+
+      return res.json({
+        success: true,
+        data: {
+          backup_id: updated.pdv_backup_fiscal_id,
+          status: updated.status,
+          drive_file_id: updated.drive_file_id,
+          drive_web_view_link: updated.drive_web_view_link,
+          reused: false,
+        },
+      });
+    } finally {
+      updateClient.release();
+    }
+  } catch (error) {
+    if (backup?.pdv_backup_fiscal_id) {
+      const errorClient = await pool.connect();
+      try {
+        await GestaoBackupDAO.marcarBackupErro(errorClient, {
+          backupId: backup.pdv_backup_fiscal_id,
+          erro: error?.message || error,
+        });
+      } catch {
+      } finally {
+        errorClient.release();
+      }
+    }
+
+    console.error("[desktop-sync:backup] Falha ao receber backup fiscal:", {
+      tenantId: req.body?.tenantId,
+      terminalCodigo: req.body?.terminalCodigo,
+      file: req.file?.originalname,
+      message: error?.message,
+      stack: error?.stack,
+    });
+
+    return res.status(400).json({
+      success: false,
+      message: error?.message || "Não foi possível processar o backup fiscal do PDV.",
+    });
+  } finally {
+    if (uploadedPath) {
+      await fs.rm(uploadedPath, { force: true }).catch(() => {});
+    }
   }
 });
 
