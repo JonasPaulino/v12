@@ -286,6 +286,7 @@
   justify-content: center;
   gap: 7px;
   font-weight: 900;
+  font-size: 0.82rem;
 }
 
 .orders-compact .ghost-action.compact {
@@ -331,20 +332,70 @@
   gap: 10px;
 }
 
-.order-card-compact-top div {
-  min-width: 0;
-  display: grid;
-  gap: 3px;
-}
-
-.order-card-compact-top strong:first-child {
+.order-card-compact-top strong {
   color: #082f49;
   font-size: 0.98rem;
 }
 
-.order-card-compact-top small,
-.order-card-compact-meta span {
+.order-card-status-pill {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(14, 116, 144, 0.12);
+  color: #0f766e;
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.order-card-compact-body {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.order-card-compact-info {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.order-card-field {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.order-card-field small,
+.order-card-compact-meta span,
+.order-card-compact-total small {
   color: #64748b;
+  font-size: 0.76rem;
+}
+
+.order-card-field strong,
+.order-card-compact-total strong {
+  color: #082f49;
+  font-size: 0.88rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.order-card-field span {
+  color: #475569;
+  font-size: 0.8rem;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.order-card-compact-total {
+  flex-shrink: 0;
+  display: grid;
+  gap: 2px;
+  text-align: right;
 }
 
 .order-card-compact-meta {
@@ -353,6 +404,7 @@
 
 .order-card-compact-actions {
   justify-content: flex-end;
+  gap: 6px;
 }
 
 .orders-empty.compact {
@@ -662,12 +714,12 @@
 }
 
 .mobile-order-card {
-  padding: 10px 11px;
+  padding: 8px 9px;
   border: 1px solid #d4e0ea;
   border-radius: 12px;
   background: #fff;
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 
 .mobile-order-card-top,
@@ -681,7 +733,6 @@
   gap: 10px;
 }
 
-.mobile-order-card-top div,
 .mobile-cart-item-top span,
 .mobile-product-main {
   min-width: 0;
@@ -696,10 +747,10 @@
 }
 
 .mobile-order-card-top strong {
-  font-size: 0.95rem;
+  font-size: 0.88rem;
+  line-height: 1.1;
 }
 
-.mobile-order-card-top small,
 .mobile-order-card-middle span,
 .mobile-order-card-bottom small,
 .mobile-product-main small,
@@ -708,12 +759,64 @@
   color: #64748b;
 }
 
-.mobile-order-card-middle span,
+.mobile-order-card-middle,
+.mobile-order-card-info {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mobile-order-card-info {
+  min-width: 0;
+  flex: 1;
+  display: grid;
+  gap: 5px;
+}
+
+.mobile-order-field {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.mobile-order-field small,
+.mobile-order-card-total small {
+  color: #64748b;
+  font-size: 0.68rem;
+  line-height: 1.1;
+}
+
+.mobile-order-field strong,
+.mobile-order-card-total strong,
 .mobile-product-main strong,
 .mobile-cart-item-top strong:first-child {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.mobile-order-field strong {
+  color: #082f49;
+  font-size: 0.76rem;
+  line-height: 1.15;
+}
+
+.mobile-order-field span {
+  color: #475569;
+  font-size: 0.72rem;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.1;
+}
+
+.mobile-order-card-total {
+  flex-shrink: 0;
+  display: grid;
+  gap: 2px;
+  text-align: right;
 }
 
 .mobile-order-card-middle strong {
@@ -724,18 +827,18 @@
 
 .mobile-order-card-actions {
   display: inline-flex;
-  gap: 8px;
+  gap: 6px;
 }
 
 .mobile-order-card-actions .ghost,
 .mobile-order-card-actions .ghost.danger {
-  min-height: 36px;
-  padding: 0 12px;
-  border-radius: 8px;
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 7px;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.84rem;
+  gap: 5px;
+  font-size: 0.74rem;
   font-weight: 800;
 }
 

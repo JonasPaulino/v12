@@ -617,16 +617,25 @@ export function MobilePedidosApp() {
                   pedidos.map((pedido) => (
                     <article className="mobile-order-card" key={pedido.pedido_id}>
                       <div className="mobile-order-card-top">
-                        <div>
-                          <strong>{pedido.referencia_formatada || pedido.referencia}</strong>
-                          <small>{pedido.operador_nome || "Sem operador"}</small>
-                        </div>
+                        <strong>{pedido.referencia_formatada || pedido.referencia}</strong>
                         <span className={`mobile-order-status ${pedido.status}`}>{pedido.status}</span>
                       </div>
 
                       <div className="mobile-order-card-middle">
-                        <span>{pedido.cliente_nome || "Sem cliente informado"}</span>
-                        <strong>{formatCurrency(pedido.total_liquido)}</strong>
+                        <div className="mobile-order-card-info">
+                          <div className="mobile-order-field">
+                            <small>Cliente</small>
+                            <strong>{(pedido.cliente_nome || "Sem cliente informado").toUpperCase()}</strong>
+                          </div>
+                          <div className="mobile-order-field">
+                            <small>Vendedor</small>
+                            <span>{(pedido.operador_nome || "Sem operador").toUpperCase()}</span>
+                          </div>
+                        </div>
+                        <div className="mobile-order-card-total">
+                          <small>Total</small>
+                          <strong>{formatCurrency(pedido.total_liquido)}</strong>
+                        </div>
                       </div>
 
                       <div className="mobile-order-card-bottom">

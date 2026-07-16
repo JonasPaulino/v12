@@ -113,15 +113,28 @@ export function PedidosPendentes({ onImportPedido, onBackToSale }) {
           pedidos.map((pedido) => (
             <article className="order-card-compact" key={pedido.pedido_id}>
               <div className="order-card-compact-top">
-                <div>
-                  <strong>{pedido.referencia_formatada || pedido.referencia}</strong>
-                  <small>{pedido.cliente_nome || "Cliente não informado"}</small>
+                <strong>{pedido.referencia_formatada || pedido.referencia}</strong>
+                <span className="order-card-status-pill">Pendente</span>
+              </div>
+
+              <div className="order-card-compact-body">
+                <div className="order-card-compact-info">
+                  <div className="order-card-field">
+                    <small>Cliente</small>
+                    <strong>{(pedido.cliente_nome || "Cliente não informado").toUpperCase()}</strong>
+                  </div>
+                  <div className="order-card-field">
+                    <small>Vendedor</small>
+                    <span>{(pedido.operador_nome || "Sem operador").toUpperCase()}</span>
+                  </div>
                 </div>
-                <strong>{formatCurrency(pedido.total_liquido)}</strong>
+                <div className="order-card-compact-total">
+                  <small>Total</small>
+                  <strong>{formatCurrency(pedido.total_liquido)}</strong>
+                </div>
               </div>
 
               <div className="order-card-compact-meta">
-                <span>{pedido.operador_nome || "Sem operador"}</span>
                 <span>{pedido.total_itens} item(ns)</span>
               </div>
 
