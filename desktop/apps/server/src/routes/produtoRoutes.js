@@ -17,6 +17,7 @@ router.get("/", (req, res) => {
   const data = listProdutos({
     search: req.query.search || "",
     limit: Number(req.query.limit || 50),
+    strategy: req.query.strategy || "default",
   });
 
   res.json({ success: true, data });

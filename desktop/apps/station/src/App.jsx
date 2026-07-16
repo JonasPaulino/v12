@@ -128,7 +128,7 @@ function PdvApp() {
 
   const showSaleShortcuts =
     !session.caixaPendenteDiaAnterior &&
-    !["abertura", "fechamento", "configuracao", "historico_vendas", "pedidos_pendentes"].includes(session.activeModule);
+    !["abertura", "fechamento", "configuracao", "historico_vendas"].includes(session.activeModule);
 
   const showBackToSale =
     Boolean(session.caixa) &&
@@ -179,13 +179,22 @@ function PdvApp() {
               >
                 Reimpressão <small>F8</small>
               </button>
-              <button className="shortcut" onClick={() => session.openModule("pedidos_pendentes")}>Pedidos <small>Local</small></button>
             </div>
           ) : null}
 
           <div className="entry-card">
             <div className="entry-card-top">
               <div className="breadcrumb">{breadcrumbAtivo}</div>
+              {session.activeModule === "venda" && session.caixa ? (
+                <button
+                  className="back-to-sale"
+                  type="button"
+                  disabled={session.caixaPendenteDiaAnterior}
+                  onClick={() => session.openModule("pedidos_pendentes")}
+                >
+                  Importar pedido
+                </button>
+              ) : null}
               {showBackToSale ? (
                 <button
                   className="back-to-sale"
@@ -265,6 +274,13 @@ function PdvApp() {
                 onSelect={historico.carregarHistoricoVendaDetalhe}
               />
             ) : null}
+
+            {session.activeModule === "pedidos_pendentes" ? (
+              <PedidosPendentes
+                onImportPedido={venda.importarPedidoLocal}
+                onBackToSale={() => session.openModule("venda")}
+              />
+            ) : null}
           </div>
         </section>
 
@@ -283,11 +299,6 @@ function PdvApp() {
               onIssueCupom={historico.emitirCupomHistorico}
               onTransmitContingencia={historico.transmitirContingenciaHistorico}
               onCancel={historico.cancelarVendaHistorico}
-            />
-          ) : session.activeModule === "pedidos_pendentes" ? (
-            <PedidosPendentes
-              onImportPedido={venda.importarPedidoLocal}
-              onBackToSale={() => session.openModule("venda")}
             />
           ) : (
             <>

@@ -57,13 +57,19 @@ export const api = {
   movimentoCaixa: (payload) =>
     request("/caixa/movimento", { method: "POST", body: JSON.stringify(payload) }),
   fecharCaixa: (payload) => request("/caixa/fechar", { method: "POST", body: JSON.stringify(payload) }),
-  produtos: (search = "") => request(`/produtos?search=${encodeURIComponent(search)}`),
-  pedidos: ({ status = "enviado", search = "", limit = 80 } = {}) =>
+  produtos: (search = "", options = {}) =>
     request(
-      `/pedidos?status=${encodeURIComponent(status)}&search=${encodeURIComponent(search)}&limit=${encodeURIComponent(limit)}`,
+      `/produtos?search=${encodeURIComponent(search)}&limit=${encodeURIComponent(options.limit || 50)}&strategy=${encodeURIComponent(options.strategy || "default")}`,
     ),
+  pedidos: ({ status = "", search = "", limit = 80, date = "" } = {}) =>
+    request(
+      `/pedidos?status=${encodeURIComponent(status)}&search=${encodeURIComponent(search)}&limit=${encodeURIComponent(limit)}&date=${encodeURIComponent(date)}`,
+    ),
+  proximoNumeroPedido: () => request("/pedidos/proximo-numero"),
   pedidoDetalhe: (pedidoId) => request(`/pedidos/${pedidoId}`),
   criarPedido: (payload) => request("/pedidos", { method: "POST", body: JSON.stringify(payload) }),
+  atualizarPedido: (pedidoId, payload) =>
+    request(`/pedidos/${pedidoId}`, { method: "PUT", body: JSON.stringify(payload) }),
   importarPedido: (pedidoId, payload = {}) =>
     request(`/pedidos/${pedidoId}/importar`, {
       method: "POST",

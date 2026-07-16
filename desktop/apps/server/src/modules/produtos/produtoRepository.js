@@ -64,54 +64,129 @@ const PRODUTO_UPDATE_SET_SQL = [
   "atualizado_em = CURRENT_TIMESTAMP",
 ].join(",\n             ");
 
-export function listProdutos({ search = "", limit = 50 } = {}) {
+export function listProdutos({ search = "", limit = 50, strategy = "default" } = {}) {
   const db = getDb();
   const tenantErpId = getTerminalTenantErpId();
-  const like = `%${search}%`;
-  return db
-    .prepare(
-      `SELECT
-         produto_id,
-         erp_id,
-         codigo,
-         descricao,
-         descricao_fiscal,
-         gtin,
-         unidade,
-         ncm,
-         cest,
-         origem_mercadoria,
-         regra_tributaria_erp_id,
-         regra_fiscal_descricao,
-         crt_emitente,
-         cbenef,
-         cfop_venda_interna,
-         cfop_venda_interestadual,
-         icms_cst,
-         icms_csosn,
-         icms_aliquota,
-         icms_reducao_base,
-         icms_aliquota_fcp,
-         icms_modalidade_bc,
-         pis_cst,
-         pis_aliquota,
-         cofins_cst,
-         cofins_aliquota,
-         ipi_cst,
-         ipi_enquadramento,
-         ipi_aliquota,
-         preco_venda,
-         estoque_atual,
-         controla_estoque,
-         ativo
-       FROM produto
-       WHERE tenant_erp_id = ?
-         AND ativo = 1
-         AND (? = '' OR descricao LIKE ? OR codigo LIKE ?)
-       ORDER BY descricao
-       LIMIT ?`,
-    )
-    .all(tenantErpId, search, like, like, limit)
+  const normalizedSearch = String(search || "").trim().toLowerCase();
+  const like = `%${normalizedSearch}%`;
+  const normalizedLimit = Number(limit) > 0 ? Math.min(Number(limit), 100) : 50;
+
+  const query =
+    strategy === "mobile" && !normalizedSearch
+      ? `SELECT
+           p.produto_id,
+           p.erp_id,
+           p.codigo,
+           p.descricao,
+           p.descricao_fiscal,
+           p.gtin,
+           p.unidade,
+           p.ncm,
+           p.cest,
+           p.origem_mercadoria,
+           p.regra_tributaria_erp_id,
+           p.regra_fiscal_descricao,
+           p.crt_emitente,
+           p.cbenef,
+           p.cfop_venda_interna,
+           p.cfop_venda_interestadual,
+           p.icms_cst,
+           p.icms_csosn,
+           p.icms_aliquota,
+           p.icms_reducao_base,
+           p.icms_aliquota_fcp,
+           p.icms_modalidade_bc,
+           p.pis_cst,
+           p.pis_aliquota,
+           p.cofins_cst,
+           p.cofins_aliquota,
+           p.ipi_cst,
+           p.ipi_enquadramento,
+           p.ipi_aliquota,
+           p.preco_venda,
+           p.estoque_atual,
+           p.controla_estoque,
+           p.ativo
+         FROM produto p
+         LEFT JOIN (
+           SELECT
+             vi.produto_id,
+             SUM(COALESCE(vi.quantidade, 0)) AS total_vendido
+           FROM venda_item vi
+           JOIN venda v ON v.venda_id = vi.venda_id
+           WHERE v.tenant_erp_id = ?
+             AND v.status = 'concluida'
+           GROUP BY vi.produto_id
+         ) mv ON mv.produto_id = p.produto_id
+         WHERE p.tenant_erp_id = ?
+           AND p.ativo = 1
+         ORDER BY COALESCE(mv.total_vendido, 0) DESC, p.descricao
+         LIMIT ?`
+      : `SELECT
+           produto_id,
+           erp_id,
+           codigo,
+           descricao,
+           descricao_fiscal,
+           gtin,
+           unidade,
+           ncm,
+           cest,
+           origem_mercadoria,
+           regra_tributaria_erp_id,
+           regra_fiscal_descricao,
+           crt_emitente,
+           cbenef,
+           cfop_venda_interna,
+           cfop_venda_interestadual,
+           icms_cst,
+           icms_csosn,
+           icms_aliquota,
+           icms_reducao_base,
+           icms_aliquota_fcp,
+           icms_modalidade_bc,
+           pis_cst,
+           pis_aliquota,
+           cofins_cst,
+           cofins_aliquota,
+           ipi_cst,
+           ipi_enquadramento,
+           ipi_aliquota,
+           preco_venda,
+           estoque_atual,
+           controla_estoque,
+           ativo
+         FROM produto
+         WHERE tenant_erp_id = ?
+           AND ativo = 1
+           AND (? = '' OR LOWER(descricao) LIKE ? OR LOWER(COALESCE(codigo, '')) LIKE ?)
+         ORDER BY
+           CASE
+             WHEN LOWER(COALESCE(codigo, '')) = ? THEN 0
+             WHEN LOWER(COALESCE(codigo, '')) LIKE ? THEN 1
+             WHEN LOWER(descricao) LIKE ? THEN 2
+             ELSE 3
+           END,
+           descricao
+         LIMIT ?`;
+
+  const rows =
+    strategy === "mobile" && !normalizedSearch
+      ? db.prepare(query).all(tenantErpId, tenantErpId, normalizedLimit)
+      : db
+          .prepare(query)
+          .all(
+            tenantErpId,
+            normalizedSearch,
+            like,
+            like,
+            normalizedSearch,
+            `${normalizedSearch}%`,
+            `${normalizedSearch}%`,
+            normalizedLimit,
+          );
+
+  return rows
     .map((row) => ({
       ...row,
       preco_venda: Number(row.preco_venda || 0),

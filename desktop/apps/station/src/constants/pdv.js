@@ -26,5 +26,5 @@ export const BREADCRUMB_BY_MODULE = {
   fechamento: "Caixa > Fechamento",
   configuracao: "Sistema > Configuracoes locais",
   historico_vendas: "Vendas > Reimpressao e cancelamento",
-  pedidos_pendentes: "Pedidos > Pendentes",
+  pedidos_pendentes: "Vendas > Importar pedidos",
 };

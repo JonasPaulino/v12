@@ -5,16 +5,28 @@ import {
   getPedidoLocalDetalhe,
   listarPedidosLocais,
   marcarPedidoLocalImportado,
+  obterProximoNumeroPedidoLocal,
+  atualizarPedidoLocal,
 } from "../modules/pedidos/pedidoLocalRepository.js";
 
 const router = Router();
 
+router.get("/proximo-numero", (req, res, next) => {
+  try {
+    const data = obterProximoNumeroPedidoLocal();
+    res.json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.get("/", (req, res, next) => {
   try {
     const data = listarPedidosLocais({
-      status: req.query.status || "enviado",
+      status: req.query.status || "",
       search: req.query.search || "",
       limit: Number(req.query.limit || 80),
+      date: req.query.date || null,
     });
     res.json({ success: true, data });
   } catch (error) {
@@ -26,6 +38,15 @@ router.post("/", (req, res, next) => {
   try {
     const data = criarPedidoLocal(req.body);
     res.status(201).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.put("/:pedidoId", (req, res, next) => {
+  try {
+    const data = atualizarPedidoLocal(req.params.pedidoId, req.body);
+    res.json({ success: true, data });
   } catch (error) {
     next(error);
   }

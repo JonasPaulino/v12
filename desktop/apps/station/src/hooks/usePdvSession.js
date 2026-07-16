@@ -83,16 +83,6 @@ export function usePdvSession({ onResetVenda, onCarregarFinanceiroSupportData })
     }
   }
 
-  useEffect(() => {
-    refreshTerminalStatus({ syncRemote: true, silent: true });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    if (!operador) return;
-    setActiveModule(getModuleForCaixa(caixa));
-  }, [caixa, operador]);
-
   async function atualizarPdvCompleto({ silent = false, reason = "manual" } = {}) {
     if (syncLockRef.current) {
       if (!silent) {
@@ -173,6 +163,31 @@ export function usePdvSession({ onResetVenda, onCarregarFinanceiroSupportData })
     }
   }
 
+  useEffect(() => {
+    if (!operador) return;
+    setActiveModule(getModuleForCaixa(caixa));
+  }, [caixa, operador]);
+
+  useEffect(() => {
+    let active = true;
+
+    const boot = async () => {
+      const statusData = await refreshTerminalStatus({ syncRemote: true, silent: true });
+      if (!active) return;
+
+      if (statusData?.configurado && !statusData?.bloqueado) {
+        void atualizarPdvCompleto({ silent: true, reason: "startup" });
+      }
+    };
+
+    void boot();
+
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function handleOperadorLogin(operadorData) {
     try {
       showLoading("Verificando caixa...");
@@ -193,16 +208,22 @@ export function usePdvSession({ onResetVenda, onCarregarFinanceiroSupportData })
   }
 
   useEffect(() => {
-    if (!operador) return undefined;
+    if (!configStatus?.configurado || configStatus?.bloqueado) return undefined;
 
     const runBackgroundSync = () => {
-      void atualizarPdvCompleto({ silent: true, reason: "auto" });
+      void atualizarPdvCompleto({
+        silent: true,
+        reason: operador ? "auto" : "pre_login",
+      });
     };
 
-    runBackgroundSync();
+    if (operador) {
+      runBackgroundSync();
+    }
+
     const intervalId = window.setInterval(runBackgroundSync, AUTO_SYNC_INTERVAL_MS);
     return () => window.clearInterval(intervalId);
-  }, [operador]);
+  }, [configStatus?.bloqueado, configStatus?.configurado, operador]);
 
   async function refreshTerminalStatus({ syncRemote = false, silent = true } = {}) {
     try {

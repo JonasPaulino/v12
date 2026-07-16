@@ -191,11 +191,53 @@ function buildPrintOptions(config = {}) {
   };
 }
 
+function pxToMicrons(px) {
+  return Math.ceil(Number(px || 0) * 264.5833333);
+}
+
+async function resolveThermalPageSize(targetWindow, printerConfig) {
+  if (!["thermal-58", "thermal-80"].includes(printerConfig.layout)) {
+    return null;
+  }
+
+  const contentHeightPx = await targetWindow.webContents.executeJavaScript(
+    `(() => {
+      const body = document.body;
+      const html = document.documentElement;
+      return Math.max(
+        body ? body.scrollHeight : 0,
+        body ? body.offsetHeight : 0,
+        html ? html.clientHeight : 0,
+        html ? html.scrollHeight : 0,
+        html ? html.offsetHeight : 0
+      );
+    })()`,
+    true,
+  );
+
+  const width = printerConfig.layout === "thermal-58" ? 58000 : 80000;
+  const topAndBottomSafetyPx = 24;
+  const minHeightPx = 120;
+  const resolvedHeightPx = Math.max(minHeightPx, Number(contentHeightPx || 0) + topAndBottomSafetyPx);
+
+  return {
+    width,
+    height: pxToMicrons(resolvedHeightPx),
+  };
+}
+
 async function printBrowserWindow(targetWindow, config = {}) {
-  const { options } = buildPrintOptions(config);
+  const { options, printerConfig } = buildPrintOptions(config);
+  const thermalPageSize = await resolveThermalPageSize(targetWindow, printerConfig);
+  const finalOptions = thermalPageSize
+    ? {
+        ...options,
+        pageSize: thermalPageSize,
+      }
+    : options;
 
   await new Promise((resolve, reject) => {
-    targetWindow.webContents.print(options, (success, errorType) => {
+    targetWindow.webContents.print(finalOptions, (success, errorType) => {
       if (!success) {
         reject(new Error(errorType || "Falha ao imprimir documento."));
         return;
@@ -305,8 +347,9 @@ function buildBudgetHtml(payload = {}, config = {}) {
           }
           @page {
             size: ${pageWidth} auto;
-            margin: ${isThermal ? "4mm" : "12mm"};
+            margin: ${isThermal ? "0" : "12mm"};
           }
+          html,
           body {
             margin: 0;
             padding: ${isThermal ? "0" : "20px"};
@@ -314,9 +357,9 @@ function buildBudgetHtml(payload = {}, config = {}) {
           }
           .sheet {
             max-width: ${isThermal ? pageWidth : "780px"};
-            margin: 0 auto;
+            margin: ${isThermal ? "0" : "0 auto"};
             border: ${isThermal ? "0" : "1px solid #d7dde6"};
-            padding: ${isThermal ? "0" : "18px"};
+            padding: ${isThermal ? "2mm 2mm 0" : "18px"};
           }
           .coupon {
             display: grid;
@@ -567,8 +610,9 @@ async function buildDanfceHtml(payload = {}, config = {}) {
           }
           @page {
             size: ${pageWidth} auto;
-            margin: ${isThermal ? "4mm" : "12mm"};
+            margin: ${isThermal ? "0" : "12mm"};
           }
+          html,
           body {
             margin: 0;
             padding: ${isThermal ? "0" : "20px"};
@@ -576,7 +620,8 @@ async function buildDanfceHtml(payload = {}, config = {}) {
           }
           .sheet {
             max-width: ${isThermal ? pageWidth : "780px"};
-            margin: 0 auto;
+            margin: ${isThermal ? "0" : "0 auto"};
+            padding: ${isThermal ? "2mm 2mm 0" : "0"};
           }
           .coupon {
             display: grid;
