@@ -53,6 +53,7 @@ const TRANSIENT_ERROR_PATTERNS = [
   /nao foi possivel.*sefaz/i,
   /status.*paralisad/i,
 ];
+const IMPORTED_ORIGINS = new Set(["1", "2", "3", "8"]);
 
 export const TP_EMIS_NORMAL = 1;
 export const TP_EMIS_CONTINGENCIA_OFFLINE = 9;
@@ -170,30 +171,92 @@ export function validateFiscalItemSupport(item, crt) {
   }
 }
 
+function roundCurrency(value) {
+  return Number(Number(value || 0).toFixed(2));
+}
+
+function calculateConfiguredTaxValues(item, total) {
+  const reducao = Math.max(0, Math.min(100, Number(item.icms_reducao_base || 0)));
+  const regimeNormal = String(item.crt_emitente || item.crt || "3") === "3";
+  const icmsBase = regimeNormal ? roundCurrency(total * (1 - reducao / 100)) : 0;
+  const icmsAliquota = Number(item.icms_aliquota || 0);
+  const icmsValor = regimeNormal ? roundCurrency((icmsBase * icmsAliquota) / 100) : 0;
+  const pisValor = roundCurrency((total * Number(item.pis_aliquota || 0)) / 100);
+  const cofinsValor = roundCurrency((total * Number(item.cofins_aliquota || 0)) / 100);
+  const ipiValor = roundCurrency((total * Number(item.ipi_aliquota || 0)) / 100);
+  const fcpValor = regimeNormal
+    ? roundCurrency((total * Number(item.icms_aliquota_fcp || 0)) / 100)
+    : 0;
+
+  return {
+    icmsBase,
+    icmsValor,
+    pisValor,
+    cofinsValor,
+    ipiValor,
+    fcpValor,
+  };
+}
+
+export function calculateItemApproximateTaxes(item = {}) {
+  const total = Number(item.valor_total || 0);
+  const origem = String(item.origem_mercadoria || item.origem || "0").trim();
+  const federalRate = IMPORTED_ORIGINS.has(origem)
+    ? Number(item.ibpt_aliquota_federal_importado || 0)
+    : Number(item.ibpt_aliquota_federal_nacional || 0);
+  const estadualRate = Number(item.ibpt_aliquota_estadual || 0);
+  const municipalRate = Number(item.ibpt_aliquota_municipal || 0);
+  const hasIbpt = federalRate > 0 || estadualRate > 0 || municipalRate > 0;
+
+  if (hasIbpt) {
+    const federal = roundCurrency((total * federalRate) / 100);
+    const estadual = roundCurrency((total * estadualRate) / 100);
+    const municipal = roundCurrency((total * municipalRate) / 100);
+
+    return {
+      federal,
+      estadual,
+      municipal,
+      total: roundCurrency(federal + estadual + municipal),
+      fonte: String(item.ibpt_fonte || item.ibpt_chave || "IBPT").trim(),
+      origem: "ibpt",
+    };
+  }
+
+  const configured = calculateConfiguredTaxValues(item, total);
+  const federal = roundCurrency(configured.pisValor + configured.cofinsValor + configured.ipiValor);
+  const estadual = configured.icmsValor;
+
+  return {
+    federal,
+    estadual,
+    municipal: 0,
+    total: roundCurrency(federal + estadual),
+    fonte: "Cálculo fiscal V12",
+    origem: "fallback",
+  };
+}
+
 export function calculateFiscalTotals(itens = []) {
-  return itens.reduce(
+  const totals = itens.reduce(
     (acc, item) => {
       const total = Number(item.valor_total || 0);
-      const reducao = Math.max(0, Math.min(100, Number(item.icms_reducao_base || 0)));
-      const regimeNormal = String(item.crt_emitente || item.crt || "3") === "3";
-      const icmsBase = regimeNormal ? Number((total * (1 - reducao / 100)).toFixed(2)) : 0;
-      const icmsAliquota = Number(item.icms_aliquota || 0);
-      const icmsValor = regimeNormal ? Number(((icmsBase * icmsAliquota) / 100).toFixed(2)) : 0;
-      const pisValor = Number((((total || 0) * Number(item.pis_aliquota || 0)) / 100).toFixed(2));
-      const cofinsValor = Number(
-        (((total || 0) * Number(item.cofins_aliquota || 0)) / 100).toFixed(2),
-      );
-      const ipiValor = Number((((total || 0) * Number(item.ipi_aliquota || 0)) / 100).toFixed(2));
+      const configured = calculateConfiguredTaxValues(item, total);
+      const approximate = calculateItemApproximateTaxes(item);
 
-      acc.icms_base_total += icmsBase;
-      acc.icms_valor_total += icmsValor;
-      acc.icms_fcp_total += regimeNormal
-        ? Number((((total || 0) * Number(item.icms_aliquota_fcp || 0)) / 100).toFixed(2))
-        : 0;
-      acc.pis_valor_total += pisValor;
-      acc.cofins_valor_total += cofinsValor;
-      acc.ipi_valor_total += ipiValor;
-      acc.valor_tributos_total += icmsValor + pisValor + cofinsValor + ipiValor;
+      acc.icms_base_total += configured.icmsBase;
+      acc.icms_valor_total += configured.icmsValor;
+      acc.icms_fcp_total += configured.fcpValor;
+      acc.pis_valor_total += configured.pisValor;
+      acc.cofins_valor_total += configured.cofinsValor;
+      acc.ipi_valor_total += configured.ipiValor;
+      acc.valor_tributos_federal += approximate.federal;
+      acc.valor_tributos_estadual += approximate.estadual;
+      acc.valor_tributos_municipal += approximate.municipal;
+      acc.valor_tributos_total += approximate.total;
+      if (approximate.fonte) {
+        acc.fontes_tributos.add(approximate.fonte);
+      }
       return acc;
     },
     {
@@ -203,9 +266,28 @@ export function calculateFiscalTotals(itens = []) {
       pis_valor_total: 0,
       cofins_valor_total: 0,
       ipi_valor_total: 0,
+      valor_tributos_federal: 0,
+      valor_tributos_estadual: 0,
+      valor_tributos_municipal: 0,
       valor_tributos_total: 0,
+      fontes_tributos: new Set(),
     },
   );
+
+  return {
+    ...totals,
+    icms_base_total: roundCurrency(totals.icms_base_total),
+    icms_valor_total: roundCurrency(totals.icms_valor_total),
+    icms_fcp_total: roundCurrency(totals.icms_fcp_total),
+    pis_valor_total: roundCurrency(totals.pis_valor_total),
+    cofins_valor_total: roundCurrency(totals.cofins_valor_total),
+    ipi_valor_total: roundCurrency(totals.ipi_valor_total),
+    valor_tributos_federal: roundCurrency(totals.valor_tributos_federal),
+    valor_tributos_estadual: roundCurrency(totals.valor_tributos_estadual),
+    valor_tributos_municipal: roundCurrency(totals.valor_tributos_municipal),
+    valor_tributos_total: roundCurrency(totals.valor_tributos_total),
+    fontes_tributos: Array.from(totals.fontes_tributos),
+  };
 }
 
 export function buildFiscalFailureResult({ readiness, vendaId }) {

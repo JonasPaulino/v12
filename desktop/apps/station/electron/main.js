@@ -529,12 +529,37 @@ function formatAccessKey(value = "") {
 }
 
 function extractXmlTag(xml = "", tagName = "") {
+  return extractXmlTags(xml, tagName)[0] || "";
+}
+
+function extractXmlTags(xml = "", tagName = "") {
   const pattern = new RegExp(`<${tagName}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${tagName}>`, "i");
-  const match = String(xml || "").match(pattern);
-  return String(match?.[1] || "")
-    .replace(/^<!\[CDATA\[/i, "")
-    .replace(/\]\]>$/i, "")
-    .trim();
+  const globalPattern = new RegExp(pattern.source, "gi");
+  return Array.from(String(xml || "").matchAll(globalPattern)).map((match) =>
+    String(match?.[1] || "")
+      .replace(/^<!\[CDATA\[/i, "")
+      .replace(/\]\]>$/i, "")
+      .trim(),
+  );
+}
+
+function extractLastXmlTag(xml = "", tagName = "") {
+  const values = extractXmlTags(xml, tagName);
+  return values[values.length - 1] || "";
+}
+
+function parseXmlDecimal(value) {
+  const normalized = String(value ?? "")
+    .replace(",", ".")
+    .replace(/[^\d.-]/g, "");
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function extractTributosFonte(xml = "") {
+  const infCpl = extractXmlTag(xml, "infCpl");
+  const fonteMatch = infCpl.match(/Fonte:\s*([^.;]+(?:[,/]\s*[^.;]+)*)/i);
+  return String(fonteMatch?.[1] || "").trim();
 }
 
 async function buildDanfceHtml(payload = {}, config = {}) {
@@ -567,6 +592,15 @@ async function buildDanfceHtml(payload = {}, config = {}) {
   const subtotal = formatCurrency(sale.subtotal || 0);
   const desconto = formatCurrency(sale.desconto || 0);
   const total = formatCurrency(sale.total || 0);
+  const valorTributos = parseXmlDecimal(
+    fiscal.valor_tributos_total ??
+      fiscal.valorTributosTotal ??
+      sale.valor_tributos_total ??
+      extractLastXmlTag(xml, "vTotTrib"),
+  );
+  const fonteTributos = escapeHtml(
+    fiscal.fonte_tributos || fiscal.fonteTributos || sale.fonte_tributos || extractTributosFonte(xml),
+  );
   const cliente = escapeHtml(sale.cliente || "Consumidor não identificado");
   const terminal = escapeHtml(sale.terminal || "PDV");
   const operador = escapeHtml(sale.operador || "Operador");
@@ -721,6 +755,17 @@ async function buildDanfceHtml(payload = {}, config = {}) {
               <div class="row"><span>DESCONTO TOTAL R$</span><strong>${desconto}</strong></div>
               <div class="row grand-total"><span>VALOR A PAGAR R$</span><strong>${total}</strong></div>
             </div>
+
+            ${valorTributos > 0 ? `
+              <div class="separator">${separator}</div>
+              <div class="block small">
+                <div class="row">
+                  <span>TRIBUTOS APROXIMADOS</span>
+                  <strong>R$ ${formatCurrency(valorTributos)}</strong>
+                </div>
+                <div class="muted">Lei Federal 12.741/2012${fonteTributos ? ` - Fonte: ${fonteTributos}` : ""}</div>
+              </div>
+            ` : ""}
 
             <div class="separator">${separator}</div>
 

@@ -1,0 +1,8 @@
+ALTER TABLE produto_fiscal
+  ADD COLUMN IF NOT EXISTS ibpt_aliquota_federal_nacional NUMERIC NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS ibpt_aliquota_federal_importado NUMERIC NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS ibpt_aliquota_estadual NUMERIC NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS ibpt_aliquota_municipal NUMERIC NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS ibpt_fonte VARCHAR(80),
+  ADD COLUMN IF NOT EXISTS ibpt_chave VARCHAR(80),
+  ADD COLUMN IF NOT EXISTS ibpt_atualizado_em TIMESTAMPTZ;

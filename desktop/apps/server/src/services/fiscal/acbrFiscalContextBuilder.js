@@ -1,6 +1,7 @@
 import { getDb } from "../../db/connection.js";
 import { getTerminalConfig, getTerminalTenantErpId } from "../../modules/configuracao/localConfigRepository.js";
 import {
+  calculateItemApproximateTaxes,
   calculateFiscalTotals,
   formatNfceDateTime,
   hasClientIdentification,
@@ -86,7 +87,14 @@ export function loadNfceContext(vendaId, fiscal, sequencial, options = {}) {
          p.cofins_aliquota,
          p.ipi_cst,
          p.ipi_enquadramento,
-         p.ipi_aliquota
+         p.ipi_aliquota,
+         p.ibpt_aliquota_federal_nacional,
+         p.ibpt_aliquota_federal_importado,
+         p.ibpt_aliquota_estadual,
+         p.ibpt_aliquota_municipal,
+         p.ibpt_fonte,
+         p.ibpt_chave,
+         p.ibpt_atualizado_em
        FROM venda_item vi
        JOIN produto p
          ON p.produto_id = vi.produto_id
@@ -107,7 +115,18 @@ export function loadNfceContext(vendaId, fiscal, sequencial, options = {}) {
       cfop: item.cfop_venda_interna || "5102",
       gtin: item.gtin || "SEM GTIN",
       origem_mercadoria: item.origem_mercadoria || "0",
-    }));
+    }))
+    .map((item) => {
+      const approximateTaxes = calculateItemApproximateTaxes(item);
+      return {
+        ...item,
+        valor_tributos_total: approximateTaxes.total,
+        valor_tributos_federal: approximateTaxes.federal,
+        valor_tributos_estadual: approximateTaxes.estadual,
+        valor_tributos_municipal: approximateTaxes.municipal,
+        fonte_tributos: approximateTaxes.fonte,
+      };
+    });
 
   if (!itens.length) {
     throw new Error("A venda não possui itens para emissão da NFC-e.");
@@ -145,6 +164,20 @@ export function loadNfceContext(vendaId, fiscal, sequencial, options = {}) {
   const totalPago = pagamentos.reduce((acc, item) => acc + Number(item.valor || 0), 0);
   const totals = calculateFiscalTotals(itens);
   const emitenteDocumento = onlyDigits(fiscal.emitente_cpf_cnpj);
+  const fontesTributos = Array.isArray(totals.fontes_tributos)
+    ? totals.fontes_tributos.filter(Boolean)
+    : [];
+  const observacoes = ["Documento emitido pelo V12 PDV."];
+
+  if (Number(totals.valor_tributos_total || 0) > 0) {
+    observacoes.push(
+      `Valor aproximado dos tributos: R$ ${Number(totals.valor_tributos_total || 0).toFixed(2)} ` +
+        `(Federal R$ ${Number(totals.valor_tributos_federal || 0).toFixed(2)}, ` +
+        `Estadual R$ ${Number(totals.valor_tributos_estadual || 0).toFixed(2)}, ` +
+        `Municipal R$ ${Number(totals.valor_tributos_municipal || 0).toFixed(2)}). ` +
+        `Fonte: ${fontesTributos.join(", ") || "Cálculo fiscal V12"}. Lei Federal 12.741/2012.`,
+    );
+  }
 
   if (!emitenteDocumento) {
     throw new Error("Documento do emitente não foi sincronizado para o PDV.");
@@ -204,7 +237,7 @@ export function loadNfceContext(vendaId, fiscal, sequencial, options = {}) {
           ? formatNfceDateTime(options.contingenciaEm || new Date())
           : null,
       x_justificativa_contingencia: contingenciaJustificativa,
-      observacao: "Documento emitido pelo V12 PDV.",
+      observacao: observacoes.join(" "),
       ...totals,
     },
     venda,

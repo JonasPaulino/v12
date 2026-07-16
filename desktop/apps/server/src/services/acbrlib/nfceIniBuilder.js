@@ -167,6 +167,7 @@ function appendProduto(lines, item, index, crt) {
     qTrib: decimal(item.quantidade, 4),
     vUnTrib: decimal(item.valor_unitario, 4),
     indTot: "1",
+    vTotTrib: decimal(item.valor_tributos_total, 2),
   });
 
   if (String(crt || "3") === "3") {
