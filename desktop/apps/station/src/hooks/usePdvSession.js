@@ -45,11 +45,17 @@ export function usePdvSession({ onResetVenda, onCarregarFinanceiroSupportData })
     lastSuccessAt: null,
     lastError: null,
     releaseMessage: null,
+    releaseStatus: null,
+    releaseTargetVersion: null,
     version: null,
   });
   const { showLoading, hideLoading } = useContext(AppContext);
   const { showAlert, askYesNoQuestion } = useSweetAlert();
   const syncLockRef = useRef(false);
+  const releaseActionRef = useRef({
+    status: null,
+    version: null,
+  });
 
   async function refreshReleaseStatus() {
     const releaseStatus = await api.releaseStatus().catch(() => null);
@@ -61,6 +67,8 @@ export function usePdvSession({ onResetVenda, onCarregarFinanceiroSupportData })
     setSyncState((current) => ({
       ...current,
       version: releaseStatus.versao_atual,
+      releaseStatus: latestLocal?.status || null,
+      releaseTargetVersion: latestLocal?.versao || null,
       releaseMessage: current.running ? current.releaseMessage : releaseMessage,
     }));
     return releaseStatus;
@@ -221,6 +229,45 @@ export function usePdvSession({ onResetVenda, onCarregarFinanceiroSupportData })
       }));
     }
   }
+
+  useEffect(() => {
+    const status = String(syncState?.releaseStatus || "");
+    const version = String(syncState?.releaseTargetVersion || "");
+
+    if (!status) {
+      releaseActionRef.current = { status: null, version: null };
+      return undefined;
+    }
+
+    const alreadyHandled =
+      releaseActionRef.current.status === status && releaseActionRef.current.version === version;
+
+    if (alreadyHandled) {
+      return undefined;
+    }
+
+    if (status === "instalando") {
+      releaseActionRef.current = { status, version };
+      const timeoutId = window.setTimeout(() => {
+        if (window.v12Desktop?.quit) {
+          void window.v12Desktop.quit();
+        }
+      }, 2200);
+      return () => window.clearTimeout(timeoutId);
+    }
+
+    if (status === "pendente_reinicio" || status === "recursos_aplicado") {
+      releaseActionRef.current = { status, version };
+      const timeoutId = window.setTimeout(() => {
+        if (window.v12Desktop?.restart) {
+          void window.v12Desktop.restart();
+        }
+      }, 2200);
+      return () => window.clearTimeout(timeoutId);
+    }
+
+    return undefined;
+  }, [syncState?.releaseStatus, syncState?.releaseTargetVersion]);
 
   useEffect(() => {
     if (!operador) return;

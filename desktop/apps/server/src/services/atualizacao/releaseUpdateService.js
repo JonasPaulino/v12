@@ -71,12 +71,66 @@ const isInstallerPackage = (filePath = "") => {
   return extension === ".exe" || extension === ".msi";
 };
 
+const compareVersions = (left = "", right = "") => {
+  const leftParts = String(left || "")
+    .split(".")
+    .map((part) => Number.parseInt(part, 10) || 0);
+  const rightParts = String(right || "")
+    .split(".")
+    .map((part) => Number.parseInt(part, 10) || 0);
+  const maxLength = Math.max(leftParts.length, rightParts.length);
+
+  for (let index = 0; index < maxLength; index += 1) {
+    const leftValue = leftParts[index] || 0;
+    const rightValue = rightParts[index] || 0;
+
+    if (leftValue > rightValue) return 1;
+    if (leftValue < rightValue) return -1;
+  }
+
+  return 0;
+};
+
 const assertSemCaixaAberto = () => {
   const caixa = getCaixaAberto();
   if (caixa) {
     throw new Error("Atualização baixada. Ela será aplicada após o fechamento do caixa.");
   }
 };
+
+async function reconcileInstalledRelease(localRelease) {
+  if (!localRelease?.release_id || localRelease.tipo_release !== "app") {
+    return localRelease;
+  }
+
+  const status = String(localRelease.status || "");
+  if (!["disponivel", "baixado", "staged", "instalando", "pendente_reinicio", "erro"].includes(status)) {
+    return localRelease;
+  }
+
+  if (compareVersions(localRelease.versao, env.pdvVersion) > 0) {
+    return localRelease;
+  }
+
+  const reconciledStatus = compareVersions(localRelease.versao, env.pdvVersion) === 0
+    ? "aplicado"
+    : localRelease.status;
+
+  const reconciled = markReleaseApplied({
+    releaseId: localRelease.release_id,
+    status: reconciledStatus,
+  });
+
+  console.info("[desktop-release] Release local reconciliado com a versão instalada", {
+    releaseId: reconciled.release_id,
+    versaoRelease: reconciled.versao,
+    versaoAtual: env.pdvVersion,
+    statusAnterior: localRelease.status,
+    statusNovo: reconciled.status,
+  });
+
+  return reconciled;
+}
 
 async function extractArchive({ filePath, targetDir }) {
   await fs.rm(targetDir, { recursive: true, force: true }).catch(() => {});
@@ -197,7 +251,10 @@ export async function verificarAtualizacaoPdv() {
   const appResult = await consultar({ tipoRelease: "app", currentVersion: env.pdvVersion });
   const recursoResult = await consultar({ tipoRelease: "recursos" });
   const candidate = appResult.release || recursoResult.release || null;
-  const localCandidate = candidate ? getReleaseUpdateByReleaseId(candidate.release_id) : null;
+  const reconciledLatestLocal = await reconcileInstalledRelease(getLatestReleaseUpdate());
+  const localCandidate = candidate
+    ? await reconcileInstalledRelease(getReleaseUpdateByReleaseId(candidate.release_id))
+    : null;
   const localPending =
     localCandidate && ["baixado", "staged"].includes(String(localCandidate.status || ""));
   const alreadyApplied =
@@ -220,7 +277,9 @@ export async function verificarAtualizacaoPdv() {
     latest: appResult.latest || recursoResult.latest || null,
     local:
       localCandidate ||
-      (release ? getReleaseUpdateByReleaseId(release.release_id) : getLatestReleaseUpdate()),
+      (release
+        ? await reconcileInstalledRelease(getReleaseUpdateByReleaseId(release.release_id))
+        : reconciledLatestLocal),
   };
 }
 
@@ -380,6 +439,23 @@ export async function aplicarAtualizacaoPdv(releaseId = null) {
 }
 
 export function getStatusAtualizacaoPdv() {
+  const latestLocal = getLatestReleaseUpdate();
+  const reconciledLatestLocal =
+    latestLocal?.tipo_release === "app" &&
+    compareVersions(latestLocal.versao, env.pdvVersion) <= 0
+      ? markReleaseApplied({
+          releaseId: latestLocal.release_id,
+          status: "aplicado",
+        })
+      : latestLocal;
+  const pendingRelease = getPendingApplicableRelease();
+  const reconciledPendingRelease =
+    pendingRelease?.release_id &&
+    reconciledLatestLocal?.release_id === pendingRelease.release_id &&
+    reconciledLatestLocal?.status === "aplicado"
+      ? null
+      : pendingRelease;
+
   return {
     versao_atual: env.pdvVersion,
     canal: env.pdvReleaseChannel,
@@ -387,7 +463,7 @@ export function getStatusAtualizacaoPdv() {
     release_dir: env.pdvReleaseDir,
     version_dir: env.pdvVersionDir,
     resource_dir: env.pdvResourceDir,
-    latest_local: getLatestReleaseUpdate(),
-    pendente_aplicacao: getPendingApplicableRelease(),
+    latest_local: reconciledLatestLocal,
+    pendente_aplicacao: reconciledPendingRelease,
   };
 }

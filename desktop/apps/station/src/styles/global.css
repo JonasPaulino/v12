@@ -1273,6 +1273,12 @@ label {
   letter-spacing: 0.05em;
 }
 
+.login-sync-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .login-blocked-message span {
   font-size: 0.88rem;
   line-height: 1.45;

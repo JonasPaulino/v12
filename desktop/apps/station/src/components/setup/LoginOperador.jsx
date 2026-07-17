@@ -1,5 +1,5 @@
 import { useContext, useEffect, useState } from "react";
-import { FiEye, FiEyeOff } from "react-icons/fi";
+import { FiEye, FiEyeOff, FiRefreshCcw } from "react-icons/fi";
 import { api } from "../../api.js";
 import { AppContext } from "../../context/AppContext.jsx";
 import { useSweetAlert } from "../../context/SweetAlertContext.jsx";
@@ -29,8 +29,11 @@ export function LoginOperador({ config, onLogin, onRefreshStatus, syncState }) {
     config?.tenant_bloqueio_motivo ||
     "A filial está bloqueada na retaguarda.";
   const atualizacaoInicialEmAndamento =
-    syncState?.running === true &&
-    ["startup", "pre_login"].includes(String(syncState?.reason || ""));
+    (syncState?.running === true &&
+      ["startup", "pre_login"].includes(String(syncState?.reason || ""))) ||
+    ["instalando", "pendente_reinicio", "recursos_aplicado"].includes(
+      String(syncState?.releaseStatus || ""),
+    );
   const mensagemAtualizacao =
     syncState?.releaseMessage ||
     "Encontramos uma nova versão do PDV e estamos atualizando o sistema. Aguarde e não feche o aplicativo.";
@@ -123,7 +126,10 @@ export function LoginOperador({ config, onLogin, onRefreshStatus, syncState }) {
         ) : null}
         {exibirAvisoAtualizacao ? (
           <div className="login-sync-message">
-            <strong>{atualizacaoInicialEmAndamento ? "Atualizando PDV" : "Situação do PDV"}</strong>
+            <strong className="login-sync-title">
+              <FiRefreshCcw className="spinning-icon" />
+              {atualizacaoInicialEmAndamento ? "Atualizando PDV" : "Situação do PDV"}
+            </strong>
             <span>{mensagemAtualizacao}</span>
           </div>
         ) : null}

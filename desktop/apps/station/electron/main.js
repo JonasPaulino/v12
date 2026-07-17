@@ -1073,6 +1073,11 @@ ipcMain.handle("app:quit", () => {
   app.quit();
 });
 
+ipcMain.handle("app:restart", () => {
+  app.relaunch();
+  app.quit();
+});
+
 ipcMain.handle("window:toggle-fullscreen", () => {
   const win = BrowserWindow.getFocusedWindow();
   if (!win) return false;

@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from "electron";
 
 contextBridge.exposeInMainWorld("v12Desktop", {
   quit: () => ipcRenderer.invoke("app:quit"),
+  restart: () => ipcRenderer.invoke("app:restart"),
   toggleFullscreen: () => ipcRenderer.invoke("window:toggle-fullscreen"),
   listPrinters: () => ipcRenderer.invoke("printer:list"),
   printBudget: (payload, printerConfig) => ipcRenderer.invoke("sale:print-budget", payload, printerConfig),
