@@ -406,9 +406,13 @@ export const GestaoV12Configuracoes = () => {
       });
     } catch (error) {
       hideLoading();
+      const status = error?.response?.status;
       showAlert?.({
         title: "Falha ao salvar release",
-        text: error?.response?.data?.message || "Não foi possível salvar o release do PDV.",
+        text:
+          status === 413
+            ? "O arquivo é maior que o limite aceito pelo servidor/proxy. Verifique o limite de upload do Nginx."
+            : error?.response?.data?.message || error?.message || "Não foi possível salvar o release do PDV.",
         icon: "error",
       });
     } finally {

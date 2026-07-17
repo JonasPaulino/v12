@@ -1,388 +1,69 @@
-[2026-07-17T00:19:15.228Z] [desktop-acbr] Diagnostico inicial {
-  mode: 'lib',
-  packageAvailable: true,
-  packageMessage: null,
-  packageEntryPath: 'C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\@projetoacbr\\acbrlib-nfe-node\\dist\\src\\index.js',
-  packageLegacyEntryPath: '@projetoacbr/acbrlib-nfe-node/dist/src',
-  libPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\Windows\\MT\\Cdecl\\ACBrNFe64.dll',
-  libExists: true,
-  schemaPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\Schemas\\NFe',
-  schemaExists: true,
-  iniServicosPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\ACBrNFeServicos.ini',
-  iniServicosExists: true,
-  configDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\config',
-  tempDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\runtime',
-  logDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\log',
-  nativeDependencies: {
-    required: true,
-    dirs: [
-      'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\LibXml2\\x64',
-      'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\OpenSSL\\x64'
-    ],
-    missing: []
-  }
-}
-[2026-07-17T00:19:15.242Z] [desktop-server] V12 local rodando na porta 5100
-[2026-07-17T00:19:15.455Z] [stderr] [desktop-server] Falha na requisicao {
-  method: 'POST',
-  path: '/api/local/configuracao/sincronizar-filial',
-  message: 'PDV local ainda não pareado com uma filial do ERP.',
-  stack: 'Error: PDV local ainda não pareado com uma filial do ERP.\n' +
-    '    at atualizarDadosFilialAtual (file:///C:/v12/V12%20PDV/resources/app.asar.unpacked/apps/server/src/services/erpSetupService.js:213:11)\n' +
-    '    at file:///C:/v12/V12%20PDV/resources/app.asar.unpacked/apps/server/src/routes/configuracaoRoutes.js:67:24\n' +
-    '    at Layer.handleRequest (C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\router\\lib\\layer.js:152:17)\n' +
-    '    at next (C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\router\\lib\\route.js:157:13)\n' +
-    '    at Route.dispatch (C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\router\\lib\\route.js:117:3)\n' +
-    '    at handle (C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\router\\index.js:435:11)\n' +
-    '    at Layer.handleRequest (C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\router\\lib\\layer.js:152:17)\n' +
-    '    at C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\router\\index.js:295:15\n' +
-    '    at processParams (C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\router\\index.js:582:12)\n' +
-    '    at next (C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\router\\index.js:291:5)'
-}
-[2026-07-17T00:19:20.236Z] [desktop-release] Verificação automática não aplicada { message: 'Token de sincronização não configurado.' }
-[2026-07-17T00:19:28.825Z] [stderr] [desktop-server] Falha na requisicao {
-  method: 'POST',
-  path: '/api/local/configuracao/login-web',
-  message: 'Token de sincronização do ERP não configurado no desktop.',
-  stack: 'Error: Token de sincronização do ERP não configurado no desktop.\n' +
-    '    at loginErpWeb (file:///C:/v12/V12%20PDV/resources/app.asar.unpacked/apps/server/src/services/erpSetupService.js:41:11)\n' +
-    '    at file:///C:/v12/V12%20PDV/resources/app.asar.unpacked/apps/server/src/routes/configuracaoRoutes.js:40:24\n' +
-    '    at Layer.handleRequest (C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\router\\lib\\layer.js:152:17)\n' +
-    '    at next (C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\router\\lib\\route.js:157:13)\n' +
-    '    at Route.dispatch (C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\router\\lib\\route.js:117:3)\n' +
-    '    at handle (C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\router\\index.js:435:11)\n' +
-    '    at Layer.handleRequest (C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\router\\lib\\layer.js:152:17)\n' +
-    '    at C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\router\\index.js:295:15\n' +
-    '    at processParams (C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\router\\index.js:582:12)\n' +
-    '    at next (C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\router\\index.js:291:5)'
-}
-[2026-07-17T00:20:08.352Z] [stderr] [desktop-server] Falha na requisicao {
-  method: 'POST',
-  path: '/api/local/configuracao/login-web',
-  message: 'Token de sincronização do ERP não configurado no desktop.',
-  stack: 'Error: Token de sincronização do ERP não configurado no desktop.\n' +
-    '    at loginErpWeb (file:///C:/v12/V12%20PDV/resources/app.asar.unpacked/apps/server/src/services/erpSetupService.js:41:11)\n' +
-    '    at file:///C:/v12/V12%20PDV/resources/app.asar.unpacked/apps/server/src/routes/configuracaoRoutes.js:40:24\n' +
-    '    at Layer.handleRequest (C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\router\\lib\\layer.js:152:17)\n' +
-    '    at next (C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\router\\lib\\route.js:157:13)\n' +
-    '    at Route.dispatch (C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\router\\lib\\route.js:117:3)\n' +
-    '    at handle (C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\router\\index.js:435:11)\n' +
-    '    at Layer.handleRequest (C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\router\\lib\\layer.js:152:17)\n' +
-    '    at C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\router\\index.js:295:15\n' +
-    '    at processParams (C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\router\\index.js:582:12)\n' +
-    '    at next (C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\router\\index.js:291:5)'
-}
-[2026-07-17T00:28:19.761Z] [desktop-acbr] Diagnostico inicial {
-  mode: 'lib',
-  packageAvailable: true,
-  packageMessage: null,
-  packageEntryPath: 'C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\@projetoacbr\\acbrlib-nfe-node\\dist\\src\\index.js',
-  packageLegacyEntryPath: '@projetoacbr/acbrlib-nfe-node/dist/src',
-  libPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\Windows\\MT\\Cdecl\\ACBrNFe64.dll',
-  libExists: true,
-  schemaPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\Schemas\\NFe',
-  schemaExists: true,
-  iniServicosPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\ACBrNFeServicos.ini',
-  iniServicosExists: true,
-  configDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\config',
-  tempDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\runtime',
-  logDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\log',
-  nativeDependencies: {
-    required: true,
-    dirs: [
-      'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\LibXml2\\x64',
-      'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\OpenSSL\\x64'
-    ],
-    missing: []
-  }
-}
-[2026-07-17T00:28:19.776Z] [desktop-server] V12 local rodando na porta 5100
-[2026-07-17T00:28:24.775Z] [desktop-release] Verificação automática não aplicada { message: 'PDV local ainda não configurado para uma filial.' }
-[2026-07-17T00:28:53.017Z] [desktop-acbr] Diagnostico inicial {
-  mode: 'lib',
-  packageAvailable: true,
-  packageMessage: null,
-  packageEntryPath: 'C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\@projetoacbr\\acbrlib-nfe-node\\dist\\src\\index.js',
-  packageLegacyEntryPath: '@projetoacbr/acbrlib-nfe-node/dist/src',
-  libPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\Windows\\MT\\Cdecl\\ACBrNFe64.dll',
-  libExists: true,
-  schemaPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\Schemas\\NFe',
-  schemaExists: true,
-  iniServicosPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\ACBrNFeServicos.ini',
-  iniServicosExists: true,
-  configDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\config',
-  tempDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\runtime',
-  logDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\log',
-  nativeDependencies: {
-    required: true,
-    dirs: [
-      'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\LibXml2\\x64',
-      'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\OpenSSL\\x64'
-    ],
-    missing: []
-  }
-}
-[2026-07-17T00:28:53.052Z] [desktop-server] V12 local rodando na porta 5100
-[2026-07-17T00:28:53.395Z] [stderr] [desktop-server] Falha na requisicao {
-  method: 'POST',
-  path: '/api/local/configuracao/sincronizar-filial',
-  message: 'PDV local ainda não pareado com uma filial do ERP.',
-  stack: 'Error: PDV local ainda não pareado com uma filial do ERP.\n' +
-    '    at atualizarDadosFilialAtual (file:///C:/v12/V12%20PDV/resources/app.asar.unpacked/apps/server/src/services/erpSetupService.js:213:11)\n' +
-    '    at file:///C:/v12/V12%20PDV/resources/app.asar.unpacked/apps/server/src/routes/configuracaoRoutes.js:67:24\n' +
-    '    at Layer.handleRequest (C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\router\\lib\\layer.js:152:17)\n' +
-    '    at next (C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\router\\lib\\route.js:157:13)\n' +
-    '    at Route.dispatch (C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\router\\lib\\route.js:117:3)\n' +
-    '    at handle (C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\router\\index.js:435:11)\n' +
-    '    at Layer.handleRequest (C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\router\\lib\\layer.js:152:17)\n' +
-    '    at C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\router\\index.js:295:15\n' +
-    '    at processParams (C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\router\\index.js:582:12)\n' +
-    '    at next (C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\router\\index.js:291:5)'
-}
-[2026-07-17T00:28:58.036Z] [desktop-release] Verificação automática não aplicada { message: 'PDV local ainda não configurado para uma filial.' }
-[2026-07-17T00:29:43.609Z] [desktop-sync] Etapa concluida {
-  key: 'filial',
-  label: 'Filial',
-  success: true,
-  details: { tenantId: 5, terminalCodigo: 'PDV-02' }
-}
-[2026-07-17T00:29:43.837Z] [desktop-sync] Etapa concluida {
-  key: 'usuarios',
-  label: 'Operadores',
-  success: true,
-  details: { imported: 2 }
-}
-[2026-07-17T00:29:44.112Z] [desktop-sync] Etapa concluida {
-  key: 'produtos',
-  label: 'Produtos',
-  success: true,
-  details: { imported: 0, full: false }
-}
-[2026-07-17T00:29:44.331Z] [desktop-sync] Etapa concluida {
-  key: 'financeiro',
-  label: 'Financeiro',
-  success: true,
-  details: { formasPagamento: 5, condicoesPagamento: 8 }
-}
-[2026-07-17T00:29:44.344Z] [desktop-sync] Etapa concluida {
-  key: 'pendencias',
-  label: 'Pendências locais',
-  success: true,
-  details: { processed: 0, pending: 0 }
-}
-[desktop-sync] Etapa concluida {
-  key: 'contingencias',
-  label: 'NFC-e em contingência',
-  success: true,
-  details: { total: 0, autorizadas: 0, emContingencia: 0, rejeitadas: 0 }
-}
-[2026-07-17T00:29:44.760Z] [desktop-sync] Etapa concluida {
-  key: 'release',
-  label: 'Release do PDV',
-  success: true,
-  details: {
-    versaoAtual: '0.1.1',
-    updateAvailable: false,
-    versaoDisponivel: null,
-    statusLocal: null
-  }
-}
-[2026-07-17T00:29:50.969Z] [desktop-sync] Etapa concluida {
-  key: 'filial',
-  label: 'Filial',
-  success: true,
-  details: { tenantId: 5, terminalCodigo: 'PDV-02' }
-}
-[2026-07-17T00:29:51.702Z] [desktop-sync] Etapa concluida {
-  key: 'usuarios',
-  label: 'Operadores',
-  success: true,
-  details: { imported: 2 }
-}
-[2026-07-17T00:29:51.918Z] [desktop-sync] Etapa concluida {
-  key: 'produtos',
-  label: 'Produtos',
-  success: true,
-  details: { imported: 0, full: false }
-}
-[2026-07-17T00:29:52.192Z] [desktop-sync] Etapa concluida {
-  key: 'financeiro',
-  label: 'Financeiro',
-  success: true,
-  details: { formasPagamento: 5, condicoesPagamento: 8 }
-}
-[2026-07-17T00:29:52.209Z] [desktop-sync] Processando pendencia local { syncId: 1, tipoEvento: 'CAIXA_ABERTO', tentativas: 0 }
-[2026-07-17T00:29:52.437Z] [desktop-sync] Pendencia sincronizada { syncId: 1, tipoEvento: 'CAIXA_ABERTO' }
-[desktop-sync] Etapa concluida {
-  key: 'pendencias',
-  label: 'Pendências locais',
-  success: true,
-  details: { processed: 1, pending: 1 }
-}
-[2026-07-17T00:29:52.450Z] [desktop-sync] Etapa concluida {
-  key: 'contingencias',
-  label: 'NFC-e em contingência',
-  success: true,
-  details: { total: 0, autorizadas: 0, emContingencia: 0, rejeitadas: 0 }
-}
-[2026-07-17T00:29:52.828Z] [desktop-sync] Etapa concluida {
-  key: 'release',
-  label: 'Release do PDV',
-  success: true,
-  details: {
-    versaoAtual: '0.1.1',
-    updateAvailable: false,
-    versaoDisponivel: null,
-    statusLocal: null
-  }
-}
-[2026-07-17T00:31:39.593Z] [acbr:nfce:worker] Inicio {
-  tenantId: 5,
-  vendaId: 2,
-  operation: 'emitir_normal',
-  formaEmissao: '0',
-  ambiente: '2',
-  serie: 1,
-  numero: 165,
-  itens: 1,
-  pagamentos: 1
-}
-[acbr:nfce:worker] Certificado preparado {
-  vendaId: 2,
-  normalized: false,
-  usedLegacyInput: false,
-  runtimeCertPath: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\runtime\\tenant-5\\venda-2\\certificado-a1.pfx'
-}
-[acbr:nfce:worker] INI gerado {
-  vendaId: 2,
-  iniPath: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\runtime\\tenant-5\\venda-2\\nfce.ini',
-  rootDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\runtime\\tenant-5\\venda-2',
-  xmlDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\runtime\\tenant-5\\venda-2\\xml',
-  pdfDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\runtime\\tenant-5\\venda-2\\pdf'
-}
-[acbr:nfce:worker] INI carregado {
-  vendaId: 2,
-  hasPreXml: true,
-  chavePreXml: '26260703096316000117650010000001651000021650'
-}
-[acbr:nfce:worker] XML assinado/validado {
-  vendaId: 2,
-  hasPostXml: true,
-  chaveAcesso: '26260703096316000117650010000001651000021650'
-}
-[2026-07-17T00:31:39.612Z] [stderr] [acbr:nfce:worker] Erro detalhado {
-  tenantId: 5,
-  vendaId: 2,
-  operation: 'emitir_normal',
-  phase: 'gerar_pdf',
-  message: '-10: Porta não definida',
-  lastReturn: 'Porta não definida',
-  paths: {
-    configPath: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\config\\tenant-5-venda-2.ini',
-    iniPath: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\runtime\\tenant-5\\venda-2\\nfce.ini',
-    rootDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\runtime\\tenant-5\\venda-2',
-    xmlDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\runtime\\tenant-5\\venda-2\\xml',
-    pdfDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\runtime\\tenant-5\\venda-2\\pdf'
-  }
-}
-[acbr:nfce:worker] Falha Error: -10: Porta não definida
-    at run (file:///C:/v12/V12%20PDV/resources/app.asar.unpacked/apps/server/src/services/acbrlib/nfceWorker.js:630:11)
-[desktop-fiscal] Falha NFC-e {
-  vendaId: 2,
-  mode: 'normal',
-  message: 'Porta não definida',
-  details: {
-    workerResult: {
-      ok: false,
-      phase: 'gerar_pdf',
-      message: '-10: Porta não definida',
-      lastReturn: 'Porta não definida'
-    },
-    stdout: '[acbr:nfce:worker] Inicio {\n' +
-      '  tenantId: 5,\n' +
-      '  vendaId: 2,\n' +
-      "  operation: 'emitir_normal',\n" +
-      "  formaEmissao: '0',\n" +
-      "  ambiente: '2',\n" +
-      '  serie: 1,\n' +
-      '  numero: 165,\n' +
-      '  itens: 1,\n' +
-      '  pagamentos: 1\n' +
-      '}\n' +
-      '[acbr:nfce:worker] Certificado preparado {\n' +
-      '  vendaId: 2,\n' +
-      '  normalized: false,\n' +
-      '  usedLegacyInput: false,\n' +
-      "  runtimeCertPath: 'C:\\\\Users\\\\teste\\\\AppData\\\\Roaming\\\\v12-desktop\\\\data\\\\acbrlib\\\\runtime\\\\tenant-5\\\\venda-2\\\\certificado-a1.pfx'\n" +
-      '}\n' +
-      '[acbr:nfce:worker] INI gerado {\n' +
-      '  vendaId: 2,\n' +
-      "  iniPath: 'C:\\\\Users\\\\teste\\\\AppData\\\\Roaming\\\\v12-desktop\\\\data\\\\acbrlib\\\\runtime\\\\tenant-5\\\\venda-2\\\\nfce.ini',\n" +
-      "  rootDir: 'C:\\\\Users\\\\teste\\\\AppData\\\\Roaming\\\\v12-desktop\\\\data\\\\acbrlib\\\\runtime\\\\tenant-5\\\\venda-2',\n" +
-      "  xmlDir: 'C:\\\\Users\\\\teste\\\\AppData\\\\Roaming\\\\v12-desktop\\\\data\\\\acbrlib\\\\runtime\\\\tenant-5\\\\venda-2\\\\xml',\n" +
-      "  pdfDir: 'C:\\\\Users\\\\teste\\\\AppData\\\\Roaming\\\\v12-desktop\\\\data\\\\acbrlib\\\\runtime\\\\tenant-5\\\\venda-2\\\\pdf'\n" +
-      '}\n' +
-      '[acbr:nfce:worker] INI carregado {\n' +
-      '  vendaId: 2,\n' +
-      '  hasPreXml: true,\n' +
-      "  chavePreXml: '26260703096316000117650010000001651000021650'\n" +
-      '}\n' +
-      '[acbr:nfce:worker] XML assinado/validado {\n' +
-      '  vendaId: 2,\n' +
-      '  hasPostXml: true,\n' +
-      "  chaveAcesso: '26260703096316000117650010000001651000021650'\n" +
-      '}',
-    stderr: '[acbr:nfce:worker] Erro detalhado {\n' +
-      '  tenantId: 5,\n' +
-      '  vendaId: 2,\n' +
-      "  operation: 'emitir_normal',\n" +
-      "  phase: 'gerar_pdf',\n" +
-      "  message: '-10: Porta não definida',\n" +
-      "  lastReturn: 'Porta não definida',\n" +
-      '  paths: {\n' +
-      "    configPath: 'C:\\\\Users\\\\teste\\\\AppData\\\\Roaming\\\\v12-desktop\\\\data\\\\acbrlib\\\\config\\\\tenant-5-venda-2.ini',\n" +
-      "    iniPath: 'C:\\\\Users\\\\teste\\\\AppData\\\\Roaming\\\\v12-desktop\\\\data\\\\acbrlib\\\\runtime\\\\tenant-5\\\\venda-2\\\\nfce.ini',\n" +
-      "    rootDir: 'C:\\\\Users\\\\teste\\\\AppData\\\\Roaming\\\\v12-desktop\\\\data\\\\acbrlib\\\\runtime\\\\tenant-5\\\\venda-2',\n" +
-      "    xmlDir: 'C:\\\\Users\\\\teste\\\\AppData\\\\Roaming\\\\v12-desktop\\\\data\\\\acbrlib\\\\runtime\\\\tenant-5\\\\venda-2\\\\xml',\n" +
-      "    pdfDir: 'C:\\\\Users\\\\teste\\\\AppData\\\\Roaming\\\\v12-desktop\\\\data\\\\acbrlib\\\\runtime\\\\tenant-5\\\\venda-2\\\\pdf'\n" +
-      '  }\n' +
-      '}\n' +
-      '[acbr:nfce:worker] Falha Error: -10: Porta não definida\n' +
-      '    at run (file:///C:/v12/V12%20PDV/resources/app.asar.unpacked/apps/server/src/services/acbrlib/nfceWorker.js:630:11)',
-    signal: null
-  },
-  result: {
-    success: false,
-    status: 'rejeitada',
-    requiresOfflineDecision: false,
-    message: 'Porta não definida',
-    vendaId: 2
-  }
-}
-[desktop-server] Falha na requisicao {
-  method: 'POST',
-  path: '/api/local/vendas',
-  message: 'Porta não definida',
-  stack: 'Error: Porta não definida\n' +
-    '    at criarVenda (file:///C:/v12/V12%20PDV/resources/app.asar.unpacked/apps/server/src/modules/vendas/vendaRepository.js:148:9)\n' +
-    '    at async file:///C:/v12/V12%20PDV/resources/app.asar.unpacked/apps/server/src/routes/vendaRoutes.js:40:18'
-}
-
-
-aqui logo do main:
-
-[2026-07-17T00:19:13.351Z] Electron pronto {"isDev":false,"userData":"C:\\Users\\teste\\AppData\\Roaming\\v12-desktop","resourcesPath":"C:\\v12\\V12 PDV\\resources"}
-[2026-07-17T00:19:13.388Z] Inicializando servidor local empacotado {"serverEntry":"C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\apps\\server\\src\\index.js","serverCwd":"C:\\v12\\V12 PDV\\resources","execPath":"C:\\v12\\V12 PDV\\V12 PDV.exe"}
-[2026-07-17T00:19:13.396Z] Criando janela principal
-[2026-07-17T00:19:13.479Z] Carregando front empacotado {"bundledIndex":"C:\\v12\\V12 PDV\\resources\\app.asar\\apps\\station\\dist\\index.html"}
-[2026-07-17T00:21:14.359Z] Aplicação encerrando
-[2026-07-17T00:28:15.979Z] Electron pronto {"isDev":false,"userData":"C:\\Users\\teste\\AppData\\Roaming\\v12-desktop","resourcesPath":"C:\\v12\\V12 PDV\\resources"}
-[2026-07-17T00:28:16.044Z] Inicializando servidor local empacotado {"serverEntry":"C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\apps\\server\\src\\index.js","serverCwd":"C:\\v12\\V12 PDV\\resources","execPath":"C:\\v12\\V12 PDV\\V12 PDV.exe"}
-[2026-07-17T00:28:16.052Z] Criando janela principal
-[2026-07-17T00:28:16.112Z] Carregando front empacotado {"bundledIndex":"C:\\v12\\V12 PDV\\resources\\app.asar\\apps\\station\\dist\\index.html"}
-[2026-07-17T00:28:50.394Z] Aplicação encerrando
-[2026-07-17T00:28:50.473Z] Servidor local finalizado {"code":null,"signal":"SIGTERM"}
-[2026-07-17T00:28:52.402Z] Electron pronto {"isDev":false,"userData":"C:\\Users\\teste\\AppData\\Roaming\\v12-desktop","resourcesPath":"C:\\v12\\V12 PDV\\resources"}
-[2026-07-17T00:28:52.437Z] Inicializando servidor local empacotado {"serverEntry":"C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\apps\\server\\src\\index.js","serverCwd":"C:\\v12\\V12 PDV\\resources","execPath":"C:\\v12\\V12 PDV\\V12 PDV.exe"}
-[2026-07-17T00:28:52.449Z] Criando janela principal
-[2026-07-17T00:28:52.506Z] Carregando front empacotado {"bundledIndex":"C:\\v12\\V12 PDV\\resources\\app.asar\\apps\\station\\dist\\index.html"}
+v12# docker logs --tail 200 v12-backend
+NOTICE:  relation "app_migration" already exists, skipping
+CREATE TABLE
+Migration ja aplicada: /app/scripts/../migrations/001_base_schema.sql
+Migration ja aplicada: /app/scripts/../migrations/002_usuario_gestao.sql
+Migration ja aplicada: /app/scripts/../migrations/003_produtos_nfe_base.sql
+Migration ja aplicada: /app/scripts/../migrations/004_pessoa_base.sql
+Migration ja aplicada: /app/scripts/../migrations/005_vendas_financeiro_base.sql
+Migration ja aplicada: /app/scripts/../migrations/006_produto_codigo_automatico.                                                                                                             sql
+Migration ja aplicada: /app/scripts/../migrations/007_unaccent_support.sql
+Migration ja aplicada: /app/scripts/../migrations/008_configuracao_fiscal.sql
+Migration ja aplicada: /app/scripts/../migrations/009_financeiro_baixa_historico                                                                                                             .sql
+Migration ja aplicada: /app/scripts/../migrations/010_configuracao_gateway.sql
+Migration ja aplicada: /app/scripts/../migrations/011_gateway_config_payments_sc                                                                                                             hema.sql
+Migration ja aplicada: /app/scripts/../migrations/012_produto_unidade_padrao_sim                                                                                                             ples.sql
+Migration ja aplicada: /app/scripts/../migrations/013_condicao_boleto_venda.sql
+Migration ja aplicada: /app/scripts/../migrations/014_message_whatsapp_config.sq                                                                                                             l
+Migration ja aplicada: /app/scripts/../migrations/015_usuario_master_onboarding.                                                                                                             sql
+Migration ja aplicada: /app/scripts/../migrations/016_tenant_certificado_validad                                                                                                             e.sql
+Migration ja aplicada: /app/scripts/../migrations/017_fiscal_schema_nfe.sql
+Migration ja aplicada: /app/scripts/../migrations/018_move_public_nfe_to_fiscal.                                                                                                             sql
+Migration ja aplicada: /app/scripts/../migrations/019_drop_legacy_public_nfe.sql
+Migration ja aplicada: /app/scripts/../migrations/020_backfill_fiscal_nfe_item_p                                                                                                             roduto.sql
+Migration ja aplicada: /app/scripts/../migrations/021_fiscal_nfe_evento_resposta                                                                                                             _json.sql
+Migration ja aplicada: /app/scripts/../migrations/022_regra_fiscal_produto.sql
+Migration ja aplicada: /app/scripts/../migrations/022_tenant_responsavel_tecnico                                                                                                             .sql
+Migration ja aplicada: /app/scripts/../migrations/023_tenant_logo.sql
+Migration ja aplicada: /app/scripts/../migrations/024_estoque_modulo.sql
+Migration ja aplicada: /app/scripts/../migrations/025_compras_base.sql
+Migration ja aplicada: /app/scripts/../migrations/026_entrada_mercadoria.sql
+Migration ja aplicada: /app/scripts/../migrations/027_entrada_xml_nfe.sql
+Migration ja aplicada: /app/scripts/../migrations/028_entrada_xml_solicitacao.sq                                                                                                             l
+Migration ja aplicada: /app/scripts/../migrations/029_entrada_mercadoria_finance                                                                                                             iro.sql
+Migration ja aplicada: /app/scripts/../migrations/030_operacao_fiscal.sql
+Migration ja aplicada: /app/scripts/../migrations/031_devolucao_mercadoria.sql
+Migration ja aplicada: /app/scripts/../migrations/032_reforma_tributaria_manifes                                                                                                             tacao.sql
+Migration ja aplicada: /app/scripts/../migrations/033_cancelamento_entrada_merca                                                                                                             doria.sql
+Migration ja aplicada: /app/scripts/../migrations/034_mdfe_base.sql
+Migration ja aplicada: /app/scripts/../migrations/035_mdfe_emissao.sql
+Migration ja aplicada: /app/scripts/../migrations/036_parametros_mdfe.sql
+Migration ja aplicada: /app/scripts/../migrations/037_nfe_manifestacao_destinata                                                                                                             rio.sql
+Migration ja aplicada: /app/scripts/../migrations/038_ambiente_manifestacao_nfe.                                                                                                             sql
+Migration ja aplicada: /app/scripts/../migrations/039_gestao_v12_cliente_finance                                                                                                             iro.sql
+Migration ja aplicada: /app/scripts/../migrations/040_gestao_v12_base_operaciona                                                                                                             l.sql
+Migration ja aplicada: /app/scripts/../migrations/041_gestao_v12_cliente_pessoa_                                                                                                             vinculo.sql
+Migration ja aplicada: /app/scripts/../migrations/042_gestao_v12_financeiro_asaa                                                                                                             s.sql
+Migration ja aplicada: /app/scripts/../migrations/043_corrige_controle_distribui                                                                                                             cao_nsu.sql
+Migration ja aplicada: /app/scripts/../migrations/044_historico_distribuicao_nsu                                                                                                             .sql
+Migration ja aplicada: /app/scripts/../migrations/045_gestao_financeiro_carne_as                                                                                                             aas.sql
+Migration ja aplicada: /app/scripts/../migrations/046_tenant_bloqueio_acesso.sql
+Migration ja aplicada: /app/scripts/../migrations/047_indices_performance_consul                                                                                                             tas.sql
+Migration ja aplicada: /app/scripts/../migrations/048_gestao_pessoa_internaciona                                                                                                             l.sql
+Migration ja aplicada: /app/scripts/../migrations/049_chat_atendimento.sql
+Migration ja aplicada: /app/scripts/../migrations/050_chat_notificacao_whatsapp.                                                                                                             sql
+Migration ja aplicada: /app/scripts/../migrations/051_usuario_login_email_global                                                                                                             .sql
+Migration ja aplicada: /app/scripts/../migrations/052_usuario_tenant_perfil.sql
+Migration ja aplicada: /app/scripts/../migrations/053_financeiro_forma_pagamento                                                                                                             _sync_pdv.sql
+Migration ja aplicada: /app/scripts/../migrations/054_desktop_sync_evento.sql
+Migration ja aplicada: /app/scripts/../migrations/054_nfce_parametros_pdv.sql
+Migration ja aplicada: /app/scripts/../migrations/055_pdv_integracao_web.sql
+Migration ja aplicada: /app/scripts/../migrations/056_nfce_ambiente_separado.sql
+Migration ja aplicada: /app/scripts/../migrations/057_produto_fiscal_ibpt.sql
+Migration ja aplicada: /app/scripts/../migrations/058_pdv_backup_fiscal.sql
+Migration ja aplicada: /app/scripts/../migrations/059_gestao_pdv_release.sql
+Ignorando script auxiliar: /app/scripts/../migrations/998_create_db_user_v12.sql
+Ignorando script auxiliar: /app/scripts/../migrations/999_v12_full_database_setu                                                                                                             p.sql
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+[api] Servidor v12 rodando na porta 4000
