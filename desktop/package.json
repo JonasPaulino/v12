@@ -1,6 +1,6 @@
 {
   "name": "v12-desktop",
-  "version": "0.1.12",
+  "version": "0.1.16",
   "private": true,
   "type": "module",
   "main": "apps/station/electron/main.js",

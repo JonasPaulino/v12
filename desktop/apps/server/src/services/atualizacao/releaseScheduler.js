@@ -1,6 +1,5 @@
 import { env } from "../../config/env.js";
 import {
-  aplicarAtualizacaoPdv,
   baixarAtualizacaoPdv,
   verificarAtualizacaoPdv,
 } from "./releaseUpdateService.js";
@@ -15,10 +14,14 @@ async function runReleaseCheck() {
   try {
     const status = await verificarAtualizacaoPdv();
     if (status.update_available && status.release?.release_id) {
-      const downloaded = await baixarAtualizacaoPdv(status.release.release_id);
-      if (["baixado", "staged"].includes(downloaded?.status)) {
-        await aplicarAtualizacaoPdv(downloaded.release_id);
-      }
+      const downloaded = await baixarAtualizacaoPdv(status.release.release_id, {
+        autoApply: false,
+      });
+      console.info("[desktop-release] Release baixado pelo agendador", {
+        releaseId: downloaded?.release_id,
+        versao: downloaded?.versao,
+        status: downloaded?.status,
+      });
     }
   } catch (error) {
     console.info("[desktop-release] Verificação automática não aplicada", {

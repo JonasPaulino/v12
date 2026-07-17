@@ -139,6 +139,7 @@ function buildPackagedServerEnv() {
   return {
     ...process.env,
     ELECTRON_RUN_AS_NODE: "1",
+    V12_PDV_VERSION: app.getVersion(),
     V12_LOCAL_DB_PATH:
       process.env.V12_LOCAL_DB_PATH || path.join(dataDir, "v12-pdv.sqlite"),
     V12_BACKUP_DIR: process.env.V12_BACKUP_DIR || path.join(dataDir, "backups"),

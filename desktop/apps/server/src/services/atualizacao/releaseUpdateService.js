@@ -111,28 +111,42 @@ const spawnSilentInstallerAndRelaunch = async ({ installerPath, extension }) => 
   }
 
   const appPath = process.execPath;
-  const installer = quotePowerShellString(installerPath);
-  const app = quotePowerShellString(appPath);
+  const installDir = path.dirname(appPath);
+  const processName = path.basename(appPath, path.extname(appPath));
+  const scriptPath = path.join(env.pdvReleaseDir, `v12-pdv-update-${Date.now()}.ps1`);
+  const logPath = path.join(env.pdvReleaseDir, "installer-update.log");
   const installCommand =
     extension === ".msi"
-      ? `Start-Process -FilePath "msiexec.exe" -ArgumentList @("/i", ${installer}, "/qn", "/norestart") -Wait`
-      : `Start-Process -FilePath ${installer} -ArgumentList "/S" -Wait`;
+      ? `Start-Process -FilePath "msiexec.exe" -ArgumentList @("/i", ${quotePowerShellString(
+          installerPath,
+        )}, "/qn", "/norestart") -Verb RunAs -Wait -PassThru`
+      : `Start-Process -FilePath ${quotePowerShellString(installerPath)} -ArgumentList @("/S", ${quotePowerShellString(
+          `/D=${installDir}`,
+        )}) -Verb RunAs -Wait -PassThru`;
   const script = [
     "$ErrorActionPreference = 'Stop'",
+    `$logPath = ${quotePowerShellString(logPath)}`,
+    "function Write-UpdateLog { param([string]$Message) Add-Content -LiteralPath $logPath -Value (\"[$(Get-Date -Format o)] \" + $Message) -Encoding UTF8 }",
+    "Write-UpdateLog 'Atualização iniciada.'",
     "Start-Sleep -Seconds 2",
-    installCommand,
+    `Get-Process -Name ${quotePowerShellString(processName)} -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue`,
+    `Write-UpdateLog ${quotePowerShellString(`Executando instalador ${installerPath}.`)}`,
+    `$process = ${installCommand}`,
+    "Write-UpdateLog (\"Instalador finalizado. ExitCode=\" + $process.ExitCode)",
     "Start-Sleep -Seconds 1",
-    `if (Test-Path ${app}) { Start-Process -FilePath ${app} }`,
-  ].join("; ");
+    `if (Test-Path -LiteralPath ${quotePowerShellString(appPath)}) { Start-Process -FilePath ${quotePowerShellString(
+      appPath,
+    )}; Write-UpdateLog 'PDV reaberto.' } else { Write-UpdateLog 'Executável do PDV não encontrado após instalação.' }`,
+  ].join("\n");
 
+  await fs.mkdir(env.pdvReleaseDir, { recursive: true });
+  await fs.writeFile(scriptPath, script, "utf8");
   await spawnDetached("powershell.exe", [
     "-NoProfile",
     "-ExecutionPolicy",
     "Bypass",
-    "-WindowStyle",
-    "Hidden",
-    "-Command",
-    script,
+    "-File",
+    scriptPath,
   ]);
 };
 
@@ -182,13 +196,9 @@ async function reconcileInstalledRelease(localRelease) {
     return localRelease;
   }
 
-  const reconciledStatus = compareVersions(localRelease.versao, env.pdvVersion) === 0
-    ? "aplicado"
-    : localRelease.status;
-
   const reconciled = markReleaseApplied({
     releaseId: localRelease.release_id,
-    status: reconciledStatus,
+    status: "aplicado",
   });
 
   console.info("[desktop-release] Release local reconciliado com a versão instalada", {
@@ -330,12 +340,14 @@ export async function verificarAtualizacaoPdv() {
   const localPending =
     localCandidate &&
     ["baixado", "staged", "instalando"].includes(String(localCandidate.status || ""));
+  const localFailed = localCandidate && String(localCandidate.status || "") === "erro";
   const alreadyApplied =
     localCandidate &&
     ["aplicado", "recursos_aplicado", "pendente_reinicio"].includes(
       localCandidate.status,
     );
-  const release = candidateAlreadyInstalled || alreadyApplied || localPending ? null : candidate;
+  const release =
+    candidateAlreadyInstalled || alreadyApplied || localPending || localFailed ? null : candidate;
 
   let installedCandidateLocal = null;
   if (candidateAlreadyInstalled && candidate) {
@@ -364,7 +376,7 @@ export async function verificarAtualizacaoPdv() {
   };
 }
 
-export async function baixarAtualizacaoPdv(releaseId) {
+export async function baixarAtualizacaoPdv(releaseId, { autoApply = true } = {}) {
   assertSyncToken();
   assertTerminalConfigurado();
   const localRelease = getReleaseUpdateByReleaseId(releaseId);
@@ -424,6 +436,7 @@ export async function baixarAtualizacaoPdv(releaseId) {
   });
 
   if (
+    autoApply &&
     ["app", "recursos"].includes(downloaded.tipo_release) &&
     ["auto_inicio", "auto_fechamento"].includes(downloaded.modo_aplicacao)
   ) {
@@ -493,7 +506,22 @@ export async function prepararAtualizacaoPdv() {
   let action = "none";
   const localPendingStatus = String(releaseLocal?.status || "");
 
-  if (["baixado", "staged", "instalando"].includes(localPendingStatus) && releaseLocal?.release_id) {
+  if (localPendingStatus === "instalando" && releaseLocal?.release_id) {
+    action = "waiting_installer";
+    const message =
+      `A atualização ${releaseLocal.versao} já foi iniciada, mas a versão instalada ` +
+      `continua ${env.pdvVersion}. Conclua o instalador manualmente ou publique uma nova release.`;
+    releaseLocal = markReleaseError({
+      releaseId: releaseLocal.release_id,
+      error: message,
+    });
+    console.warn("[desktop-release] Instalação anterior não alterou a versão do PDV", {
+      releaseId: releaseLocal.release_id,
+      versaoRelease: releaseLocal.versao,
+      versaoAtual: env.pdvVersion,
+      message,
+    });
+  } else if (["baixado", "staged"].includes(localPendingStatus) && releaseLocal?.release_id) {
     const arquivoLocal = String(releaseLocal?.arquivo_local || "").toLowerCase();
     const isInstaller = arquivoLocal.endsWith(".exe") || arquivoLocal.endsWith(".msi");
     action = isInstaller ? "install" : "apply";
