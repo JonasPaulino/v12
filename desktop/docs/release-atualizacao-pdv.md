@@ -9,6 +9,14 @@
 5. Se existir versão maior, o PDV baixa o arquivo, valida SHA-256 e registra em `release_update`.
 6. A instalação é acionada explicitamente pelo PDV local. O sistema não troca binário no meio de uma venda.
 
+## Versão do PDV
+
+A versão oficial do PDV fica somente em `desktop/VERSION`.
+
+Antes de empacotar, o script `npm run sync:version` copia essa versão para os `package.json` e para o `package-lock.json`, porque o `electron-builder` precisa ler a versão pelo manifest do Node.
+
+O comando `npm run package:win` já executa essa sincronização automaticamente.
+
 ## Variáveis do web
 
 - `PDV_RELEASE_STORAGE_DIR`: pasta onde o backend web armazena instaladores/pacotes.
@@ -16,7 +24,7 @@
 
 ## Variáveis do desktop
 
-- `V12_PDV_VERSION`: versão local atual do PDV.
+- `V12_PDV_VERSION`: override técnico opcional. A fonte oficial é `desktop/VERSION`.
 - `V12_PDV_RELEASE_CHANNEL`: canal consumido pelo terminal, por padrão `stable`.
 - `V12_PDV_RELEASE_PLATFORM`: plataforma consumida, por padrão `win32-x64`.
 - `V12_PDV_RELEASE_DIR`: pasta local onde o PDV baixa releases.

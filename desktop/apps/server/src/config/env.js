@@ -83,6 +83,25 @@ function resolveDefaultSevenZipPath() {
 
 const defaultSevenZipPath = resolveDefaultSevenZipPath();
 
+function readDesktopVersion() {
+  const candidates = [
+    path.join(desktopRoot, "VERSION"),
+    path.join(process.cwd(), "VERSION"),
+  ];
+
+  for (const candidate of candidates) {
+    try {
+      if (!fs.existsSync(candidate)) continue;
+      const version = fs.readFileSync(candidate, "utf8").trim();
+      if (version) return version;
+    } catch {
+      // mantém fallback seguro abaixo
+    }
+  }
+
+  return "0.0.0";
+}
+
 function resolveAcbrNativeDependencyDirs() {
   const configuredDirs = String(process.env.V12_ACBRLIB_NATIVE_DEP_DIRS || "")
     .split(path.delimiter)
@@ -134,7 +153,7 @@ export const env = {
   backupSevenZipPath: defaultSevenZipPath,
   backupLocalRetentionDays: Number(process.env.V12_BACKUP_LOCAL_RETENTION_DAYS || 30),
   backupAutoIntervalMinutes: Number(process.env.V12_BACKUP_AUTO_INTERVAL_MINUTES || 0),
-  pdvVersion: process.env.V12_PDV_VERSION || "0.1.24",
+  pdvVersion: process.env.V12_PDV_VERSION || readDesktopVersion(),
   pdvReleaseChannel: process.env.V12_PDV_RELEASE_CHANNEL || "stable",
   pdvReleasePlatform:
     process.env.V12_PDV_RELEASE_PLATFORM ||

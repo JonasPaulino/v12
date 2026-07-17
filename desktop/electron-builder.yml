@@ -16,6 +16,7 @@ files:
   - apps/server/**
   - tools/**
   - Restaurar V12 PDV.cmd
+  - VERSION
   - package.json
   - package-lock.json
 extraResources:

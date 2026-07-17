@@ -33,6 +33,14 @@ Nao instale dependencias nem rode build na VPS do web; este modulo e para ambien
 
 ## Desenvolvimento Local
 
+A versão oficial do PDV fica em `VERSION`. Para gerar uma nova release, altere somente esse arquivo e rode:
+
+```bash
+npm run package:win
+```
+
+O build sincroniza automaticamente os manifests antes de chamar o `electron-builder`.
+
 Depois de instalar dependencias no ambiente de desenvolvimento desktop:
 
 ```bash
