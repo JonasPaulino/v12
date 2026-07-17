@@ -368,6 +368,7 @@ export const GestaoV12Configuracoes = () => {
 
   const handleSubmitRelease = async (event) => {
     event.preventDefault();
+    const formElement = event.currentTarget;
 
     if (!releaseFile) {
       showAlert?.({
@@ -395,7 +396,7 @@ export const GestaoV12Configuracoes = () => {
 
       setReleaseForm(initialReleaseForm);
       setReleaseFile(null);
-      event.currentTarget.reset();
+      formElement?.reset?.();
       await loadReleases();
       hideLoading();
       showAlert?.({
