@@ -5,12 +5,7 @@ import { reenviarContingenciasNfce } from "../modules/vendas/vendaRepository.js"
 import { verificarConectividadeInternet } from "./networkService.js";
 import { syncProdutosFromErp } from "./produtoSyncService.js";
 import { syncUsuariosFromErp } from "./usuarioSyncService.js";
-import {
-  aplicarAtualizacaoPdv,
-  baixarAtualizacaoPdv,
-  instalarAtualizacaoPdv,
-  verificarAtualizacaoPdv,
-} from "./atualizacao/releaseUpdateService.js";
+import { prepararAtualizacaoPdv } from "./atualizacao/releaseUpdateService.js";
 
 export async function atualizarPdvCompleto({ full = true } = {}) {
   const steps = [];
@@ -163,19 +158,8 @@ export async function atualizarPdvCompleto({ full = true } = {}) {
     }
 
     try {
-      const release = await verificarAtualizacaoPdv();
-      let releaseLocal = release.local || null;
-      const localPendingStatus = String(release.local?.status || "");
-      if (["baixado", "staged"].includes(localPendingStatus) && release.local?.release_id) {
-        const arquivoLocal = String(release.local?.arquivo_local || "").toLowerCase();
-        const isInstaller =
-          arquivoLocal.endsWith(".exe") || arquivoLocal.endsWith(".msi");
-        releaseLocal = isInstaller
-          ? await instalarAtualizacaoPdv(release.local.release_id)
-          : await aplicarAtualizacaoPdv(release.local.release_id);
-      } else if (release.update_available && release.release?.release_id) {
-        releaseLocal = await baixarAtualizacaoPdv(release.release.release_id);
-      }
+      const release = await prepararAtualizacaoPdv();
+      const releaseLocal = release.local || null;
       steps.push({
         key: "release",
         label: "Release do PDV",

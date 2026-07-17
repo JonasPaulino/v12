@@ -144,6 +144,7 @@ export const api = {
       }),
     }),
   releaseStatus: () => request("/release/status"),
+  prepararAtualizacaoRelease: () => request("/release/preparar", { method: "POST" }),
   sincronizarProdutos: (payload = {}) =>
     request("/sync/produtos", { method: "POST", body: JSON.stringify(payload) }),
   sincronizarUsuarios: () => request("/sync/usuarios", { method: "POST" }),

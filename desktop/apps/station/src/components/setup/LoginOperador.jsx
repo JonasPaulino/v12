@@ -29,6 +29,7 @@ export function LoginOperador({ config, onLogin, onRefreshStatus, syncState }) {
     config?.tenant_bloqueio_motivo ||
     "A filial está bloqueada na retaguarda.";
   const atualizacaoReleaseEmAndamento = [
+    "verificando",
     "instalando",
     "pendente_reinicio",
     "recursos_aplicado",

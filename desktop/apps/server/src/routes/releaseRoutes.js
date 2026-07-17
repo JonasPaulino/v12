@@ -4,6 +4,7 @@ import {
   baixarAtualizacaoPdv,
   getStatusAtualizacaoPdv,
   instalarAtualizacaoPdv,
+  prepararAtualizacaoPdv,
   verificarAtualizacaoPdv,
 } from "../services/atualizacao/releaseUpdateService.js";
 
@@ -16,6 +17,15 @@ router.get("/status", (_req, res) => {
 router.post("/verificar", async (_req, res, next) => {
   try {
     const data = await verificarAtualizacaoPdv();
+    res.json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/preparar", async (_req, res, next) => {
+  try {
+    const data = await prepararAtualizacaoPdv();
     res.json({ success: true, data });
   } catch (error) {
     next(error);

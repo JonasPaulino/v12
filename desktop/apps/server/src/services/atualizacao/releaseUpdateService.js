@@ -97,6 +97,45 @@ const spawnDetached = async (command, args) => {
   throw lastError;
 };
 
+const quotePowerShellString = (value) => `'${String(value || "").replace(/'/g, "''")}'`;
+
+const spawnSilentInstallerAndRelaunch = async ({ installerPath, extension }) => {
+  if (process.platform !== "win32") {
+    if (extension === ".msi") {
+      await spawnDetached("msiexec", ["/i", installerPath]);
+      return;
+    }
+
+    await spawnDetached(installerPath, []);
+    return;
+  }
+
+  const appPath = process.execPath;
+  const installer = quotePowerShellString(installerPath);
+  const app = quotePowerShellString(appPath);
+  const installCommand =
+    extension === ".msi"
+      ? `Start-Process -FilePath "msiexec.exe" -ArgumentList @("/i", ${installer}, "/qn", "/norestart") -Wait`
+      : `Start-Process -FilePath ${installer} -ArgumentList "/S" -Wait`;
+  const script = [
+    "$ErrorActionPreference = 'Stop'",
+    "Start-Sleep -Seconds 2",
+    installCommand,
+    "Start-Sleep -Seconds 1",
+    `if (Test-Path ${app}) { Start-Process -FilePath ${app} }`,
+  ].join("; ");
+
+  await spawnDetached("powershell.exe", [
+    "-NoProfile",
+    "-ExecutionPolicy",
+    "Bypass",
+    "-WindowStyle",
+    "Hidden",
+    "-Command",
+    script,
+  ]);
+};
+
 const isInstallerPackage = (filePath = "") => {
   const extension = path.extname(String(filePath || "")).toLowerCase();
   return extension === ".exe" || extension === ".msi";
@@ -289,10 +328,11 @@ export async function verificarAtualizacaoPdv() {
     ? await reconcileInstalledRelease(getReleaseUpdateByReleaseId(candidate.release_id))
     : null;
   const localPending =
-    localCandidate && ["baixado", "staged"].includes(String(localCandidate.status || ""));
+    localCandidate &&
+    ["baixado", "staged", "instalando"].includes(String(localCandidate.status || ""));
   const alreadyApplied =
     localCandidate &&
-    ["aplicado", "recursos_aplicado", "pendente_reinicio", "instalando"].includes(
+    ["aplicado", "recursos_aplicado", "pendente_reinicio"].includes(
       localCandidate.status,
     );
   const release = candidateAlreadyInstalled || alreadyApplied || localPending ? null : candidate;
@@ -426,10 +466,11 @@ export async function instalarAtualizacaoPdv(releaseId) {
   const extension = path.extname(release.arquivo_local).toLowerCase();
 
   try {
-    if (extension === ".msi") {
-      await spawnDetached("msiexec", ["/i", release.arquivo_local]);
-    } else if (extension === ".exe") {
-      await spawnDetached(release.arquivo_local, []);
+    if (extension === ".msi" || extension === ".exe") {
+      await spawnSilentInstallerAndRelaunch({
+        installerPath: release.arquivo_local,
+        extension,
+      });
     } else {
       throw new Error("Este tipo de release deve ser instalado manualmente.");
     }
@@ -444,6 +485,40 @@ export async function instalarAtualizacaoPdv(releaseId) {
     markReleaseError({ releaseId, error: error?.message || error });
     throw error;
   }
+}
+
+export async function prepararAtualizacaoPdv() {
+  const release = await verificarAtualizacaoPdv();
+  let releaseLocal = release.local || null;
+  let action = "none";
+  const localPendingStatus = String(releaseLocal?.status || "");
+
+  if (["baixado", "staged", "instalando"].includes(localPendingStatus) && releaseLocal?.release_id) {
+    const arquivoLocal = String(releaseLocal?.arquivo_local || "").toLowerCase();
+    const isInstaller = arquivoLocal.endsWith(".exe") || arquivoLocal.endsWith(".msi");
+    action = isInstaller ? "install" : "apply";
+    try {
+      releaseLocal = isInstaller
+        ? await instalarAtualizacaoPdv(releaseLocal.release_id)
+        : await aplicarAtualizacaoPdv(releaseLocal.release_id);
+    } catch (error) {
+      if (!/fechamento do caixa/i.test(error?.message || "")) {
+        throw error;
+      }
+
+      action = "deferred";
+    }
+  } else if (release.update_available && release.release?.release_id) {
+    action = "download";
+    releaseLocal = await baixarAtualizacaoPdv(release.release.release_id);
+  }
+
+  return {
+    ...release,
+    local: releaseLocal,
+    action,
+    statusLocal: releaseLocal?.status || null,
+  };
 }
 
 export async function aplicarAtualizacaoPdv(releaseId = null) {

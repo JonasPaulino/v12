@@ -62,6 +62,11 @@ const getReleaseFileHint = ({ tipo_release: tipoRelease, modo_aplicacao: modoApl
   return "Use o instalador final do PDV ou pacote de distribuição.";
 };
 
+const extractReleaseVersionFromFileName = (fileName = "") => {
+  const matches = String(fileName || "").match(/\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?/g);
+  return matches?.length ? matches[matches.length - 1] : "";
+};
+
 const normalizeWhatsAppStatus = (value) => {
   const normalized = String(value || "").trim().toLowerCase();
 
@@ -328,6 +333,19 @@ export const GestaoV12Configuracoes = () => {
       ...current,
       [field]: value,
     }));
+  };
+
+  const handleReleaseFileChange = (event) => {
+    const file = event.target.files?.[0] || null;
+    setReleaseFile(file);
+
+    const extractedVersion = extractReleaseVersionFromFileName(file?.name);
+    if (extractedVersion) {
+      setReleaseForm((current) => ({
+        ...current,
+        versao: extractedVersion,
+      }));
+    }
   };
 
   const updateChatCategoria = (categoriaId, field, value) => {
@@ -1390,7 +1408,7 @@ export const GestaoV12Configuracoes = () => {
                     <C.Input
                       type="file"
                       accept=".exe,.msi,.zip,.7z"
-                      onChange={(event) => setReleaseFile(event.target.files?.[0] || null)}
+                      onChange={handleReleaseFileChange}
                     />
                     <C.FieldHint>{releaseFileHint}</C.FieldHint>
                   </C.Field>

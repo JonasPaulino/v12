@@ -9,8 +9,12 @@ const AUTO_SYNC_INTERVAL_MS = 5 * 60 * 1000;
 function buildReleaseMessageFromStatus(statusLocal, details = {}) {
   if (!statusLocal) return null;
 
+  if (statusLocal === "verificando") {
+    return "Verificando se existe uma nova versão do PDV.";
+  }
+
   if (statusLocal === "instalando") {
-    return "Nova versão encontrada. O instalador foi iniciado. Conclua a atualização e reabra o PDV.";
+    return "Nova versão encontrada. O PDV será atualizado e reiniciado automaticamente.";
   }
 
   if (statusLocal === "pendente_reinicio") {
@@ -240,6 +244,71 @@ export function usePdvSession({ onResetVenda, onCarregarFinanceiroSupportData })
     }
   }
 
+  async function prepararAtualizacaoRelease({ reason = "startup" } = {}) {
+    if (syncLockRef.current) {
+      return { blocked: false, busy: true };
+    }
+
+    syncLockRef.current = true;
+    setSyncState((current) => ({
+      ...current,
+      running: true,
+      mode: "release",
+      reason,
+      lastError: null,
+      releaseStatus: "verificando",
+      releaseTargetVersion: null,
+      releaseMessage: buildReleaseMessageFromStatus("verificando"),
+    }));
+
+    try {
+      const result = await api.prepararAtualizacaoRelease();
+      const latestLocal = result?.local || null;
+      const statusLocal = result?.statusLocal || latestLocal?.status || null;
+      const releaseTargetVersion =
+        latestLocal?.versao || result?.release?.versao || result?.latest?.versao || null;
+      const releaseMessage =
+        buildReleaseMessageFromStatus(statusLocal, latestLocal) ||
+        (statusLocal === "baixado"
+          ? "Atualização baixada. Ela será aplicada quando o caixa estiver fechado."
+          : null);
+
+      setSyncState((current) => ({
+        ...current,
+        releaseMessage,
+        releaseStatus: statusLocal,
+        releaseTargetVersion,
+        lastSuccessAt: new Date().toISOString(),
+      }));
+
+      return {
+        blocked: statusLocal === "instalando" || statusLocal === "pendente_reinicio",
+        result,
+      };
+    } catch (error) {
+      setSyncState((current) => ({
+        ...current,
+        lastError: String(error?.message || error),
+        releaseMessage: null,
+        releaseStatus: null,
+        releaseTargetVersion: null,
+      }));
+      console.error("[pdv-session] Falha ao verificar release", {
+        reason,
+        message: error?.message,
+      });
+      return { blocked: false, error };
+    } finally {
+      syncLockRef.current = false;
+      setSyncState((current) => ({
+        ...current,
+        running: false,
+        mode: null,
+        reason: null,
+      }));
+    }
+  }
+
   useEffect(() => {
     const status = String(syncState?.releaseStatus || "");
     const version = String(syncState?.releaseTargetVersion || "");
@@ -292,6 +361,9 @@ export function usePdvSession({ onResetVenda, onCarregarFinanceiroSupportData })
       if (!active) return;
 
       if (statusData?.configurado && !statusData?.bloqueado) {
+        const releaseResult = await prepararAtualizacaoRelease({ reason: "startup" });
+        if (!active || releaseResult?.blocked) return;
+
         void atualizarPdvCompleto({ silent: true, reason: "startup" });
       }
     };
