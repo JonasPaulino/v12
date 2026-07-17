@@ -7,7 +7,7 @@ import logoPdvColor from "../../assets/logo_pdv_cor.png";
 
 const REMEMBER_OPERATOR_KEY = "v12_pdv_remember_operator_email";
 
-export function LoginOperador({ config, onLogin, onRefreshStatus }) {
+export function LoginOperador({ config, onLogin, onRefreshStatus, syncState }) {
   const { showLoading, hideLoading } = useContext(AppContext);
   const { showAlert, promptPasswordChange } = useSweetAlert();
   const [email, setEmail] = useState("");
@@ -28,6 +28,20 @@ export function LoginOperador({ config, onLogin, onRefreshStatus }) {
     config?.motivo_bloqueio ||
     config?.tenant_bloqueio_motivo ||
     "A filial está bloqueada na retaguarda.";
+  const atualizacaoInicialEmAndamento =
+    syncState?.running === true &&
+    ["startup", "pre_login"].includes(String(syncState?.reason || ""));
+  const mensagemAtualizacao =
+    syncState?.releaseMessage ||
+    "Encontramos uma nova versão do PDV e estamos atualizando o sistema. Aguarde e não feche o aplicativo.";
+  const exibirAvisoAtualizacao =
+    !bloqueado &&
+    (
+      atualizacaoInicialEmAndamento ||
+      /instalador foi iniciado|reinicie o pdv|atualização baixada/i.test(
+        String(syncState?.releaseMessage || ""),
+      )
+    );
 
   function persistRememberedEmail(value) {
     const normalizedEmail = String(value || "").trim().toLowerCase();
@@ -41,7 +55,7 @@ export function LoginOperador({ config, onLogin, onRefreshStatus }) {
 
   async function submit(event) {
     event.preventDefault();
-    if (bloqueado) return;
+    if (bloqueado || atualizacaoInicialEmAndamento) return;
     showLoading("Validando operador...");
     try {
       const refreshedStatus = await onRefreshStatus?.({ syncRemote: true, silent: true });
@@ -107,12 +121,18 @@ export function LoginOperador({ config, onLogin, onRefreshStatus }) {
             </button>
           </div>
         ) : null}
+        {exibirAvisoAtualizacao ? (
+          <div className="login-sync-message">
+            <strong>{atualizacaoInicialEmAndamento ? "Atualizando PDV" : "Situação do PDV"}</strong>
+            <span>{mensagemAtualizacao}</span>
+          </div>
+        ) : null}
         <label>
           E-mail do operador
           <input
             type="email"
             value={email}
-            disabled={bloqueado}
+            disabled={bloqueado || atualizacaoInicialEmAndamento}
             onChange={(event) => setEmail(event.target.value)}
           />
         </label>
@@ -122,13 +142,13 @@ export function LoginOperador({ config, onLogin, onRefreshStatus }) {
             <input
               type={mostrarSenha ? "text" : "password"}
               value={senha}
-              disabled={bloqueado}
+              disabled={bloqueado || atualizacaoInicialEmAndamento}
               onChange={(event) => setSenha(event.target.value)}
             />
             <button
               type="button"
               className="password-toggle"
-              disabled={bloqueado}
+              disabled={bloqueado || atualizacaoInicialEmAndamento}
               onClick={() => setMostrarSenha((current) => !current)}
               aria-label={mostrarSenha ? "Ocultar senha" : "Mostrar senha"}
             >
@@ -140,12 +160,14 @@ export function LoginOperador({ config, onLogin, onRefreshStatus }) {
           <input
             type="checkbox"
             checked={lembrarUsuario}
-            disabled={bloqueado}
+            disabled={bloqueado || atualizacaoInicialEmAndamento}
             onChange={(event) => setLembrarUsuario(event.target.checked)}
           />
           Lembrar usuário neste caixa
         </label>
-        <button type="submit" disabled={bloqueado}>Entrar</button>
+        <button type="submit" disabled={bloqueado || atualizacaoInicialEmAndamento}>
+          {atualizacaoInicialEmAndamento ? "Atualizando PDV..." : "Entrar"}
+        </button>
       </form>
     </div>
   );

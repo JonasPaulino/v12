@@ -46,6 +46,22 @@ const initialReleaseForm = {
 const apiBaseUrl = String(api.defaults.baseURL || "/api").replace(/\/$/, "");
 const buildApiUrl = (path) => `${apiBaseUrl}${path}`;
 
+const getReleaseFileHint = ({ tipo_release: tipoRelease, modo_aplicacao: modoAplicacao }) => {
+  if (tipoRelease === "recursos") {
+    return "Para recursos/ACBr, publique um pacote .zip ou .7z.";
+  }
+
+  if (tipoRelease === "instalador") {
+    return "Para instalador inicial, use .exe ou .msi.";
+  }
+
+  if (["auto_inicio", "auto_fechamento"].includes(String(modoAplicacao || ""))) {
+    return "Atualização do PDV aceita .exe/.msi para instalador automático ou .zip/.7z para pacote aplicado localmente.";
+  }
+
+  return "Use o instalador final do PDV ou pacote de distribuição.";
+};
+
 const normalizeWhatsAppStatus = (value) => {
   const normalized = String(value || "").trim().toLowerCase();
 
@@ -151,6 +167,7 @@ export const GestaoV12Configuracoes = () => {
   const [releases, setReleases] = useState([]);
   const [loadingReleases, setLoadingReleases] = useState(false);
   const [savingRelease, setSavingRelease] = useState(false);
+  const releaseFileHint = getReleaseFileHint(releaseForm);
 
   const loadAsaasConfig = useCallback(async () => {
     setLoading(true);
@@ -1348,8 +1365,9 @@ export const GestaoV12Configuracoes = () => {
                       <option value="recursos">Recursos / ACBr</option>
                     </C.Select>
                     <C.FieldHint>
-                      Instalador é usado em máquina nova. Atualização e recursos entram no fluxo de
-                      staging/rollback do PDV.
+                      Use instalador para setup inicial da máquina. Atualização do PDV pode usar
+                      instalador compilado ou pacote local. Recursos devem ser enviados em .zip ou
+                      .7z.
                     </C.FieldHint>
                   </C.Field>
 
@@ -1374,7 +1392,7 @@ export const GestaoV12Configuracoes = () => {
                       accept=".exe,.msi,.zip,.7z"
                       onChange={(event) => setReleaseFile(event.target.files?.[0] || null)}
                     />
-                    <C.FieldHint>Use o instalador final do PDV ou pacote de distribuição.</C.FieldHint>
+                    <C.FieldHint>{releaseFileHint}</C.FieldHint>
                   </C.Field>
                 </C.FieldsGrid>
 

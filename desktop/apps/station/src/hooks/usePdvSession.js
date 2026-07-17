@@ -6,6 +6,32 @@ import { getModuleForCaixa } from "../constants/pdv.js";
 
 const AUTO_SYNC_INTERVAL_MS = 5 * 60 * 1000;
 
+function buildReleaseMessageFromStatus(statusLocal, details = {}) {
+  if (!statusLocal) return null;
+
+  if (statusLocal === "instalando") {
+    return "Nova versão encontrada. O instalador foi iniciado. Conclua a atualização e reabra o PDV.";
+  }
+
+  if (statusLocal === "pendente_reinicio") {
+    return "Atualização aplicada. Reinicie o PDV para concluir.";
+  }
+
+  if (statusLocal === "recursos_aplicado") {
+    return "Recursos do PDV atualizados com sucesso.";
+  }
+
+  if (statusLocal === "baixado" || statusLocal === "staged") {
+    return "Atualização baixada. Ela será aplicada quando o caixa estiver fechado.";
+  }
+
+  if (statusLocal === "erro") {
+    return details?.ultimo_erro || "Ocorreu uma falha ao preparar a atualização do PDV.";
+  }
+
+  return null;
+}
+
 export function usePdvSession({ onResetVenda, onCarregarFinanceiroSupportData }) {
   const [health, setHealth] = useState(null);
   const [configStatus, setConfigStatus] = useState(null);
@@ -29,9 +55,13 @@ export function usePdvSession({ onResetVenda, onCarregarFinanceiroSupportData })
     const releaseStatus = await api.releaseStatus().catch(() => null);
     if (!releaseStatus?.versao_atual) return null;
 
+    const latestLocal = releaseStatus?.latest_local || releaseStatus?.pendente_aplicacao || null;
+    const releaseMessage = buildReleaseMessageFromStatus(latestLocal?.status, latestLocal);
+
     setSyncState((current) => ({
       ...current,
       version: releaseStatus.versao_atual,
+      releaseMessage: current.running ? current.releaseMessage : releaseMessage,
     }));
     return releaseStatus;
   }
@@ -133,17 +163,12 @@ export function usePdvSession({ onResetVenda, onCarregarFinanceiroSupportData })
         : null;
       const statusLocal = releaseStep?.details?.statusLocal;
       const releaseMessage =
-        statusLocal === "pendente_reinicio"
-          ? "Atualização aplicada. Reinicie o PDV para concluir."
-          : statusLocal === "recursos_aplicado"
-            ? "Recursos do PDV atualizados."
-            : statusLocal === "baixado" || statusLocal === "staged"
-              ? "Atualização baixada. Será aplicada quando o caixa estiver fechado."
-              : releaseStep?.details?.updateAvailable
-                ? `Atualização ${releaseStep.details.versaoDisponivel || ""} disponível.`
-                : releaseStep?.success
-                  ? "PDV sem atualização pendente."
-                  : releaseStep?.details?.message || null;
+        buildReleaseMessageFromStatus(statusLocal, releaseStep?.details) ||
+        (releaseStep?.details?.updateAvailable
+          ? `Atualização ${releaseStep.details.versaoDisponivel || ""} disponível.`
+          : releaseStep?.success
+            ? "PDV sem atualização pendente."
+            : releaseStep?.details?.message || null);
       setSyncState((current) => ({
         ...current,
         releaseMessage,

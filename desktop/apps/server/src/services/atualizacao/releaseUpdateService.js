@@ -66,6 +66,11 @@ const runCommand = (command, args, options = {}) =>
     });
   });
 
+const isInstallerPackage = (filePath = "") => {
+  const extension = path.extname(String(filePath || "")).toLowerCase();
+  return extension === ".exe" || extension === ".msi";
+};
+
 const assertSemCaixaAberto = () => {
   const caixa = getCaixaAberto();
   if (caixa) {
@@ -193,12 +198,14 @@ export async function verificarAtualizacaoPdv() {
   const recursoResult = await consultar({ tipoRelease: "recursos" });
   const candidate = appResult.release || recursoResult.release || null;
   const localCandidate = candidate ? getReleaseUpdateByReleaseId(candidate.release_id) : null;
+  const localPending =
+    localCandidate && ["baixado", "staged"].includes(String(localCandidate.status || ""));
   const alreadyApplied =
     localCandidate &&
     ["aplicado", "recursos_aplicado", "pendente_reinicio", "instalando"].includes(
       localCandidate.status,
     );
-  const release = alreadyApplied ? null : candidate;
+  const release = alreadyApplied || localPending ? null : candidate;
 
   if (release) {
     upsertReleaseUpdate(release, { status: "disponivel" });
@@ -211,7 +218,9 @@ export async function verificarAtualizacaoPdv() {
     update_available: !!release,
     release,
     latest: appResult.latest || recursoResult.latest || null,
-    local: release ? getReleaseUpdateByReleaseId(release.release_id) : getLatestReleaseUpdate(),
+    local:
+      localCandidate ||
+      (release ? getReleaseUpdateByReleaseId(release.release_id) : getLatestReleaseUpdate()),
   };
 }
 
@@ -266,12 +275,34 @@ export async function baixarAtualizacaoPdv(releaseId) {
     releaseId,
     arquivoLocal: targetPath,
   });
+  console.info("[desktop-release] Release baixado", {
+    releaseId: downloaded.release_id,
+    versao: downloaded.versao,
+    arquivoLocal: downloaded.arquivo_local,
+    tipoRelease: downloaded.tipo_release,
+    modoAplicacao: downloaded.modo_aplicacao,
+  });
 
   if (
     ["app", "recursos"].includes(downloaded.tipo_release) &&
     ["auto_inicio", "auto_fechamento"].includes(downloaded.modo_aplicacao)
   ) {
     try {
+      if (isInstallerPackage(downloaded.arquivo_local)) {
+        assertSemCaixaAberto();
+        console.info("[desktop-release] Iniciando instalador automático", {
+          releaseId: downloaded.release_id,
+          versao: downloaded.versao,
+          arquivoLocal: downloaded.arquivo_local,
+        });
+        return await instalarAtualizacaoPdv(downloaded.release_id);
+      }
+
+      console.info("[desktop-release] Aplicando pacote local automaticamente", {
+        releaseId: downloaded.release_id,
+        versao: downloaded.versao,
+        arquivoLocal: downloaded.arquivo_local,
+      });
       return await aplicarAtualizacaoPdv(downloaded.release_id);
     } catch (error) {
       if (/fechamento do caixa/i.test(error?.message || "")) {
@@ -290,6 +321,7 @@ export async function instalarAtualizacaoPdv(releaseId) {
     throw new Error("Baixe o release antes de instalar.");
   }
 
+  assertSemCaixaAberto();
   await fs.access(release.arquivo_local);
   const extension = path.extname(release.arquivo_local).toLowerCase();
 
@@ -309,6 +341,11 @@ export async function instalarAtualizacaoPdv(releaseId) {
       throw new Error("Este tipo de release deve ser instalado manualmente.");
     }
 
+    console.info("[desktop-release] Instalador disparado", {
+      releaseId: release.release_id,
+      versao: release.versao,
+      arquivoLocal: release.arquivo_local,
+    });
     return markReleaseInstalled(releaseId);
   } catch (error) {
     markReleaseError({ releaseId, error: error?.message || error });

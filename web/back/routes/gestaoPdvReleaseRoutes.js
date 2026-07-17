@@ -1,6 +1,7 @@
 import express from "express";
 import fs from "node:fs/promises";
 import os from "node:os";
+import path from "node:path";
 import multer from "multer";
 import { pool } from "../config/conexao.js";
 import GestaoPdvReleaseDAO from "../model/gestaoPdvReleaseDAO.js";
@@ -35,6 +36,29 @@ const parseJsonField = (value, fallback = {}) => {
     return JSON.parse(String(value));
   } catch {
     return fallback;
+  }
+};
+
+const assertReleasePackageCompatibility = ({ tipoRelease, modoAplicacao, fileName }) => {
+  const extension = path.extname(String(fileName || "")).toLowerCase();
+  const isInstaller = extension === ".exe" || extension === ".msi";
+  const isArchive = extension === ".zip" || extension === ".7z";
+  const autoMode = ["auto_inicio", "auto_fechamento"].includes(String(modoAplicacao || ""));
+
+  if (!isInstaller && !isArchive) {
+    throw new Error("Arquivo inválido. Envie .exe, .msi, .zip ou .7z.");
+  }
+
+  if (tipoRelease === "instalador" && !isInstaller) {
+    throw new Error("Release do tipo instalador deve usar arquivo .exe ou .msi.");
+  }
+
+  if (tipoRelease === "recursos" && !isArchive) {
+    throw new Error("Release de recursos deve usar pacote .zip ou .7z.");
+  }
+
+  if (autoMode && tipoRelease === "recursos" && !isArchive) {
+    throw new Error("Atualização automática de recursos exige pacote .zip ou .7z.");
   }
 };
 
@@ -97,6 +121,11 @@ router.post("/pdv/releases", upload.single("arquivo"), async (req, res) => {
     }
 
     validateReleaseFileName(req.file.originalname);
+    assertReleasePackageCompatibility({
+      tipoRelease,
+      modoAplicacao,
+      fileName: req.file.originalname,
+    });
 
     const storedFile = await storeReleaseUpload({
       file: req.file,

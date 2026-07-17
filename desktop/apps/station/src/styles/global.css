@@ -1252,13 +1252,33 @@ label {
   color: #7f1d1d;
 }
 
+.login-sync-message {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid #bfe0f4;
+  background: linear-gradient(180deg, #f0f8ff, #e3f1fb);
+  color: #0b4f75;
+}
+
 .login-blocked-message strong {
   font-size: 0.92rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
+.login-sync-message strong {
+  font-size: 0.92rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 .login-blocked-message span {
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.login-sync-message span {
   font-size: 0.88rem;
   line-height: 1.45;
 }

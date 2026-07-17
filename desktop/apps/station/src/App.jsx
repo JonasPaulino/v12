@@ -152,6 +152,7 @@ function PdvApp() {
           }}
           onLogin={session.handleOperadorLogin}
           onRefreshStatus={session.refreshTerminalStatus}
+          syncState={session.syncState}
         />
         <SupportChatWidget entryPoint="floating" />
       </>
