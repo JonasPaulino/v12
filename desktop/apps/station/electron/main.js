@@ -416,11 +416,17 @@ async function checkAndInstallNativeUpdate(reason = "startup") {
       config.tenant_erp_id,
     )}/${encodeURIComponent(getReleaseChannel())}/${encodeURIComponent(getReleasePlatform())}`;
     const NsisUpdater = await loadNsisUpdater();
+    const requestHeaders = {
+      Authorization: `Bearer ${syncToken}`,
+      "X-V12-Sync-Token": syncToken,
+    };
 
     nativeUpdater = new NsisUpdater({
       provider: "generic",
       url: feedUrl,
+      requestHeaders,
     });
+    nativeUpdater.requestHeaders = requestHeaders;
     nativeUpdater.autoDownload = true;
     nativeUpdater.autoInstallOnAppQuit = false;
     nativeUpdater.allowPrerelease = false;
@@ -430,7 +436,9 @@ async function checkAndInstallNativeUpdate(reason = "startup") {
       error: (message) => logMain("[electron-updater:error]", message),
       debug: (message) => logMain("[electron-updater:debug]", message),
     };
-    nativeUpdater.addAuthHeader(`Bearer ${syncToken}`);
+    if (typeof nativeUpdater.addAuthHeader === "function") {
+      nativeUpdater.addAuthHeader(`Bearer ${syncToken}`);
+    }
 
     nativeUpdater.on("checking-for-update", () => {
       sendNativeUpdaterState("checking", {

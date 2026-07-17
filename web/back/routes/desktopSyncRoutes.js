@@ -30,7 +30,13 @@ const backupUpload = multer({
   },
 });
 
-router.use("/desktop/sync", desktopSyncAuth);
+router.use("/desktop/sync", (req, res, next) => {
+  if (String(req.path || "").startsWith("/releases/electron-updater/")) {
+    return next();
+  }
+
+  return desktopSyncAuth(req, res, next);
+});
 
 const parseBooleanFlag = (value, defaultValue = false) => {
   if (value === undefined || value === null || value === "") return defaultValue;
