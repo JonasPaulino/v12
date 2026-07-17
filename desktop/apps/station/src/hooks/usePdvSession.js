@@ -19,10 +19,22 @@ export function usePdvSession({ onResetVenda, onCarregarFinanceiroSupportData })
     lastSuccessAt: null,
     lastError: null,
     releaseMessage: null,
+    version: null,
   });
   const { showLoading, hideLoading } = useContext(AppContext);
   const { showAlert, askYesNoQuestion } = useSweetAlert();
   const syncLockRef = useRef(false);
+
+  async function refreshReleaseStatus() {
+    const releaseStatus = await api.releaseStatus().catch(() => null);
+    if (!releaseStatus?.versao_atual) return null;
+
+    setSyncState((current) => ({
+      ...current,
+      version: releaseStatus.versao_atual,
+    }));
+    return releaseStatus;
+  }
 
   function aplicarBloqueioTerminal(statusData) {
     if (!statusData?.bloqueado) return false;
@@ -42,6 +54,7 @@ export function usePdvSession({ onResetVenda, onCarregarFinanceiroSupportData })
       const [healthData, statusData] = await Promise.all([
         api.health(),
         api.configuracaoStatus(),
+        refreshReleaseStatus(),
       ]);
       setHealth(healthData);
       setConfigStatus(statusData);

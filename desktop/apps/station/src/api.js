@@ -143,6 +143,7 @@ export const api = {
         full: payload.full !== false,
       }),
     }),
+  releaseStatus: () => request("/release/status"),
   sincronizarProdutos: (payload = {}) =>
     request("/sync/produtos", { method: "POST", body: JSON.stringify(payload) }),
   sincronizarUsuarios: () => request("/sync/usuarios", { method: "POST" }),

@@ -20,6 +20,7 @@ export function PdvFooter({
     supportChatState?.available
       ? "Abrir chat com o suporte"
       : supportChatState?.reason || "Suporte indisponível no momento";
+  const pdvVersion = syncState?.version ? ` ${syncState.version}` : "";
 
   return (
     <footer className="pdv-footer">
@@ -48,7 +49,7 @@ export function PdvFooter({
         </button>
         <button className="footer-brand" onClick={sairDoSistema} title="Sair do sistema">
           <FiPower />
-          V12 ERP
+          V12 PDV{pdvVersion}
         </button>
       </div>
     </footer>
