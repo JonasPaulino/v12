@@ -19,6 +19,8 @@ files:
   - package.json
   - package-lock.json
 extraResources:
+  - from: .env
+    to: .env
   - from: lib
     to: lib
     filter:

@@ -1027,6 +1027,22 @@ async function createWindow() {
     },
   });
 
+  win.webContents.on("did-fail-load", (_event, errorCode, errorDescription, validatedURL) => {
+    logMain("Falha ao carregar conteúdo da janela", {
+      errorCode,
+      errorDescription,
+      validatedURL,
+    });
+  });
+
+  win.webContents.on("render-process-gone", (_event, details) => {
+    logMain("Processo de renderização encerrado", details);
+  });
+
+  win.webContents.on("console-message", (_event, level, message, line, sourceId) => {
+    logMain("Console renderer", { level, message, line, sourceId });
+  });
+
   if (isDev) {
     try {
       await loadDevServer(win);
@@ -1051,22 +1067,6 @@ async function createWindow() {
   const bundledIndex = path.resolve(__dirname, "../dist/index.html");
   logMain("Carregando front empacotado", { bundledIndex });
   win.loadFile(bundledIndex);
-
-  win.webContents.on("did-fail-load", (_event, errorCode, errorDescription, validatedURL) => {
-    logMain("Falha ao carregar conteúdo da janela", {
-      errorCode,
-      errorDescription,
-      validatedURL,
-    });
-  });
-
-  win.webContents.on("render-process-gone", (_event, details) => {
-    logMain("Processo de renderização encerrado", details);
-  });
-
-  win.webContents.on("console-message", (_event, level, message, line, sourceId) => {
-    logMain("Console renderer", { level, message, line, sourceId });
-  });
 }
 
 ipcMain.handle("app:quit", () => {
