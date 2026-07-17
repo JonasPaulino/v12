@@ -387,7 +387,11 @@ export const GestaoV12Configuracoes = () => {
     setSavingRelease(true);
     showLoading("Enviando release do PDV...");
     try {
-      await api.post("/gestao/pdv/releases", formData);
+      await api.post("/gestao/pdv/releases", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
 
       setReleaseForm(initialReleaseForm);
       setReleaseFile(null);
