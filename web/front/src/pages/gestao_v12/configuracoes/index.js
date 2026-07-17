@@ -467,6 +467,32 @@ export const GestaoV12Configuracoes = () => {
     }
   };
 
+  const handleDeleteRelease = async (release) => {
+    const confirmed = await askYesNoQuestion?.(
+      "Excluir release",
+      `Deseja excluir definitivamente o release V12 PDV ${release?.versao || ""}?`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await api.delete(`/gestao/pdv/releases/${release.pdv_release_id}`);
+      await loadReleases();
+      showAlert?.({
+        title: "Release excluído",
+        text: "O registro e o arquivo do release foram removidos.",
+        icon: "success",
+        timer: 1800,
+      });
+    } catch (error) {
+      showAlert?.({
+        title: "Falha ao excluir",
+        text: error?.response?.data?.message || "Não foi possível excluir o release.",
+        icon: "error",
+      });
+    }
+  };
+
   const handleSubmitAsaas = async (event) => {
     event.preventDefault();
     setSaving(true);
@@ -1446,6 +1472,12 @@ export const GestaoV12Configuracoes = () => {
                             Desativar
                           </C.SecondaryButton>
                         )}
+                        <C.DangerButton
+                          type="button"
+                          onClick={() => handleDeleteRelease(release)}
+                        >
+                          Excluir
+                        </C.DangerButton>
                       </C.ReleaseActions>
                     </C.ReleaseItem>
                   ))

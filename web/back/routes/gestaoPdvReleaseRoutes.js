@@ -188,6 +188,36 @@ router.put("/pdv/releases/:releaseId/desativar", async (req, res) => {
   }
 });
 
+router.delete("/pdv/releases/:releaseId", async (req, res) => {
+  try {
+    const data = await withClient((client) =>
+      GestaoPdvReleaseDAO.excluirRelease(client, Number(req.params.releaseId)),
+    );
+
+    if (!data) {
+      return res.status(404).json({ success: false, message: "Release não encontrado." });
+    }
+
+    if (data.arquivo_path) {
+      await fs.rm(data.arquivo_path, { force: true }).catch((error) => {
+        console.warn("[gestao:pdv-release] Release excluído, mas arquivo não foi removido:", {
+          releaseId: data.pdv_release_id,
+          arquivoPath: data.arquivo_path,
+          message: error?.message || error,
+        });
+      });
+    }
+
+    return res.json({ success: true, message: "Release excluído.", data });
+  } catch (error) {
+    console.error("[gestao:pdv-release] Falha ao excluir release:", error);
+    return res.status(400).json({
+      success: false,
+      message: error?.message || "Não foi possível excluir o release.",
+    });
+  }
+});
+
 router.get("/pdv/releases/:releaseId/download", async (req, res) => {
   try {
     const release = await withClient((client) =>

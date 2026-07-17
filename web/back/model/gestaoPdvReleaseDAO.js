@@ -192,6 +192,19 @@ class GestaoPdvReleaseDAO {
 
     return rows[0] || null;
   }
+
+  static async excluirRelease(client, releaseId) {
+    const { rows } = await client.query(
+      `
+        DELETE FROM gestao.pdv_release
+        WHERE pdv_release_id = $1
+        RETURNING *
+      `,
+      [releaseId],
+    );
+
+    return rows[0] || null;
+  }
 }
 
 export default GestaoPdvReleaseDAO;

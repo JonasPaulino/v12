@@ -331,6 +331,16 @@ export const SecondaryButton = styled.button`
   text-decoration: none;
 `;
 
+export const DangerButton = styled(SecondaryButton)`
+  border-color: rgba(190, 18, 60, 0.22);
+  background: rgba(255, 241, 242, 0.92);
+  color: #be123c;
+
+  &:hover {
+    background: #ffe4e6;
+  }
+`;
+
 export const Placeholder = styled.div`
   padding: 22px;
   border: 1px dashed ${({ theme }) => theme.colors.border};
