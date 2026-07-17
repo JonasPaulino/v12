@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, globalShortcut, ipcMain } from "electron";
+import { app, BrowserWindow, Menu, globalShortcut, ipcMain, shell } from "electron";
 import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -288,6 +288,41 @@ async function waitForLocalApi() {
   return false;
 }
 
+function spawnDetached(command, args = [], options = {}) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, {
+      detached: true,
+      stdio: "ignore",
+      windowsHide: true,
+      ...options,
+    });
+
+    child.once("spawn", () => {
+      child.unref();
+      resolve();
+    });
+
+    child.once("error", (error) => {
+      reject(error);
+    });
+  });
+}
+
+async function openInstallerWithWindowsShell(installerPath) {
+  const shellError = await shell.openPath(installerPath);
+  if (!shellError) {
+    return { strategy: "electron-shell" };
+  }
+
+  logMain("Falha ao abrir instalador via shell.openPath. Tentando cmd start.", {
+    installerPath,
+    shellError,
+  });
+
+  await spawnDetached("cmd.exe", ["/d", "/s", "/c", "start", "", installerPath]);
+  return { strategy: "cmd-start", shellError };
+}
+
 async function openDownloadedInstallerOnStartup() {
   if (isDev) return false;
 
@@ -315,12 +350,15 @@ async function openDownloadedInstallerOnStartup() {
       installerPath,
     });
 
-    spawn(installerPath, [], {
-      detached: true,
-      stdio: "ignore",
-      shell: false,
-    }).unref();
+    const launchResult = await openInstallerWithWindowsShell(installerPath);
+    logMain("Instalador de atualização iniciado pelo Windows.", {
+      versaoAtual: app.getVersion(),
+      versaoNova: pending.versao,
+      installerPath,
+      strategy: launchResult.strategy,
+    });
 
+    await wait(800);
     app.quit();
     return true;
   } catch (error) {
