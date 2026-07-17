@@ -319,6 +319,12 @@ async function savePdf(session) {
   return null;
 }
 
+function isDanfcePdfOptionalError(message = "") {
+  return /ImprimirDANFEPDF n[aã]o implementado|TACBrNFeDANFeESCPOS|Porta n[aã]o definida/i.test(
+    String(message || ""),
+  );
+}
+
 async function tryGeneratePdf(session, xmlContent = null) {
   let pdfResponse = null;
 
@@ -326,7 +332,7 @@ async function tryGeneratePdf(session, xmlContent = null) {
     pdfResponse = await savePdf(session);
   } catch (error) {
     const message = String(error?.message || error);
-    if (/ImprimirDANFEPDF n[aã]o implementado|TACBrNFeDANFeESCPOS/i.test(message)) {
+    if (isDanfcePdfOptionalError(message)) {
       return {
         path: null,
         buffer: null,
@@ -346,16 +352,12 @@ async function tryGeneratePdf(session, xmlContent = null) {
       pdfResponse = await savePdf(session);
     } catch (retryError) {
       const retryMessage = String(retryError?.message || retryError);
-      if (/ImprimirDANFEPDF n[aã]o implementado|TACBrNFeDANFeESCPOS/i.test(retryMessage)) {
-        return {
-          path: null,
-          buffer: null,
-          unsupported: true,
-          message: retryMessage,
-        };
-      }
-
-      throw retryError;
+      return {
+        path: null,
+        buffer: null,
+        unsupported: true,
+        message: retryMessage,
+      };
     }
   }
 
