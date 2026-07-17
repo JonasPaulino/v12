@@ -20,7 +20,7 @@ export function createSevenZipArchive({ sourceDir, archivePath }) {
     child.on("error", (error) => {
       reject(
         new Error(
-          `Não foi possível executar o 7z. Configure V12_BACKUP_7Z_PATH ou instale o 7-Zip. ${error.message}`,
+          `Não foi possível executar o 7z interno do PDV em ${env.backupSevenZipPath}. ${error.message}`,
         ),
       );
     });

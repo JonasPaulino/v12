@@ -11,6 +11,9 @@ const app = createApp();
 const acbrDiagnostics = getAcbrLibDiagnostics();
 
 console.log("[desktop-acbr] Diagnostico inicial", acbrDiagnostics);
+console.log("[desktop-release] Diagnostico inicial", {
+  sevenZipPath: env.backupSevenZipPath,
+});
 
 app.listen(env.port, () => {
   console.log(`[desktop-server] V12 local rodando na porta ${env.port}`);

@@ -62,6 +62,27 @@ function resolveDefaultAcbrLibPath() {
 
 const defaultAcbrLibPath = resolveDefaultAcbrLibPath();
 
+function resolveDefaultSevenZipPath() {
+  const configuredPath = String(process.env.V12_BACKUP_7Z_PATH || "").trim();
+  if (configuredPath) {
+    return configuredPath;
+  }
+
+  const candidates =
+    process.platform === "win32"
+      ? [
+          path.join(rootDir, "tools", "7zip", "7z.exe"),
+          path.join(workspaceRoot, "tools", "7zip", "7z.exe"),
+          path.join(desktopRoot, "tools", "7zip", "7z.exe"),
+          "7z",
+        ]
+      : ["7z"];
+
+  return candidates.find((candidate) => candidate === "7z" || fs.existsSync(candidate)) || "7z";
+}
+
+const defaultSevenZipPath = resolveDefaultSevenZipPath();
+
 function resolveAcbrNativeDependencyDirs() {
   const configuredDirs = String(process.env.V12_ACBRLIB_NATIVE_DEP_DIRS || "")
     .split(path.delimiter)
@@ -110,10 +131,10 @@ export const env = {
   acbrLibNativeDependencyDirs: resolveAcbrNativeDependencyDirs(),
   backupEnabled: String(process.env.V12_BACKUP_ENABLED || "false").toLowerCase() === "true",
   backupDir: process.env.V12_BACKUP_DIR || path.join(desktopRoot, "data", "backups"),
-  backupSevenZipPath: process.env.V12_BACKUP_7Z_PATH || "7z",
+  backupSevenZipPath: defaultSevenZipPath,
   backupLocalRetentionDays: Number(process.env.V12_BACKUP_LOCAL_RETENTION_DAYS || 30),
   backupAutoIntervalMinutes: Number(process.env.V12_BACKUP_AUTO_INTERVAL_MINUTES || 0),
-  pdvVersion: process.env.V12_PDV_VERSION || "0.1.3",
+  pdvVersion: process.env.V12_PDV_VERSION || "0.1.4",
   pdvReleaseChannel: process.env.V12_PDV_RELEASE_CHANNEL || "stable",
   pdvReleasePlatform:
     process.env.V12_PDV_RELEASE_PLATFORM ||
