@@ -1,0 +1,376 @@
+[2026-07-17T02:22:56.707Z] [desktop-acbr] Diagnostico inicial {
+  mode: 'lib',
+  packageAvailable: true,
+  packageMessage: null,
+  packageEntryPath: 'C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\@projetoacbr\\acbrlib-nfe-node\\dist\\src\\index.js',
+  packageLegacyEntryPath: '@projetoacbr/acbrlib-nfe-node/dist/src',
+  libPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\Windows\\MT\\Cdecl\\ACBrNFe64.dll',
+  libExists: true,
+  schemaPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\Schemas\\NFe',
+  schemaExists: true,
+  iniServicosPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\ACBrNFeServicos.ini',
+  iniServicosExists: true,
+  configDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\config',
+  tempDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\runtime',
+  logDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\log',
+  nativeDependencies: {
+    required: true,
+    dirs: [
+      'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\LibXml2\\x64',
+      'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\OpenSSL\\x64'
+    ],
+    missing: []
+  }
+}
+[desktop-release] Diagnostico inicial { sevenZipPath: 'C:\\v12\\V12 PDV\\resources\\tools\\7zip\\7z.exe' }
+[2026-07-17T02:22:56.718Z] [desktop-server] V12 local rodando na porta 5100
+[2026-07-17T02:22:58.728Z] [desktop-sync] Etapa concluida {
+  key: 'filial',
+  label: 'Filial',
+  success: true,
+  details: { tenantId: 5, terminalCodigo: 'PDV-02' }
+}
+[2026-07-17T02:22:59.185Z] [desktop-sync] Etapa concluida {
+  key: 'usuarios',
+  label: 'Operadores',
+  success: true,
+  details: { imported: 2 }
+}
+[2026-07-17T02:22:59.435Z] [desktop-sync] Etapa concluida {
+  key: 'produtos',
+  label: 'Produtos',
+  success: true,
+  details: { imported: 0, full: false }
+}
+[2026-07-17T02:22:59.641Z] [desktop-sync] Etapa concluida {
+  key: 'financeiro',
+  label: 'Financeiro',
+  success: true,
+  details: { formasPagamento: 5, condicoesPagamento: 8 }
+}
+[2026-07-17T02:22:59.652Z] [desktop-sync] Etapa concluida {
+  key: 'pendencias',
+  label: 'Pendências locais',
+  success: true,
+  details: { processed: 0, pending: 0 }
+}
+[desktop-sync] Etapa concluida {
+  key: 'contingencias',
+  label: 'NFC-e em contingência',
+  success: true,
+  details: { total: 0, autorizadas: 0, emContingencia: 0, rejeitadas: 0 }
+}
+[2026-07-17T02:23:54.364Z] [desktop-release] Release baixado {
+  releaseId: '6',
+  versao: '0.1.6',
+  arquivoLocal: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\releases\\V12-PDV-Setup-0.1.6.exe',
+  tipoRelease: 'app',
+  modoAplicacao: 'auto_inicio'
+}
+[2026-07-17T02:23:54.375Z] [desktop-release] Iniciando instalador automático {
+  releaseId: '6',
+  versao: '0.1.6',
+  arquivoLocal: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\releases\\V12-PDV-Setup-0.1.6.exe'
+}
+[2026-07-17T02:23:54.935Z] [stderr] [desktop-sync] Etapa de release ignorada {
+  key: 'release',
+  label: 'Release do PDV',
+  success: false,
+  details: { message: 'spawn EBUSY' }
+}
+[2026-07-17T02:23:59.670Z] [desktop-acbr] Diagnostico inicial {
+  mode: 'lib',
+  packageAvailable: true,
+  packageMessage: null,
+  packageEntryPath: 'C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\@projetoacbr\\acbrlib-nfe-node\\dist\\src\\index.js',
+  packageLegacyEntryPath: '@projetoacbr/acbrlib-nfe-node/dist/src',
+  libPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\Windows\\MT\\Cdecl\\ACBrNFe64.dll',
+  libExists: true,
+  schemaPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\Schemas\\NFe',
+  schemaExists: true,
+  iniServicosPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\ACBrNFeServicos.ini',
+  iniServicosExists: true,
+  configDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\config',
+  tempDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\runtime',
+  logDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\log',
+  nativeDependencies: {
+    required: true,
+    dirs: [
+      'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\LibXml2\\x64',
+      'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\OpenSSL\\x64'
+    ],
+    missing: []
+  }
+}
+[desktop-release] Diagnostico inicial { sevenZipPath: 'C:\\v12\\V12 PDV\\resources\\tools\\7zip\\7z.exe' }
+[2026-07-17T02:23:59.681Z] [desktop-server] V12 local rodando na porta 5100
+[2026-07-17T02:24:01.865Z] [desktop-sync] Etapa concluida {
+  key: 'filial',
+  label: 'Filial',
+  success: true,
+  details: { tenantId: 5, terminalCodigo: 'PDV-02' }
+}
+[2026-07-17T02:24:02.080Z] [desktop-sync] Etapa concluida {
+  key: 'usuarios',
+  label: 'Operadores',
+  success: true,
+  details: { imported: 2 }
+}
+[2026-07-17T02:24:02.311Z] [desktop-sync] Etapa concluida {
+  key: 'produtos',
+  label: 'Produtos',
+  success: true,
+  details: { imported: 0, full: false }
+}
+[2026-07-17T02:24:02.529Z] [desktop-sync] Etapa concluida {
+  key: 'financeiro',
+  label: 'Financeiro',
+  success: true,
+  details: { formasPagamento: 5, condicoesPagamento: 8 }
+}
+[2026-07-17T02:24:02.540Z] [desktop-sync] Etapa concluida {
+  key: 'pendencias',
+  label: 'Pendências locais',
+  success: true,
+  details: { processed: 0, pending: 0 }
+}
+[desktop-sync] Etapa concluida {
+  key: 'contingencias',
+  label: 'NFC-e em contingência',
+  success: true,
+  details: { total: 0, autorizadas: 0, emContingencia: 0, rejeitadas: 0 }
+}
+[2026-07-17T02:25:17.703Z] [desktop-release] Release baixado {
+  releaseId: '6',
+  versao: '0.1.6',
+  arquivoLocal: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\releases\\V12-PDV-Setup-0.1.6.exe',
+  tipoRelease: 'app',
+  modoAplicacao: 'auto_inicio'
+}
+[2026-07-17T02:25:17.717Z] [desktop-release] Iniciando instalador automático {
+  releaseId: '6',
+  versao: '0.1.6',
+  arquivoLocal: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\releases\\V12-PDV-Setup-0.1.6.exe'
+}
+[2026-07-17T02:25:18.294Z] [desktop-release] Verificação automática não aplicada { message: 'spawn EBUSY' }
+[2026-07-17T02:25:34.639Z] [desktop-release] Release baixado {
+  releaseId: '6',
+  versao: '0.1.6',
+  arquivoLocal: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\releases\\V12-PDV-Setup-0.1.6.exe',
+  tipoRelease: 'app',
+  modoAplicacao: 'auto_inicio'
+}
+[2026-07-17T02:25:34.651Z] [desktop-release] Iniciando instalador automático {
+  releaseId: '6',
+  versao: '0.1.6',
+  arquivoLocal: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\releases\\V12-PDV-Setup-0.1.6.exe'
+}
+[2026-07-17T02:25:35.224Z] [desktop-release] Instalador disparado {
+  releaseId: '6',
+  versao: '0.1.6',
+  arquivoLocal: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\releases\\V12-PDV-Setup-0.1.6.exe'
+}
+[2026-07-17T02:25:35.237Z] [desktop-sync] Etapa concluida {
+  key: 'release',
+  label: 'Release do PDV',
+  success: true,
+  details: {
+    versaoAtual: '0.1.4',
+    updateAvailable: true,
+    versaoDisponivel: '0.1.6',
+    statusLocal: 'instalando'
+  }
+}
+[2026-07-17T02:27:35.973Z] [desktop-acbr] Diagnostico inicial {
+  mode: 'lib',
+  packageAvailable: true,
+  packageMessage: null,
+  packageEntryPath: 'C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\@projetoacbr\\acbrlib-nfe-node\\dist\\src\\index.js',
+  packageLegacyEntryPath: '@projetoacbr/acbrlib-nfe-node/dist/src',
+  libPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\Windows\\MT\\Cdecl\\ACBrNFe64.dll',
+  libExists: true,
+  schemaPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\Schemas\\NFe',
+  schemaExists: true,
+  iniServicosPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\ACBrNFeServicos.ini',
+  iniServicosExists: true,
+  configDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\config',
+  tempDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\runtime',
+  logDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\log',
+  nativeDependencies: {
+    required: true,
+    dirs: [
+      'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\LibXml2\\x64',
+      'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\OpenSSL\\x64'
+    ],
+    missing: []
+  }
+}
+[2026-07-17T02:27:35.983Z] [desktop-release] Diagnostico inicial { sevenZipPath: 'C:\\v12\\V12 PDV\\resources\\tools\\7zip\\7z.exe' }
+[desktop-server] V12 local rodando na porta 5100
+[2026-07-17T02:27:38.190Z] [desktop-sync] Etapa concluida {
+  key: 'filial',
+  label: 'Filial',
+  success: true,
+  details: { tenantId: 5, terminalCodigo: 'PDV-02' }
+}
+[2026-07-17T02:27:38.404Z] [desktop-sync] Etapa concluida {
+  key: 'usuarios',
+  label: 'Operadores',
+  success: true,
+  details: { imported: 2 }
+}
+[2026-07-17T02:27:38.647Z] [desktop-sync] Etapa concluida {
+  key: 'produtos',
+  label: 'Produtos',
+  success: true,
+  details: { imported: 0, full: false }
+}
+[2026-07-17T02:27:38.868Z] [desktop-sync] Etapa concluida {
+  key: 'financeiro',
+  label: 'Financeiro',
+  success: true,
+  details: { formasPagamento: 5, condicoesPagamento: 8 }
+}
+[2026-07-17T02:27:38.882Z] [desktop-sync] Etapa concluida {
+  key: 'pendencias',
+  label: 'Pendências locais',
+  success: true,
+  details: { processed: 0, pending: 0 }
+}
+[desktop-sync] Etapa concluida {
+  key: 'contingencias',
+  label: 'NFC-e em contingência',
+  success: true,
+  details: { total: 0, autorizadas: 0, emContingencia: 0, rejeitadas: 0 }
+}
+[2026-07-17T02:27:39.280Z] [desktop-sync] Etapa concluida {
+  key: 'release',
+  label: 'Release do PDV',
+  success: true,
+  details: {
+    versaoAtual: '0.1.6',
+    updateAvailable: false,
+    versaoDisponivel: '0.1.6',
+    statusLocal: 'aplicado'
+  }
+}
+[2026-07-17T02:28:28.477Z] [desktop-sync] Etapa concluida {
+  key: 'filial',
+  label: 'Filial',
+  success: true,
+  details: { tenantId: 5, terminalCodigo: 'PDV-02' }
+}
+[2026-07-17T02:28:28.678Z] [desktop-sync] Etapa concluida {
+  key: 'usuarios',
+  label: 'Operadores',
+  success: true,
+  details: { imported: 2 }
+}
+[2026-07-17T02:28:28.915Z] [desktop-sync] Etapa concluida {
+  key: 'produtos',
+  label: 'Produtos',
+  success: true,
+  details: { imported: 0, full: false }
+}
+[2026-07-17T02:28:29.128Z] [desktop-sync] Etapa concluida {
+  key: 'financeiro',
+  label: 'Financeiro',
+  success: true,
+  details: { formasPagamento: 5, condicoesPagamento: 8 }
+}
+[2026-07-17T02:28:29.144Z] [desktop-sync] Etapa concluida {
+  key: 'pendencias',
+  label: 'Pendências locais',
+  success: true,
+  details: { processed: 0, pending: 0 }
+}
+[desktop-sync] Etapa concluida {
+  key: 'contingencias',
+  label: 'NFC-e em contingência',
+  success: true,
+  details: { total: 0, autorizadas: 0, emContingencia: 0, rejeitadas: 0 }
+}
+[2026-07-17T02:28:29.554Z] [desktop-sync] Etapa concluida {
+  key: 'release',
+  label: 'Release do PDV',
+  success: true,
+  details: {
+    versaoAtual: '0.1.6',
+    updateAvailable: false,
+    versaoDisponivel: '0.1.6',
+    statusLocal: 'aplicado'
+  }
+}
+[2026-07-17T02:28:32.660Z] [desktop-acbr] Diagnostico inicial {
+  mode: 'lib',
+  packageAvailable: true,
+  packageMessage: null,
+  packageEntryPath: 'C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\@projetoacbr\\acbrlib-nfe-node\\dist\\src\\index.js',
+  packageLegacyEntryPath: '@projetoacbr/acbrlib-nfe-node/dist/src',
+  libPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\Windows\\MT\\Cdecl\\ACBrNFe64.dll',
+  libExists: true,
+  schemaPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\Schemas\\NFe',
+  schemaExists: true,
+  iniServicosPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\ACBrNFeServicos.ini',
+  iniServicosExists: true,
+  configDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\config',
+  tempDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\runtime',
+  logDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\log',
+  nativeDependencies: {
+    required: true,
+    dirs: [
+      'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\LibXml2\\x64',
+      'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\OpenSSL\\x64'
+    ],
+    missing: []
+  }
+}
+[desktop-release] Diagnostico inicial { sevenZipPath: 'C:\\v12\\V12 PDV\\resources\\tools\\7zip\\7z.exe' }
+[2026-07-17T02:28:32.671Z] [desktop-server] V12 local rodando na porta 5100
+[2026-07-17T02:28:34.858Z] [desktop-sync] Etapa concluida {
+  key: 'filial',
+  label: 'Filial',
+  success: true,
+  details: { tenantId: 5, terminalCodigo: 'PDV-02' }
+}
+[2026-07-17T02:28:35.053Z] [desktop-sync] Etapa concluida {
+  key: 'usuarios',
+  label: 'Operadores',
+  success: true,
+  details: { imported: 2 }
+}
+[2026-07-17T02:28:35.266Z] [desktop-sync] Etapa concluida {
+  key: 'produtos',
+  label: 'Produtos',
+  success: true,
+  details: { imported: 0, full: false }
+}
+[2026-07-17T02:28:35.459Z] [desktop-sync] Etapa concluida {
+  key: 'financeiro',
+  label: 'Financeiro',
+  success: true,
+  details: { formasPagamento: 5, condicoesPagamento: 8 }
+}
+[2026-07-17T02:28:35.470Z] [desktop-sync] Etapa concluida {
+  key: 'pendencias',
+  label: 'Pendências locais',
+  success: true,
+  details: { processed: 0, pending: 0 }
+}
+[desktop-sync] Etapa concluida {
+  key: 'contingencias',
+  label: 'NFC-e em contingência',
+  success: true,
+  details: { total: 0, autorizadas: 0, emContingencia: 0, rejeitadas: 0 }
+}
+[2026-07-17T02:28:35.857Z] [desktop-sync] Etapa concluida {
+  key: 'release',
+  label: 'Release do PDV',
+  success: true,
+  details: {
+    versaoAtual: '0.1.6',
+    updateAvailable: false,
+    versaoDisponivel: '0.1.6',
+    statusLocal: 'aplicado'
+  }
+}

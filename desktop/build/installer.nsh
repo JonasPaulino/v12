@@ -23,3 +23,7 @@
   WriteRegExpandStr HKLM "${INSTALL_REGISTRY_KEY}" InstallLocation "$R0"
   WriteRegExpandStr HKCU "${INSTALL_REGISTRY_KEY}" InstallLocation "$R0"
 !macroend
+
+!macro customInit
+  nsExec::ExecToLog 'taskkill /IM "V12 PDV.exe" /F'
+!macroend

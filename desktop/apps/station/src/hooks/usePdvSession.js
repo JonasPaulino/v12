@@ -170,6 +170,7 @@ export function usePdvSession({ onResetVenda, onCarregarFinanceiroSupportData })
         ? result.steps.find((step) => step.key === "release")
         : null;
       const statusLocal = releaseStep?.details?.statusLocal;
+      const versaoDisponivel = releaseStep?.details?.versaoDisponivel || null;
       const releaseMessage =
         buildReleaseMessageFromStatus(statusLocal, releaseStep?.details) ||
         (releaseStep?.details?.updateAvailable
@@ -180,8 +181,17 @@ export function usePdvSession({ onResetVenda, onCarregarFinanceiroSupportData })
       setSyncState((current) => ({
         ...current,
         releaseMessage,
+        releaseStatus: statusLocal || null,
+        releaseTargetVersion: versaoDisponivel,
       }));
-      if (!silent) {
+      if (statusLocal === "instalando") {
+        window.setTimeout(() => {
+          if (window.v12Desktop?.quit) {
+            void window.v12Desktop.quit();
+          }
+        }, 1200);
+      }
+      if (!silent && statusLocal !== "instalando") {
         showAlert({
           title: "PDV atualizado",
           text: steps.length

@@ -66,6 +66,37 @@ const runCommand = (command, args, options = {}) =>
     });
   });
 
+const wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+
+const spawnDetached = async (command, args) => {
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= 4; attempt += 1) {
+    try {
+      spawn(command, args, {
+        detached: true,
+        stdio: "ignore",
+        shell: false,
+      }).unref();
+      return;
+    } catch (error) {
+      lastError = error;
+      if (error?.code !== "EBUSY" || attempt === 4) {
+        throw error;
+      }
+
+      console.warn("[desktop-release] Instalador ocupado, tentando novamente", {
+        command,
+        attempt,
+        message: error.message,
+      });
+      await wait(1500 * attempt);
+    }
+  }
+
+  throw lastError;
+};
+
 const isInstallerPackage = (filePath = "") => {
   const extension = path.extname(String(filePath || "")).toLowerCase();
   return extension === ".exe" || extension === ".msi";
@@ -252,6 +283,8 @@ export async function verificarAtualizacaoPdv() {
   const recursoResult = await consultar({ tipoRelease: "recursos" });
   const candidate = appResult.release || recursoResult.release || null;
   const reconciledLatestLocal = await reconcileInstalledRelease(getLatestReleaseUpdate());
+  const candidateAlreadyInstalled =
+    candidate?.tipo_release === "app" && compareVersions(candidate.versao, env.pdvVersion) <= 0;
   const localCandidate = candidate
     ? await reconcileInstalledRelease(getReleaseUpdateByReleaseId(candidate.release_id))
     : null;
@@ -262,9 +295,16 @@ export async function verificarAtualizacaoPdv() {
     ["aplicado", "recursos_aplicado", "pendente_reinicio", "instalando"].includes(
       localCandidate.status,
     );
-  const release = alreadyApplied || localPending ? null : candidate;
+  const release = candidateAlreadyInstalled || alreadyApplied || localPending ? null : candidate;
 
-  if (release) {
+  let installedCandidateLocal = null;
+  if (candidateAlreadyInstalled && candidate) {
+    upsertReleaseUpdate(candidate, { status: "aplicado" });
+    installedCandidateLocal = markReleaseApplied({
+      releaseId: candidate.release_id,
+      status: "aplicado",
+    });
+  } else if (release) {
     upsertReleaseUpdate(release, { status: "disponivel" });
   }
 
@@ -277,6 +317,7 @@ export async function verificarAtualizacaoPdv() {
     latest: appResult.latest || recursoResult.latest || null,
     local:
       localCandidate ||
+      installedCandidateLocal ||
       (release
         ? await reconcileInstalledRelease(getReleaseUpdateByReleaseId(release.release_id))
         : reconciledLatestLocal),
@@ -386,16 +427,9 @@ export async function instalarAtualizacaoPdv(releaseId) {
 
   try {
     if (extension === ".msi") {
-      spawn("msiexec", ["/i", release.arquivo_local], {
-        detached: true,
-        stdio: "ignore",
-      }).unref();
+      await spawnDetached("msiexec", ["/i", release.arquivo_local]);
     } else if (extension === ".exe") {
-      spawn(release.arquivo_local, [], {
-        detached: true,
-        stdio: "ignore",
-        shell: false,
-      }).unref();
+      await spawnDetached(release.arquivo_local, []);
     } else {
       throw new Error("Este tipo de release deve ser instalado manualmente.");
     }
