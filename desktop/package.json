@@ -1,6 +1,6 @@
 {
   "name": "v12-desktop",
-  "version": "0.1.16",
+  "version": "0.1.22",
   "private": true,
   "type": "module",
   "main": "apps/station/electron/main.js",
@@ -13,6 +13,7 @@
     "@v12-desktop/shared": "file:packages/shared",
     "better-sqlite3": "^11.10.0",
     "cors": "^2.8.5",
+    "electron-updater": "^6.6.2",
     "express": "^5.1.0",
     "helmet": "^8.1.0",
     "qrcode": "^1.5.4"

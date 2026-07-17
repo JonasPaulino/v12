@@ -37,9 +37,10 @@ win:
   icon: apps/station/src/assets/favicon.png
 nsis:
   oneClick: false
-  perMachine: false
+  perMachine: true
   include: build/installer.nsh
   allowToChangeInstallationDirectory: false
   createDesktopShortcut: true
   createStartMenuShortcut: true
   shortcutName: V12 PDV
+  runAfterFinish: false

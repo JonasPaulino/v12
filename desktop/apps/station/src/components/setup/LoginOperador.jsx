@@ -29,7 +29,7 @@ export function LoginOperador({ config, onLogin, onRefreshStatus, syncState }) {
     config?.tenant_bloqueio_motivo ||
     "A filial está bloqueada na retaguarda.";
   const atualizacaoReleaseEmAndamento = [
-    "verificando",
+    "baixando",
     "instalando",
     "pendente_reinicio",
     "recursos_aplicado",
@@ -61,13 +61,7 @@ export function LoginOperador({ config, onLogin, onRefreshStatus, syncState }) {
     if (bloqueado || atualizacaoReleaseEmAndamento) return;
     showLoading("Validando operador...");
     try {
-      const refreshedStatus = await onRefreshStatus?.({ syncRemote: true, silent: true });
-      if (refreshedStatus?.bloqueado) {
-        return;
-      }
-
       persistRememberedEmail(email);
-      await api.sincronizarUsuarios().catch(() => null);
       const operador = await api.loginOperador({ email, senha });
 
       if (operador?.primeiro_acesso_pendente) {
@@ -91,7 +85,7 @@ export function LoginOperador({ config, onLogin, onRefreshStatus, syncState }) {
         return;
       }
 
-      onLogin(operador);
+      await onLogin(operador);
     } catch (error) {
       showAlert({
         title: "Acesso negado",

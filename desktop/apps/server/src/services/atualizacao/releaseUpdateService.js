@@ -115,28 +115,36 @@ const spawnSilentInstallerAndRelaunch = async ({ installerPath, extension }) => 
   const processName = path.basename(appPath, path.extname(appPath));
   const scriptPath = path.join(env.pdvReleaseDir, `v12-pdv-update-${Date.now()}.ps1`);
   const logPath = path.join(env.pdvReleaseDir, "installer-update.log");
+  const nsisArguments = `/S /D=${installDir}`;
   const installCommand =
     extension === ".msi"
       ? `Start-Process -FilePath "msiexec.exe" -ArgumentList @("/i", ${quotePowerShellString(
           installerPath,
         )}, "/qn", "/norestart") -Verb RunAs -Wait -PassThru`
-      : `Start-Process -FilePath ${quotePowerShellString(installerPath)} -ArgumentList @("/S", ${quotePowerShellString(
-          `/D=${installDir}`,
-        )}) -Verb RunAs -Wait -PassThru`;
+      : `Start-Process -FilePath ${quotePowerShellString(
+          installerPath,
+        )} -ArgumentList ${quotePowerShellString(nsisArguments)} -Verb RunAs -Wait -PassThru`;
   const script = [
     "$ErrorActionPreference = 'Stop'",
     `$logPath = ${quotePowerShellString(logPath)}`,
     "function Write-UpdateLog { param([string]$Message) Add-Content -LiteralPath $logPath -Value (\"[$(Get-Date -Format o)] \" + $Message) -Encoding UTF8 }",
-    "Write-UpdateLog 'Atualização iniciada.'",
-    "Start-Sleep -Seconds 2",
-    `Get-Process -Name ${quotePowerShellString(processName)} -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue`,
-    `Write-UpdateLog ${quotePowerShellString(`Executando instalador ${installerPath}.`)}`,
-    `$process = ${installCommand}`,
-    "Write-UpdateLog (\"Instalador finalizado. ExitCode=\" + $process.ExitCode)",
-    "Start-Sleep -Seconds 1",
-    `if (Test-Path -LiteralPath ${quotePowerShellString(appPath)}) { Start-Process -FilePath ${quotePowerShellString(
+    "try {",
+    "  Write-UpdateLog 'Atualização iniciada.'",
+    `  Write-UpdateLog ${quotePowerShellString(`Diretório destino: ${installDir}.`)}`,
+    `  Write-UpdateLog ${quotePowerShellString(`Argumentos do instalador: ${nsisArguments}.`)}`,
+    "  Start-Sleep -Seconds 2",
+    `  Get-Process -Name ${quotePowerShellString(processName)} -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue`,
+    `  Write-UpdateLog ${quotePowerShellString(`Executando instalador ${installerPath}.`)}`,
+    `  $process = ${installCommand}`,
+    "  Write-UpdateLog (\"Instalador finalizado. ExitCode=\" + $process.ExitCode)",
+    "  Start-Sleep -Seconds 1",
+    `  if (Test-Path -LiteralPath ${quotePowerShellString(appPath)}) { Start-Process -FilePath ${quotePowerShellString(
       appPath,
     )}; Write-UpdateLog 'PDV reaberto.' } else { Write-UpdateLog 'Executável do PDV não encontrado após instalação.' }`,
+    "} catch {",
+    "  Write-UpdateLog ('Falha na atualização: ' + $_.Exception.Message)",
+    "  throw",
+    "}",
   ].join("\n");
 
   await fs.mkdir(env.pdvReleaseDir, { recursive: true });
@@ -442,13 +450,12 @@ export async function baixarAtualizacaoPdv(releaseId, { autoApply = true } = {})
   ) {
     try {
       if (isInstallerPackage(downloaded.arquivo_local)) {
-        assertSemCaixaAberto();
-        console.info("[desktop-release] Iniciando instalador automático", {
+        console.info("[desktop-release] Instalador baixado; aplicação delegada ao Electron", {
           releaseId: downloaded.release_id,
           versao: downloaded.versao,
           arquivoLocal: downloaded.arquivo_local,
         });
-        return await instalarAtualizacaoPdv(downloaded.release_id);
+        return downloaded;
       }
 
       console.info("[desktop-release] Aplicando pacote local automaticamente", {
@@ -524,11 +531,9 @@ export async function prepararAtualizacaoPdv() {
   } else if (["baixado", "staged"].includes(localPendingStatus) && releaseLocal?.release_id) {
     const arquivoLocal = String(releaseLocal?.arquivo_local || "").toLowerCase();
     const isInstaller = arquivoLocal.endsWith(".exe") || arquivoLocal.endsWith(".msi");
-    action = isInstaller ? "install" : "apply";
+    action = isInstaller ? "waiting_electron_updater" : "apply";
     try {
-      releaseLocal = isInstaller
-        ? await instalarAtualizacaoPdv(releaseLocal.release_id)
-        : await aplicarAtualizacaoPdv(releaseLocal.release_id);
+      releaseLocal = isInstaller ? releaseLocal : await aplicarAtualizacaoPdv(releaseLocal.release_id);
     } catch (error) {
       if (!/fechamento do caixa/i.test(error?.message || "")) {
         throw error;
@@ -537,8 +542,20 @@ export async function prepararAtualizacaoPdv() {
       action = "deferred";
     }
   } else if (release.update_available && release.release?.release_id) {
-    action = "download";
-    releaseLocal = await baixarAtualizacaoPdv(release.release.release_id);
+    const remoteFileName = String(
+      release.release.arquivo_original || release.release.arquivo_nome || "",
+    ).toLowerCase();
+    const remoteIsInstaller =
+      release.release.tipo_release === "app" &&
+      (remoteFileName.endsWith(".exe") || remoteFileName.endsWith(".msi"));
+
+    if (remoteIsInstaller) {
+      action = "electron_updater";
+      releaseLocal = release.local || getReleaseUpdateByReleaseId(release.release.release_id);
+    } else {
+      action = "download";
+      releaseLocal = await baixarAtualizacaoPdv(release.release.release_id);
+    }
   }
 
   return {

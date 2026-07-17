@@ -1,4 +1,4 @@
-[2026-07-17T11:20:43.459Z] [desktop-acbr] Diagnostico inicial {
+[2026-07-17T14:58:53.395Z] [desktop-acbr] Diagnostico inicial {
   mode: 'lib',
   packageAvailable: true,
   packageMessage: null,
@@ -23,32 +23,32 @@
   }
 }
 [desktop-release] Diagnostico inicial { sevenZipPath: 'C:\\v12\\V12 PDV\\resources\\tools\\7zip\\7z.exe' }
-[2026-07-17T11:20:43.472Z] [desktop-server] V12 local rodando na porta 5100
-[2026-07-17T11:20:45.758Z] [desktop-sync] Etapa concluida {
+[2026-07-17T14:58:53.406Z] [desktop-server] V12 local rodando na porta 5100
+[2026-07-17T14:59:04.506Z] [desktop-sync] Etapa concluida {
   key: 'filial',
   label: 'Filial',
   success: true,
   details: { tenantId: 5, terminalCodigo: 'PDV-02' }
 }
-[2026-07-17T11:20:45.963Z] [desktop-sync] Etapa concluida {
+[2026-07-17T14:59:12.032Z] [desktop-sync] Etapa concluida {
   key: 'usuarios',
   label: 'Operadores',
   success: true,
   details: { imported: 2 }
 }
-[2026-07-17T11:20:46.212Z] [desktop-sync] Etapa concluida {
+[2026-07-17T14:59:12.671Z] [desktop-sync] Etapa concluida {
   key: 'produtos',
   label: 'Produtos',
   success: true,
   details: { imported: 0, full: false }
 }
-[2026-07-17T11:20:46.433Z] [desktop-sync] Etapa concluida {
+[2026-07-17T14:59:40.066Z] [desktop-sync] Etapa concluida {
   key: 'financeiro',
   label: 'Financeiro',
   success: true,
   details: { formasPagamento: 5, condicoesPagamento: 8 }
 }
-[2026-07-17T11:20:46.445Z] [desktop-sync] Etapa concluida {
+[2026-07-17T14:59:40.080Z] [desktop-sync] Etapa concluida {
   key: 'pendencias',
   label: 'Pendências locais',
   success: true,
@@ -60,113 +60,226 @@
   success: true,
   details: { total: 0, autorizadas: 0, emContingencia: 0, rejeitadas: 0 }
 }
-[2026-07-17T11:21:54.599Z] [desktop-release] Release baixado {
-  releaseId: '8',
-  versao: '0.1.9',
-  arquivoLocal: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\releases\\V12-PDV-Setup-0.1.9.exe',
-  tipoRelease: 'app',
-  modoAplicacao: 'auto_inicio'
-}
-[2026-07-17T11:21:54.617Z] [desktop-release] Iniciando instalador automático {
-  releaseId: '8',
-  versao: '0.1.9',
-  arquivoLocal: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\releases\\V12-PDV-Setup-0.1.9.exe'
-}
-[2026-07-17T11:21:55.287Z] [stderr] [desktop-release] Instalador ocupado, tentando novamente {
-  command: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\releases\\V12-PDV-Setup-0.1.9.exe',
-  attempt: 1,
-  message: 'spawn EBUSY'
-}
-[2026-07-17T11:21:57.454Z] [stderr] [desktop-release] Instalador ocupado, tentando novamente {
-  command: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\releases\\V12-PDV-Setup-0.1.9.exe',
-  attempt: 2,
-  message: 'spawn EBUSY'
-}
-[2026-07-17T11:22:01.123Z] [stderr] [desktop-release] Instalador ocupado, tentando novamente {
-  command: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\releases\\V12-PDV-Setup-0.1.9.exe',
-  attempt: 3,
-  message: 'spawn EBUSY'
-}
-[2026-07-17T11:22:06.286Z] [desktop-release] Verificação automática não aplicada { message: 'spawn EBUSY' }
-[2026-07-17T11:22:30.801Z] [desktop-release] Release baixado {
-  releaseId: '8',
-  versao: '0.1.9',
-  arquivoLocal: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\releases\\V12-PDV-Setup-0.1.9.exe',
-  tipoRelease: 'app',
-  modoAplicacao: 'auto_inicio'
-}
-[2026-07-17T11:22:30.817Z] [desktop-release] Iniciando instalador automático {
-  releaseId: '8',
-  versao: '0.1.9',
-  arquivoLocal: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\releases\\V12-PDV-Setup-0.1.9.exe'
-}
-[2026-07-17T11:22:31.438Z] [desktop-release] Instalador disparado {
-  releaseId: '8',
-  versao: '0.1.9',
-  arquivoLocal: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\releases\\V12-PDV-Setup-0.1.9.exe'
-}
-[2026-07-17T11:22:31.455Z] [desktop-sync] Etapa concluida {
+[2026-07-17T14:59:40.919Z] [desktop-sync] Etapa concluida {
   key: 'release',
   label: 'Release do PDV',
   success: true,
   details: {
-    versaoAtual: '0.1.8',
+    versaoAtual: '0.1.21',
+    updateAvailable: false,
+    versaoDisponivel: null,
+    statusLocal: 'aplicado'
+  }
+}
+[2026-07-17T14:59:59.590Z] [desktop-acbr] Diagnostico inicial {
+  mode: 'lib',
+  packageAvailable: true,
+  packageMessage: null,
+  packageEntryPath: 'C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\@projetoacbr\\acbrlib-nfe-node\\dist\\src\\index.js',
+  packageLegacyEntryPath: '@projetoacbr/acbrlib-nfe-node/dist/src',
+  libPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\Windows\\MT\\Cdecl\\ACBrNFe64.dll',
+  libExists: true,
+  schemaPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\Schemas\\NFe',
+  schemaExists: true,
+  iniServicosPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\ACBrNFeServicos.ini',
+  iniServicosExists: true,
+  configDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\config',
+  tempDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\runtime',
+  logDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\log',
+  nativeDependencies: {
+    required: true,
+    dirs: [
+      'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\LibXml2\\x64',
+      'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\OpenSSL\\x64'
+    ],
+    missing: []
+  }
+}
+[desktop-release] Diagnostico inicial { sevenZipPath: 'C:\\v12\\V12 PDV\\resources\\tools\\7zip\\7z.exe' }
+[2026-07-17T14:59:59.602Z] [desktop-server] V12 local rodando na porta 5100
+[2026-07-17T15:00:28.367Z] [stderr] [desktop-server] Falha na requisicao {
+  method: 'POST',
+  path: '/api/local/configuracao/sincronizar-filial',
+  message: 'fetch failed',
+  stack: 'TypeError: fetch failed\n' +
+    '    at node:internal/deps/undici/undici:13510:13\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n' +
+    '    at async fetchTenantConfigFromErp (file:///C:/v12/V12%20PDV/resources/app.asar.unpacked/apps/server/src/services/erpSetupService.js:76:20)\n' +
+    '    at async atualizarDadosFilialAtual (file:///C:/v12/V12%20PDV/resources/app.asar.unpacked/apps/server/src/services/erpSetupService.js:216:18)\n' +
+    '    at async file:///C:/v12/V12%20PDV/resources/app.asar.unpacked/apps/server/src/routes/configuracaoRoutes.js:67:18'
+}
+[2026-07-17T15:02:56.321Z] [desktop-release] Verificação automática não aplicada { message: 'terminated' }
+[2026-07-17T15:04:18.505Z] [stderr] [desktop-sync] Falha na atualização completa {
+  completedSteps: [],
+  message: 'fetch failed',
+  stack: 'TypeError: fetch failed\n' +
+    '    at node:internal/deps/undici/undici:13510:13\n' +
+    '    at async fetchTenantConfigFromErp (file:///C:/v12/V12%20PDV/resources/app.asar.unpacked/apps/server/src/services/erpSetupService.js:76:20)\n' +
+    '    at async atualizarDadosFilialAtual (file:///C:/v12/V12%20PDV/resources/app.asar.unpacked/apps/server/src/services/erpSetupService.js:216:18)\n' +
+    '    at async atualizarPdvCompleto (file:///C:/v12/V12%20PDV/resources/app.asar.unpacked/apps/server/src/services/pdvUpdateService.js:27:20)\n' +
+    '    at async file:///C:/v12/V12%20PDV/resources/app.asar.unpacked/apps/server/src/routes/syncRoutes.js:23:18'
+}
+[desktop-server] Falha na requisicao {
+  method: 'POST',
+  path: '/api/local/sync/atualizar-pdv',
+  message: 'fetch failed',
+  stack: 'TypeError: fetch failed\n' +
+    '    at node:internal/deps/undici/undici:13510:13\n' +
+    '    at async fetchTenantConfigFromErp (file:///C:/v12/V12%20PDV/resources/app.asar.unpacked/apps/server/src/services/erpSetupService.js:76:20)\n' +
+    '    at async atualizarDadosFilialAtual (file:///C:/v12/V12%20PDV/resources/app.asar.unpacked/apps/server/src/services/erpSetupService.js:216:18)\n' +
+    '    at async atualizarPdvCompleto (file:///C:/v12/V12%20PDV/resources/app.asar.unpacked/apps/server/src/services/pdvUpdateService.js:27:20)\n' +
+    '    at async file:///C:/v12/V12%20PDV/resources/app.asar.unpacked/apps/server/src/routes/syncRoutes.js:23:18'
+}
+[2026-07-17T15:04:49.849Z] [desktop-acbr] Diagnostico inicial {
+  mode: 'lib',
+  packageAvailable: true,
+  packageMessage: null,
+  packageEntryPath: 'C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\@projetoacbr\\acbrlib-nfe-node\\dist\\src\\index.js',
+  packageLegacyEntryPath: '@projetoacbr/acbrlib-nfe-node/dist/src',
+  libPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\Windows\\MT\\Cdecl\\ACBrNFe64.dll',
+  libExists: true,
+  schemaPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\Schemas\\NFe',
+  schemaExists: true,
+  iniServicosPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\ACBrNFeServicos.ini',
+  iniServicosExists: true,
+  configDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\config',
+  tempDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\runtime',
+  logDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\log',
+  nativeDependencies: {
+    required: true,
+    dirs: [
+      'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\LibXml2\\x64',
+      'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\OpenSSL\\x64'
+    ],
+    missing: []
+  }
+}
+[2026-07-17T15:04:49.861Z] [desktop-release] Diagnostico inicial { sevenZipPath: 'C:\\v12\\V12 PDV\\resources\\tools\\7zip\\7z.exe' }
+[desktop-server] V12 local rodando na porta 5100
+[2026-07-17T15:06:04.701Z] [desktop-acbr] Diagnostico inicial {
+  mode: 'lib',
+  packageAvailable: true,
+  packageMessage: null,
+  packageEntryPath: 'C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\@projetoacbr\\acbrlib-nfe-node\\dist\\src\\index.js',
+  packageLegacyEntryPath: '@projetoacbr/acbrlib-nfe-node/dist/src',
+  libPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\Windows\\MT\\Cdecl\\ACBrNFe64.dll',
+  libExists: true,
+  schemaPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\Schemas\\NFe',
+  schemaExists: true,
+  iniServicosPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\ACBrNFeServicos.ini',
+  iniServicosExists: true,
+  configDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\config',
+  tempDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\runtime',
+  logDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\log',
+  nativeDependencies: {
+    required: true,
+    dirs: [
+      'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\LibXml2\\x64',
+      'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\OpenSSL\\x64'
+    ],
+    missing: []
+  }
+}
+[2026-07-17T15:06:04.702Z] [desktop-release] Diagnostico inicial { sevenZipPath: 'C:\\v12\\V12 PDV\\resources\\tools\\7zip\\7z.exe' }
+[2026-07-17T15:06:04.704Z] [desktop-server] V12 local rodando na porta 5100
+[2026-07-17T15:06:27.827Z] [desktop-acbr] Diagnostico inicial {
+  mode: 'lib',
+  packageAvailable: true,
+  packageMessage: null,
+  packageEntryPath: 'C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\@projetoacbr\\acbrlib-nfe-node\\dist\\src\\index.js',
+  packageLegacyEntryPath: '@projetoacbr/acbrlib-nfe-node/dist/src',
+  libPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\Windows\\MT\\Cdecl\\ACBrNFe64.dll',
+  libExists: true,
+  schemaPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\Schemas\\NFe',
+  schemaExists: true,
+  iniServicosPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\ACBrNFeServicos.ini',
+  iniServicosExists: true,
+  configDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\config',
+  tempDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\runtime',
+  logDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\log',
+  nativeDependencies: {
+    required: true,
+    dirs: [
+      'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\LibXml2\\x64',
+      'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\OpenSSL\\x64'
+    ],
+    missing: []
+  }
+}
+[desktop-release] Diagnostico inicial { sevenZipPath: 'C:\\v12\\V12 PDV\\resources\\tools\\7zip\\7z.exe' }
+[2026-07-17T15:06:27.829Z] [desktop-server] V12 local rodando na porta 5100
+[2026-07-17T15:06:31.509Z] [desktop-sync] Etapa concluida {
+  key: 'filial',
+  label: 'Filial',
+  success: true,
+  details: { tenantId: 5, terminalCodigo: 'PDV-02' }
+}
+[2026-07-17T15:06:31.730Z] [desktop-sync] Etapa concluida {
+  key: 'usuarios',
+  label: 'Operadores',
+  success: true,
+  details: { imported: 2 }
+}
+[2026-07-17T15:06:31.981Z] [desktop-sync] Etapa concluida {
+  key: 'produtos',
+  label: 'Produtos',
+  success: true,
+  details: { imported: 0, full: false }
+}
+[2026-07-17T15:06:32.200Z] [desktop-sync] Etapa concluida {
+  key: 'financeiro',
+  label: 'Financeiro',
+  success: true,
+  details: { formasPagamento: 5, condicoesPagamento: 8 }
+}
+[2026-07-17T15:06:32.201Z] [desktop-sync] Etapa concluida {
+  key: 'pendencias',
+  label: 'Pendências locais',
+  success: true,
+  details: { processed: 0, pending: 0 }
+}
+[2026-07-17T15:06:32.201Z] [desktop-sync] Etapa concluida {
+  key: 'contingencias',
+  label: 'NFC-e em contingência',
+  success: true,
+  details: { total: 0, autorizadas: 0, emContingencia: 0, rejeitadas: 0 }
+}
+[2026-07-17T15:06:32.612Z] [desktop-sync] Etapa concluida {
+  key: 'release',
+  label: 'Release do PDV',
+  success: true,
+  details: {
+    versaoAtual: '0.1.21',
     updateAvailable: true,
-    versaoDisponivel: '0.1.9',
-    statusLocal: 'instalando'
+    versaoDisponivel: '0.1.22',
+    statusLocal: 'disponivel'
   }
 }
-[2026-07-17T11:25:48.408Z] [desktop-acbr] Diagnostico inicial {
-  mode: 'lib',
-  packageAvailable: true,
-  packageMessage: null,
-  packageEntryPath: 'C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\@projetoacbr\\acbrlib-nfe-node\\dist\\src\\index.js',
-  packageLegacyEntryPath: '@projetoacbr/acbrlib-nfe-node/dist/src',
-  libPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\Windows\\MT\\Cdecl\\ACBrNFe64.dll',
-  libExists: true,
-  schemaPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\Schemas\\NFe',
-  schemaExists: true,
-  iniServicosPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\ACBrNFeServicos.ini',
-  iniServicosExists: true,
-  configDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\config',
-  tempDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\runtime',
-  logDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\log',
-  nativeDependencies: {
-    required: true,
-    dirs: [
-      'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\LibXml2\\x64',
-      'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\OpenSSL\\x64'
-    ],
-    missing: []
-  }
-}
-[2026-07-17T11:25:48.418Z] [desktop-release] Diagnostico inicial { sevenZipPath: 'C:\\v12\\V12 PDV\\resources\\tools\\7zip\\7z.exe' }
-[desktop-server] V12 local rodando na porta 5100
-[2026-07-17T11:25:50.864Z] [desktop-sync] Etapa concluida {
+[2026-07-17T15:06:43.207Z] [desktop-sync] Etapa concluida {
   key: 'filial',
   label: 'Filial',
   success: true,
   details: { tenantId: 5, terminalCodigo: 'PDV-02' }
 }
-[2026-07-17T11:25:51.099Z] [desktop-sync] Etapa concluida {
+[2026-07-17T15:06:43.417Z] [desktop-sync] Etapa concluida {
   key: 'usuarios',
   label: 'Operadores',
   success: true,
   details: { imported: 2 }
 }
-[2026-07-17T11:25:51.356Z] [desktop-sync] Etapa concluida {
+[2026-07-17T15:06:43.633Z] [desktop-sync] Etapa concluida {
   key: 'produtos',
   label: 'Produtos',
   success: true,
   details: { imported: 0, full: false }
 }
-[2026-07-17T11:25:51.577Z] [desktop-sync] Etapa concluida {
+[2026-07-17T15:06:43.836Z] [desktop-sync] Etapa concluida {
   key: 'financeiro',
   label: 'Financeiro',
   success: true,
   details: { formasPagamento: 5, condicoesPagamento: 8 }
 }
-[2026-07-17T11:25:51.591Z] [desktop-sync] Etapa concluida {
+[2026-07-17T15:06:43.837Z] [desktop-sync] Etapa concluida {
   key: 'pendencias',
   label: 'Pendências locais',
   success: true,
@@ -178,866 +291,298 @@
   success: true,
   details: { total: 0, autorizadas: 0, emContingencia: 0, rejeitadas: 0 }
 }
-[2026-07-17T11:25:51.995Z] [desktop-sync] Etapa concluida {
+[2026-07-17T15:06:44.254Z] [desktop-sync] Etapa concluida {
   key: 'release',
   label: 'Release do PDV',
   success: true,
   details: {
-    versaoAtual: '0.1.9',
-    updateAvailable: false,
-    versaoDisponivel: '0.1.9',
-    statusLocal: 'aplicado'
+    versaoAtual: '0.1.21',
+    updateAvailable: true,
+    versaoDisponivel: '0.1.22',
+    statusLocal: 'disponivel'
   }
 }
-[2026-07-17T11:25:54.766Z] [desktop-sync] Etapa concluida {
-  key: 'filial',
-  label: 'Filial',
-  success: true,
-  details: { tenantId: 5, terminalCodigo: 'PDV-02' }
-}
-[2026-07-17T11:25:54.983Z] [desktop-sync] Etapa concluida {
-  key: 'usuarios',
-  label: 'Operadores',
-  success: true,
-  details: { imported: 2 }
-}
-[2026-07-17T11:25:55.200Z] [desktop-sync] Etapa concluida {
-  key: 'produtos',
-  label: 'Produtos',
-  success: true,
-  details: { imported: 0, full: false }
-}
-[2026-07-17T11:25:55.415Z] [desktop-sync] Etapa concluida {
-  key: 'financeiro',
-  label: 'Financeiro',
-  success: true,
-  details: { formasPagamento: 5, condicoesPagamento: 8 }
-}
-[2026-07-17T11:25:55.442Z] [desktop-sync] Etapa concluida {
-  key: 'pendencias',
-  label: 'Pendências locais',
-  success: true,
-  details: { processed: 0, pending: 0 }
-}
-[desktop-sync] Etapa concluida {
-  key: 'contingencias',
-  label: 'NFC-e em contingência',
-  success: true,
-  details: { total: 0, autorizadas: 0, emContingencia: 0, rejeitadas: 0 }
-}
-[2026-07-17T11:25:55.816Z] [desktop-sync] Etapa concluida {
-  key: 'release',
-  label: 'Release do PDV',
-  success: true,
-  details: {
-    versaoAtual: '0.1.9',
-    updateAvailable: false,
-    versaoDisponivel: '0.1.9',
-    statusLocal: 'aplicado'
-  }
-}
-[2026-07-17T11:30:55.481Z] [desktop-sync] Etapa concluida {
-  key: 'filial',
-  label: 'Filial',
-  success: true,
-  details: { tenantId: 5, terminalCodigo: 'PDV-02' }
-}
-[2026-07-17T11:30:56.078Z] [desktop-sync] Etapa concluida {
-  key: 'usuarios',
-  label: 'Operadores',
-  success: true,
-  details: { imported: 2 }
-}
-[2026-07-17T11:30:56.324Z] [desktop-sync] Etapa concluida {
-  key: 'produtos',
-  label: 'Produtos',
-  success: true,
-  details: { imported: 0, full: false }
-}
-[2026-07-17T11:30:56.525Z] [desktop-sync] Etapa concluida {
-  key: 'financeiro',
-  label: 'Financeiro',
-  success: true,
-  details: { formasPagamento: 5, condicoesPagamento: 8 }
-}
-[desktop-sync] Etapa concluida {
-  key: 'pendencias',
-  label: 'Pendências locais',
-  success: true,
-  details: { processed: 0, pending: 0 }
-}
-[2026-07-17T11:30:56.537Z] [desktop-sync] Etapa concluida {
-  key: 'contingencias',
-  label: 'NFC-e em contingência',
-  success: true,
-  details: { total: 0, autorizadas: 0, emContingencia: 0, rejeitadas: 0 }
-}
-[2026-07-17T11:30:56.976Z] [desktop-sync] Etapa concluida {
-  key: 'release',
-  label: 'Release do PDV',
-  success: true,
-  details: {
-    versaoAtual: '0.1.9',
-    updateAvailable: false,
-    versaoDisponivel: '0.1.9',
-    statusLocal: 'aplicado'
-  }
-}
-[2026-07-17T11:35:55.464Z] [desktop-sync] Etapa concluida {
-  key: 'filial',
-  label: 'Filial',
-  success: true,
-  details: { tenantId: 5, terminalCodigo: 'PDV-02' }
-}
-[2026-07-17T11:35:56.135Z] [desktop-sync] Etapa concluida {
-  key: 'usuarios',
-  label: 'Operadores',
-  success: true,
-  details: { imported: 2 }
-}
-[2026-07-17T11:35:56.369Z] [desktop-sync] Etapa concluida {
-  key: 'produtos',
-  label: 'Produtos',
-  success: true,
-  details: { imported: 0, full: false }
-}
-[2026-07-17T11:35:56.579Z] [desktop-sync] Etapa concluida {
-  key: 'financeiro',
-  label: 'Financeiro',
-  success: true,
-  details: { formasPagamento: 5, condicoesPagamento: 8 }
-}
-[2026-07-17T11:35:56.593Z] [desktop-sync] Etapa concluida {
-  key: 'pendencias',
-  label: 'Pendências locais',
-  success: true,
-  details: { processed: 0, pending: 0 }
-}
-[desktop-sync] Etapa concluida {
-  key: 'contingencias',
-  label: 'NFC-e em contingência',
-  success: true,
-  details: { total: 0, autorizadas: 0, emContingencia: 0, rejeitadas: 0 }
-}
-[2026-07-17T11:35:56.977Z] [desktop-sync] Etapa concluida {
-  key: 'release',
-  label: 'Release do PDV',
-  success: true,
-  details: {
-    versaoAtual: '0.1.9',
-    updateAvailable: false,
-    versaoDisponivel: '0.1.9',
-    statusLocal: 'aplicado'
-  }
-}
-[2026-07-17T11:40:55.468Z] [desktop-sync] Etapa concluida {
-  key: 'filial',
-  label: 'Filial',
-  success: true,
-  details: { tenantId: 5, terminalCodigo: 'PDV-02' }
-}
-[2026-07-17T11:40:56.081Z] [desktop-sync] Etapa concluida {
-  key: 'usuarios',
-  label: 'Operadores',
-  success: true,
-  details: { imported: 2 }
-}
-[2026-07-17T11:40:56.310Z] [desktop-sync] Etapa concluida {
-  key: 'produtos',
-  label: 'Produtos',
-  success: true,
-  details: { imported: 0, full: false }
-}
-[2026-07-17T11:40:56.524Z] [desktop-sync] Etapa concluida {
-  key: 'financeiro',
-  label: 'Financeiro',
-  success: true,
-  details: { formasPagamento: 5, condicoesPagamento: 8 }
-}
-[2026-07-17T11:40:56.540Z] [desktop-sync] Etapa concluida {
-  key: 'pendencias',
-  label: 'Pendências locais',
-  success: true,
-  details: { processed: 0, pending: 0 }
-}
-[desktop-sync] Etapa concluida {
-  key: 'contingencias',
-  label: 'NFC-e em contingência',
-  success: true,
-  details: { total: 0, autorizadas: 0, emContingencia: 0, rejeitadas: 0 }
-}
-[2026-07-17T11:40:56.931Z] [desktop-sync] Etapa concluida {
-  key: 'release',
-  label: 'Release do PDV',
-  success: true,
-  details: {
-    versaoAtual: '0.1.9',
-    updateAvailable: false,
-    versaoDisponivel: '0.1.9',
-    statusLocal: 'aplicado'
-  }
-}
-[2026-07-17T11:42:16.918Z] [desktop-acbr] Diagnostico inicial {
-  mode: 'lib',
-  packageAvailable: true,
-  packageMessage: null,
-  packageEntryPath: 'C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\@projetoacbr\\acbrlib-nfe-node\\dist\\src\\index.js',
-  packageLegacyEntryPath: '@projetoacbr/acbrlib-nfe-node/dist/src',
-  libPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\Windows\\MT\\Cdecl\\ACBrNFe64.dll',
-  libExists: true,
-  schemaPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\Schemas\\NFe',
-  schemaExists: true,
-  iniServicosPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\ACBrNFeServicos.ini',
-  iniServicosExists: true,
-  configDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\config',
-  tempDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\runtime',
-  logDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\log',
-  nativeDependencies: {
-    required: true,
-    dirs: [
-      'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\LibXml2\\x64',
-      'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\OpenSSL\\x64'
-    ],
-    missing: []
-  }
-}
-[2026-07-17T11:42:16.929Z] [desktop-release] Diagnostico inicial { sevenZipPath: 'C:\\v12\\V12 PDV\\resources\\tools\\7zip\\7z.exe' }
-[desktop-server] V12 local rodando na porta 5100
-[2026-07-17T11:42:20.088Z] [desktop-sync] Etapa concluida {
-  key: 'filial',
-  label: 'Filial',
-  success: true,
-  details: { tenantId: 5, terminalCodigo: 'PDV-02' }
-}
-[2026-07-17T11:42:20.306Z] [desktop-sync] Etapa concluida {
-  key: 'usuarios',
-  label: 'Operadores',
-  success: true,
-  details: { imported: 2 }
-}
-[2026-07-17T11:42:20.547Z] [desktop-sync] Etapa concluida {
-  key: 'produtos',
-  label: 'Produtos',
-  success: true,
-  details: { imported: 0, full: false }
-}
-[2026-07-17T11:42:20.775Z] [desktop-sync] Etapa concluida {
-  key: 'financeiro',
-  label: 'Financeiro',
-  success: true,
-  details: { formasPagamento: 5, condicoesPagamento: 8 }
-}
-[2026-07-17T11:42:20.786Z] [desktop-sync] Etapa concluida {
-  key: 'pendencias',
-  label: 'Pendências locais',
-  success: true,
-  details: { processed: 0, pending: 0 }
-}
-[desktop-sync] Etapa concluida {
-  key: 'contingencias',
-  label: 'NFC-e em contingência',
-  success: true,
-  details: { total: 0, autorizadas: 0, emContingencia: 0, rejeitadas: 0 }
-}
-[2026-07-17T11:42:21.166Z] [desktop-sync] Etapa concluida {
-  key: 'release',
-  label: 'Release do PDV',
-  success: true,
-  details: {
-    versaoAtual: '0.1.10',
-    updateAvailable: false,
-    versaoDisponivel: '0.1.9',
-    statusLocal: 'aplicado'
-  }
-}
-[2026-07-17T11:42:24.545Z] [desktop-sync] Etapa concluida {
-  key: 'filial',
-  label: 'Filial',
-  success: true,
-  details: { tenantId: 5, terminalCodigo: 'PDV-02' }
-}
-[2026-07-17T11:42:24.744Z] [desktop-sync] Etapa concluida {
-  key: 'usuarios',
-  label: 'Operadores',
-  success: true,
-  details: { imported: 2 }
-}
-[2026-07-17T11:42:24.965Z] [desktop-sync] Etapa concluida {
-  key: 'produtos',
-  label: 'Produtos',
-  success: true,
-  details: { imported: 0, full: false }
-}
-[2026-07-17T11:42:25.165Z] [desktop-sync] Etapa concluida {
-  key: 'financeiro',
-  label: 'Financeiro',
-  success: true,
-  details: { formasPagamento: 5, condicoesPagamento: 8 }
-}
-[2026-07-17T11:42:25.178Z] [desktop-sync] Etapa concluida {
-  key: 'pendencias',
-  label: 'Pendências locais',
-  success: true,
-  details: { processed: 0, pending: 0 }
-}
-[desktop-sync] Etapa concluida {
-  key: 'contingencias',
-  label: 'NFC-e em contingência',
-  success: true,
-  details: { total: 0, autorizadas: 0, emContingencia: 0, rejeitadas: 0 }
-}
-[2026-07-17T11:42:25.550Z] [desktop-sync] Etapa concluida {
-  key: 'release',
-  label: 'Release do PDV',
-  success: true,
-  details: {
-    versaoAtual: '0.1.10',
-    updateAvailable: false,
-    versaoDisponivel: '0.1.9',
-    statusLocal: 'aplicado'
-  }
-}
-[2026-07-17T11:51:24.724Z] [desktop-acbr] Diagnostico inicial {
-  mode: 'lib',
-  packageAvailable: true,
-  packageMessage: null,
-  packageEntryPath: 'C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\@projetoacbr\\acbrlib-nfe-node\\dist\\src\\index.js',
-  packageLegacyEntryPath: '@projetoacbr/acbrlib-nfe-node/dist/src',
-  libPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\Windows\\MT\\Cdecl\\ACBrNFe64.dll',
-  libExists: true,
-  schemaPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\Schemas\\NFe',
-  schemaExists: true,
-  iniServicosPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\ACBrNFeServicos.ini',
-  iniServicosExists: true,
-  configDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\config',
-  tempDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\runtime',
-  logDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\log',
-  nativeDependencies: {
-    required: true,
-    dirs: [
-      'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\LibXml2\\x64',
-      'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\OpenSSL\\x64'
-    ],
-    missing: []
-  }
-}
-[desktop-release] Diagnostico inicial { sevenZipPath: 'C:\\v12\\V12 PDV\\resources\\tools\\7zip\\7z.exe' }
-[2026-07-17T11:51:24.737Z] [desktop-server] V12 local rodando na porta 5100
-[2026-07-17T11:52:46.751Z] [desktop-release] Release baixado {
-  releaseId: '9',
-  versao: '0.1.12',
-  arquivoLocal: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\releases\\V12-PDV-Setup-0.1.12.exe',
-  tipoRelease: 'app',
-  modoAplicacao: 'auto_inicio'
-}
-[2026-07-17T11:52:46.766Z] [desktop-release] Iniciando instalador automático {
-  releaseId: '9',
-  versao: '0.1.12',
-  arquivoLocal: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\releases\\V12-PDV-Setup-0.1.12.exe'
-}
-[2026-07-17T11:52:47.376Z] [desktop-release] Instalador disparado {
-  releaseId: '9',
-  versao: '0.1.12',
-  arquivoLocal: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\releases\\V12-PDV-Setup-0.1.12.exe'
-}
-[2026-07-17T11:53:52.565Z] [desktop-release] Release baixado {
-  releaseId: '9',
-  versao: '0.1.12',
-  arquivoLocal: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\releases\\V12-PDV-Setup-0.1.12.exe',
-  tipoRelease: 'app',
-  modoAplicacao: 'auto_inicio'
-}
-[2026-07-17T11:53:52.584Z] [desktop-release] Iniciando instalador automático {
-  releaseId: '9',
-  versao: '0.1.12',
-  arquivoLocal: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\releases\\V12-PDV-Setup-0.1.12.exe'
-}
-[desktop-release] Instalador disparado {
-  releaseId: '9',
-  versao: '0.1.12',
-  arquivoLocal: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\releases\\V12-PDV-Setup-0.1.12.exe'
-}
-[2026-07-17T11:54:39.218Z] [desktop-acbr] Diagnostico inicial {
-  mode: 'lib',
-  packageAvailable: true,
-  packageMessage: null,
-  packageEntryPath: 'C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\@projetoacbr\\acbrlib-nfe-node\\dist\\src\\index.js',
-  packageLegacyEntryPath: '@projetoacbr/acbrlib-nfe-node/dist/src',
-  libPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\Windows\\MT\\Cdecl\\ACBrNFe64.dll',
-  libExists: true,
-  schemaPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\Schemas\\NFe',
-  schemaExists: true,
-  iniServicosPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\ACBrNFeServicos.ini',
-  iniServicosExists: true,
-  configDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\config',
-  tempDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\runtime',
-  logDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\log',
-  nativeDependencies: {
-    required: true,
-    dirs: [
-      'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\LibXml2\\x64',
-      'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\OpenSSL\\x64'
-    ],
-    missing: []
-  }
-}
-[desktop-release] Diagnostico inicial { sevenZipPath: 'C:\\v12\\V12 PDV\\resources\\tools\\7zip\\7z.exe' }
-[2026-07-17T11:54:39.230Z] [desktop-server] V12 local rodando na porta 5100
-[2026-07-17T11:54:41.567Z] [desktop-release] Instalador disparado {
-  releaseId: '9',
-  versao: '0.1.12',
-  arquivoLocal: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\releases\\V12-PDV-Setup-0.1.12.exe'
-}
-[2026-07-17T11:59:41.781Z] [desktop-sync] Etapa concluida {
-  key: 'filial',
-  label: 'Filial',
-  success: true,
-  details: { tenantId: 5, terminalCodigo: 'PDV-02' }
-}
-[2026-07-17T11:59:41.990Z] [desktop-sync] Etapa concluida {
-  key: 'usuarios',
-  label: 'Operadores',
-  success: true,
-  details: { imported: 2 }
-}
-[2026-07-17T11:59:42.250Z] [desktop-sync] Etapa concluida {
-  key: 'produtos',
-  label: 'Produtos',
-  success: true,
-  details: { imported: 0, full: false }
-}
-[2026-07-17T11:59:42.458Z] [desktop-sync] Etapa concluida {
-  key: 'financeiro',
-  label: 'Financeiro',
-  success: true,
-  details: { formasPagamento: 5, condicoesPagamento: 8 }
-}
-[2026-07-17T11:59:42.471Z] [desktop-sync] Etapa concluida {
-  key: 'pendencias',
-  label: 'Pendências locais',
-  success: true,
-  details: { processed: 0, pending: 0 }
-}
-[desktop-sync] Etapa concluida {
-  key: 'contingencias',
-  label: 'NFC-e em contingência',
-  success: true,
-  details: { total: 0, autorizadas: 0, emContingencia: 0, rejeitadas: 0 }
-}
-[2026-07-17T11:59:42.860Z] [desktop-release] Instalador disparado {
-  releaseId: '9',
-  versao: '0.1.12',
-  arquivoLocal: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\releases\\V12-PDV-Setup-0.1.12.exe'
-}
-[2026-07-17T11:59:42.878Z] [desktop-sync] Etapa concluida {
-  key: 'release',
-  label: 'Release do PDV',
-  success: true,
-  details: {
-    versaoAtual: '0.1.10',
-    updateAvailable: false,
-    versaoDisponivel: '0.1.12',
-    statusLocal: 'instalando'
-  }
-}
-[2026-07-17T12:01:34.856Z] [desktop-acbr] Diagnostico inicial {
-  mode: 'lib',
-  packageAvailable: true,
-  packageMessage: null,
-  packageEntryPath: 'C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\@projetoacbr\\acbrlib-nfe-node\\dist\\src\\index.js',
-  packageLegacyEntryPath: '@projetoacbr/acbrlib-nfe-node/dist/src',
-  libPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\Windows\\MT\\Cdecl\\ACBrNFe64.dll',
-  libExists: true,
-  schemaPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\Schemas\\NFe',
-  schemaExists: true,
-  iniServicosPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\ACBrNFeServicos.ini',
-  iniServicosExists: true,
-  configDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\config',
-  tempDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\runtime',
-  logDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\log',
-  nativeDependencies: {
-    required: true,
-    dirs: [
-      'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\LibXml2\\x64',
-      'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\OpenSSL\\x64'
-    ],
-    missing: []
-  }
-}
-[desktop-release] Diagnostico inicial { sevenZipPath: 'C:\\v12\\V12 PDV\\resources\\tools\\7zip\\7z.exe' }
-[2026-07-17T12:01:34.870Z] [desktop-server] V12 local rodando na porta 5100
-[2026-07-17T12:01:37.085Z] [desktop-release] Instalador disparado {
-  releaseId: '9',
-  versao: '0.1.12',
-  arquivoLocal: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\releases\\V12-PDV-Setup-0.1.12.exe'
-}
-[2026-07-17T12:11:24.598Z] [desktop-acbr] Diagnostico inicial {
-  mode: 'lib',
-  packageAvailable: true,
-  packageMessage: null,
-  packageEntryPath: 'C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\@projetoacbr\\acbrlib-nfe-node\\dist\\src\\index.js',
-  packageLegacyEntryPath: '@projetoacbr/acbrlib-nfe-node/dist/src',
-  libPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\Windows\\MT\\Cdecl\\ACBrNFe64.dll',
-  libExists: true,
-  schemaPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\Schemas\\NFe',
-  schemaExists: true,
-  iniServicosPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\ACBrNFeServicos.ini',
-  iniServicosExists: true,
-  configDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\config',
-  tempDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\runtime',
-  logDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\log',
-  nativeDependencies: {
-    required: true,
-    dirs: [
-      'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\LibXml2\\x64',
-      'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\OpenSSL\\x64'
-    ],
-    missing: []
-  }
-}
-[2026-07-17T12:11:24.611Z] [desktop-release] Diagnostico inicial { sevenZipPath: 'C:\\v12\\V12 PDV\\resources\\tools\\7zip\\7z.exe' }
-[desktop-server] V12 local rodando na porta 5100
-[2026-07-17T12:11:28.011Z] [desktop-sync] Etapa concluida {
-  key: 'filial',
-  label: 'Filial',
-  success: true,
-  details: { tenantId: 5, terminalCodigo: 'PDV-02' }
-}
-[2026-07-17T12:11:28.234Z] [desktop-sync] Etapa concluida {
-  key: 'usuarios',
-  label: 'Operadores',
-  success: true,
-  details: { imported: 2 }
-}
-[2026-07-17T12:11:28.499Z] [desktop-sync] Etapa concluida {
-  key: 'produtos',
-  label: 'Produtos',
-  success: true,
-  details: { imported: 0, full: false }
-}
-[2026-07-17T12:11:28.741Z] [desktop-sync] Etapa concluida {
-  key: 'financeiro',
-  label: 'Financeiro',
-  success: true,
-  details: { formasPagamento: 5, condicoesPagamento: 8 }
-}
-[2026-07-17T12:11:28.754Z] [desktop-sync] Etapa concluida {
-  key: 'pendencias',
-  label: 'Pendências locais',
-  success: true,
-  details: { processed: 0, pending: 0 }
-}
-[desktop-sync] Etapa concluida {
-  key: 'contingencias',
-  label: 'NFC-e em contingência',
-  success: true,
-  details: { total: 0, autorizadas: 0, emContingencia: 0, rejeitadas: 0 }
-}
-[2026-07-17T12:11:29.160Z] [desktop-sync] Etapa concluida {
-  key: 'release',
-  label: 'Release do PDV',
-  success: true,
-  details: {
-    versaoAtual: '0.1.13',
-    updateAvailable: false,
-    versaoDisponivel: '0.1.12',
-    statusLocal: 'aplicado'
-  }
-}
-[2026-07-17T12:16:14.032Z] [desktop-acbr] Diagnostico inicial {
-  mode: 'lib',
-  packageAvailable: true,
-  packageMessage: null,
-  packageEntryPath: 'C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\@projetoacbr\\acbrlib-nfe-node\\dist\\src\\index.js',
-  packageLegacyEntryPath: '@projetoacbr/acbrlib-nfe-node/dist/src',
-  libPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\Windows\\MT\\Cdecl\\ACBrNFe64.dll',
-  libExists: true,
-  schemaPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\Schemas\\NFe',
-  schemaExists: true,
-  iniServicosPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\ACBrNFeServicos.ini',
-  iniServicosExists: true,
-  configDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\config',
-  tempDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\runtime',
-  logDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\log',
-  nativeDependencies: {
-    required: true,
-    dirs: [
-      'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\LibXml2\\x64',
-      'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\OpenSSL\\x64'
-    ],
-    missing: []
-  }
-}
-[2026-07-17T12:16:14.045Z] [desktop-release] Diagnostico inicial { sevenZipPath: 'C:\\v12\\V12 PDV\\resources\\tools\\7zip\\7z.exe' }
-[desktop-server] V12 local rodando na porta 5100
-[2026-07-17T12:18:55.725Z] [desktop-release] Release baixado {
-  releaseId: '10',
-  versao: '0.1.14',
-  arquivoLocal: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\releases\\V12-PDV-Setup-0.1.14.exe',
-  tipoRelease: 'app',
-  modoAplicacao: 'auto_inicio'
-}
-[desktop-release] Release baixado pelo agendador { releaseId: '10', versao: '0.1.14', status: 'baixado' }
-[2026-07-17T12:19:05.208Z] [desktop-release] Release baixado {
-  releaseId: '10',
-  versao: '0.1.14',
-  arquivoLocal: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\releases\\V12-PDV-Setup-0.1.14.exe',
-  tipoRelease: 'app',
-  modoAplicacao: 'auto_inicio'
-}
-[2026-07-17T12:19:05.226Z] [desktop-release] Iniciando instalador automático {
-  releaseId: '10',
-  versao: '0.1.14',
-  arquivoLocal: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\releases\\V12-PDV-Setup-0.1.14.exe'
-}
-[2026-07-17T12:19:05.243Z] [desktop-release] Instalador disparado {
-  releaseId: '10',
-  versao: '0.1.14',
-  arquivoLocal: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\releases\\V12-PDV-Setup-0.1.14.exe'
-}
-[2026-07-17T12:19:36.178Z] [desktop-acbr] Diagnostico inicial {
-  mode: 'lib',
-  packageAvailable: true,
-  packageMessage: null,
-  packageEntryPath: 'C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\@projetoacbr\\acbrlib-nfe-node\\dist\\src\\index.js',
-  packageLegacyEntryPath: '@projetoacbr/acbrlib-nfe-node/dist/src',
-  libPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\Windows\\MT\\Cdecl\\ACBrNFe64.dll',
-  libExists: true,
-  schemaPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\Schemas\\NFe',
-  schemaExists: true,
-  iniServicosPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\ACBrNFeServicos.ini',
-  iniServicosExists: true,
-  configDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\config',
-  tempDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\runtime',
-  logDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\log',
-  nativeDependencies: {
-    required: true,
-    dirs: [
-      'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\LibXml2\\x64',
-      'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\OpenSSL\\x64'
-    ],
-    missing: []
-  }
-}
-[2026-07-17T12:19:36.194Z] [desktop-release] Diagnostico inicial { sevenZipPath: 'C:\\v12\\V12 PDV\\resources\\tools\\7zip\\7z.exe' }
-[desktop-server] V12 local rodando na porta 5100
-[2026-07-17T12:19:38.485Z] [stderr] [desktop-release] Instalação anterior não alterou a versão do PDV {
-  releaseId: '10',
-  versaoRelease: '0.1.14',
-  versaoAtual: '0.1.13',
-  message: 'A atualização 0.1.14 já foi iniciada, mas a versão instalada continua 0.1.13. Conclua o instalador manualmente ou publique uma nova release.'
-}
-[2026-07-17T12:19:39.284Z] [desktop-sync] Etapa concluida {
-  key: 'filial',
-  label: 'Filial',
-  success: true,
-  details: { tenantId: 5, terminalCodigo: 'PDV-02' }
-}
-[2026-07-17T12:19:39.491Z] [desktop-sync] Etapa concluida {
-  key: 'usuarios',
-  label: 'Operadores',
-  success: true,
-  details: { imported: 2 }
-}
-[2026-07-17T12:19:39.736Z] [desktop-sync] Etapa concluida {
-  key: 'produtos',
-  label: 'Produtos',
-  success: true,
-  details: { imported: 0, full: false }
-}
-[2026-07-17T12:19:39.946Z] [desktop-sync] Etapa concluida {
-  key: 'financeiro',
-  label: 'Financeiro',
-  success: true,
-  details: { formasPagamento: 5, condicoesPagamento: 8 }
-}
-[2026-07-17T12:19:39.961Z] [desktop-sync] Etapa concluida {
-  key: 'pendencias',
-  label: 'Pendências locais',
-  success: true,
-  details: { processed: 0, pending: 0 }
-}
-[desktop-sync] Etapa concluida {
-  key: 'contingencias',
-  label: 'NFC-e em contingência',
-  success: true,
-  details: { total: 0, autorizadas: 0, emContingencia: 0, rejeitadas: 0 }
-}
-[2026-07-17T12:19:40.363Z] [desktop-sync] Etapa concluida {
-  key: 'release',
-  label: 'Release do PDV',
-  success: true,
-  details: {
-    versaoAtual: '0.1.13',
-    updateAvailable: false,
-    versaoDisponivel: '0.1.14',
-    statusLocal: 'erro'
-  }
-}
-[2026-07-17T12:19:44.603Z] [desktop-sync] Etapa concluida {
-  key: 'filial',
-  label: 'Filial',
-  success: true,
-  details: { tenantId: 5, terminalCodigo: 'PDV-02' }
-}
-[2026-07-17T12:19:44.801Z] [desktop-sync] Etapa concluida {
-  key: 'usuarios',
-  label: 'Operadores',
-  success: true,
-  details: { imported: 2 }
-}
-[2026-07-17T12:19:45.012Z] [desktop-sync] Etapa concluida {
-  key: 'produtos',
-  label: 'Produtos',
-  success: true,
-  details: { imported: 0, full: false }
-}
-[2026-07-17T12:19:45.209Z] [desktop-sync] Etapa concluida {
-  key: 'financeiro',
-  label: 'Financeiro',
-  success: true,
-  details: { formasPagamento: 5, condicoesPagamento: 8 }
-}
-[2026-07-17T12:19:45.221Z] [desktop-sync] Etapa concluida {
-  key: 'pendencias',
-  label: 'Pendências locais',
-  success: true,
-  details: { processed: 0, pending: 0 }
-}
-[desktop-sync] Etapa concluida {
-  key: 'contingencias',
-  label: 'NFC-e em contingência',
-  success: true,
-  details: { total: 0, autorizadas: 0, emContingencia: 0, rejeitadas: 0 }
-}
-[2026-07-17T12:19:45.602Z] [desktop-sync] Etapa concluida {
-  key: 'release',
-  label: 'Release do PDV',
-  success: true,
-  details: {
-    versaoAtual: '0.1.13',
-    updateAvailable: false,
-    versaoDisponivel: '0.1.14',
-    statusLocal: 'erro'
-  }
-}
-[2026-07-17T12:20:04.744Z] [desktop-acbr] Diagnostico inicial {
-  mode: 'lib',
-  packageAvailable: true,
-  packageMessage: null,
-  packageEntryPath: 'C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\node_modules\\@projetoacbr\\acbrlib-nfe-node\\dist\\src\\index.js',
-  packageLegacyEntryPath: '@projetoacbr/acbrlib-nfe-node/dist/src',
-  libPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\Windows\\MT\\Cdecl\\ACBrNFe64.dll',
-  libExists: true,
-  schemaPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\Schemas\\NFe',
-  schemaExists: true,
-  iniServicosPath: 'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\ACBrNFeServicos.ini',
-  iniServicosExists: true,
-  configDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\config',
-  tempDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\runtime',
-  logDir: 'C:\\Users\\teste\\AppData\\Roaming\\v12-desktop\\data\\acbrlib\\log',
-  nativeDependencies: {
-    required: true,
-    dirs: [
-      'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\LibXml2\\x64',
-      'C:\\v12\\V12 PDV\\resources\\lib\\ACBrLibNFE\\dep\\OpenSSL\\x64'
-    ],
-    missing: []
-  }
-}
-[desktop-release] Diagnostico inicial { sevenZipPath: 'C:\\v12\\V12 PDV\\resources\\tools\\7zip\\7z.exe' }
-[2026-07-17T12:20:04.758Z] [desktop-server] V12 local rodando na porta 5100
-[2026-07-17T12:20:07.697Z] [desktop-sync] Etapa concluida {
-  key: 'filial',
-  label: 'Filial',
-  success: true,
-  details: { tenantId: 5, terminalCodigo: 'PDV-02' }
-}
-[2026-07-17T12:20:07.913Z] [desktop-sync] Etapa concluida {
-  key: 'usuarios',
-  label: 'Operadores',
-  success: true,
-  details: { imported: 2 }
-}
-[2026-07-17T12:20:08.166Z] [desktop-sync] Etapa concluida {
-  key: 'produtos',
-  label: 'Produtos',
-  success: true,
-  details: { imported: 0, full: false }
-}
-[2026-07-17T12:20:08.421Z] [desktop-sync] Etapa concluida {
-  key: 'financeiro',
-  label: 'Financeiro',
-  success: true,
-  details: { formasPagamento: 5, condicoesPagamento: 8 }
-}
-[2026-07-17T12:20:08.433Z] [desktop-sync] Etapa concluida {
-  key: 'pendencias',
-  label: 'Pendências locais',
-  success: true,
-  details: { processed: 0, pending: 0 }
-}
-[desktop-sync] Etapa concluida {
-  key: 'contingencias',
-  label: 'NFC-e em contingência',
-  success: true,
-  details: { total: 0, autorizadas: 0, emContingencia: 0, rejeitadas: 0 }
-}
-[2026-07-17T12:20:08.887Z] [desktop-sync] Etapa concluida {
-  key: 'release',
-  label: 'Release do PDV',
-  success: true,
-  details: {
-    versaoAtual: '0.1.13',
-    updateAvailable: false,
-    versaoDisponivel: '0.1.14',
-    statusLocal: 'erro'
-  }
-}
-[2026-07-17T12:20:12.339Z] [desktop-sync] Etapa concluida {
-  key: 'filial',
-  label: 'Filial',
-  success: true,
-  details: { tenantId: 5, terminalCodigo: 'PDV-02' }
-}
-[2026-07-17T12:20:12.548Z] [desktop-sync] Etapa concluida {
-  key: 'usuarios',
-  label: 'Operadores',
-  success: true,
-  details: { imported: 2 }
-}
-[2026-07-17T12:20:12.792Z] [desktop-sync] Etapa concluida {
-  key: 'produtos',
-  label: 'Produtos',
-  success: true,
-  details: { imported: 0, full: false }
-}
-[2026-07-17T12:20:12.997Z] [desktop-sync] Etapa concluida {
-  key: 'financeiro',
-  label: 'Financeiro',
-  success: true,
-  details: { formasPagamento: 5, condicoesPagamento: 8 }
-}
-[2026-07-17T12:20:13.009Z] [desktop-sync] Etapa concluida {
-  key: 'pendencias',
-  label: 'Pendências locais',
-  success: true,
-  details: { processed: 0, pending: 0 }
-}
-[desktop-sync] Etapa concluida {
-  key: 'contingencias',
-  label: 'NFC-e em contingência',
-  success: true,
-  details: { total: 0, autorizadas: 0, emContingencia: 0, rejeitadas: 0 }
-}
-[2026-07-17T12:20:13.395Z] [desktop-sync] Etapa concluida {
-  key: 'release',
-  label: 'Release do PDV',
-  success: true,
-  details: {
-    versaoAtual: '0.1.13',
-    updateAvailable: false,
-    versaoDisponivel: '0.1.14',
-    statusLocal: 'erro'
-  }
-}
+
+
+
+main a partir daqui:
+
+[2026-07-17T14:58:51.427Z] Electron pronto {"isDev":false,"appVersion":"0.1.21","userData":"C:\\Users\\teste\\AppData\\Roaming\\v12-desktop","resourcesPath":"C:\\v12\\V12 PDV\\resources"}
+[2026-07-17T14:58:51.469Z] Inicializando servidor local empacotado {"serverEntry":"C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\apps\\server\\src\\index.js","serverCwd":"C:\\v12\\V12 PDV\\resources","execPath":"C:\\v12\\V12 PDV\\V12 PDV.exe"}
+[2026-07-17T14:58:51.478Z] Criando janela principal
+[2026-07-17T14:58:51.554Z] Carregando front empacotado {"bundledIndex":"C:\\v12\\V12 PDV\\resources\\app.asar\\apps\\station\\dist\\index.html"}
+[2026-07-17T14:58:54.582Z] Estado do updater nativo {"status":"checking","version":null,"percent":null,"message":"Verificando atualização do PDV."}
+[2026-07-17T14:58:55.654Z] Verificando atualização nativa do PDV {"reason":"startup","feedUrl":"https://v12.jhes.com.br/api/desktop/sync/releases/electron-updater/5/stable/win32-x64","appVersion":"0.1.21"}
+[2026-07-17T14:58:55.663Z] [electron-updater:info] Checking for update
+[2026-07-17T14:58:55.670Z] Estado do updater nativo {"status":"checking","version":null,"percent":null,"message":"Verificando atualização do PDV."}
+[2026-07-17T14:58:55.679Z] [electron-updater:info] Generated new staging user ID: 9806b2da-8b92-59d4-8c88-203796486087
+[2026-07-17T14:58:56.629Z] [electron-updater:error] Error: HttpError: 401 Unauthorized
+"method: GET url: https://v12.jhes.com.br/api/desktop/sync/releases/electron-updater/5/stable/win32-x64/latest.yml\n\n          Data:\n          {\n  \"message\": \"Token não fornecido\"\n}\n          "
+Headers: {
+  "access-control-allow-credentials": "b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b (sha256 hash)",
+  "connection": "keep-alive",
+  "content-length": "34",
+  "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+  "content-type": "application/json; charset=utf-8",
+  "cross-origin-opener-policy": "same-origin",
+  "cross-origin-resource-policy": "cross-origin",
+  "date": "Fri, 17 Jul 2026 14:58:56 GMT",
+  "etag": "W/\"22-NOeD41Az20qV9VmfwpPD0Zq2zKE\"",
+  "origin-agent-cluster": "?1",
+  "referrer-policy": "no-referrer",
+  "server": "openresty",
+  "strict-transport-security": "max-age=31536000; includeSubDomains",
+  "vary": "Origin",
+  "x-content-type-options": "nosniff",
+  "x-dns-prefetch-control": "off",
+  "x-download-options": "noopen",
+  "x-frame-options": "SAMEORIGIN",
+  "x-permitted-cross-domain-policies": "none",
+  "x-xss-protection": "0"
+}
+    at createHttpError (C:\v12\V12 PDV\resources\app.asar\node_modules\builder-util-runtime\out\httpExecutor.js:53:12)
+    at IncomingMessage.<anonymous> (C:\v12\V12 PDV\resources\app.asar\node_modules\builder-util-runtime\out\httpExecutor.js:188:28)
+    at IncomingMessage.emit (node:events:518:28)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+[2026-07-17T14:58:56.642Z] Estado do updater nativo {"status":"error","version":null,"percent":null,"message":"401 Unauthorized\n\"method: GET url: https://v12.jhes.com.br/api/desktop/sync/releases/electron-updater/5/stable/win32-x64/latest.yml\\n\\n          Data:\\n          {\\n  \\\"message\\\": \\\"Token não fornecido\\\"\\n}\\n          \"\nHeaders: {\n  \"access-control-allow-credentials\": \"b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b (sha256 hash)\",\n  \"connection\": \"keep-alive\",\n  \"content-length\": \"34\",\n  \"content-security-policy\": \"default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests\",\n  \"content-type\": \"application/json; charset=utf-8\",\n  \"cross-origin-opener-policy\": \"same-origin\",\n  \"cross-origin-resource-policy\": \"cross-origin\",\n  \"date\": \"Fri, 17 Jul 2026 14:58:56 GMT\",\n  \"etag\": \"W/\\\"22-NOeD41Az20qV9VmfwpPD0Zq2zKE\\\"\",\n  \"origin-agent-cluster\": \"?1\",\n  \"referrer-policy\": \"no-referrer\",\n  \"server\": \"openresty\",\n  \"strict-transport-security\": \"max-age=31536000; includeSubDomains\",\n  \"vary\": \"Origin\",\n  \"x-content-type-options\": \"nosniff\",\n  \"x-dns-prefetch-control\": \"off\",\n  \"x-download-options\": \"noopen\",\n  \"x-frame-options\": \"SAMEORIGIN\",\n  \"x-permitted-cross-domain-policies\": \"none\",\n  \"x-xss-protection\": \"0\"\n}"}
+[2026-07-17T14:58:56.653Z] Falha na atualização nativa do PDV {"reason":"startup","message":"401 Unauthorized\n\"method: GET url: https://v12.jhes.com.br/api/desktop/sync/releases/electron-updater/5/stable/win32-x64/latest.yml\\n\\n          Data:\\n          {\\n  \\\"message\\\": \\\"Token não fornecido\\\"\\n}\\n          \"\nHeaders: {\n  \"access-control-allow-credentials\": \"b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b (sha256 hash)\",\n  \"connection\": \"keep-alive\",\n  \"content-length\": \"34\",\n  \"content-security-policy\": \"default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests\",\n  \"content-type\": \"application/json; charset=utf-8\",\n  \"cross-origin-opener-policy\": \"same-origin\",\n  \"cross-origin-resource-policy\": \"cross-origin\",\n  \"date\": \"Fri, 17 Jul 2026 14:58:56 GMT\",\n  \"etag\": \"W/\\\"22-NOeD41Az20qV9VmfwpPD0Zq2zKE\\\"\",\n  \"origin-agent-cluster\": \"?1\",\n  \"referrer-policy\": \"no-referrer\",\n  \"server\": \"openresty\",\n  \"strict-transport-security\": \"max-age=31536000; includeSubDomains\",\n  \"vary\": \"Origin\",\n  \"x-content-type-options\": \"nosniff\",\n  \"x-dns-prefetch-control\": \"off\",\n  \"x-download-options\": \"noopen\",\n  \"x-frame-options\": \"SAMEORIGIN\",\n  \"x-permitted-cross-domain-policies\": \"none\",\n  \"x-xss-protection\": \"0\"\n}","stack":"HttpError: 401 Unauthorized\n\"method: GET url: https://v12.jhes.com.br/api/desktop/sync/releases/electron-updater/5/stable/win32-x64/latest.yml\\n\\n          Data:\\n          {\\n  \\\"message\\\": \\\"Token não fornecido\\\"\\n}\\n          \"\nHeaders: {\n  \"access-control-allow-credentials\": \"b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b (sha256 hash)\",\n  \"connection\": \"keep-alive\",\n  \"content-length\": \"34\",\n  \"content-security-policy\": \"default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests\",\n  \"content-type\": \"application/json; charset=utf-8\",\n  \"cross-origin-opener-policy\": \"same-origin\",\n  \"cross-origin-resource-policy\": \"cross-origin\",\n  \"date\": \"Fri, 17 Jul 2026 14:58:56 GMT\",\n  \"etag\": \"W/\\\"22-NOeD41Az20qV9VmfwpPD0Zq2zKE\\\"\",\n  \"origin-agent-cluster\": \"?1\",\n  \"referrer-policy\": \"no-referrer\",\n  \"server\": \"openresty\",\n  \"strict-transport-security\": \"max-age=31536000; includeSubDomains\",\n  \"vary\": \"Origin\",\n  \"x-content-type-options\": \"nosniff\",\n  \"x-dns-prefetch-control\": \"off\",\n  \"x-download-options\": \"noopen\",\n  \"x-frame-options\": \"SAMEORIGIN\",\n  \"x-permitted-cross-domain-policies\": \"none\",\n  \"x-xss-protection\": \"0\"\n}\n    at createHttpError (C:\\v12\\V12 PDV\\resources\\app.asar\\node_modules\\builder-util-runtime\\out\\httpExecutor.js:53:12)\n    at IncomingMessage.<anonymous> (C:\\v12\\V12 PDV\\resources\\app.asar\\node_modules\\builder-util-runtime\\out\\httpExecutor.js:188:28)\n    at IncomingMessage.emit (node:events:518:28)\n    at endReadableNT (node:internal/streams/readable:1698:12)\n    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)","cause":""}
+[2026-07-17T14:58:56.663Z] Estado do updater nativo {"status":"error","version":null,"percent":null,"message":"401 Unauthorized\n\"method: GET url: https://v12.jhes.com.br/api/desktop/sync/releases/electron-updater/5/stable/win32-x64/latest.yml\\n\\n          Data:\\n          {\\n  \\\"message\\\": \\\"Token não fornecido\\\"\\n}\\n          \"\nHeaders: {\n  \"access-control-allow-credentials\": \"b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b (sha256 hash)\",\n  \"connection\": \"keep-alive\",\n  \"content-length\": \"34\",\n  \"content-security-policy\": \"default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests\",\n  \"content-type\": \"application/json; charset=utf-8\",\n  \"cross-origin-opener-policy\": \"same-origin\",\n  \"cross-origin-resource-policy\": \"cross-origin\",\n  \"date\": \"Fri, 17 Jul 2026 14:58:56 GMT\",\n  \"etag\": \"W/\\\"22-NOeD41Az20qV9VmfwpPD0Zq2zKE\\\"\",\n  \"origin-agent-cluster\": \"?1\",\n  \"referrer-policy\": \"no-referrer\",\n  \"server\": \"openresty\",\n  \"strict-transport-security\": \"max-age=31536000; includeSubDomains\",\n  \"vary\": \"Origin\",\n  \"x-content-type-options\": \"nosniff\",\n  \"x-dns-prefetch-control\": \"off\",\n  \"x-download-options\": \"noopen\",\n  \"x-frame-options\": \"SAMEORIGIN\",\n  \"x-permitted-cross-domain-policies\": \"none\",\n  \"x-xss-protection\": \"0\"\n}"}
+[2026-07-17T14:59:57.232Z] Aplicação encerrando
+[2026-07-17T14:59:59.061Z] Electron pronto {"isDev":false,"appVersion":"0.1.21","userData":"C:\\Users\\teste\\AppData\\Roaming\\v12-desktop","resourcesPath":"C:\\v12\\V12 PDV\\resources"}
+[2026-07-17T14:59:59.092Z] Inicializando servidor local empacotado {"serverEntry":"C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\apps\\server\\src\\index.js","serverCwd":"C:\\v12\\V12 PDV\\resources","execPath":"C:\\v12\\V12 PDV\\V12 PDV.exe"}
+[2026-07-17T14:59:59.109Z] Criando janela principal
+[2026-07-17T14:59:59.168Z] Carregando front empacotado {"bundledIndex":"C:\\v12\\V12 PDV\\resources\\app.asar\\apps\\station\\dist\\index.html"}
+[2026-07-17T15:00:01.851Z] Estado do updater nativo {"status":"checking","version":null,"percent":null,"message":"Verificando atualização do PDV."}
+[2026-07-17T15:00:02.035Z] Verificando atualização nativa do PDV {"reason":"startup","feedUrl":"https://v12.jhes.com.br/api/desktop/sync/releases/electron-updater/5/stable/win32-x64","appVersion":"0.1.21"}
+[2026-07-17T15:00:02.046Z] [electron-updater:info] Checking for update
+[2026-07-17T15:00:02.056Z] Estado do updater nativo {"status":"checking","version":null,"percent":null,"message":"Verificando atualização do PDV."}
+[2026-07-17T15:00:05.173Z] [electron-updater:error] Error: HttpError: 401 Unauthorized
+"method: GET url: https://v12.jhes.com.br/api/desktop/sync/releases/electron-updater/5/stable/win32-x64/latest.yml\n\n          Data:\n          {\n  \"message\": \"Token não fornecido\"\n}\n          "
+Headers: {
+  "access-control-allow-credentials": "b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b (sha256 hash)",
+  "connection": "keep-alive",
+  "content-length": "34",
+  "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+  "content-type": "application/json; charset=utf-8",
+  "cross-origin-opener-policy": "same-origin",
+  "cross-origin-resource-policy": "cross-origin",
+  "date": "Fri, 17 Jul 2026 15:00:03 GMT",
+  "etag": "W/\"22-NOeD41Az20qV9VmfwpPD0Zq2zKE\"",
+  "origin-agent-cluster": "?1",
+  "referrer-policy": "no-referrer",
+  "server": "openresty",
+  "strict-transport-security": "max-age=31536000; includeSubDomains",
+  "vary": "Origin",
+  "x-content-type-options": "nosniff",
+  "x-dns-prefetch-control": "off",
+  "x-download-options": "noopen",
+  "x-frame-options": "SAMEORIGIN",
+  "x-permitted-cross-domain-policies": "none",
+  "x-xss-protection": "0"
+}
+    at createHttpError (C:\v12\V12 PDV\resources\app.asar\node_modules\builder-util-runtime\out\httpExecutor.js:53:12)
+    at IncomingMessage.<anonymous> (C:\v12\V12 PDV\resources\app.asar\node_modules\builder-util-runtime\out\httpExecutor.js:188:28)
+    at IncomingMessage.emit (node:events:518:28)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+[2026-07-17T15:00:05.185Z] Estado do updater nativo {"status":"error","version":null,"percent":null,"message":"401 Unauthorized\n\"method: GET url: https://v12.jhes.com.br/api/desktop/sync/releases/electron-updater/5/stable/win32-x64/latest.yml\\n\\n          Data:\\n          {\\n  \\\"message\\\": \\\"Token não fornecido\\\"\\n}\\n          \"\nHeaders: {\n  \"access-control-allow-credentials\": \"b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b (sha256 hash)\",\n  \"connection\": \"keep-alive\",\n  \"content-length\": \"34\",\n  \"content-security-policy\": \"default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests\",\n  \"content-type\": \"application/json; charset=utf-8\",\n  \"cross-origin-opener-policy\": \"same-origin\",\n  \"cross-origin-resource-policy\": \"cross-origin\",\n  \"date\": \"Fri, 17 Jul 2026 15:00:03 GMT\",\n  \"etag\": \"W/\\\"22-NOeD41Az20qV9VmfwpPD0Zq2zKE\\\"\",\n  \"origin-agent-cluster\": \"?1\",\n  \"referrer-policy\": \"no-referrer\",\n  \"server\": \"openresty\",\n  \"strict-transport-security\": \"max-age=31536000; includeSubDomains\",\n  \"vary\": \"Origin\",\n  \"x-content-type-options\": \"nosniff\",\n  \"x-dns-prefetch-control\": \"off\",\n  \"x-download-options\": \"noopen\",\n  \"x-frame-options\": \"SAMEORIGIN\",\n  \"x-permitted-cross-domain-policies\": \"none\",\n  \"x-xss-protection\": \"0\"\n}"}
+[2026-07-17T15:00:05.195Z] Falha na atualização nativa do PDV {"reason":"startup","message":"401 Unauthorized\n\"method: GET url: https://v12.jhes.com.br/api/desktop/sync/releases/electron-updater/5/stable/win32-x64/latest.yml\\n\\n          Data:\\n          {\\n  \\\"message\\\": \\\"Token não fornecido\\\"\\n}\\n          \"\nHeaders: {\n  \"access-control-allow-credentials\": \"b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b (sha256 hash)\",\n  \"connection\": \"keep-alive\",\n  \"content-length\": \"34\",\n  \"content-security-policy\": \"default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests\",\n  \"content-type\": \"application/json; charset=utf-8\",\n  \"cross-origin-opener-policy\": \"same-origin\",\n  \"cross-origin-resource-policy\": \"cross-origin\",\n  \"date\": \"Fri, 17 Jul 2026 15:00:03 GMT\",\n  \"etag\": \"W/\\\"22-NOeD41Az20qV9VmfwpPD0Zq2zKE\\\"\",\n  \"origin-agent-cluster\": \"?1\",\n  \"referrer-policy\": \"no-referrer\",\n  \"server\": \"openresty\",\n  \"strict-transport-security\": \"max-age=31536000; includeSubDomains\",\n  \"vary\": \"Origin\",\n  \"x-content-type-options\": \"nosniff\",\n  \"x-dns-prefetch-control\": \"off\",\n  \"x-download-options\": \"noopen\",\n  \"x-frame-options\": \"SAMEORIGIN\",\n  \"x-permitted-cross-domain-policies\": \"none\",\n  \"x-xss-protection\": \"0\"\n}","stack":"HttpError: 401 Unauthorized\n\"method: GET url: https://v12.jhes.com.br/api/desktop/sync/releases/electron-updater/5/stable/win32-x64/latest.yml\\n\\n          Data:\\n          {\\n  \\\"message\\\": \\\"Token não fornecido\\\"\\n}\\n          \"\nHeaders: {\n  \"access-control-allow-credentials\": \"b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b (sha256 hash)\",\n  \"connection\": \"keep-alive\",\n  \"content-length\": \"34\",\n  \"content-security-policy\": \"default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests\",\n  \"content-type\": \"application/json; charset=utf-8\",\n  \"cross-origin-opener-policy\": \"same-origin\",\n  \"cross-origin-resource-policy\": \"cross-origin\",\n  \"date\": \"Fri, 17 Jul 2026 15:00:03 GMT\",\n  \"etag\": \"W/\\\"22-NOeD41Az20qV9VmfwpPD0Zq2zKE\\\"\",\n  \"origin-agent-cluster\": \"?1\",\n  \"referrer-policy\": \"no-referrer\",\n  \"server\": \"openresty\",\n  \"strict-transport-security\": \"max-age=31536000; includeSubDomains\",\n  \"vary\": \"Origin\",\n  \"x-content-type-options\": \"nosniff\",\n  \"x-dns-prefetch-control\": \"off\",\n  \"x-download-options\": \"noopen\",\n  \"x-frame-options\": \"SAMEORIGIN\",\n  \"x-permitted-cross-domain-policies\": \"none\",\n  \"x-xss-protection\": \"0\"\n}\n    at createHttpError (C:\\v12\\V12 PDV\\resources\\app.asar\\node_modules\\builder-util-runtime\\out\\httpExecutor.js:53:12)\n    at IncomingMessage.<anonymous> (C:\\v12\\V12 PDV\\resources\\app.asar\\node_modules\\builder-util-runtime\\out\\httpExecutor.js:188:28)\n    at IncomingMessage.emit (node:events:518:28)\n    at endReadableNT (node:internal/streams/readable:1698:12)\n    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)","cause":""}
+[2026-07-17T15:00:05.205Z] Estado do updater nativo {"status":"error","version":null,"percent":null,"message":"401 Unauthorized\n\"method: GET url: https://v12.jhes.com.br/api/desktop/sync/releases/electron-updater/5/stable/win32-x64/latest.yml\\n\\n          Data:\\n          {\\n  \\\"message\\\": \\\"Token não fornecido\\\"\\n}\\n          \"\nHeaders: {\n  \"access-control-allow-credentials\": \"b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b (sha256 hash)\",\n  \"connection\": \"keep-alive\",\n  \"content-length\": \"34\",\n  \"content-security-policy\": \"default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests\",\n  \"content-type\": \"application/json; charset=utf-8\",\n  \"cross-origin-opener-policy\": \"same-origin\",\n  \"cross-origin-resource-policy\": \"cross-origin\",\n  \"date\": \"Fri, 17 Jul 2026 15:00:03 GMT\",\n  \"etag\": \"W/\\\"22-NOeD41Az20qV9VmfwpPD0Zq2zKE\\\"\",\n  \"origin-agent-cluster\": \"?1\",\n  \"referrer-policy\": \"no-referrer\",\n  \"server\": \"openresty\",\n  \"strict-transport-security\": \"max-age=31536000; includeSubDomains\",\n  \"vary\": \"Origin\",\n  \"x-content-type-options\": \"nosniff\",\n  \"x-dns-prefetch-control\": \"off\",\n  \"x-download-options\": \"noopen\",\n  \"x-frame-options\": \"SAMEORIGIN\",\n  \"x-permitted-cross-domain-policies\": \"none\",\n  \"x-xss-protection\": \"0\"\n}"}
+[2026-07-17T15:04:18.536Z] Console renderer {"level":3,"message":"[pdv-session] Falha na atualização automática [object Object]","line":79,"sourceId":"file:///C:/v12/V12%20PDV/resources/app.asar/apps/station/dist/assets/index-DZg2fiCo.js"}
+[2026-07-17T15:04:41.504Z] Aplicação encerrando
+[2026-07-17T15:04:45.165Z] Electron pronto {"isDev":false,"appVersion":"0.1.21","userData":"C:\\Users\\teste\\AppData\\Roaming\\v12-desktop","resourcesPath":"C:\\v12\\V12 PDV\\resources"}
+[2026-07-17T15:04:45.212Z] Inicializando servidor local empacotado {"serverEntry":"C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\apps\\server\\src\\index.js","serverCwd":"C:\\v12\\V12 PDV\\resources","execPath":"C:\\v12\\V12 PDV\\V12 PDV.exe"}
+[2026-07-17T15:04:45.229Z] Criando janela principal
+[2026-07-17T15:04:45.318Z] Carregando front empacotado {"bundledIndex":"C:\\v12\\V12 PDV\\resources\\app.asar\\apps\\station\\dist\\index.html"}
+[2026-07-17T15:04:48.228Z] Estado do updater nativo {"status":"checking","version":null,"percent":null,"message":"Verificando atualização do PDV."}
+[2026-07-17T15:04:53.110Z] Verificando atualização nativa do PDV {"reason":"startup","feedUrl":"https://v12.jhes.com.br/api/desktop/sync/releases/electron-updater/5/stable/win32-x64","appVersion":"0.1.21"}
+[2026-07-17T15:04:53.125Z] [electron-updater:info] Checking for update
+[2026-07-17T15:04:53.141Z] Estado do updater nativo {"status":"checking","version":null,"percent":null,"message":"Verificando atualização do PDV."}
+[2026-07-17T15:04:53.938Z] [electron-updater:error] Error: HttpError: 401 Unauthorized
+"method: GET url: https://v12.jhes.com.br/api/desktop/sync/releases/electron-updater/5/stable/win32-x64/latest.yml\n\n          Data:\n          {\n  \"message\": \"Token não fornecido\"\n}\n          "
+Headers: {
+  "access-control-allow-credentials": "b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b (sha256 hash)",
+  "connection": "keep-alive",
+  "content-length": "34",
+  "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+  "content-type": "application/json; charset=utf-8",
+  "cross-origin-opener-policy": "same-origin",
+  "cross-origin-resource-policy": "cross-origin",
+  "date": "Fri, 17 Jul 2026 15:04:53 GMT",
+  "etag": "W/\"22-NOeD41Az20qV9VmfwpPD0Zq2zKE\"",
+  "origin-agent-cluster": "?1",
+  "referrer-policy": "no-referrer",
+  "server": "openresty",
+  "strict-transport-security": "max-age=31536000; includeSubDomains",
+  "vary": "Origin",
+  "x-content-type-options": "nosniff",
+  "x-dns-prefetch-control": "off",
+  "x-download-options": "noopen",
+  "x-frame-options": "SAMEORIGIN",
+  "x-permitted-cross-domain-policies": "none",
+  "x-xss-protection": "0"
+}
+    at createHttpError (C:\v12\V12 PDV\resources\app.asar\node_modules\builder-util-runtime\out\httpExecutor.js:53:12)
+    at IncomingMessage.<anonymous> (C:\v12\V12 PDV\resources\app.asar\node_modules\builder-util-runtime\out\httpExecutor.js:188:28)
+    at IncomingMessage.emit (node:events:518:28)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+[2026-07-17T15:04:53.952Z] Estado do updater nativo {"status":"error","version":null,"percent":null,"message":"401 Unauthorized\n\"method: GET url: https://v12.jhes.com.br/api/desktop/sync/releases/electron-updater/5/stable/win32-x64/latest.yml\\n\\n          Data:\\n          {\\n  \\\"message\\\": \\\"Token não fornecido\\\"\\n}\\n          \"\nHeaders: {\n  \"access-control-allow-credentials\": \"b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b (sha256 hash)\",\n  \"connection\": \"keep-alive\",\n  \"content-length\": \"34\",\n  \"content-security-policy\": \"default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests\",\n  \"content-type\": \"application/json; charset=utf-8\",\n  \"cross-origin-opener-policy\": \"same-origin\",\n  \"cross-origin-resource-policy\": \"cross-origin\",\n  \"date\": \"Fri, 17 Jul 2026 15:04:53 GMT\",\n  \"etag\": \"W/\\\"22-NOeD41Az20qV9VmfwpPD0Zq2zKE\\\"\",\n  \"origin-agent-cluster\": \"?1\",\n  \"referrer-policy\": \"no-referrer\",\n  \"server\": \"openresty\",\n  \"strict-transport-security\": \"max-age=31536000; includeSubDomains\",\n  \"vary\": \"Origin\",\n  \"x-content-type-options\": \"nosniff\",\n  \"x-dns-prefetch-control\": \"off\",\n  \"x-download-options\": \"noopen\",\n  \"x-frame-options\": \"SAMEORIGIN\",\n  \"x-permitted-cross-domain-policies\": \"none\",\n  \"x-xss-protection\": \"0\"\n}"}
+[2026-07-17T15:04:53.964Z] Falha na atualização nativa do PDV {"reason":"startup","message":"401 Unauthorized\n\"method: GET url: https://v12.jhes.com.br/api/desktop/sync/releases/electron-updater/5/stable/win32-x64/latest.yml\\n\\n          Data:\\n          {\\n  \\\"message\\\": \\\"Token não fornecido\\\"\\n}\\n          \"\nHeaders: {\n  \"access-control-allow-credentials\": \"b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b (sha256 hash)\",\n  \"connection\": \"keep-alive\",\n  \"content-length\": \"34\",\n  \"content-security-policy\": \"default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests\",\n  \"content-type\": \"application/json; charset=utf-8\",\n  \"cross-origin-opener-policy\": \"same-origin\",\n  \"cross-origin-resource-policy\": \"cross-origin\",\n  \"date\": \"Fri, 17 Jul 2026 15:04:53 GMT\",\n  \"etag\": \"W/\\\"22-NOeD41Az20qV9VmfwpPD0Zq2zKE\\\"\",\n  \"origin-agent-cluster\": \"?1\",\n  \"referrer-policy\": \"no-referrer\",\n  \"server\": \"openresty\",\n  \"strict-transport-security\": \"max-age=31536000; includeSubDomains\",\n  \"vary\": \"Origin\",\n  \"x-content-type-options\": \"nosniff\",\n  \"x-dns-prefetch-control\": \"off\",\n  \"x-download-options\": \"noopen\",\n  \"x-frame-options\": \"SAMEORIGIN\",\n  \"x-permitted-cross-domain-policies\": \"none\",\n  \"x-xss-protection\": \"0\"\n}","stack":"HttpError: 401 Unauthorized\n\"method: GET url: https://v12.jhes.com.br/api/desktop/sync/releases/electron-updater/5/stable/win32-x64/latest.yml\\n\\n          Data:\\n          {\\n  \\\"message\\\": \\\"Token não fornecido\\\"\\n}\\n          \"\nHeaders: {\n  \"access-control-allow-credentials\": \"b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b (sha256 hash)\",\n  \"connection\": \"keep-alive\",\n  \"content-length\": \"34\",\n  \"content-security-policy\": \"default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests\",\n  \"content-type\": \"application/json; charset=utf-8\",\n  \"cross-origin-opener-policy\": \"same-origin\",\n  \"cross-origin-resource-policy\": \"cross-origin\",\n  \"date\": \"Fri, 17 Jul 2026 15:04:53 GMT\",\n  \"etag\": \"W/\\\"22-NOeD41Az20qV9VmfwpPD0Zq2zKE\\\"\",\n  \"origin-agent-cluster\": \"?1\",\n  \"referrer-policy\": \"no-referrer\",\n  \"server\": \"openresty\",\n  \"strict-transport-security\": \"max-age=31536000; includeSubDomains\",\n  \"vary\": \"Origin\",\n  \"x-content-type-options\": \"nosniff\",\n  \"x-dns-prefetch-control\": \"off\",\n  \"x-download-options\": \"noopen\",\n  \"x-frame-options\": \"SAMEORIGIN\",\n  \"x-permitted-cross-domain-policies\": \"none\",\n  \"x-xss-protection\": \"0\"\n}\n    at createHttpError (C:\\v12\\V12 PDV\\resources\\app.asar\\node_modules\\builder-util-runtime\\out\\httpExecutor.js:53:12)\n    at IncomingMessage.<anonymous> (C:\\v12\\V12 PDV\\resources\\app.asar\\node_modules\\builder-util-runtime\\out\\httpExecutor.js:188:28)\n    at IncomingMessage.emit (node:events:518:28)\n    at endReadableNT (node:internal/streams/readable:1698:12)\n    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)","cause":""}
+[2026-07-17T15:04:53.976Z] Estado do updater nativo {"status":"error","version":null,"percent":null,"message":"401 Unauthorized\n\"method: GET url: https://v12.jhes.com.br/api/desktop/sync/releases/electron-updater/5/stable/win32-x64/latest.yml\\n\\n          Data:\\n          {\\n  \\\"message\\\": \\\"Token não fornecido\\\"\\n}\\n          \"\nHeaders: {\n  \"access-control-allow-credentials\": \"b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b (sha256 hash)\",\n  \"connection\": \"keep-alive\",\n  \"content-length\": \"34\",\n  \"content-security-policy\": \"default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests\",\n  \"content-type\": \"application/json; charset=utf-8\",\n  \"cross-origin-opener-policy\": \"same-origin\",\n  \"cross-origin-resource-policy\": \"cross-origin\",\n  \"date\": \"Fri, 17 Jul 2026 15:04:53 GMT\",\n  \"etag\": \"W/\\\"22-NOeD41Az20qV9VmfwpPD0Zq2zKE\\\"\",\n  \"origin-agent-cluster\": \"?1\",\n  \"referrer-policy\": \"no-referrer\",\n  \"server\": \"openresty\",\n  \"strict-transport-security\": \"max-age=31536000; includeSubDomains\",\n  \"vary\": \"Origin\",\n  \"x-content-type-options\": \"nosniff\",\n  \"x-dns-prefetch-control\": \"off\",\n  \"x-download-options\": \"noopen\",\n  \"x-frame-options\": \"SAMEORIGIN\",\n  \"x-permitted-cross-domain-policies\": \"none\",\n  \"x-xss-protection\": \"0\"\n}"}
+[2026-07-17T15:05:58.608Z] Aplicação encerrando
+[2026-07-17T15:06:00.674Z] Electron pronto {"isDev":false,"appVersion":"0.1.21","userData":"C:\\Users\\teste\\AppData\\Roaming\\v12-desktop","resourcesPath":"C:\\v12\\V12 PDV\\resources"}
+[2026-07-17T15:06:00.700Z] Inicializando servidor local empacotado {"serverEntry":"C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\apps\\server\\src\\index.js","serverCwd":"C:\\v12\\V12 PDV\\resources","execPath":"C:\\v12\\V12 PDV\\V12 PDV.exe"}
+[2026-07-17T15:06:00.700Z] Criando janela principal
+[2026-07-17T15:06:00.764Z] Carregando front empacotado {"bundledIndex":"C:\\v12\\V12 PDV\\resources\\app.asar\\apps\\station\\dist\\index.html"}
+[2026-07-17T15:06:03.495Z] Estado do updater nativo {"status":"checking","version":null,"percent":null,"message":"Verificando atualização do PDV."}
+[2026-07-17T15:06:07.444Z] Verificando atualização nativa do PDV {"reason":"startup","feedUrl":"https://v12.jhes.com.br/api/desktop/sync/releases/electron-updater/5/stable/win32-x64","appVersion":"0.1.21"}
+[2026-07-17T15:06:07.444Z] [electron-updater:info] Checking for update
+[2026-07-17T15:06:07.445Z] Estado do updater nativo {"status":"checking","version":null,"percent":null,"message":"Verificando atualização do PDV."}
+[2026-07-17T15:06:08.188Z] [electron-updater:error] Error: HttpError: 401 Unauthorized
+"method: GET url: https://v12.jhes.com.br/api/desktop/sync/releases/electron-updater/5/stable/win32-x64/latest.yml\n\n          Data:\n          {\n  \"message\": \"Token não fornecido\"\n}\n          "
+Headers: {
+  "access-control-allow-credentials": "b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b (sha256 hash)",
+  "connection": "keep-alive",
+  "content-length": "34",
+  "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+  "content-type": "application/json; charset=utf-8",
+  "cross-origin-opener-policy": "same-origin",
+  "cross-origin-resource-policy": "cross-origin",
+  "date": "Fri, 17 Jul 2026 15:06:07 GMT",
+  "etag": "W/\"22-NOeD41Az20qV9VmfwpPD0Zq2zKE\"",
+  "origin-agent-cluster": "?1",
+  "referrer-policy": "no-referrer",
+  "server": "openresty",
+  "strict-transport-security": "max-age=31536000; includeSubDomains",
+  "vary": "Origin",
+  "x-content-type-options": "nosniff",
+  "x-dns-prefetch-control": "off",
+  "x-download-options": "noopen",
+  "x-frame-options": "SAMEORIGIN",
+  "x-permitted-cross-domain-policies": "none",
+  "x-xss-protection": "0"
+}
+    at createHttpError (C:\v12\V12 PDV\resources\app.asar\node_modules\builder-util-runtime\out\httpExecutor.js:53:12)
+    at IncomingMessage.<anonymous> (C:\v12\V12 PDV\resources\app.asar\node_modules\builder-util-runtime\out\httpExecutor.js:188:28)
+    at IncomingMessage.emit (node:events:518:28)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+[2026-07-17T15:06:08.189Z] Estado do updater nativo {"status":"error","version":null,"percent":null,"message":"401 Unauthorized\n\"method: GET url: https://v12.jhes.com.br/api/desktop/sync/releases/electron-updater/5/stable/win32-x64/latest.yml\\n\\n          Data:\\n          {\\n  \\\"message\\\": \\\"Token não fornecido\\\"\\n}\\n          \"\nHeaders: {\n  \"access-control-allow-credentials\": \"b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b (sha256 hash)\",\n  \"connection\": \"keep-alive\",\n  \"content-length\": \"34\",\n  \"content-security-policy\": \"default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests\",\n  \"content-type\": \"application/json; charset=utf-8\",\n  \"cross-origin-opener-policy\": \"same-origin\",\n  \"cross-origin-resource-policy\": \"cross-origin\",\n  \"date\": \"Fri, 17 Jul 2026 15:06:07 GMT\",\n  \"etag\": \"W/\\\"22-NOeD41Az20qV9VmfwpPD0Zq2zKE\\\"\",\n  \"origin-agent-cluster\": \"?1\",\n  \"referrer-policy\": \"no-referrer\",\n  \"server\": \"openresty\",\n  \"strict-transport-security\": \"max-age=31536000; includeSubDomains\",\n  \"vary\": \"Origin\",\n  \"x-content-type-options\": \"nosniff\",\n  \"x-dns-prefetch-control\": \"off\",\n  \"x-download-options\": \"noopen\",\n  \"x-frame-options\": \"SAMEORIGIN\",\n  \"x-permitted-cross-domain-policies\": \"none\",\n  \"x-xss-protection\": \"0\"\n}"}
+[2026-07-17T15:06:08.189Z] Falha na atualização nativa do PDV {"reason":"startup","message":"401 Unauthorized\n\"method: GET url: https://v12.jhes.com.br/api/desktop/sync/releases/electron-updater/5/stable/win32-x64/latest.yml\\n\\n          Data:\\n          {\\n  \\\"message\\\": \\\"Token não fornecido\\\"\\n}\\n          \"\nHeaders: {\n  \"access-control-allow-credentials\": \"b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b (sha256 hash)\",\n  \"connection\": \"keep-alive\",\n  \"content-length\": \"34\",\n  \"content-security-policy\": \"default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests\",\n  \"content-type\": \"application/json; charset=utf-8\",\n  \"cross-origin-opener-policy\": \"same-origin\",\n  \"cross-origin-resource-policy\": \"cross-origin\",\n  \"date\": \"Fri, 17 Jul 2026 15:06:07 GMT\",\n  \"etag\": \"W/\\\"22-NOeD41Az20qV9VmfwpPD0Zq2zKE\\\"\",\n  \"origin-agent-cluster\": \"?1\",\n  \"referrer-policy\": \"no-referrer\",\n  \"server\": \"openresty\",\n  \"strict-transport-security\": \"max-age=31536000; includeSubDomains\",\n  \"vary\": \"Origin\",\n  \"x-content-type-options\": \"nosniff\",\n  \"x-dns-prefetch-control\": \"off\",\n  \"x-download-options\": \"noopen\",\n  \"x-frame-options\": \"SAMEORIGIN\",\n  \"x-permitted-cross-domain-policies\": \"none\",\n  \"x-xss-protection\": \"0\"\n}","stack":"HttpError: 401 Unauthorized\n\"method: GET url: https://v12.jhes.com.br/api/desktop/sync/releases/electron-updater/5/stable/win32-x64/latest.yml\\n\\n          Data:\\n          {\\n  \\\"message\\\": \\\"Token não fornecido\\\"\\n}\\n          \"\nHeaders: {\n  \"access-control-allow-credentials\": \"b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b (sha256 hash)\",\n  \"connection\": \"keep-alive\",\n  \"content-length\": \"34\",\n  \"content-security-policy\": \"default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests\",\n  \"content-type\": \"application/json; charset=utf-8\",\n  \"cross-origin-opener-policy\": \"same-origin\",\n  \"cross-origin-resource-policy\": \"cross-origin\",\n  \"date\": \"Fri, 17 Jul 2026 15:06:07 GMT\",\n  \"etag\": \"W/\\\"22-NOeD41Az20qV9VmfwpPD0Zq2zKE\\\"\",\n  \"origin-agent-cluster\": \"?1\",\n  \"referrer-policy\": \"no-referrer\",\n  \"server\": \"openresty\",\n  \"strict-transport-security\": \"max-age=31536000; includeSubDomains\",\n  \"vary\": \"Origin\",\n  \"x-content-type-options\": \"nosniff\",\n  \"x-dns-prefetch-control\": \"off\",\n  \"x-download-options\": \"noopen\",\n  \"x-frame-options\": \"SAMEORIGIN\",\n  \"x-permitted-cross-domain-policies\": \"none\",\n  \"x-xss-protection\": \"0\"\n}\n    at createHttpError (C:\\v12\\V12 PDV\\resources\\app.asar\\node_modules\\builder-util-runtime\\out\\httpExecutor.js:53:12)\n    at IncomingMessage.<anonymous> (C:\\v12\\V12 PDV\\resources\\app.asar\\node_modules\\builder-util-runtime\\out\\httpExecutor.js:188:28)\n    at IncomingMessage.emit (node:events:518:28)\n    at endReadableNT (node:internal/streams/readable:1698:12)\n    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)","cause":""}
+[2026-07-17T15:06:08.190Z] Estado do updater nativo {"status":"error","version":null,"percent":null,"message":"401 Unauthorized\n\"method: GET url: https://v12.jhes.com.br/api/desktop/sync/releases/electron-updater/5/stable/win32-x64/latest.yml\\n\\n          Data:\\n          {\\n  \\\"message\\\": \\\"Token não fornecido\\\"\\n}\\n          \"\nHeaders: {\n  \"access-control-allow-credentials\": \"b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b (sha256 hash)\",\n  \"connection\": \"keep-alive\",\n  \"content-length\": \"34\",\n  \"content-security-policy\": \"default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests\",\n  \"content-type\": \"application/json; charset=utf-8\",\n  \"cross-origin-opener-policy\": \"same-origin\",\n  \"cross-origin-resource-policy\": \"cross-origin\",\n  \"date\": \"Fri, 17 Jul 2026 15:06:07 GMT\",\n  \"etag\": \"W/\\\"22-NOeD41Az20qV9VmfwpPD0Zq2zKE\\\"\",\n  \"origin-agent-cluster\": \"?1\",\n  \"referrer-policy\": \"no-referrer\",\n  \"server\": \"openresty\",\n  \"strict-transport-security\": \"max-age=31536000; includeSubDomains\",\n  \"vary\": \"Origin\",\n  \"x-content-type-options\": \"nosniff\",\n  \"x-dns-prefetch-control\": \"off\",\n  \"x-download-options\": \"noopen\",\n  \"x-frame-options\": \"SAMEORIGIN\",\n  \"x-permitted-cross-domain-policies\": \"none\",\n  \"x-xss-protection\": \"0\"\n}"}
+[2026-07-17T15:06:23.226Z] Aplicação encerrando
+[2026-07-17T15:06:25.988Z] Electron pronto {"isDev":false,"appVersion":"0.1.21","userData":"C:\\Users\\teste\\AppData\\Roaming\\v12-desktop","resourcesPath":"C:\\v12\\V12 PDV\\resources"}
+[2026-07-17T15:06:26.014Z] Inicializando servidor local empacotado {"serverEntry":"C:\\v12\\V12 PDV\\resources\\app.asar.unpacked\\apps\\server\\src\\index.js","serverCwd":"C:\\v12\\V12 PDV\\resources","execPath":"C:\\v12\\V12 PDV\\V12 PDV.exe"}
+[2026-07-17T15:06:26.014Z] Criando janela principal
+[2026-07-17T15:06:26.066Z] Carregando front empacotado {"bundledIndex":"C:\\v12\\V12 PDV\\resources\\app.asar\\apps\\station\\dist\\index.html"}
+[2026-07-17T15:06:28.790Z] Estado do updater nativo {"status":"checking","version":null,"percent":null,"message":"Verificando atualização do PDV."}
+[2026-07-17T15:06:29.664Z] Verificando atualização nativa do PDV {"reason":"startup","feedUrl":"https://v12.jhes.com.br/api/desktop/sync/releases/electron-updater/5/stable/win32-x64","appVersion":"0.1.21"}
+[2026-07-17T15:06:29.664Z] [electron-updater:info] Checking for update
+[2026-07-17T15:06:29.665Z] Estado do updater nativo {"status":"checking","version":null,"percent":null,"message":"Verificando atualização do PDV."}
+[2026-07-17T15:06:30.303Z] [electron-updater:error] Error: HttpError: 401 Unauthorized
+"method: GET url: https://v12.jhes.com.br/api/desktop/sync/releases/electron-updater/5/stable/win32-x64/latest.yml\n\n          Data:\n          {\n  \"message\": \"Token não fornecido\"\n}\n          "
+Headers: {
+  "access-control-allow-credentials": "b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b (sha256 hash)",
+  "connection": "keep-alive",
+  "content-length": "34",
+  "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+  "content-type": "application/json; charset=utf-8",
+  "cross-origin-opener-policy": "same-origin",
+  "cross-origin-resource-policy": "cross-origin",
+  "date": "Fri, 17 Jul 2026 15:06:29 GMT",
+  "etag": "W/\"22-NOeD41Az20qV9VmfwpPD0Zq2zKE\"",
+  "origin-agent-cluster": "?1",
+  "referrer-policy": "no-referrer",
+  "server": "openresty",
+  "strict-transport-security": "max-age=31536000; includeSubDomains",
+  "vary": "Origin",
+  "x-content-type-options": "nosniff",
+  "x-dns-prefetch-control": "off",
+  "x-download-options": "noopen",
+  "x-frame-options": "SAMEORIGIN",
+  "x-permitted-cross-domain-policies": "none",
+  "x-xss-protection": "0"
+}
+    at createHttpError (C:\v12\V12 PDV\resources\app.asar\node_modules\builder-util-runtime\out\httpExecutor.js:53:12)
+    at IncomingMessage.<anonymous> (C:\v12\V12 PDV\resources\app.asar\node_modules\builder-util-runtime\out\httpExecutor.js:188:28)
+    at IncomingMessage.emit (node:events:518:28)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+[2026-07-17T15:06:30.304Z] Estado do updater nativo {"status":"error","version":null,"percent":null,"message":"401 Unauthorized\n\"method: GET url: https://v12.jhes.com.br/api/desktop/sync/releases/electron-updater/5/stable/win32-x64/latest.yml\\n\\n          Data:\\n          {\\n  \\\"message\\\": \\\"Token não fornecido\\\"\\n}\\n          \"\nHeaders: {\n  \"access-control-allow-credentials\": \"b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b (sha256 hash)\",\n  \"connection\": \"keep-alive\",\n  \"content-length\": \"34\",\n  \"content-security-policy\": \"default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests\",\n  \"content-type\": \"application/json; charset=utf-8\",\n  \"cross-origin-opener-policy\": \"same-origin\",\n  \"cross-origin-resource-policy\": \"cross-origin\",\n  \"date\": \"Fri, 17 Jul 2026 15:06:29 GMT\",\n  \"etag\": \"W/\\\"22-NOeD41Az20qV9VmfwpPD0Zq2zKE\\\"\",\n  \"origin-agent-cluster\": \"?1\",\n  \"referrer-policy\": \"no-referrer\",\n  \"server\": \"openresty\",\n  \"strict-transport-security\": \"max-age=31536000; includeSubDomains\",\n  \"vary\": \"Origin\",\n  \"x-content-type-options\": \"nosniff\",\n  \"x-dns-prefetch-control\": \"off\",\n  \"x-download-options\": \"noopen\",\n  \"x-frame-options\": \"SAMEORIGIN\",\n  \"x-permitted-cross-domain-policies\": \"none\",\n  \"x-xss-protection\": \"0\"\n}"}
+[2026-07-17T15:06:30.304Z] Falha na atualização nativa do PDV {"reason":"startup","message":"401 Unauthorized\n\"method: GET url: https://v12.jhes.com.br/api/desktop/sync/releases/electron-updater/5/stable/win32-x64/latest.yml\\n\\n          Data:\\n          {\\n  \\\"message\\\": \\\"Token não fornecido\\\"\\n}\\n          \"\nHeaders: {\n  \"access-control-allow-credentials\": \"b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b (sha256 hash)\",\n  \"connection\": \"keep-alive\",\n  \"content-length\": \"34\",\n  \"content-security-policy\": \"default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests\",\n  \"content-type\": \"application/json; charset=utf-8\",\n  \"cross-origin-opener-policy\": \"same-origin\",\n  \"cross-origin-resource-policy\": \"cross-origin\",\n  \"date\": \"Fri, 17 Jul 2026 15:06:29 GMT\",\n  \"etag\": \"W/\\\"22-NOeD41Az20qV9VmfwpPD0Zq2zKE\\\"\",\n  \"origin-agent-cluster\": \"?1\",\n  \"referrer-policy\": \"no-referrer\",\n  \"server\": \"openresty\",\n  \"strict-transport-security\": \"max-age=31536000; includeSubDomains\",\n  \"vary\": \"Origin\",\n  \"x-content-type-options\": \"nosniff\",\n  \"x-dns-prefetch-control\": \"off\",\n  \"x-download-options\": \"noopen\",\n  \"x-frame-options\": \"SAMEORIGIN\",\n  \"x-permitted-cross-domain-policies\": \"none\",\n  \"x-xss-protection\": \"0\"\n}","stack":"HttpError: 401 Unauthorized\n\"method: GET url: https://v12.jhes.com.br/api/desktop/sync/releases/electron-updater/5/stable/win32-x64/latest.yml\\n\\n          Data:\\n          {\\n  \\\"message\\\": \\\"Token não fornecido\\\"\\n}\\n          \"\nHeaders: {\n  \"access-control-allow-credentials\": \"b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b (sha256 hash)\",\n  \"connection\": \"keep-alive\",\n  \"content-length\": \"34\",\n  \"content-security-policy\": \"default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests\",\n  \"content-type\": \"application/json; charset=utf-8\",\n  \"cross-origin-opener-policy\": \"same-origin\",\n  \"cross-origin-resource-policy\": \"cross-origin\",\n  \"date\": \"Fri, 17 Jul 2026 15:06:29 GMT\",\n  \"etag\": \"W/\\\"22-NOeD41Az20qV9VmfwpPD0Zq2zKE\\\"\",\n  \"origin-agent-cluster\": \"?1\",\n  \"referrer-policy\": \"no-referrer\",\n  \"server\": \"openresty\",\n  \"strict-transport-security\": \"max-age=31536000; includeSubDomains\",\n  \"vary\": \"Origin\",\n  \"x-content-type-options\": \"nosniff\",\n  \"x-dns-prefetch-control\": \"off\",\n  \"x-download-options\": \"noopen\",\n  \"x-frame-options\": \"SAMEORIGIN\",\n  \"x-permitted-cross-domain-policies\": \"none\",\n  \"x-xss-protection\": \"0\"\n}\n    at createHttpError (C:\\v12\\V12 PDV\\resources\\app.asar\\node_modules\\builder-util-runtime\\out\\httpExecutor.js:53:12)\n    at IncomingMessage.<anonymous> (C:\\v12\\V12 PDV\\resources\\app.asar\\node_modules\\builder-util-runtime\\out\\httpExecutor.js:188:28)\n    at IncomingMessage.emit (node:events:518:28)\n    at endReadableNT (node:internal/streams/readable:1698:12)\n    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)","cause":""}
+[2026-07-17T15:06:30.305Z] Estado do updater nativo {"status":"error","version":null,"percent":null,"message":"401 Unauthorized\n\"method: GET url: https://v12.jhes.com.br/api/desktop/sync/releases/electron-updater/5/stable/win32-x64/latest.yml\\n\\n          Data:\\n          {\\n  \\\"message\\\": \\\"Token não fornecido\\\"\\n}\\n          \"\nHeaders: {\n  \"access-control-allow-credentials\": \"b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b (sha256 hash)\",\n  \"connection\": \"keep-alive\",\n  \"content-length\": \"34\",\n  \"content-security-policy\": \"default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests\",\n  \"content-type\": \"application/json; charset=utf-8\",\n  \"cross-origin-opener-policy\": \"same-origin\",\n  \"cross-origin-resource-policy\": \"cross-origin\",\n  \"date\": \"Fri, 17 Jul 2026 15:06:29 GMT\",\n  \"etag\": \"W/\\\"22-NOeD41Az20qV9VmfwpPD0Zq2zKE\\\"\",\n  \"origin-agent-cluster\": \"?1\",\n  \"referrer-policy\": \"no-referrer\",\n  \"server\": \"openresty\",\n  \"strict-transport-security\": \"max-age=31536000; includeSubDomains\",\n  \"vary\": \"Origin\",\n  \"x-content-type-options\": \"nosniff\",\n  \"x-dns-prefetch-control\": \"off\",\n  \"x-download-options\": \"noopen\",\n  \"x-frame-options\": \"SAMEORIGIN\",\n  \"x-permitted-cross-domain-policies\": \"none\",\n  \"x-xss-protection\": \"0\"\n}"}
+[2026-07-17T15:06:32.624Z] Estado do updater nativo {"status":"checking","version":null,"percent":null,"message":"Verificando atualização do PDV."}
+[2026-07-17T15:06:32.636Z] Verificando atualização nativa do PDV {"reason":"manual","feedUrl":"https://v12.jhes.com.br/api/desktop/sync/releases/electron-updater/5/stable/win32-x64","appVersion":"0.1.21"}
+[2026-07-17T15:06:32.637Z] [electron-updater:info] Checking for update
+[2026-07-17T15:06:32.637Z] Estado do updater nativo {"status":"checking","version":null,"percent":null,"message":"Verificando atualização do PDV."}
+[2026-07-17T15:06:32.846Z] [electron-updater:error] Error: HttpError: 401 Unauthorized
+"method: GET url: https://v12.jhes.com.br/api/desktop/sync/releases/electron-updater/5/stable/win32-x64/latest.yml\n\n          Data:\n          {\n  \"message\": \"Token não fornecido\"\n}\n          "
+Headers: {
+  "access-control-allow-credentials": "b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b (sha256 hash)",
+  "connection": "keep-alive",
+  "content-length": "34",
+  "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+  "content-type": "application/json; charset=utf-8",
+  "cross-origin-opener-policy": "same-origin",
+  "cross-origin-resource-policy": "cross-origin",
+  "date": "Fri, 17 Jul 2026 15:06:32 GMT",
+  "etag": "W/\"22-NOeD41Az20qV9VmfwpPD0Zq2zKE\"",
+  "origin-agent-cluster": "?1",
+  "referrer-policy": "no-referrer",
+  "server": "openresty",
+  "strict-transport-security": "max-age=31536000; includeSubDomains",
+  "vary": "Origin",
+  "x-content-type-options": "nosniff",
+  "x-dns-prefetch-control": "off",
+  "x-download-options": "noopen",
+  "x-frame-options": "SAMEORIGIN",
+  "x-permitted-cross-domain-policies": "none",
+  "x-xss-protection": "0"
+}
+    at createHttpError (C:\v12\V12 PDV\resources\app.asar\node_modules\builder-util-runtime\out\httpExecutor.js:53:12)
+    at IncomingMessage.<anonymous> (C:\v12\V12 PDV\resources\app.asar\node_modules\builder-util-runtime\out\httpExecutor.js:188:28)
+    at IncomingMessage.emit (node:events:518:28)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+[2026-07-17T15:06:32.847Z] Estado do updater nativo {"status":"error","version":null,"percent":null,"message":"401 Unauthorized\n\"method: GET url: https://v12.jhes.com.br/api/desktop/sync/releases/electron-updater/5/stable/win32-x64/latest.yml\\n\\n          Data:\\n          {\\n  \\\"message\\\": \\\"Token não fornecido\\\"\\n}\\n          \"\nHeaders: {\n  \"access-control-allow-credentials\": \"b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b (sha256 hash)\",\n  \"connection\": \"keep-alive\",\n  \"content-length\": \"34\",\n  \"content-security-policy\": \"default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests\",\n  \"content-type\": \"application/json; charset=utf-8\",\n  \"cross-origin-opener-policy\": \"same-origin\",\n  \"cross-origin-resource-policy\": \"cross-origin\",\n  \"date\": \"Fri, 17 Jul 2026 15:06:32 GMT\",\n  \"etag\": \"W/\\\"22-NOeD41Az20qV9VmfwpPD0Zq2zKE\\\"\",\n  \"origin-agent-cluster\": \"?1\",\n  \"referrer-policy\": \"no-referrer\",\n  \"server\": \"openresty\",\n  \"strict-transport-security\": \"max-age=31536000; includeSubDomains\",\n  \"vary\": \"Origin\",\n  \"x-content-type-options\": \"nosniff\",\n  \"x-dns-prefetch-control\": \"off\",\n  \"x-download-options\": \"noopen\",\n  \"x-frame-options\": \"SAMEORIGIN\",\n  \"x-permitted-cross-domain-policies\": \"none\",\n  \"x-xss-protection\": \"0\"\n}"}
+[2026-07-17T15:06:32.847Z] Falha na atualização nativa do PDV {"reason":"manual","message":"401 Unauthorized\n\"method: GET url: https://v12.jhes.com.br/api/desktop/sync/releases/electron-updater/5/stable/win32-x64/latest.yml\\n\\n          Data:\\n          {\\n  \\\"message\\\": \\\"Token não fornecido\\\"\\n}\\n          \"\nHeaders: {\n  \"access-control-allow-credentials\": \"b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b (sha256 hash)\",\n  \"connection\": \"keep-alive\",\n  \"content-length\": \"34\",\n  \"content-security-policy\": \"default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests\",\n  \"content-type\": \"application/json; charset=utf-8\",\n  \"cross-origin-opener-policy\": \"same-origin\",\n  \"cross-origin-resource-policy\": \"cross-origin\",\n  \"date\": \"Fri, 17 Jul 2026 15:06:32 GMT\",\n  \"etag\": \"W/\\\"22-NOeD41Az20qV9VmfwpPD0Zq2zKE\\\"\",\n  \"origin-agent-cluster\": \"?1\",\n  \"referrer-policy\": \"no-referrer\",\n  \"server\": \"openresty\",\n  \"strict-transport-security\": \"max-age=31536000; includeSubDomains\",\n  \"vary\": \"Origin\",\n  \"x-content-type-options\": \"nosniff\",\n  \"x-dns-prefetch-control\": \"off\",\n  \"x-download-options\": \"noopen\",\n  \"x-frame-options\": \"SAMEORIGIN\",\n  \"x-permitted-cross-domain-policies\": \"none\",\n  \"x-xss-protection\": \"0\"\n}","stack":"HttpError: 401 Unauthorized\n\"method: GET url: https://v12.jhes.com.br/api/desktop/sync/releases/electron-updater/5/stable/win32-x64/latest.yml\\n\\n          Data:\\n          {\\n  \\\"message\\\": \\\"Token não fornecido\\\"\\n}\\n          \"\nHeaders: {\n  \"access-control-allow-credentials\": \"b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b (sha256 hash)\",\n  \"connection\": \"keep-alive\",\n  \"content-length\": \"34\",\n  \"content-security-policy\": \"default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests\",\n  \"content-type\": \"application/json; charset=utf-8\",\n  \"cross-origin-opener-policy\": \"same-origin\",\n  \"cross-origin-resource-policy\": \"cross-origin\",\n  \"date\": \"Fri, 17 Jul 2026 15:06:32 GMT\",\n  \"etag\": \"W/\\\"22-NOeD41Az20qV9VmfwpPD0Zq2zKE\\\"\",\n  \"origin-agent-cluster\": \"?1\",\n  \"referrer-policy\": \"no-referrer\",\n  \"server\": \"openresty\",\n  \"strict-transport-security\": \"max-age=31536000; includeSubDomains\",\n  \"vary\": \"Origin\",\n  \"x-content-type-options\": \"nosniff\",\n  \"x-dns-prefetch-control\": \"off\",\n  \"x-download-options\": \"noopen\",\n  \"x-frame-options\": \"SAMEORIGIN\",\n  \"x-permitted-cross-domain-policies\": \"none\",\n  \"x-xss-protection\": \"0\"\n}\n    at createHttpError (C:\\v12\\V12 PDV\\resources\\app.asar\\node_modules\\builder-util-runtime\\out\\httpExecutor.js:53:12)\n    at IncomingMessage.<anonymous> (C:\\v12\\V12 PDV\\resources\\app.asar\\node_modules\\builder-util-runtime\\out\\httpExecutor.js:188:28)\n    at IncomingMessage.emit (node:events:518:28)\n    at endReadableNT (node:internal/streams/readable:1698:12)\n    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)","cause":""}
+[2026-07-17T15:06:32.848Z] Estado do updater nativo {"status":"error","version":null,"percent":null,"message":"401 Unauthorized\n\"method: GET url: https://v12.jhes.com.br/api/desktop/sync/releases/electron-updater/5/stable/win32-x64/latest.yml\\n\\n          Data:\\n          {\\n  \\\"message\\\": \\\"Token não fornecido\\\"\\n}\\n          \"\nHeaders: {\n  \"access-control-allow-credentials\": \"b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b (sha256 hash)\",\n  \"connection\": \"keep-alive\",\n  \"content-length\": \"34\",\n  \"content-security-policy\": \"default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests\",\n  \"content-type\": \"application/json; charset=utf-8\",\n  \"cross-origin-opener-policy\": \"same-origin\",\n  \"cross-origin-resource-policy\": \"cross-origin\",\n  \"date\": \"Fri, 17 Jul 2026 15:06:32 GMT\",\n  \"etag\": \"W/\\\"22-NOeD41Az20qV9VmfwpPD0Zq2zKE\\\"\",\n  \"origin-agent-cluster\": \"?1\",\n  \"referrer-policy\": \"no-referrer\",\n  \"server\": \"openresty\",\n  \"strict-transport-security\": \"max-age=31536000; includeSubDomains\",\n  \"vary\": \"Origin\",\n  \"x-content-type-options\": \"nosniff\",\n  \"x-dns-prefetch-control\": \"off\",\n  \"x-download-options\": \"noopen\",\n  \"x-frame-options\": \"SAMEORIGIN\",\n  \"x-permitted-cross-domain-policies\": \"none\",\n  \"x-xss-protection\": \"0\"\n}"}
+[2026-07-17T15:06:44.272Z] Estado do updater nativo {"status":"checking","version":null,"percent":null,"message":"Verificando atualização do PDV."}
+[2026-07-17T15:06:44.285Z] Verificando atualização nativa do PDV {"reason":"manual","feedUrl":"https://v12.jhes.com.br/api/desktop/sync/releases/electron-updater/5/stable/win32-x64","appVersion":"0.1.21"}
+[2026-07-17T15:06:44.286Z] [electron-updater:info] Checking for update
+[2026-07-17T15:06:44.286Z] Estado do updater nativo {"status":"checking","version":null,"percent":null,"message":"Verificando atualização do PDV."}
+[2026-07-17T15:06:44.492Z] [electron-updater:error] Error: HttpError: 401 Unauthorized
+"method: GET url: https://v12.jhes.com.br/api/desktop/sync/releases/electron-updater/5/stable/win32-x64/latest.yml\n\n          Data:\n          {\n  \"message\": \"Token não fornecido\"\n}\n          "
+Headers: {
+  "access-control-allow-credentials": "b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b (sha256 hash)",
+  "connection": "keep-alive",
+  "content-length": "34",
+  "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+  "content-type": "application/json; charset=utf-8",
+  "cross-origin-opener-policy": "same-origin",
+  "cross-origin-resource-policy": "cross-origin",
+  "date": "Fri, 17 Jul 2026 15:06:43 GMT",
+  "etag": "W/\"22-NOeD41Az20qV9VmfwpPD0Zq2zKE\"",
+  "origin-agent-cluster": "?1",
+  "referrer-policy": "no-referrer",
+  "server": "openresty",
+  "strict-transport-security": "max-age=31536000; includeSubDomains",
+  "vary": "Origin",
+  "x-content-type-options": "nosniff",
+  "x-dns-prefetch-control": "off",
+  "x-download-options": "noopen",
+  "x-frame-options": "SAMEORIGIN",
+  "x-permitted-cross-domain-policies": "none",
+  "x-xss-protection": "0"
+}
+    at createHttpError (C:\v12\V12 PDV\resources\app.asar\node_modules\builder-util-runtime\out\httpExecutor.js:53:12)
+    at IncomingMessage.<anonymous> (C:\v12\V12 PDV\resources\app.asar\node_modules\builder-util-runtime\out\httpExecutor.js:188:28)
+    at IncomingMessage.emit (node:events:518:28)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+[2026-07-17T15:06:44.493Z] Estado do updater nativo {"status":"error","version":null,"percent":null,"message":"401 Unauthorized\n\"method: GET url: https://v12.jhes.com.br/api/desktop/sync/releases/electron-updater/5/stable/win32-x64/latest.yml\\n\\n          Data:\\n          {\\n  \\\"message\\\": \\\"Token não fornecido\\\"\\n}\\n          \"\nHeaders: {\n  \"access-control-allow-credentials\": \"b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b (sha256 hash)\",\n  \"connection\": \"keep-alive\",\n  \"content-length\": \"34\",\n  \"content-security-policy\": \"default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests\",\n  \"content-type\": \"application/json; charset=utf-8\",\n  \"cross-origin-opener-policy\": \"same-origin\",\n  \"cross-origin-resource-policy\": \"cross-origin\",\n  \"date\": \"Fri, 17 Jul 2026 15:06:43 GMT\",\n  \"etag\": \"W/\\\"22-NOeD41Az20qV9VmfwpPD0Zq2zKE\\\"\",\n  \"origin-agent-cluster\": \"?1\",\n  \"referrer-policy\": \"no-referrer\",\n  \"server\": \"openresty\",\n  \"strict-transport-security\": \"max-age=31536000; includeSubDomains\",\n  \"vary\": \"Origin\",\n  \"x-content-type-options\": \"nosniff\",\n  \"x-dns-prefetch-control\": \"off\",\n  \"x-download-options\": \"noopen\",\n  \"x-frame-options\": \"SAMEORIGIN\",\n  \"x-permitted-cross-domain-policies\": \"none\",\n  \"x-xss-protection\": \"0\"\n}"}
+[2026-07-17T15:06:44.493Z] Falha na atualização nativa do PDV {"reason":"manual","message":"401 Unauthorized\n\"method: GET url: https://v12.jhes.com.br/api/desktop/sync/releases/electron-updater/5/stable/win32-x64/latest.yml\\n\\n          Data:\\n          {\\n  \\\"message\\\": \\\"Token não fornecido\\\"\\n}\\n          \"\nHeaders: {\n  \"access-control-allow-credentials\": \"b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b (sha256 hash)\",\n  \"connection\": \"keep-alive\",\n  \"content-length\": \"34\",\n  \"content-security-policy\": \"default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests\",\n  \"content-type\": \"application/json; charset=utf-8\",\n  \"cross-origin-opener-policy\": \"same-origin\",\n  \"cross-origin-resource-policy\": \"cross-origin\",\n  \"date\": \"Fri, 17 Jul 2026 15:06:43 GMT\",\n  \"etag\": \"W/\\\"22-NOeD41Az20qV9VmfwpPD0Zq2zKE\\\"\",\n  \"origin-agent-cluster\": \"?1\",\n  \"referrer-policy\": \"no-referrer\",\n  \"server\": \"openresty\",\n  \"strict-transport-security\": \"max-age=31536000; includeSubDomains\",\n  \"vary\": \"Origin\",\n  \"x-content-type-options\": \"nosniff\",\n  \"x-dns-prefetch-control\": \"off\",\n  \"x-download-options\": \"noopen\",\n  \"x-frame-options\": \"SAMEORIGIN\",\n  \"x-permitted-cross-domain-policies\": \"none\",\n  \"x-xss-protection\": \"0\"\n}","stack":"HttpError: 401 Unauthorized\n\"method: GET url: https://v12.jhes.com.br/api/desktop/sync/releases/electron-updater/5/stable/win32-x64/latest.yml\\n\\n          Data:\\n          {\\n  \\\"message\\\": \\\"Token não fornecido\\\"\\n}\\n          \"\nHeaders: {\n  \"access-control-allow-credentials\": \"b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b (sha256 hash)\",\n  \"connection\": \"keep-alive\",\n  \"content-length\": \"34\",\n  \"content-security-policy\": \"default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests\",\n  \"content-type\": \"application/json; charset=utf-8\",\n  \"cross-origin-opener-policy\": \"same-origin\",\n  \"cross-origin-resource-policy\": \"cross-origin\",\n  \"date\": \"Fri, 17 Jul 2026 15:06:43 GMT\",\n  \"etag\": \"W/\\\"22-NOeD41Az20qV9VmfwpPD0Zq2zKE\\\"\",\n  \"origin-agent-cluster\": \"?1\",\n  \"referrer-policy\": \"no-referrer\",\n  \"server\": \"openresty\",\n  \"strict-transport-security\": \"max-age=31536000; includeSubDomains\",\n  \"vary\": \"Origin\",\n  \"x-content-type-options\": \"nosniff\",\n  \"x-dns-prefetch-control\": \"off\",\n  \"x-download-options\": \"noopen\",\n  \"x-frame-options\": \"SAMEORIGIN\",\n  \"x-permitted-cross-domain-policies\": \"none\",\n  \"x-xss-protection\": \"0\"\n}\n    at createHttpError (C:\\v12\\V12 PDV\\resources\\app.asar\\node_modules\\builder-util-runtime\\out\\httpExecutor.js:53:12)\n    at IncomingMessage.<anonymous> (C:\\v12\\V12 PDV\\resources\\app.asar\\node_modules\\builder-util-runtime\\out\\httpExecutor.js:188:28)\n    at IncomingMessage.emit (node:events:518:28)\n    at endReadableNT (node:internal/streams/readable:1698:12)\n    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)","cause":""}
+[2026-07-17T15:06:44.494Z] Estado do updater nativo {"status":"error","version":null,"percent":null,"message":"401 Unauthorized\n\"method: GET url: https://v12.jhes.com.br/api/desktop/sync/releases/electron-updater/5/stable/win32-x64/latest.yml\\n\\n          Data:\\n          {\\n  \\\"message\\\": \\\"Token não fornecido\\\"\\n}\\n          \"\nHeaders: {\n  \"access-control-allow-credentials\": \"b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b (sha256 hash)\",\n  \"connection\": \"keep-alive\",\n  \"content-length\": \"34\",\n  \"content-security-policy\": \"default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests\",\n  \"content-type\": \"application/json; charset=utf-8\",\n  \"cross-origin-opener-policy\": \"same-origin\",\n  \"cross-origin-resource-policy\": \"cross-origin\",\n  \"date\": \"Fri, 17 Jul 2026 15:06:43 GMT\",\n  \"etag\": \"W/\\\"22-NOeD41Az20qV9VmfwpPD0Zq2zKE\\\"\",\n  \"origin-agent-cluster\": \"?1\",\n  \"referrer-policy\": \"no-referrer\",\n  \"server\": \"openresty\",\n  \"strict-transport-security\": \"max-age=31536000; includeSubDomains\",\n  \"vary\": \"Origin\",\n  \"x-content-type-options\": \"nosniff\",\n  \"x-dns-prefetch-control\": \"off\",\n  \"x-download-options\": \"noopen\",\n  \"x-frame-options\": \"SAMEORIGIN\",\n  \"x-permitted-cross-domain-policies\": \"none\",\n  \"x-xss-protection\": \"0\"\n}"}
+[2026-07-17T15:06:48.021Z] Aplicação encerrando

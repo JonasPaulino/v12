@@ -33,6 +33,15 @@ export const sha256File = async (filePath) =>
     stream.on("end", () => resolve(hash.digest("hex")));
   });
 
+export const sha512FileBase64 = async (filePath) =>
+  new Promise((resolve, reject) => {
+    const hash = crypto.createHash("sha512");
+    const stream = createReadStream(filePath);
+    stream.on("data", (chunk) => hash.update(chunk));
+    stream.on("error", reject);
+    stream.on("end", () => resolve(hash.digest("base64")));
+  });
+
 const copyFileByStream = async (source, target) =>
   new Promise((resolve, reject) => {
     const reader = createReadStream(source);

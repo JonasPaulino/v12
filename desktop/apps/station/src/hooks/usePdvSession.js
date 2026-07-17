@@ -5,6 +5,7 @@ import { useSweetAlert } from "../context/SweetAlertContext.jsx";
 import { getModuleForCaixa } from "../constants/pdv.js";
 
 const AUTO_SYNC_INTERVAL_MS = 5 * 60 * 1000;
+const AUTO_SYNC_LOGIN_DELAY_MS = 15 * 1000;
 
 function buildReleaseMessageFromStatus(statusLocal, details = {}) {
   if (!statusLocal) return null;
@@ -15,6 +16,13 @@ function buildReleaseMessageFromStatus(statusLocal, details = {}) {
 
   if (statusLocal === "instalando") {
     return "Nova versão encontrada. O PDV será atualizado e reiniciado automaticamente.";
+  }
+
+  if (statusLocal === "baixando") {
+    const percent = Number(details?.percent || 0);
+    return percent > 0
+      ? `Baixando atualização do PDV ${Math.round(percent)}%.`
+      : "Baixando atualização do PDV.";
   }
 
   if (statusLocal === "pendente_reinicio") {
@@ -188,12 +196,8 @@ export function usePdvSession({ onResetVenda, onCarregarFinanceiroSupportData })
         releaseStatus: statusLocal || null,
         releaseTargetVersion: versaoDisponivel,
       }));
-      if (statusLocal === "instalando") {
-        window.setTimeout(() => {
-          if (window.v12Desktop?.quit) {
-            void window.v12Desktop.quit();
-          }
-        }, 1200);
+      if (releaseStep?.details?.updateAvailable && window.v12Desktop?.checkForUpdates) {
+        void window.v12Desktop.checkForUpdates();
       }
       if (!silent && statusLocal !== "instalando") {
         showAlert({
@@ -310,6 +314,40 @@ export function usePdvSession({ onResetVenda, onCarregarFinanceiroSupportData })
   }
 
   useEffect(() => {
+    const unsubscribe = window.v12Desktop?.onReleaseUpdaterState?.((payload = {}) => {
+      const status = String(payload.status || "");
+      const mappedStatus =
+        status === "downloading"
+          ? "baixando"
+          : status === "available"
+            ? "baixando"
+            : status === "installing"
+              ? "instalando"
+              : status === "checking"
+                ? "verificando"
+                : status === "error"
+                  ? "erro"
+                  : null;
+
+      setSyncState((current) => ({
+        ...current,
+        running: ["checking", "available", "downloading", "installing"].includes(status),
+        mode: mappedStatus ? "release" : null,
+        releaseStatus: mappedStatus,
+        releaseTargetVersion: payload.version || current.releaseTargetVersion,
+        releaseMessage:
+          payload.message ||
+          buildReleaseMessageFromStatus(mappedStatus, { percent: payload.percent }),
+        lastError: status === "error" ? payload.message || "Falha ao atualizar o PDV." : current.lastError,
+      }));
+    });
+
+    return () => {
+      if (typeof unsubscribe === "function") unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
     const status = String(syncState?.releaseStatus || "");
     const version = String(syncState?.releaseTargetVersion || "");
 
@@ -323,16 +361,6 @@ export function usePdvSession({ onResetVenda, onCarregarFinanceiroSupportData })
 
     if (alreadyHandled) {
       return undefined;
-    }
-
-    if (status === "instalando") {
-      releaseActionRef.current = { status, version };
-      const timeoutId = window.setTimeout(() => {
-        if (window.v12Desktop?.quit) {
-          void window.v12Desktop.quit();
-        }
-      }, 2200);
-      return () => window.clearTimeout(timeoutId);
     }
 
     if (status === "pendente_reinicio" || status === "recursos_aplicado") {
@@ -363,8 +391,6 @@ export function usePdvSession({ onResetVenda, onCarregarFinanceiroSupportData })
       if (statusData?.configurado && !statusData?.bloqueado) {
         const releaseResult = await prepararAtualizacaoRelease({ reason: "startup" });
         if (!active || releaseResult?.blocked) return;
-
-        void atualizarPdvCompleto({ silent: true, reason: "startup" });
       }
     };
 
@@ -377,13 +403,15 @@ export function usePdvSession({ onResetVenda, onCarregarFinanceiroSupportData })
   }, []);
 
   async function handleOperadorLogin(operadorData) {
+    let loginCarregado = false;
+
     try {
       showLoading("Verificando caixa...");
       const caixaData = await api.caixaAtual();
       setCaixa(caixaData);
       setActiveModule(getModuleForCaixa(caixaData));
       setOperador(operadorData);
-      await onCarregarFinanceiroSupportData({ silent: true, refresh: true });
+      loginCarregado = true;
     } catch (error) {
       showAlert({
         title: "Falha ao carregar caixa",
@@ -393,24 +421,32 @@ export function usePdvSession({ onResetVenda, onCarregarFinanceiroSupportData })
     } finally {
       hideLoading();
     }
+
+    if (loginCarregado) {
+      void onCarregarFinanceiroSupportData({ silent: true, refresh: true }).catch((error) => {
+        console.error("[pdv-session] Falha ao carregar apoio financeiro em segundo plano", {
+          message: error?.message,
+        });
+      });
+    }
   }
 
   useEffect(() => {
-    if (!configStatus?.configurado || configStatus?.bloqueado) return undefined;
+    if (!configStatus?.configurado || configStatus?.bloqueado || !operador) return undefined;
 
     const runBackgroundSync = () => {
       void atualizarPdvCompleto({
         silent: true,
-        reason: operador ? "auto" : "pre_login",
+        reason: "auto",
       });
     };
 
-    if (operador) {
-      runBackgroundSync();
-    }
-
+    const initialSyncId = window.setTimeout(runBackgroundSync, AUTO_SYNC_LOGIN_DELAY_MS);
     const intervalId = window.setInterval(runBackgroundSync, AUTO_SYNC_INTERVAL_MS);
-    return () => window.clearInterval(intervalId);
+    return () => {
+      window.clearTimeout(initialSyncId);
+      window.clearInterval(intervalId);
+    };
   }, [configStatus?.bloqueado, configStatus?.configurado, operador]);
 
   async function refreshTerminalStatus({ syncRemote = false, silent = true } = {}) {

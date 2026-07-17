@@ -13,7 +13,7 @@
   ReadRegStr $R0 HKCU "${INSTALL_REGISTRY_KEY}" "InstallLocation"
 
   StrCmp $R0 "" 0 +2
-  StrCpy $R0 "C:\V12"
+  StrCpy $R0 "C:\v12\V12 PDV"
 
   SetRegView 64
   WriteRegExpandStr HKLM "${INSTALL_REGISTRY_KEY}" InstallLocation "$R0"

@@ -13,7 +13,11 @@ const require = createRequire(import.meta.url);
 const isDev = !app.isPackaged;
 const appIconPath = path.resolve(__dirname, "../src/assets/favicon.png");
 const DEFAULT_DEV_PORT = "5174";
+const LOCAL_API_BASE_URL = "http://127.0.0.1:5100/api/local";
 let localServerProcess = null;
+let mainWindow = null;
+let nativeUpdaterRunning = false;
+let nativeUpdater = null;
 
 function getLogDir() {
   return path.join(app.getPath("userData"), "logs");
@@ -49,6 +53,73 @@ function logMain(message, extra = null) {
 
 function logServer(message) {
   appendLogSync(getLogPaths().server, message);
+}
+
+function readEnvFileSync(filePath) {
+  try {
+    if (!filePath || !fsSync.existsSync(filePath)) return {};
+    const content = fsSync.readFileSync(filePath, "utf8");
+    return content.split(/\r?\n/).reduce((acc, rawLine) => {
+      const line = rawLine.trim();
+      if (!line || line.startsWith("#")) return acc;
+      const separatorIndex = line.indexOf("=");
+      if (separatorIndex <= 0) return acc;
+      const key = line.slice(0, separatorIndex).trim();
+      let value = line.slice(separatorIndex + 1).trim();
+      if (
+        (value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))
+      ) {
+        value = value.slice(1, -1);
+      }
+      acc[key] = value;
+      return acc;
+    }, {});
+  } catch {
+    return {};
+  }
+}
+
+function getDesktopEnvValue(key) {
+  if (process.env[key]) return String(process.env[key]);
+
+  const desktopRoot = path.resolve(__dirname, "../../..");
+  const envFiles = [
+    process.resourcesPath ? path.join(process.resourcesPath, ".env") : "",
+    path.join(desktopRoot, ".env"),
+  ];
+
+  for (const envFile of envFiles) {
+    const value = readEnvFileSync(envFile)[key];
+    if (value) return String(value);
+  }
+
+  return "";
+}
+
+function getReleaseChannel() {
+  return getDesktopEnvValue("V12_PDV_RELEASE_CHANNEL") || "stable";
+}
+
+function getReleasePlatform() {
+  return (
+    getDesktopEnvValue("V12_PDV_RELEASE_PLATFORM") ||
+    (process.platform === "win32" ? "win32-x64" : `${process.platform}-${process.arch}`)
+  );
+}
+
+function sendNativeUpdaterState(status, details = {}) {
+  const payload = {
+    status,
+    version: details.version || null,
+    percent: Number.isFinite(Number(details.percent)) ? Number(details.percent) : null,
+    message: details.message || null,
+  };
+
+  logMain("Estado do updater nativo", payload);
+  const targetWindow = mainWindow || BrowserWindow.getAllWindows()[0] || null;
+  if (!targetWindow || targetWindow.isDestroyed()) return;
+  targetWindow.webContents.send("release-updater:state", payload);
 }
 
 function readJsonSync(filePath) {
@@ -256,6 +327,176 @@ async function canReachUrl(url) {
     return response.ok;
   } catch {
     return false;
+  }
+}
+
+async function fetchLocalJson(pathname, { timeoutMs = 1800 } = {}) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(`${LOCAL_API_BASE_URL}${pathname}`, {
+      signal: controller.signal,
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || payload.success === false) {
+      throw new Error(payload.message || `Falha local ${response.status}`);
+    }
+    return Object.prototype.hasOwnProperty.call(payload, "data") ? payload.data : payload;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function waitForLocalApi() {
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    const reachable = await canReachUrl(`${LOCAL_API_BASE_URL}/healthz`);
+    if (reachable) return true;
+    await wait(500);
+  }
+
+  return false;
+}
+
+async function loadNsisUpdater() {
+  try {
+    const electronUpdater = await import("electron-updater");
+    const NsisUpdater = electronUpdater.NsisUpdater || electronUpdater.default?.NsisUpdater;
+    if (!NsisUpdater) {
+      throw new Error("NsisUpdater não encontrado no pacote electron-updater.");
+    }
+    return NsisUpdater;
+  } catch (error) {
+    throw new Error(
+      "Pacote electron-updater não está instalado no desktop. Rode npm install no projeto desktop.",
+      { cause: error },
+    );
+  }
+}
+
+async function checkAndInstallNativeUpdate(reason = "startup") {
+  if (isDev || nativeUpdaterRunning) {
+    return { success: false, skipped: true };
+  }
+
+  nativeUpdaterRunning = true;
+  sendNativeUpdaterState("checking", {
+    message: "Verificando atualização do PDV.",
+  });
+
+  try {
+    const localReady = await waitForLocalApi();
+    if (!localReady) {
+      throw new Error("Servidor local do PDV não respondeu para verificar atualização.");
+    }
+
+    const status = await fetchLocalJson("/configuracao/status");
+    const config = status?.config || null;
+    if (!status?.configurado || status?.bloqueado || !config?.tenant_erp_id) {
+      sendNativeUpdaterState("idle");
+      return { success: false, skipped: true };
+    }
+
+    const caixa = await fetchLocalJson("/caixa/atual").catch(() => null);
+    if (caixa?.caixa_id && String(caixa.status || "").toLowerCase() === "aberto") {
+      sendNativeUpdaterState("idle");
+      logMain("Atualização nativa adiada porque existe caixa aberto", {
+        reason,
+        caixaId: caixa.caixa_id,
+      });
+      return { success: false, deferred: true };
+    }
+
+    const erpApiUrl = getDesktopEnvValue("V12_ERP_API_URL").replace(/\/$/, "");
+    const syncToken = getDesktopEnvValue("V12_ERP_SYNC_TOKEN");
+    if (!erpApiUrl || !syncToken) {
+      throw new Error("URL ou token de sincronização do ERP não configurado para atualização.");
+    }
+
+    const feedUrl = `${erpApiUrl}/desktop/sync/releases/electron-updater/${encodeURIComponent(
+      config.tenant_erp_id,
+    )}/${encodeURIComponent(getReleaseChannel())}/${encodeURIComponent(getReleasePlatform())}`;
+    const NsisUpdater = await loadNsisUpdater();
+
+    nativeUpdater = new NsisUpdater({
+      provider: "generic",
+      url: feedUrl,
+    });
+    nativeUpdater.autoDownload = true;
+    nativeUpdater.autoInstallOnAppQuit = false;
+    nativeUpdater.allowPrerelease = false;
+    nativeUpdater.logger = {
+      info: (message) => logMain("[electron-updater:info]", message),
+      warn: (message) => logMain("[electron-updater:warn]", message),
+      error: (message) => logMain("[electron-updater:error]", message),
+      debug: (message) => logMain("[electron-updater:debug]", message),
+    };
+    nativeUpdater.addAuthHeader(`Bearer ${syncToken}`);
+
+    nativeUpdater.on("checking-for-update", () => {
+      sendNativeUpdaterState("checking", {
+        message: "Verificando atualização do PDV.",
+      });
+    });
+    nativeUpdater.on("update-not-available", () => {
+      sendNativeUpdaterState("idle");
+    });
+    nativeUpdater.on("update-available", (info) => {
+      sendNativeUpdaterState("available", {
+        version: info?.version,
+        message: `Nova versão ${info?.version || ""} encontrada. Baixando atualização.`,
+      });
+    });
+    nativeUpdater.on("download-progress", (progress) => {
+      sendNativeUpdaterState("downloading", {
+        percent: progress?.percent,
+        message: `Baixando atualização ${Math.round(Number(progress?.percent || 0))}%.`,
+      });
+    });
+    nativeUpdater.on("error", (error) => {
+      sendNativeUpdaterState("error", {
+        message: error?.message || "Falha ao atualizar o PDV.",
+      });
+    });
+    nativeUpdater.on("update-downloaded", (info) => {
+      sendNativeUpdaterState("installing", {
+        version: info?.version,
+        message: "Atualização baixada. O PDV será fechado e instalado automaticamente.",
+      });
+
+      setTimeout(() => {
+        try {
+          nativeUpdater.quitAndInstall(true, true);
+        } catch (error) {
+          sendNativeUpdaterState("error", {
+            message: error?.message || "Falha ao iniciar instalação da atualização.",
+          });
+        }
+      }, 1600);
+    });
+
+    logMain("Verificando atualização nativa do PDV", {
+      reason,
+      feedUrl,
+      appVersion: app.getVersion(),
+    });
+    const checkResult = await nativeUpdater.checkForUpdates();
+    if (checkResult?.downloadPromise) {
+      await checkResult.downloadPromise;
+    }
+    return { success: true };
+  } catch (error) {
+    logMain("Falha na atualização nativa do PDV", {
+      reason,
+      message: error?.message || "",
+      stack: error?.stack || "",
+      cause: error?.cause?.message || "",
+    });
+    sendNativeUpdaterState("error", {
+      message: error?.message || "Falha ao verificar atualização do PDV.",
+    });
+    return { success: false, error };
+  } finally {
+    nativeUpdaterRunning = false;
   }
 }
 
@@ -1044,14 +1285,17 @@ async function createWindow() {
     logMain("Console renderer", { level, message, line, sourceId });
   });
 
+  mainWindow = win;
+
   if (isDev) {
     try {
       await loadDevServer(win);
+      return win;
     } catch {
       logMain("Falha ao carregar Vite no modo desenvolvimento");
       await win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(buildDevServerErrorHtml())}`);
+      return win;
     }
-    return;
   }
 
   const activeVersion = getActiveAppVersion();
@@ -1061,13 +1305,14 @@ async function createWindow() {
 
   if (activeIndex && fsSync.existsSync(activeIndex)) {
     logMain("Carregando front ativo da release", { activeIndex });
-    win.loadFile(activeIndex);
-    return;
+    await win.loadFile(activeIndex);
+    return win;
   }
 
   const bundledIndex = path.resolve(__dirname, "../dist/index.html");
   logMain("Carregando front empacotado", { bundledIndex });
-  win.loadFile(bundledIndex);
+  await win.loadFile(bundledIndex);
+  return win;
 }
 
 ipcMain.handle("app:quit", () => {
@@ -1078,6 +1323,8 @@ ipcMain.handle("app:restart", () => {
   app.relaunch();
   app.quit();
 });
+
+ipcMain.handle("release-updater:check", async () => checkAndInstallNativeUpdate("manual"));
 
 ipcMain.handle("window:toggle-fullscreen", () => {
   const win = BrowserWindow.getFocusedWindow();
@@ -1178,21 +1425,32 @@ ipcMain.handle("sale:print-pdf-file", async (_event, pdfPath, config = {}) => {
 app.whenReady().then(async () => {
   logMain("Electron pronto", {
     isDev,
+    appVersion: app.getVersion(),
     userData: app.getPath("userData"),
     resourcesPath: process.resourcesPath,
   });
   Menu.setApplicationMenu(null);
   await startPackagedLocalServer();
-  createWindow();
+  const win = await createWindow();
+
+  if (!isDev) {
+    setTimeout(() => {
+      void checkAndInstallNativeUpdate("startup");
+    }, 2500);
+  }
 
   globalShortcut.register("F11", () => {
-    const win = BrowserWindow.getFocusedWindow();
-    if (win) win.setFullScreen(!win.isFullScreen());
+    const focusedWindow = BrowserWindow.getFocusedWindow();
+    if (focusedWindow) focusedWindow.setFullScreen(!focusedWindow.isFullScreen());
   });
 
   globalShortcut.register("Escape", () => {
-    const win = BrowserWindow.getFocusedWindow();
-    if (win?.isFullScreen()) win.setFullScreen(false);
+    const focusedWindow = BrowserWindow.getFocusedWindow();
+    if (focusedWindow?.isFullScreen()) focusedWindow.setFullScreen(false);
+  });
+
+  win?.webContents.once("did-finish-load", () => {
+    sendNativeUpdaterState("idle");
   });
 });
 
