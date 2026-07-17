@@ -39,7 +39,7 @@ nsis:
   oneClick: false
   perMachine: false
   include: build/installer.nsh
-  allowToChangeInstallationDirectory: true
+  allowToChangeInstallationDirectory: false
   createDesktopShortcut: true
   createStartMenuShortcut: true
   shortcutName: V12 PDV
