@@ -8,7 +8,6 @@ import { pool } from "../config/conexao.js";
 import desktopSyncAuth from "../middleware/desktopSyncAuth.js";
 import DesktopSyncDAO from "../model/desktopSyncDAO.js";
 import FinanceiroDAO from "../model/financeiroDAO.js";
-import ConfiguracaoFiscalDAO from "../model/configuracaoFiscalDAO.js";
 import GestaoBackupDAO from "../model/gestaoBackupDAO.js";
 import GestaoPdvReleaseDAO from "../model/gestaoPdvReleaseDAO.js";
 import PdvDAO from "../model/pdvDAO.js";
@@ -563,7 +562,17 @@ async function enrichTenantsWithCompanyData(client, tenants = []) {
   }));
 }
 
-async function getTenantWithCompanyData(client, tenantId) {
+async function getTenantWithCompanyData(
+  client,
+  tenantId,
+  { terminalCodigo = null, terminalNome = null } = {},
+) {
+  const terminal = await PdvDAO.ensureTerminal(client, {
+    tenantId,
+    terminalCodigo,
+    terminalNome,
+  });
+
   const result = await client.query(
     `
       SELECT
@@ -650,24 +659,25 @@ async function getTenantWithCompanyData(client, tenantId) {
       SELECT COALESCE(MAX(nfce_numero), 0)::int AS max_numero
       FROM pdv.venda
       WHERE tenant_id = $1
+        AND pdv_terminal_id = $2
         AND nfce_status IN ('autorizada', 'contingencia', 'cancelada')
         AND nfce_numero IS NOT NULL
     `,
-    [tenantId],
+    [tenantId, terminal.pdv_terminal_id],
   );
 
   const maxNfceConsumida = Number(maxNfceConsumidaResult.rows[0]?.max_numero || 0);
+  const proximoNumeroNfce = Math.max(
+    Number(terminal.nfce_proximo_numero ?? row.proximo_numero_nfce ?? 1),
+    maxNfceConsumida > 0 ? maxNfceConsumida + 1 : 1,
+  );
+
   if (maxNfceConsumida > 0) {
-    await ConfiguracaoFiscalDAO.avancarProximoNumeroNfce(client, {
-      tenantId,
+    await PdvDAO.avancarProximoNumeroNfceTerminal(client, {
+      pdvTerminalId: terminal.pdv_terminal_id,
       numeroAtual: maxNfceConsumida,
     });
   }
-
-  const proximoNumeroNfce = Math.max(
-    Number(row.proximo_numero_nfce ?? 1),
-    maxNfceConsumida > 0 ? maxNfceConsumida + 1 : 1,
-  );
 
   return {
     tenant_id: row.tenant_id,
@@ -714,7 +724,7 @@ async function getTenantWithCompanyData(client, tenantId) {
       cnae: row.cnae || "",
       natureza_operacao_padrao: row.natureza_operacao_padrao || "Venda de mercadoria",
       nfce_habilitada: parseBooleanFlag(row.nfce_habilitada, false),
-      serie_nfce_padrao: Number(row.serie_nfce_padrao ?? 1),
+      serie_nfce_padrao: Number(terminal.nfce_serie ?? row.serie_nfce_padrao ?? 1),
       proximo_numero_nfce: proximoNumeroNfce,
       nfce_id_token_csc: row.nfce_id_token_csc || "",
       nfce_csc: row.nfce_csc_criptografado
@@ -808,6 +818,8 @@ router.post("/desktop/sync/setup-login", async (req, res) => {
 router.get("/desktop/sync/tenant-config", async (req, res) => {
   try {
     const tenantId = Number(req.query.tenant_id);
+    const terminalCodigo = String(req.query.terminal_codigo || "").trim() || null;
+    const terminalNome = String(req.query.terminal_nome || "").trim() || terminalCodigo;
     if (!Number.isInteger(tenantId) || tenantId <= 0) {
       return res.status(400).json({
         success: false,
@@ -823,7 +835,10 @@ router.get("/desktop/sync/tenant-config", async (req, res) => {
       });
     }
 
-    const tenant = await getTenantWithCompanyData(pool, tenantId);
+    const tenant = await getTenantWithCompanyData(pool, tenantId, {
+      terminalCodigo,
+      terminalNome,
+    });
     if (!tenant) {
       return res.status(404).json({
         success: false,

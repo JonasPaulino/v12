@@ -65,7 +65,7 @@ export async function loginErpWeb({ email, senha }) {
   };
 }
 
-async function fetchTenantConfigFromErp(tenantId) {
+async function fetchTenantConfigFromErp(tenantId, terminal = {}) {
   if (!env.erpSyncToken) {
     throw new Error("Token de sincronização do ERP não configurado no desktop.");
   }
@@ -73,6 +73,12 @@ async function fetchTenantConfigFromErp(tenantId) {
   const params = new URLSearchParams({
     tenant_id: String(tenantId),
   });
+  if (terminal.terminal_codigo) {
+    params.set("terminal_codigo", String(terminal.terminal_codigo).trim());
+  }
+  if (terminal.terminal_nome) {
+    params.set("terminal_nome", String(terminal.terminal_nome).trim());
+  }
   const response = await fetch(`${getErpBaseUrl()}/desktop/sync/tenant-config?${params.toString()}`, {
     headers: {
       Authorization: `Bearer ${env.erpSyncToken}`,
@@ -148,7 +154,10 @@ export async function configurarTerminalPorTenant({
   }
 
   try {
-    const tenantDetalhado = await fetchTenantConfigFromErp(tenant.tenant_id);
+    const tenantDetalhado = await fetchTenantConfigFromErp(tenant.tenant_id, {
+      terminal_codigo,
+      terminal_nome,
+    });
     if (!tenantDetalhado?.tenant_id) {
       throw new Error("Não foi possível carregar a configuração completa da filial para o PDV.");
     }
@@ -213,7 +222,10 @@ export async function atualizarDadosFilialAtual() {
     throw new Error("PDV local ainda não pareado com uma filial do ERP.");
   }
 
-  const tenant = await fetchTenantConfigFromErp(configAtual.tenant_erp_id);
+  const tenant = await fetchTenantConfigFromErp(configAtual.tenant_erp_id, {
+    terminal_codigo: configAtual.terminal_codigo,
+    terminal_nome: configAtual.terminal_nome,
+  });
   if (!tenant?.tenant_id) {
     throw new Error("ERP não retornou os dados atuais da filial.");
   }

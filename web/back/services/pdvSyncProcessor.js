@@ -1,5 +1,4 @@
 import { pool } from "../config/conexao.js";
-import ConfiguracaoFiscalDAO from "../model/configuracaoFiscalDAO.js";
 import DesktopSyncDAO from "../model/desktopSyncDAO.js";
 import PdvDAO from "../model/pdvDAO.js";
 
@@ -151,8 +150,8 @@ async function processarEventoComClient(client, evento) {
       });
 
       if (["NFCE_CONTINGENCIA", "NFCE_AUTORIZADA"].includes(evento.eventType)) {
-        await ConfiguracaoFiscalDAO.avancarProximoNumeroNfce(client, {
-          tenantId: evento.tenantId,
+        await PdvDAO.avancarProximoNumeroNfceTerminal(client, {
+          pdvTerminalId: terminal.pdv_terminal_id,
           numeroAtual: evento.payload?.numero,
         });
       }

@@ -65,25 +65,105 @@ class PdvDAO {
     const nome = toText(terminalNome, 120) || codigo;
     const { rows } = await client.query(
       `
+        WITH lock_tenant AS (
+          SELECT pg_advisory_xact_lock(71200, $1)
+        ),
+        fiscal_base AS (
+          SELECT
+            COALESCE(cfg.serie_nfce_padrao, 1) AS serie_base,
+            COALESCE(cfg.proximo_numero_nfce, 1) AS proximo_base
+          FROM tenant_configuracao_fiscal cfg
+          CROSS JOIN lock_tenant
+          WHERE cfg.tenant_id = $1
+          LIMIT 1
+        ),
+        proximo_terminal AS (
+          SELECT
+            COALESCE(
+              MAX(t.nfce_serie) + 1,
+              (SELECT serie_base FROM fiscal_base),
+              1
+            ) AS serie,
+            COALESCE((SELECT proximo_base FROM fiscal_base), 1) AS proximo_numero
+          FROM pdv.terminal t
+          CROSS JOIN lock_tenant
+          WHERE t.tenant_id = $1
+        )
         INSERT INTO pdv.terminal (
           tenant_id,
           terminal_codigo,
           terminal_nome,
           ativo,
+          nfce_serie,
+          nfce_proximo_numero,
           atualizado_em
         )
-        VALUES ($1, $2, $3, TRUE, NOW())
+        VALUES (
+          $1,
+          $2,
+          $3,
+          TRUE,
+          (SELECT serie FROM proximo_terminal),
+          CASE
+            WHEN EXISTS (
+              SELECT 1
+              FROM pdv.terminal t
+              WHERE t.tenant_id = $1
+            )
+              THEN 1
+            ELSE (SELECT proximo_numero FROM proximo_terminal)
+          END,
+          NOW()
+        )
         ON CONFLICT (tenant_id, terminal_codigo) DO UPDATE
         SET
           terminal_nome = EXCLUDED.terminal_nome,
           ativo = TRUE,
           atualizado_em = NOW()
-        RETURNING pdv_terminal_id, tenant_id, terminal_codigo, terminal_nome
+        RETURNING
+          pdv_terminal_id,
+          tenant_id,
+          terminal_codigo,
+          terminal_nome,
+          nfce_serie,
+          nfce_proximo_numero
       `,
       [tenantId, codigo, nome],
     );
 
     return rows[0];
+  }
+
+  static async avancarProximoNumeroNfceTerminal(client, { pdvTerminalId, numeroAtual }) {
+    const safeTerminalId = toInteger(pdvTerminalId);
+    const safeNumeroAtual = toInteger(numeroAtual);
+
+    if (!safeTerminalId || !safeNumeroAtual || safeNumeroAtual <= 0) {
+      return null;
+    }
+
+    const { rows } = await client.query(
+      `
+        UPDATE pdv.terminal
+        SET
+          nfce_proximo_numero = GREATEST(
+            COALESCE(nfce_proximo_numero, 1),
+            $2
+          ),
+          atualizado_em = NOW()
+        WHERE pdv_terminal_id = $1
+        RETURNING
+          pdv_terminal_id,
+          tenant_id,
+          terminal_codigo,
+          terminal_nome,
+          nfce_serie,
+          nfce_proximo_numero
+      `,
+      [safeTerminalId, safeNumeroAtual + 1],
+    );
+
+    return rows[0] || null;
   }
 
   static async resolvePessoaId(client, { tenantId, pessoaErpId, documento }) {
