@@ -3,8 +3,8 @@ import {
   aplicarAtualizacaoPdv,
   baixarAtualizacaoPdv,
   getStatusAtualizacaoPdv,
-  instalarAtualizacaoPdv,
   prepararAtualizacaoPdv,
+  verificarInstaladorProntoPdv,
   verificarAtualizacaoPdv,
 } from "../services/atualizacao/releaseUpdateService.js";
 
@@ -12,6 +12,15 @@ const router = Router();
 
 router.get("/status", (_req, res) => {
   res.json({ success: true, data: getStatusAtualizacaoPdv() });
+});
+
+router.get("/instalador-pronto", async (_req, res, next) => {
+  try {
+    const data = await verificarInstaladorProntoPdv();
+    res.json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
 });
 
 router.post("/verificar", async (_req, res, next) => {
@@ -53,15 +62,6 @@ router.post("/:releaseId/baixar", async (req, res, next) => {
 router.post("/:releaseId/aplicar", async (req, res, next) => {
   try {
     const data = await aplicarAtualizacaoPdv(req.params.releaseId);
-    res.json({ success: true, data });
-  } catch (error) {
-    next(error);
-  }
-});
-
-router.post("/:releaseId/instalar", async (req, res, next) => {
-  try {
-    const data = await instalarAtualizacaoPdv(req.params.releaseId);
     res.json({ success: true, data });
   } catch (error) {
     next(error);

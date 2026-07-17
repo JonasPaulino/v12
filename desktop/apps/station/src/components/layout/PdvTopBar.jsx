@@ -1,5 +1,6 @@
 import {
   FiChevronDown,
+  FiDownload,
   FiFileText,
   FiMaximize2,
   FiMenu,
@@ -19,6 +20,7 @@ export function PdvTopBar({
   openModule,
   carregarHistoricoVendas,
   atualizarPdvCompleto,
+  verificarAtualizacaoVersao,
   consultarStatusFiscalLocal,
   enviarContingenciasFiscais,
   alternarTelaCheia,
@@ -28,9 +30,7 @@ export function PdvTopBar({
     ? "Uma atualização automática está sendo executada em segundo plano."
     : syncState?.lastError
       ? syncState.lastError
-      : syncState?.releaseMessage
-        ? syncState.releaseMessage
-      : "Atualizar PDV agora";
+      : "Atualizar filial, operadores, produtos, financeiro e pendências locais.";
 
   return (
     <header className="pdv-topbar">
@@ -64,6 +64,14 @@ export function PdvTopBar({
             >
               <FiRefreshCcw className={syncState?.running ? "spinning-icon" : ""} />
               Atualizar PDV
+            </button>
+            <button
+              className="submenu-button"
+              onClick={() => verificarAtualizacaoVersao?.()}
+              title="Verificar e baixar uma nova versão do PDV para instalar na próxima abertura."
+            >
+              <FiDownload />
+              Verificar atualização de versão
             </button>
           </div>
           <button onClick={alternarTelaCheia}><FiMaximize2 /> Alternar tela cheia</button>

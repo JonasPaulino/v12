@@ -115,24 +115,6 @@ export function markReleaseDownloaded({ releaseId, arquivoLocal }) {
   return getReleaseUpdateByReleaseId(releaseId);
 }
 
-export function markReleaseInstalled(releaseId) {
-  getDb()
-    .prepare(
-      `
-        UPDATE release_update
-        SET
-          status = 'instalando',
-          instalado_em = CURRENT_TIMESTAMP,
-          ultimo_erro = NULL,
-          atualizado_em = CURRENT_TIMESTAMP
-        WHERE release_id = ?
-      `,
-    )
-    .run(String(releaseId));
-
-  return getReleaseUpdateByReleaseId(releaseId);
-}
-
 export function markReleaseStaged({ releaseId, stagingDir, rollbackDir = null }) {
   getDb()
     .prepare(

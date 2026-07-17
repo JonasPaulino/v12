@@ -14,10 +14,7 @@ import GestaoPdvReleaseDAO from "../model/gestaoPdvReleaseDAO.js";
 import PdvDAO from "../model/pdvDAO.js";
 import loginDAO from "../model/loginDAO.js";
 import { uploadBackupToGoogleDrive } from "../services/googleDriveBackupService.js";
-import {
-  openReleaseReadStream,
-  sha512FileBase64,
-} from "../services/pdvReleaseStorageService.js";
+import { openReleaseReadStream } from "../services/pdvReleaseStorageService.js";
 import { processarEventoDesktopSync } from "../services/pdvSyncProcessor.js";
 import { hashPassword, verifyPassword } from "../utils/password.js";
 import { decryptSecret } from "../utils/secret.js";
@@ -30,13 +27,7 @@ const backupUpload = multer({
   },
 });
 
-router.use("/desktop/sync", (req, res, next) => {
-  if (String(req.path || "").startsWith("/releases/electron-updater/")) {
-    return next();
-  }
-
-  return desktopSyncAuth(req, res, next);
-});
+router.use("/desktop/sync", desktopSyncAuth);
 
 const parseBooleanFlag = (value, defaultValue = false) => {
   if (value === undefined || value === null || value === "") return defaultValue;
@@ -138,31 +129,6 @@ const buildReleasePayload = (release, req) => {
     publicado_em: release.publicado_em,
     download_url: `/desktop/sync/releases/${release.pdv_release_id}/download?${query.toString()}`,
   };
-};
-
-const encodeReleaseFileName = (value) =>
-  encodeURIComponent(String(value || "V12-PDV-Setup.exe").replace(/"/g, ""));
-
-const buildElectronUpdaterYaml = async ({ release, tenantId }) => {
-  const fileName = encodeReleaseFileName(release.arquivo_original || release.arquivo_nome);
-  const fileUrl = `${release.pdv_release_id}/${fileName}`;
-  const sha512 = await sha512FileBase64(release.arquivo_path);
-  const releaseDate = release.publicado_em
-    ? new Date(release.publicado_em).toISOString()
-    : new Date().toISOString();
-
-  return [
-    `version: ${release.versao}`,
-    "files:",
-    `  - url: ${fileUrl}`,
-    `    sha512: ${sha512}`,
-    `    size: ${Number(release.tamanho_bytes || 0)}`,
-    `path: ${fileUrl}`,
-    `sha512: ${sha512}`,
-    `releaseDate: ${releaseDate}`,
-    `tenantId: ${tenantId}`,
-    "",
-  ].join("\n");
 };
 
 router.post("/desktop/sync", async (req, res) => {
@@ -492,94 +458,6 @@ router.get("/desktop/sync/releases/:releaseId/download", async (req, res) => {
     });
   }
 });
-
-router.get(
-  "/desktop/sync/releases/electron-updater/:tenantId/:canal/:plataforma/latest.yml",
-  async (req, res) => {
-    try {
-      const tenantId = Number(req.params.tenantId);
-      const canal = String(req.params.canal || "stable").trim();
-      const plataforma = String(req.params.plataforma || "win32-x64").trim();
-
-      if (!Number.isInteger(tenantId) || tenantId <= 0) {
-        return res.status(400).type("text/plain").send("tenantId obrigatório.");
-      }
-
-      const tenantAtivo = await DesktopSyncDAO.validarTenantAtivo(pool, tenantId);
-      if (!tenantAtivo) {
-        return res
-          .status(403)
-          .type("text/plain")
-          .send("Filial inativa, bloqueada, sem integração PDV ou não encontrada.");
-      }
-
-      const release = await GestaoPdvReleaseDAO.buscarReleasePublicado(pool, {
-        canal,
-        plataforma,
-        tipoRelease: "app",
-      });
-
-      const releaseExtension = String(release?.arquivo_original || release?.arquivo_nome || "")
-        .slice(-4)
-        .toLowerCase();
-      if (!release || ![".exe", ".msi"].includes(releaseExtension)) {
-        return res.status(404).type("text/plain").send("Release não encontrado.");
-      }
-
-      const yaml = await buildElectronUpdaterYaml({ release, tenantId });
-      res.setHeader("Cache-Control", "no-store");
-      return res.type("text/yaml").send(yaml);
-    } catch (error) {
-      console.error("[desktop-sync:release] Falha ao gerar latest.yml:", error);
-      return res.status(500).type("text/plain").send("Não foi possível consultar atualização.");
-    }
-  },
-);
-
-router.get(
-  "/desktop/sync/releases/electron-updater/:tenantId/:canal/:plataforma/:releaseId/:fileName",
-  async (req, res) => {
-    try {
-      const tenantId = Number(req.params.tenantId);
-      const releaseId = Number(req.params.releaseId);
-
-      if (!Number.isInteger(tenantId) || tenantId <= 0) {
-        return res.status(400).json({ success: false, message: "tenantId obrigatório." });
-      }
-
-      const tenantAtivo = await DesktopSyncDAO.validarTenantAtivo(pool, tenantId);
-      if (!tenantAtivo) {
-        return res.status(403).json({
-          success: false,
-          message: "Filial inativa, bloqueada, sem integração PDV ou não encontrada.",
-        });
-      }
-
-      const release = await GestaoPdvReleaseDAO.buscarReleasePorId(pool, releaseId);
-      if (!release || release.status !== "publicado") {
-        return res.status(404).json({ success: false, message: "Release não encontrado." });
-      }
-
-      const stream = await openReleaseReadStream(release);
-      res.setHeader("Content-Type", "application/octet-stream");
-      res.setHeader(
-        "Content-Disposition",
-        `attachment; filename="${String(release.arquivo_original || release.arquivo_nome).replace(
-          /"/g,
-          "",
-        )}"`,
-      );
-      res.setHeader("X-V12-Release-Sha256", release.arquivo_sha256);
-      return stream.pipe(res);
-    } catch (error) {
-      console.error("[desktop-sync:release] Falha ao baixar release via electron-updater:", error);
-      return res.status(400).json({
-        success: false,
-        message: error?.message || "Não foi possível baixar atualização do PDV.",
-      });
-    }
-  },
-);
 
 const buildPublicSetupUser = (usuario) => ({
   usuario_id: usuario.usuario_id,

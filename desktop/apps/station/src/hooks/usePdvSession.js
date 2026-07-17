@@ -15,7 +15,7 @@ function buildReleaseMessageFromStatus(statusLocal, details = {}) {
   }
 
   if (statusLocal === "instalando") {
-    return "Nova versão encontrada. O PDV será atualizado e reiniciado automaticamente.";
+    return "Atualização do PDV em preparação.";
   }
 
   if (statusLocal === "baixando") {
@@ -26,7 +26,7 @@ function buildReleaseMessageFromStatus(statusLocal, details = {}) {
   }
 
   if (statusLocal === "pendente_reinicio") {
-    return "Atualização aplicada. Reinicie o PDV para concluir.";
+    return "Atualização preparada. Ela será instalada na próxima abertura do PDV.";
   }
 
   if (statusLocal === "recursos_aplicado") {
@@ -34,7 +34,7 @@ function buildReleaseMessageFromStatus(statusLocal, details = {}) {
   }
 
   if (statusLocal === "baixado" || statusLocal === "staged") {
-    return "Atualização baixada. Ela será aplicada quando o caixa estiver fechado.";
+    return "Atualização baixada. Ela será instalada na próxima abertura do PDV.";
   }
 
   if (statusLocal === "erro") {
@@ -64,10 +64,7 @@ export function usePdvSession({ onResetVenda, onCarregarFinanceiroSupportData })
   const { showLoading, hideLoading } = useContext(AppContext);
   const { showAlert, askYesNoQuestion } = useSweetAlert();
   const syncLockRef = useRef(false);
-  const releaseActionRef = useRef({
-    status: null,
-    version: null,
-  });
+  const releaseLockRef = useRef(false);
 
   async function refreshReleaseStatus() {
     const releaseStatus = await api.releaseStatus().catch(() => null);
@@ -178,28 +175,7 @@ export function usePdvSession({ onResetVenda, onCarregarFinanceiroSupportData })
         lastError: null,
       }));
       const steps = Array.isArray(result?.steps) ? result.steps.map((step) => step.label) : [];
-      const releaseStep = Array.isArray(result?.steps)
-        ? result.steps.find((step) => step.key === "release")
-        : null;
-      const statusLocal = releaseStep?.details?.statusLocal;
-      const versaoDisponivel = releaseStep?.details?.versaoDisponivel || null;
-      const releaseMessage =
-        buildReleaseMessageFromStatus(statusLocal, releaseStep?.details) ||
-        (releaseStep?.details?.updateAvailable
-          ? `Atualização ${releaseStep.details.versaoDisponivel || ""} disponível.`
-          : releaseStep?.success
-            ? "PDV sem atualização pendente."
-            : releaseStep?.details?.message || null);
-      setSyncState((current) => ({
-        ...current,
-        releaseMessage,
-        releaseStatus: statusLocal || null,
-        releaseTargetVersion: versaoDisponivel,
-      }));
-      if (releaseStep?.details?.updateAvailable && window.v12Desktop?.checkForUpdates) {
-        void window.v12Desktop.checkForUpdates();
-      }
-      if (!silent && statusLocal !== "instalando") {
+      if (!silent) {
         showAlert({
           title: "PDV atualizado",
           text: steps.length
@@ -248,17 +224,19 @@ export function usePdvSession({ onResetVenda, onCarregarFinanceiroSupportData })
     }
   }
 
-  async function prepararAtualizacaoRelease({ reason = "startup" } = {}) {
-    if (syncLockRef.current) {
-      return { blocked: false, busy: true };
+  async function verificarAtualizacaoVersao() {
+    if (releaseLockRef.current) {
+      showAlert({
+        title: "Verificação em andamento",
+        text: "A verificação de versão do PDV já está sendo executada.",
+        icon: "info",
+      });
+      return { success: false, busy: true };
     }
 
-    syncLockRef.current = true;
+    releaseLockRef.current = true;
     setSyncState((current) => ({
       ...current,
-      running: true,
-      mode: "release",
-      reason,
       lastError: null,
       releaseStatus: "verificando",
       releaseTargetVersion: null,
@@ -266,6 +244,7 @@ export function usePdvSession({ onResetVenda, onCarregarFinanceiroSupportData })
     }));
 
     try {
+      showLoading("Verificando atualização de versão...");
       const result = await api.prepararAtualizacaoRelease();
       const latestLocal = result?.local || null;
       const statusLocal = result?.statusLocal || latestLocal?.status || null;
@@ -274,7 +253,7 @@ export function usePdvSession({ onResetVenda, onCarregarFinanceiroSupportData })
       const releaseMessage =
         buildReleaseMessageFromStatus(statusLocal, latestLocal) ||
         (statusLocal === "baixado"
-          ? "Atualização baixada. Ela será aplicada quando o caixa estiver fechado."
+          ? "Atualização baixada. Ela será instalada na próxima abertura do PDV."
           : null);
 
       setSyncState((current) => ({
@@ -285,8 +264,24 @@ export function usePdvSession({ onResetVenda, onCarregarFinanceiroSupportData })
         lastSuccessAt: new Date().toISOString(),
       }));
 
+      if (result?.update_available || ["baixado", "staged"].includes(String(statusLocal))) {
+        showAlert({
+          title: "Atualização baixada",
+          text: releaseTargetVersion
+            ? `A versão ${releaseTargetVersion} será instalada na próxima abertura do PDV.`
+            : "A atualização será instalada na próxima abertura do PDV.",
+          icon: "success",
+        });
+      } else {
+        showAlert({
+          title: "PDV atualizado",
+          text: "Nenhuma nova versão disponível.",
+          icon: "info",
+        });
+      }
+
       return {
-        blocked: statusLocal === "instalando" || statusLocal === "pendente_reinicio",
+        success: true,
         result,
       };
     } catch (error) {
@@ -297,84 +292,20 @@ export function usePdvSession({ onResetVenda, onCarregarFinanceiroSupportData })
         releaseStatus: null,
         releaseTargetVersion: null,
       }));
-      console.error("[pdv-session] Falha ao verificar release", {
-        reason,
+      console.error("[pdv-session] Falha ao verificar versão", {
         message: error?.message,
       });
-      return { blocked: false, error };
+      showAlert({
+        title: "Falha ao verificar versão",
+        text: error.message,
+        icon: "error",
+      });
+      return { success: false, error };
     } finally {
-      syncLockRef.current = false;
-      setSyncState((current) => ({
-        ...current,
-        running: false,
-        mode: null,
-        reason: null,
-      }));
+      hideLoading();
+      releaseLockRef.current = false;
     }
   }
-
-  useEffect(() => {
-    const unsubscribe = window.v12Desktop?.onReleaseUpdaterState?.((payload = {}) => {
-      const status = String(payload.status || "");
-      const mappedStatus =
-        status === "downloading"
-          ? "baixando"
-          : status === "available"
-            ? "baixando"
-            : status === "installing"
-              ? "instalando"
-              : status === "checking"
-                ? "verificando"
-                : status === "error"
-                  ? "erro"
-                  : null;
-
-      setSyncState((current) => ({
-        ...current,
-        running: ["checking", "available", "downloading", "installing"].includes(status),
-        mode: mappedStatus ? "release" : null,
-        releaseStatus: mappedStatus,
-        releaseTargetVersion: payload.version || current.releaseTargetVersion,
-        releaseMessage:
-          payload.message ||
-          buildReleaseMessageFromStatus(mappedStatus, { percent: payload.percent }),
-        lastError: status === "error" ? payload.message || "Falha ao atualizar o PDV." : current.lastError,
-      }));
-    });
-
-    return () => {
-      if (typeof unsubscribe === "function") unsubscribe();
-    };
-  }, []);
-
-  useEffect(() => {
-    const status = String(syncState?.releaseStatus || "");
-    const version = String(syncState?.releaseTargetVersion || "");
-
-    if (!status) {
-      releaseActionRef.current = { status: null, version: null };
-      return undefined;
-    }
-
-    const alreadyHandled =
-      releaseActionRef.current.status === status && releaseActionRef.current.version === version;
-
-    if (alreadyHandled) {
-      return undefined;
-    }
-
-    if (status === "pendente_reinicio" || status === "recursos_aplicado") {
-      releaseActionRef.current = { status, version };
-      const timeoutId = window.setTimeout(() => {
-        if (window.v12Desktop?.restart) {
-          void window.v12Desktop.restart();
-        }
-      }, 2200);
-      return () => window.clearTimeout(timeoutId);
-    }
-
-    return undefined;
-  }, [syncState?.releaseStatus, syncState?.releaseTargetVersion]);
 
   useEffect(() => {
     if (!operador) return;
@@ -382,23 +313,11 @@ export function usePdvSession({ onResetVenda, onCarregarFinanceiroSupportData })
   }, [caixa, operador]);
 
   useEffect(() => {
-    let active = true;
-
     const boot = async () => {
-      const statusData = await refreshTerminalStatus({ syncRemote: true, silent: true });
-      if (!active) return;
-
-      if (statusData?.configurado && !statusData?.bloqueado) {
-        const releaseResult = await prepararAtualizacaoRelease({ reason: "startup" });
-        if (!active || releaseResult?.blocked) return;
-      }
+      await refreshTerminalStatus({ syncRemote: true, silent: true });
     };
 
     void boot();
-
-    return () => {
-      active = false;
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -592,6 +511,7 @@ export function usePdvSession({ onResetVenda, onCarregarFinanceiroSupportData })
     consultarStatusFiscalLocal,
     enviarContingenciasFiscais,
     atualizarPdvCompleto,
+    verificarAtualizacaoVersao,
     handleOperadorLogin,
     openModule,
     handleCaixaAberto,

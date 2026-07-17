@@ -152,7 +152,6 @@ function PdvApp() {
           }}
           onLogin={session.handleOperadorLogin}
           onRefreshStatus={session.refreshTerminalStatus}
-          syncState={session.syncState}
         />
         <SupportChatWidget entryPoint="floating" />
       </>
@@ -185,6 +184,7 @@ function PdvApp() {
         openModule={session.openModule}
         carregarHistoricoVendas={historico.carregarHistoricoVendas}
         atualizarPdvCompleto={session.atualizarPdvCompleto}
+        verificarAtualizacaoVersao={session.verificarAtualizacaoVersao}
         consultarStatusFiscalLocal={session.consultarStatusFiscalLocal}
         enviarContingenciasFiscais={session.enviarContingenciasFiscais}
         alternarTelaCheia={session.alternarTelaCheia}

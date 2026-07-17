@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import { createReadStream, createWriteStream } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { execFile, spawn } from "node:child_process";
+import { execFile } from "node:child_process";
 import { Readable } from "node:stream";
 import { env } from "../../config/env.js";
 import { getCaixaAberto } from "../../modules/caixa/caixaRepository.js";
@@ -14,7 +14,6 @@ import {
   markReleaseApplied,
   markReleaseDownloaded,
   markReleaseError,
-  markReleaseInstalled,
   markReleaseStaged,
   upsertReleaseUpdate,
 } from "../../modules/atualizacao/releaseRepository.js";
@@ -66,98 +65,6 @@ const runCommand = (command, args, options = {}) =>
     });
   });
 
-const wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
-
-const spawnDetached = async (command, args) => {
-  let lastError = null;
-
-  for (let attempt = 1; attempt <= 4; attempt += 1) {
-    try {
-      spawn(command, args, {
-        detached: true,
-        stdio: "ignore",
-        shell: false,
-      }).unref();
-      return;
-    } catch (error) {
-      lastError = error;
-      if (error?.code !== "EBUSY" || attempt === 4) {
-        throw error;
-      }
-
-      console.warn("[desktop-release] Instalador ocupado, tentando novamente", {
-        command,
-        attempt,
-        message: error.message,
-      });
-      await wait(1500 * attempt);
-    }
-  }
-
-  throw lastError;
-};
-
-const quotePowerShellString = (value) => `'${String(value || "").replace(/'/g, "''")}'`;
-
-const spawnSilentInstallerAndRelaunch = async ({ installerPath, extension }) => {
-  if (process.platform !== "win32") {
-    if (extension === ".msi") {
-      await spawnDetached("msiexec", ["/i", installerPath]);
-      return;
-    }
-
-    await spawnDetached(installerPath, []);
-    return;
-  }
-
-  const appPath = process.execPath;
-  const installDir = path.dirname(appPath);
-  const processName = path.basename(appPath, path.extname(appPath));
-  const scriptPath = path.join(env.pdvReleaseDir, `v12-pdv-update-${Date.now()}.ps1`);
-  const logPath = path.join(env.pdvReleaseDir, "installer-update.log");
-  const nsisArguments = `/S /D=${installDir}`;
-  const installCommand =
-    extension === ".msi"
-      ? `Start-Process -FilePath "msiexec.exe" -ArgumentList @("/i", ${quotePowerShellString(
-          installerPath,
-        )}, "/qn", "/norestart") -Verb RunAs -Wait -PassThru`
-      : `Start-Process -FilePath ${quotePowerShellString(
-          installerPath,
-        )} -ArgumentList ${quotePowerShellString(nsisArguments)} -Verb RunAs -Wait -PassThru`;
-  const script = [
-    "$ErrorActionPreference = 'Stop'",
-    `$logPath = ${quotePowerShellString(logPath)}`,
-    "function Write-UpdateLog { param([string]$Message) Add-Content -LiteralPath $logPath -Value (\"[$(Get-Date -Format o)] \" + $Message) -Encoding UTF8 }",
-    "try {",
-    "  Write-UpdateLog 'Atualização iniciada.'",
-    `  Write-UpdateLog ${quotePowerShellString(`Diretório destino: ${installDir}.`)}`,
-    `  Write-UpdateLog ${quotePowerShellString(`Argumentos do instalador: ${nsisArguments}.`)}`,
-    "  Start-Sleep -Seconds 2",
-    `  Get-Process -Name ${quotePowerShellString(processName)} -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue`,
-    `  Write-UpdateLog ${quotePowerShellString(`Executando instalador ${installerPath}.`)}`,
-    `  $process = ${installCommand}`,
-    "  Write-UpdateLog (\"Instalador finalizado. ExitCode=\" + $process.ExitCode)",
-    "  Start-Sleep -Seconds 1",
-    `  if (Test-Path -LiteralPath ${quotePowerShellString(appPath)}) { Start-Process -FilePath ${quotePowerShellString(
-      appPath,
-    )}; Write-UpdateLog 'PDV reaberto.' } else { Write-UpdateLog 'Executável do PDV não encontrado após instalação.' }`,
-    "} catch {",
-    "  Write-UpdateLog ('Falha na atualização: ' + $_.Exception.Message)",
-    "  throw",
-    "}",
-  ].join("\n");
-
-  await fs.mkdir(env.pdvReleaseDir, { recursive: true });
-  await fs.writeFile(scriptPath, script, "utf8");
-  await spawnDetached("powershell.exe", [
-    "-NoProfile",
-    "-ExecutionPolicy",
-    "Bypass",
-    "-File",
-    scriptPath,
-  ]);
-};
-
 const isInstallerPackage = (filePath = "") => {
   const extension = path.extname(String(filePath || "")).toLowerCase();
   return extension === ".exe" || extension === ".msi";
@@ -189,6 +96,49 @@ const assertSemCaixaAberto = () => {
     throw new Error("Atualização baixada. Ela será aplicada após o fechamento do caixa.");
   }
 };
+
+async function validateDownloadedReleaseFile(release) {
+  const filePath = release?.arquivo_local;
+  if (!filePath) {
+    return {
+      valid: false,
+      message: "Release baixado sem caminho do arquivo local.",
+    };
+  }
+
+  let stat = null;
+  try {
+    stat = await fs.stat(filePath);
+  } catch {
+    return {
+      valid: false,
+      message: "Arquivo de atualização baixado não foi encontrado.",
+    };
+  }
+
+  const expectedSize = Number(release.tamanho_bytes || 0);
+  if (expectedSize > 0 && Number(stat.size || 0) !== expectedSize) {
+    return {
+      valid: false,
+      message: `Tamanho do arquivo inválido. Esperado ${expectedSize} bytes, obtido ${stat.size} bytes.`,
+    };
+  }
+
+  const expectedHash = String(release.arquivo_sha256 || "").trim().toLowerCase();
+  const hash = await sha256File(filePath);
+  if (expectedHash && hash.toLowerCase() !== expectedHash) {
+    return {
+      valid: false,
+      message: "Hash do release baixado não confere.",
+    };
+  }
+
+  return {
+    valid: true,
+    hash,
+    size: Number(stat.size || 0),
+  };
+}
 
 async function reconcileInstalledRelease(localRelease) {
   if (!localRelease?.release_id || localRelease.tipo_release !== "app") {
@@ -347,7 +297,7 @@ export async function verificarAtualizacaoPdv() {
     : null;
   const localPending =
     localCandidate &&
-    ["baixado", "staged", "instalando"].includes(String(localCandidate.status || ""));
+    ["baixado", "staged"].includes(String(localCandidate.status || ""));
   const localFailed = localCandidate && String(localCandidate.status || "") === "erro";
   const alreadyApplied =
     localCandidate &&
@@ -475,63 +425,16 @@ export async function baixarAtualizacaoPdv(releaseId, { autoApply = true } = {})
   return downloaded;
 }
 
-export async function instalarAtualizacaoPdv(releaseId) {
-  const release = getReleaseUpdateByReleaseId(releaseId);
-  if (!release?.arquivo_local) {
-    throw new Error("Baixe o release antes de instalar.");
-  }
-
-  assertSemCaixaAberto();
-  await fs.access(release.arquivo_local);
-  const extension = path.extname(release.arquivo_local).toLowerCase();
-
-  try {
-    if (extension === ".msi" || extension === ".exe") {
-      await spawnSilentInstallerAndRelaunch({
-        installerPath: release.arquivo_local,
-        extension,
-      });
-    } else {
-      throw new Error("Este tipo de release deve ser instalado manualmente.");
-    }
-
-    console.info("[desktop-release] Instalador disparado", {
-      releaseId: release.release_id,
-      versao: release.versao,
-      arquivoLocal: release.arquivo_local,
-    });
-    return markReleaseInstalled(releaseId);
-  } catch (error) {
-    markReleaseError({ releaseId, error: error?.message || error });
-    throw error;
-  }
-}
-
 export async function prepararAtualizacaoPdv() {
   const release = await verificarAtualizacaoPdv();
   let releaseLocal = release.local || null;
   let action = "none";
   const localPendingStatus = String(releaseLocal?.status || "");
 
-  if (localPendingStatus === "instalando" && releaseLocal?.release_id) {
-    action = "waiting_installer";
-    const message =
-      `A atualização ${releaseLocal.versao} já foi iniciada, mas a versão instalada ` +
-      `continua ${env.pdvVersion}. Conclua o instalador manualmente ou publique uma nova release.`;
-    releaseLocal = markReleaseError({
-      releaseId: releaseLocal.release_id,
-      error: message,
-    });
-    console.warn("[desktop-release] Instalação anterior não alterou a versão do PDV", {
-      releaseId: releaseLocal.release_id,
-      versaoRelease: releaseLocal.versao,
-      versaoAtual: env.pdvVersion,
-      message,
-    });
-  } else if (["baixado", "staged"].includes(localPendingStatus) && releaseLocal?.release_id) {
+  if (["baixado", "staged"].includes(localPendingStatus) && releaseLocal?.release_id) {
     const arquivoLocal = String(releaseLocal?.arquivo_local || "").toLowerCase();
     const isInstaller = arquivoLocal.endsWith(".exe") || arquivoLocal.endsWith(".msi");
-    action = isInstaller ? "waiting_electron_updater" : "apply";
+    action = isInstaller ? "waiting_next_startup" : "apply";
     try {
       releaseLocal = isInstaller ? releaseLocal : await aplicarAtualizacaoPdv(releaseLocal.release_id);
     } catch (error) {
@@ -550,8 +453,8 @@ export async function prepararAtualizacaoPdv() {
       (remoteFileName.endsWith(".exe") || remoteFileName.endsWith(".msi"));
 
     if (remoteIsInstaller) {
-      action = "electron_updater";
-      releaseLocal = release.local || getReleaseUpdateByReleaseId(release.release.release_id);
+      action = "download_installer";
+      releaseLocal = await baixarAtualizacaoPdv(release.release.release_id, { autoApply: false });
     } else {
       action = "download";
       releaseLocal = await baixarAtualizacaoPdv(release.release.release_id);
@@ -563,6 +466,96 @@ export async function prepararAtualizacaoPdv() {
     local: releaseLocal,
     action,
     statusLocal: releaseLocal?.status || null,
+  };
+}
+
+export async function verificarInstaladorProntoPdv() {
+  let remoteStatus = null;
+  try {
+    remoteStatus = await verificarAtualizacaoPdv();
+  } catch (error) {
+    return {
+      ready: false,
+      versao_atual: env.pdvVersion,
+      message:
+        "Não foi possível confirmar atualização na retaguarda. O PDV seguirá sem aplicar atualização.",
+      error: error?.message || String(error),
+    };
+  }
+
+  const latestLocal = await reconcileInstalledRelease(getLatestReleaseUpdate());
+  const pendingRelease = getPendingApplicableRelease();
+
+  if (!pendingRelease?.release_id) {
+    return {
+      ready: false,
+      versao_atual: env.pdvVersion,
+      latest_local: latestLocal,
+      message: "Nenhum instalador de atualização baixado.",
+    };
+  }
+
+  const remoteLocalReleaseId = remoteStatus?.local?.release_id;
+  if (String(remoteLocalReleaseId || "") !== String(pendingRelease.release_id)) {
+    return {
+      ready: false,
+      versao_atual: env.pdvVersion,
+      latest_local: latestLocal,
+      message: "Instalador baixado não corresponde à release atualmente publicada.",
+    };
+  }
+
+  const extension = path.extname(String(pendingRelease.arquivo_local || "")).toLowerCase();
+  const isInstaller =
+    pendingRelease.tipo_release === "app" && (extension === ".exe" || extension === ".msi");
+
+  if (!isInstaller) {
+    return {
+      ready: false,
+      versao_atual: env.pdvVersion,
+      latest_local: latestLocal,
+      message: "Atualização local não é um instalador do aplicativo.",
+    };
+  }
+
+  if (compareVersions(pendingRelease.versao, env.pdvVersion) <= 0) {
+    const applied = markReleaseApplied({
+      releaseId: pendingRelease.release_id,
+      status: "aplicado",
+    });
+    return {
+      ready: false,
+      versao_atual: env.pdvVersion,
+      latest_local: applied,
+      message: "Instalador já corresponde à versão instalada.",
+    };
+  }
+
+  const validation = await validateDownloadedReleaseFile(pendingRelease);
+  if (!validation.valid) {
+    const erro = markReleaseError({
+      releaseId: pendingRelease.release_id,
+      error: validation.message,
+    });
+    return {
+      ready: false,
+      versao_atual: env.pdvVersion,
+      latest_local: erro,
+      message: validation.message,
+    };
+  }
+
+  return {
+    ready: true,
+    versao_atual: env.pdvVersion,
+    release_id: pendingRelease.release_id,
+    versao: pendingRelease.versao,
+    arquivo_local: pendingRelease.arquivo_local,
+    arquivo_original: pendingRelease.arquivo_original,
+    arquivo_sha256: pendingRelease.arquivo_sha256,
+    tamanho_bytes: pendingRelease.tamanho_bytes,
+    validacao: validation,
+    message: `Atualização ${pendingRelease.versao} pronta para instalação.`,
   };
 }
 

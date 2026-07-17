@@ -5,7 +5,6 @@ import { reenviarContingenciasNfce } from "../modules/vendas/vendaRepository.js"
 import { verificarConectividadeInternet } from "./networkService.js";
 import { syncProdutosFromErp } from "./produtoSyncService.js";
 import { syncUsuariosFromErp } from "./usuarioSyncService.js";
-import { prepararAtualizacaoPdv } from "./atualizacao/releaseUpdateService.js";
 
 export async function atualizarPdvCompleto({ full = true } = {}) {
   const steps = [];
@@ -157,32 +156,6 @@ export async function atualizarPdvCompleto({ full = true } = {}) {
       console.info("[desktop-sync] Etapa concluida", steps[steps.length - 1]);
     }
 
-    try {
-      const release = await prepararAtualizacaoPdv();
-      const releaseLocal = release.local || null;
-      steps.push({
-        key: "release",
-        label: "Release do PDV",
-        success: true,
-        details: {
-          versaoAtual: release.versao_atual,
-          updateAvailable: release.update_available === true,
-          versaoDisponivel: release.release?.versao || release.latest?.versao || null,
-          statusLocal: releaseLocal?.status || null,
-        },
-      });
-      console.info("[desktop-sync] Etapa concluida", steps[steps.length - 1]);
-    } catch (error) {
-      steps.push({
-        key: "release",
-        label: "Release do PDV",
-        success: false,
-        details: {
-          message: error?.message || "Não foi possível verificar atualização do PDV.",
-        },
-      });
-      console.warn("[desktop-sync] Etapa de release ignorada", steps[steps.length - 1]);
-    }
   } catch (error) {
     console.error("[desktop-sync] Falha na atualização completa", {
       completedSteps: steps,

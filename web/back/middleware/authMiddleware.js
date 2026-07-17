@@ -15,16 +15,7 @@ const isMasterAdministrativePath = (req) => {
   );
 };
 
-const isPublicDesktopUpdaterPath = (req) => {
-  const path = String(req.originalUrl || req.url || "");
-  return path.includes("/desktop/sync/releases/electron-updater/");
-};
-
 const verificarToken = async (req, res, next) => {
-  if (isPublicDesktopUpdaterPath(req)) {
-    return next();
-  }
-
   const token = req.cookies?.token;
 
   if (!token) {
