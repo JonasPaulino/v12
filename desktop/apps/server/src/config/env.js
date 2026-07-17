@@ -162,4 +162,8 @@ export const env = {
   pdvVersionDir: process.env.V12_PDV_VERSION_DIR || path.join(desktopRoot, "data", "versions"),
   pdvResourceDir: process.env.V12_PDV_RESOURCE_DIR || path.join(desktopRoot, "data", "resources"),
   pdvReleaseAutoCheckMinutes: Number(process.env.V12_PDV_RELEASE_AUTO_CHECK_MINUTES || 30),
+  pdvReleaseRequestTimeoutMs: Number(process.env.V12_PDV_RELEASE_REQUEST_TIMEOUT_MS || 8000),
+  pdvReleaseDownloadStartTimeoutMs: Number(
+    process.env.V12_PDV_RELEASE_DOWNLOAD_START_TIMEOUT_MS || 15000,
+  ),
 };

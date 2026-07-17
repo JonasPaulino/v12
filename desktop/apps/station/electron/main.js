@@ -333,7 +333,7 @@ async function openDownloadedInstallerOnStartup() {
       return false;
     }
 
-    const pending = await fetchLocalJson("/release/instalador-pronto", { timeoutMs: 120000 });
+    const pending = await fetchLocalJson("/release/instalador-pronto", { timeoutMs: 25000 });
     if (!pending?.ready || !pending?.arquivo_local) {
       logMain("Nenhum instalador de atualização pronto", {
         message: pending?.message || null,

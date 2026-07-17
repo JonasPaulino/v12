@@ -14,6 +14,7 @@ import {
   markReleaseApplied,
   markReleaseDownloaded,
   markReleaseError,
+  markReleaseFileValidated,
   markReleaseStaged,
   upsertReleaseUpdate,
 } from "../../modules/atualizacao/releaseRepository.js";
@@ -35,6 +36,28 @@ const assertSyncToken = () => {
 const buildAuthHeaders = () => ({
   Authorization: `Bearer ${env.erpSyncToken}`,
 });
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = env.pdvReleaseRequestTimeoutMs) {
+  const controller = new AbortController();
+  const timeoutValue = Number(timeoutMs || 0);
+  const timeout =
+    timeoutValue > 0 ? setTimeout(() => controller.abort(), timeoutValue) : null;
+
+  try {
+    return await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      throw new Error("Tempo limite ao comunicar com a retaguarda.");
+    }
+
+    throw error;
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
+}
 
 const sha256File = async (filePath) =>
   new Promise((resolve, reject) => {
@@ -125,6 +148,22 @@ async function validateDownloadedReleaseFile(release) {
   }
 
   const expectedHash = String(release.arquivo_sha256 || "").trim().toLowerCase();
+  const cachedHash = String(release.arquivo_validado_sha256 || "").trim().toLowerCase();
+  const cachedSize = Number(release.arquivo_validado_tamanho || 0);
+  const cachedIsValid =
+    !!release.arquivo_validado_em &&
+    cachedSize === Number(stat.size || 0) &&
+    (!expectedHash || cachedHash === expectedHash);
+
+  if (cachedIsValid) {
+    return {
+      valid: true,
+      hash: cachedHash,
+      size: Number(stat.size || 0),
+      cached: true,
+    };
+  }
+
   const hash = await sha256File(filePath);
   if (expectedHash && hash.toLowerCase() !== expectedHash) {
     return {
@@ -132,6 +171,12 @@ async function validateDownloadedReleaseFile(release) {
       message: "Hash do release baixado não confere.",
     };
   }
+
+  markReleaseFileValidated({
+    releaseId: release.release_id,
+    arquivoSha256: hash,
+    arquivoTamanho: Number(stat.size || 0),
+  });
 
   return {
     valid: true,
@@ -274,7 +319,7 @@ export async function verificarAtualizacaoPdv() {
       currentVersion,
     });
 
-    const response = await fetch(`${getErpBaseUrl()}/desktop/sync/releases/latest?${params}`, {
+    const response = await fetchWithTimeout(`${getErpBaseUrl()}/desktop/sync/releases/latest?${params}`, {
       headers: buildAuthHeaders(),
     });
     const result = await response.json().catch(() => ({}));
@@ -357,9 +402,13 @@ export async function baixarAtualizacaoPdv(releaseId, { autoApply = true } = {})
     ? downloadUrl
     : `${getErpBaseUrl()}${downloadUrl}`;
 
-  const response = await fetch(url, {
-    headers: buildAuthHeaders(),
-  });
+  const response = await fetchWithTimeout(
+    url,
+    {
+      headers: buildAuthHeaders(),
+    },
+    env.pdvReleaseDownloadStartTimeoutMs,
+  );
 
   if (!response.ok || !response.body) {
     const errorPayload = await response.json().catch(() => ({}));
@@ -375,6 +424,7 @@ export async function baixarAtualizacaoPdv(releaseId, { autoApply = true } = {})
     reader.pipe(writer);
   });
 
+  const stat = await fs.stat(targetPath);
   const hash = await sha256File(targetPath);
   if (release.arquivo_sha256 && hash !== release.arquivo_sha256) {
     await fs.rm(targetPath, { force: true }).catch(() => {});
@@ -384,6 +434,8 @@ export async function baixarAtualizacaoPdv(releaseId, { autoApply = true } = {})
   const downloaded = markReleaseDownloaded({
     releaseId,
     arquivoLocal: targetPath,
+    arquivoSha256: hash,
+    arquivoTamanho: Number(stat.size || 0),
   });
   console.info("[desktop-release] Release baixado", {
     releaseId: downloaded.release_id,

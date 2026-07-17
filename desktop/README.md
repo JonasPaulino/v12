@@ -65,6 +65,12 @@ npm --workspace @v12-desktop/station run dev:electron
 
 O servidor local expõe a API em `http://127.0.0.1:5100/api/local`.
 
+## Desinstalacao Limpa
+
+O uninstall pergunta se deve remover tambem os dados locais do PDV. Ao confirmar, ele apaga as pastas `v12-desktop` do `AppData` do usuario atual, incluindo banco SQLite, cache, logs e releases baixados.
+
+Para suporte em cliente, execute a remocao com o mesmo usuario do Windows que opera o PDV. Se o PDV foi usado por outro perfil, o `AppData` desse outro perfil pode continuar no disco.
+
 ## Setup e Sincronizacao
 
 Configure no `.env` do desktop:

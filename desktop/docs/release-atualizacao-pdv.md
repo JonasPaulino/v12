@@ -7,7 +7,9 @@
 3. O backend web salva o arquivo em `PDV_RELEASE_STORAGE_DIR`, calcula SHA-256 e publica metadados.
 4. O PDV local consulta `/desktop/sync/releases/latest` usando `DESKTOP_SYNC_TOKEN`.
 5. Se existir versão maior, o PDV baixa o arquivo, valida SHA-256 e registra em `release_update`.
-6. A instalação é acionada explicitamente pelo PDV local. O sistema não troca binário no meio de uma venda.
+6. A baixa é silenciosa e não interfere na operação do caixa.
+7. Na próxima abertura do PDV, se o instalador já estiver baixado e validado, o Electron abre o setup do Windows e encerra o PDV.
+8. O sistema não troca binário no meio de uma venda.
 
 ## Versão do PDV
 
@@ -28,6 +30,9 @@ O comando `npm run package:win` já executa essa sincronização automaticamente
 - `V12_PDV_RELEASE_CHANNEL`: canal consumido pelo terminal, por padrão `stable`.
 - `V12_PDV_RELEASE_PLATFORM`: plataforma consumida, por padrão `win32-x64`.
 - `V12_PDV_RELEASE_DIR`: pasta local onde o PDV baixa releases.
+- `V12_PDV_RELEASE_AUTO_CHECK_MINUTES`: intervalo da checagem silenciosa de release.
+- `V12_PDV_RELEASE_REQUEST_TIMEOUT_MS`: tempo máximo para consultar metadados de release.
+- `V12_PDV_RELEASE_DOWNLOAD_START_TIMEOUT_MS`: tempo máximo para iniciar o download do release.
 
 ## Instalador
 

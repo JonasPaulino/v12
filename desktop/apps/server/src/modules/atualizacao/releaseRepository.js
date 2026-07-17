@@ -96,7 +96,12 @@ export function upsertReleaseUpdate(release, { status = "disponivel", arquivoLoc
   return getReleaseUpdateByReleaseId(releaseId);
 }
 
-export function markReleaseDownloaded({ releaseId, arquivoLocal }) {
+export function markReleaseDownloaded({
+  releaseId,
+  arquivoLocal,
+  arquivoSha256 = null,
+  arquivoTamanho = null,
+}) {
   getDb()
     .prepare(
       `
@@ -105,12 +110,40 @@ export function markReleaseDownloaded({ releaseId, arquivoLocal }) {
           status = 'baixado',
           arquivo_local = ?,
           baixado_em = CURRENT_TIMESTAMP,
+          arquivo_validado_em = ?,
+          arquivo_validado_sha256 = ?,
+          arquivo_validado_tamanho = ?,
           ultimo_erro = NULL,
           atualizado_em = CURRENT_TIMESTAMP
         WHERE release_id = ?
       `,
     )
-    .run(arquivoLocal, String(releaseId));
+    .run(
+      arquivoLocal,
+      arquivoSha256 ? new Date().toISOString() : null,
+      arquivoSha256,
+      arquivoTamanho == null ? null : Number(arquivoTamanho || 0),
+      String(releaseId),
+    );
+
+  return getReleaseUpdateByReleaseId(releaseId);
+}
+
+export function markReleaseFileValidated({ releaseId, arquivoSha256, arquivoTamanho }) {
+  getDb()
+    .prepare(
+      `
+        UPDATE release_update
+        SET
+          arquivo_validado_em = CURRENT_TIMESTAMP,
+          arquivo_validado_sha256 = ?,
+          arquivo_validado_tamanho = ?,
+          ultimo_erro = NULL,
+          atualizado_em = CURRENT_TIMESTAMP
+        WHERE release_id = ?
+      `,
+    )
+    .run(arquivoSha256, Number(arquivoTamanho || 0), String(releaseId));
 
   return getReleaseUpdateByReleaseId(releaseId);
 }
