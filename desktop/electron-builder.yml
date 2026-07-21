@@ -48,6 +48,7 @@ win:
 nsis:
   oneClick: false
   perMachine: true
+  deleteAppDataOnUninstall: false
   include: build/installer.nsh
   allowToChangeInstallationDirectory: false
   createDesktopShortcut: true

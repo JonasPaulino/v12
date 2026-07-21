@@ -67,9 +67,9 @@ O servidor local expõe a API em `http://127.0.0.1:5100/api/local`.
 
 ## Desinstalacao Limpa
 
-O uninstall pergunta se deve remover tambem os dados locais do PDV. Ao confirmar, ele apaga as pastas `v12-desktop` do `AppData` do usuario atual, incluindo banco SQLite, cache, logs e releases baixados.
+O instalador e o uninstall preservam os dados locais do PDV. Banco SQLite, configuracao do terminal, logs, releases baixados e arquivos fiscais ficam em `AppData\v12-desktop` e nao devem ser apagados em atualizacoes.
 
-Para suporte em cliente, execute a remocao com o mesmo usuario do Windows que opera o PDV. Se o PDV foi usado por outro perfil, o `AppData` desse outro perfil pode continuar no disco.
+Remocao limpa de dados locais deve ser feita somente por procedimento tecnico controlado, fora do instalador de producao.
 
 ## Setup e Sincronizacao
 
