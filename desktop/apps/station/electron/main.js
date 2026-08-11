@@ -527,12 +527,11 @@ async function resolveThermalPageSize(targetWindow, printerConfig) {
     `(() => {
       const body = document.body;
       const html = document.documentElement;
+      const sheet = document.querySelector(".sheet");
       return Math.max(
         body ? body.scrollHeight : 0,
-        body ? body.offsetHeight : 0,
-        html ? html.clientHeight : 0,
         html ? html.scrollHeight : 0,
-        html ? html.offsetHeight : 0
+        sheet ? Math.ceil(sheet.getBoundingClientRect().height) : 0
       );
     })()`,
     true,
@@ -963,7 +962,8 @@ async function buildDanfceHtml(payload = {}, config = {}) {
   const inscricaoEstadual = escapeHtml(sale.emitente?.inscricaoEstadual || "");
   const chaveAcesso = fiscal.chave_acesso || fiscal.chaveAcesso || extractXmlTag(xml, "chNFe");
   const protocolo = fiscal.protocolo || extractXmlTag(xml, "nProt");
-  const dataAutorizacao = extractXmlTag(xml, "dhRecbto") || sale.data || new Date().toLocaleString("pt-BR");
+  const dataEmissao = formatPrintDate(extractXmlTag(xml, "dhEmi") || sale.data);
+  const dataAutorizacao = formatPrintDate(extractXmlTag(xml, "dhRecbto") || sale.data);
   const qrCodeUrl = extractXmlTag(xml, "qrCode");
   const qrCodeImage = await buildQrDataUrl(qrCodeUrl);
   const numero = fiscal.numero || extractXmlTag(xml, "nNF") || "";
@@ -985,8 +985,6 @@ async function buildDanfceHtml(payload = {}, config = {}) {
     fiscal.fonte_tributos || fiscal.fonteTributos || sale.fonte_tributos || extractTributosFonte(xml),
   );
   const cliente = escapeHtml(sale.cliente || "Consumidor não identificado");
-  const terminal = escapeHtml(sale.terminal || "PDV");
-  const operador = escapeHtml(sale.operador || "Operador");
   const rows = items
     .map((item, index) => {
       const quantidade = Number(item.quantidade || 0);
@@ -998,7 +996,7 @@ async function buildDanfceHtml(payload = {}, config = {}) {
 
       return `
         <div class="item-line">
-          <div class="item-head">${String(index + 1).padStart(3, "0")} ${codigo} ${descricao}</div>
+          <div class="item-head">${String(index + 1).padStart(3, "0")} CÓD. ${codigo} ${descricao}</div>
           <div class="item-detail">
             <span>${escapeHtml(String(quantidade))} ${unidade} x ${valorUnitario}</span>
             <strong>${valorTotal}</strong>
@@ -1156,6 +1154,7 @@ async function buildDanfceHtml(payload = {}, config = {}) {
 
             <div class="stripe">DANFE NFC-e - Documento Auxiliar da Nota Fiscal de Consumidor Eletrônica</div>
             <div class="center small">NFC-e nº ${escapeHtml(numero)} Série ${escapeHtml(serie)} - ${escapeHtml(ambiente)} - ${escapeHtml(ambienteDocumento)}</div>
+            <div class="center small">Data/hora de emissão: ${escapeHtml(dataEmissao)}</div>
             <div class="center small muted">Não permite aproveitamento de crédito de ICMS</div>
             ${isHomologacao ? `<div class="alert-stripe">EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL</div>` : ""}
 
@@ -1197,8 +1196,6 @@ async function buildDanfceHtml(payload = {}, config = {}) {
 
             <div class="block">
               <div class="row"><span>CONSUMIDOR</span><strong>${cliente}</strong></div>
-              <div class="row"><span>OPERADOR</span><strong>${operador}</strong></div>
-              <div class="row"><span>TERMINAL</span><strong>${terminal}</strong></div>
             </div>
 
             <div class="separator">${separator}</div>
@@ -1206,8 +1203,7 @@ async function buildDanfceHtml(payload = {}, config = {}) {
             <div class="center block small">
               <strong>CHAVE DE ACESSO</strong>
               <div>${escapeHtml(formatAccessKey(chaveAcesso))}</div>
-              ${protocolo ? `<div>Protocolo de autorização: ${escapeHtml(protocolo)}</div>` : ""}
-              <div>Data de autorização: ${escapeHtml(dataAutorizacao)}</div>
+              ${protocolo ? `<div>Protocolo de autorização: ${escapeHtml(protocolo)}</div><div>Data/hora de autorização: ${escapeHtml(dataAutorizacao)}</div>` : ""}
             </div>
 
             ${qrCodeUrl ? `
