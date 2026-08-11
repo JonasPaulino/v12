@@ -1973,10 +1973,10 @@ label {
 
 .sales-detail-footer-actions {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 6px;
   margin: 0 auto;
-  padding: 12px;
+  padding: 8px;
   background:
     linear-gradient(180deg, rgba(243, 247, 251, 0.98), rgba(229, 236, 243, 0.98)),
     #e9eff4;
@@ -1984,15 +1984,22 @@ label {
 }
 
 .sales-detail-footer-actions button {
-  min-height: 42px;
-  padding: 0 14px;
-  border-radius: 10px;
+  min-height: 34px;
+  padding: 5px 9px;
+  border-radius: 6px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 5px;
+  font-size: 0.72rem;
+  line-height: 1.15;
   font-weight: 800;
   text-transform: uppercase;
+}
+
+.sales-detail-footer-actions button svg {
+  flex: 0 0 auto;
+  font-size: 0.86rem;
 }
 
 .sales-detail-footer-actions .secondary-action {

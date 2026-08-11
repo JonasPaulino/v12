@@ -508,6 +508,21 @@ async function resolveThermalPageSize(targetWindow, printerConfig) {
     return null;
   }
 
+  await targetWindow.webContents.executeJavaScript(
+    `Promise.all([
+      document.fonts?.ready || Promise.resolve(),
+      ...Array.from(document.images || []).map((image) =>
+        image.complete
+          ? Promise.resolve()
+          : new Promise((resolve) => {
+              image.addEventListener("load", resolve, { once: true });
+              image.addEventListener("error", resolve, { once: true });
+            }),
+      ),
+    ])`,
+    true,
+  );
+
   const contentHeightPx = await targetWindow.webContents.executeJavaScript(
     `(() => {
       const body = document.body;
@@ -524,7 +539,7 @@ async function resolveThermalPageSize(targetWindow, printerConfig) {
   );
 
   const width = printerConfig.layout === "thermal-58" ? 58000 : 80000;
-  const topAndBottomSafetyPx = 24;
+  const topAndBottomSafetyPx = 48;
   const minHeightPx = 120;
   const resolvedHeightPx = Math.max(minHeightPx, Number(contentHeightPx || 0) + topAndBottomSafetyPx);
 
@@ -576,6 +591,28 @@ function formatDocument(value = "") {
   return String(value || "").trim();
 }
 
+function formatPrintDate(value = "") {
+  const raw = String(value || "").trim();
+  const date = raw ? new Date(raw.includes("T") ? raw : raw.replace(" ", "T")) : new Date();
+
+  if (Number.isNaN(date.getTime())) {
+    return raw || "-";
+  }
+
+  const parts = new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+
+  return `${values.day}/${values.month}/${values.year} ${values.hour}:${values.minute}:${values.second}`;
+}
+
 function getDocumentLabel(value = "") {
   const digits = String(value || "").replace(/\D/g, "");
   if (digits.length === 14) return "CNPJ";
@@ -592,7 +629,7 @@ function buildBudgetHtml(payload = {}, config = {}) {
   const total = formatCurrency(payload.total || 0);
   const operador = escapeHtml(payload.operador || "Operador");
   const cliente = escapeHtml(payload.cliente || "Cliente não identificado");
-  const data = escapeHtml(payload.data || new Date().toLocaleString("pt-BR"));
+  const data = escapeHtml(formatPrintDate(payload.data));
   const emitente = escapeHtml(payload.emitente?.nome || payload.empresa?.nome || "V12 ERP");
   const emitenteDocumentoRaw = payload.emitente?.documento || payload.empresa?.documento || "";
   const documentoEmitente = escapeHtml(formatDocument(emitenteDocumentoRaw));
@@ -600,23 +637,22 @@ function buildBudgetHtml(payload = {}, config = {}) {
   const enderecoEmitente = escapeHtml(payload.emitente?.endereco || payload.empresa?.endereco || "");
   const inscricaoEstadual = escapeHtml(payload.emitente?.inscricaoEstadual || payload.empresa?.inscricaoEstadual || "");
   const inscricaoMunicipal = escapeHtml(payload.emitente?.inscricaoMunicipal || payload.empresa?.inscricaoMunicipal || "");
-  const terminal = escapeHtml(payload.terminal || "PDV");
   const numeroDocumento = escapeHtml(payload.numeroDocumento || "ORÇAMENTO");
   const isThermal = printerConfig.layout !== "a4";
   const pageWidth = printerConfig.layout === "thermal-58" ? "58mm" : printerConfig.layout === "thermal-80" ? "80mm" : "210mm";
+  const thermalContentWidth = printerConfig.layout === "thermal-58" ? "50mm" : "74mm";
   const separator = isThermal ? "-".repeat(printerConfig.layout === "thermal-58" ? 32 : 46) : "";
   const rows = items
     .map((item, index) => {
       const quantidade = Number(item.quantidade || 0);
       const valorUnitario = formatCurrency(item.valor_unitario || 0);
       const valorTotal = formatCurrency(quantidade * Number(item.valor_unitario || 0));
-      const codigo = escapeHtml(item.codigo_produto || item.codigo || String(index + 1).padStart(3, "0"));
       const descricao = escapeHtml(String(item.descricao || "").toUpperCase());
       const unidade = escapeHtml(String(item.unidade || "UN").toUpperCase());
 
       return `
         <div class="item-line">
-          <div class="item-head">${codigo} ${descricao}</div>
+          <div class="item-head">${descricao}</div>
           <div class="item-detail">
             <span>${escapeHtml(String(quantidade))} ${unidade} x ${valorUnitario}</span>
             <strong>${valorTotal}</strong>
@@ -650,8 +686,11 @@ function buildBudgetHtml(payload = {}, config = {}) {
         <title>Orçamento V12 ERP</title>
         <style>
           :root {
-            color: #1f2937;
-            font-family: ${isThermal ? '"Courier New", monospace' : 'Arial, Helvetica, sans-serif'};
+            color: #000;
+            font-family: ${isThermal ? 'Arial, "Segoe UI", sans-serif' : 'Arial, Helvetica, sans-serif'};
+            font-synthesis: none;
+            -webkit-font-smoothing: ${isThermal ? "none" : "antialiased"};
+            text-rendering: geometricPrecision;
           }
           @page {
             size: ${pageWidth} auto;
@@ -664,26 +703,37 @@ function buildBudgetHtml(payload = {}, config = {}) {
             background: #fff;
           }
           .sheet {
-            max-width: ${isThermal ? pageWidth : "780px"};
+            max-width: ${isThermal ? thermalContentWidth : "780px"};
+            width: ${isThermal ? thermalContentWidth : "100%"};
+            box-sizing: border-box;
             margin: ${isThermal ? "0" : "0 auto"};
             border: ${isThermal ? "0" : "1px solid #d7dde6"};
-            padding: ${isThermal ? "2mm 2mm 0" : "18px"};
+            padding: ${isThermal ? "0 1mm 2mm" : "18px"};
           }
           .coupon {
             display: grid;
+            width: 100%;
+            box-sizing: border-box;
             gap: ${isThermal ? "6px" : "10px"};
             font-size: ${isThermal ? "11px" : "12px"};
-            color: #111827;
+            line-height: 1.25;
+            color: #000;
+            font-weight: ${isThermal ? "600" : "400"};
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          .coupon * {
+            color: #000;
           }
           .center {
             text-align: center;
           }
           .title {
-            font-weight: 700;
+            font-weight: 800;
             font-size: ${isThermal ? "13px" : "18px"};
           }
           .muted {
-            color: #475569;
+            color: #000;
           }
           .stripe {
             padding: 6px 4px;
@@ -696,7 +746,7 @@ function buildBudgetHtml(payload = {}, config = {}) {
           .separator {
             white-space: pre;
             overflow: hidden;
-            color: #475569;
+            color: #000;
           }
           .meta-row,
           .total-row,
@@ -707,6 +757,21 @@ function buildBudgetHtml(payload = {}, config = {}) {
             justify-content: space-between;
             gap: 10px;
           }
+          .total-row > span,
+          .payment-row > span,
+          .consumer-row > span,
+          .foot-row > span {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+          .total-row > strong,
+          .payment-row > strong,
+          .consumer-row > strong,
+          .foot-row > strong {
+            flex: 0 0 auto;
+            white-space: nowrap;
+          }
           .item-header {
             display: grid;
             gap: 2px;
@@ -716,7 +781,7 @@ function buildBudgetHtml(payload = {}, config = {}) {
             display: grid;
             gap: 2px;
             padding: 3px 0;
-            border-bottom: 1px dotted #9ca3af;
+            border-bottom: 1px solid #000;
           }
           .item-head {
             font-weight: 700;
@@ -728,13 +793,23 @@ function buildBudgetHtml(payload = {}, config = {}) {
             gap: 8px;
             align-items: baseline;
           }
+          .item-detail > span {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+          .item-detail > strong {
+            flex: 0 0 auto;
+            white-space: nowrap;
+          }
           .totals {
             display: grid;
             gap: 4px;
           }
           .grand-total {
             font-size: ${isThermal ? "14px" : "18px"};
-            font-weight: 700;
+            font-weight: 800;
           }
           .payments {
             display: grid;
@@ -763,7 +838,7 @@ function buildBudgetHtml(payload = {}, config = {}) {
               ${inscricaoEstadual ? `<div>IE: ${inscricaoEstadual}</div>` : ""}
               ${inscricaoMunicipal ? `<div>IM: ${inscricaoMunicipal}</div>` : ""}
               ${enderecoEmitente ? `<div class="small">${enderecoEmitente}</div>` : ""}
-              <div class="small muted">${terminal}  ${data}</div>
+              <div class="small muted">${data}</div>
             </div>
 
             <div class="stripe">Cupom de orçamento - sem valor fiscal</div>
@@ -776,7 +851,7 @@ function buildBudgetHtml(payload = {}, config = {}) {
 
             <div class="item-header">
               <strong>ITENS</strong>
-              <span class="muted small">COD  DESCRIÇÃO / QTDE UN X VL.UN .......... VL.TOTAL</span>
+              <span class="muted small">DESCRIÇÃO / QTDE UN X VL.UN .......... VL.TOTAL</span>
             </div>
 
             <div class="items">
@@ -820,7 +895,6 @@ function buildBudgetHtml(payload = {}, config = {}) {
             <div class="center block small muted">
               <div>V12 ERP</div>
               <div>jhes.com.br</div>
-              <div>Emitido por ${terminal}</div>
               <div class="thanks">OBRIGADO!</div>
             </div>
           </div>
@@ -879,6 +953,7 @@ async function buildDanfceHtml(payload = {}, config = {}) {
   const pagamentos = Array.isArray(sale.pagamentos) ? sale.pagamentos : [];
   const isThermal = printerConfig.layout !== "a4";
   const pageWidth = printerConfig.layout === "thermal-58" ? "58mm" : printerConfig.layout === "thermal-80" ? "80mm" : "210mm";
+  const thermalContentWidth = printerConfig.layout === "thermal-58" ? "50mm" : "74mm";
   const separator = isThermal ? "-".repeat(printerConfig.layout === "thermal-58" ? 32 : 46) : "";
   const emitente = escapeHtml(sale.emitente?.nome || "V12 ERP");
   const emitenteDocumentoRaw = sale.emitente?.documento || "";
@@ -947,8 +1022,11 @@ async function buildDanfceHtml(payload = {}, config = {}) {
         <title>DANFCe V12 ERP</title>
         <style>
           :root {
-            color: #111827;
-            font-family: ${isThermal ? '"Courier New", monospace' : 'Arial, Helvetica, sans-serif'};
+            color: #000;
+            font-family: ${isThermal ? 'Arial, "Segoe UI", sans-serif' : 'Arial, Helvetica, sans-serif'};
+            font-synthesis: none;
+            -webkit-font-smoothing: ${isThermal ? "none" : "antialiased"};
+            text-rendering: geometricPrecision;
           }
           @page {
             size: ${pageWidth} auto;
@@ -961,18 +1039,30 @@ async function buildDanfceHtml(payload = {}, config = {}) {
             background: #fff;
           }
           .sheet {
-            max-width: ${isThermal ? pageWidth : "780px"};
+            max-width: ${isThermal ? thermalContentWidth : "780px"};
+            width: ${isThermal ? thermalContentWidth : "100%"};
+            box-sizing: border-box;
             margin: ${isThermal ? "0" : "0 auto"};
-            padding: ${isThermal ? "2mm 2mm 0" : "0"};
+            padding: ${isThermal ? "0 1mm 2mm" : "0"};
           }
           .coupon {
             display: grid;
+            width: 100%;
+            box-sizing: border-box;
             gap: ${isThermal ? "6px" : "10px"};
             font-size: ${isThermal ? "11px" : "12px"};
+            line-height: 1.25;
+            color: #000;
+            font-weight: ${isThermal ? "600" : "400"};
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          .coupon * {
+            color: #000;
           }
           .center { text-align: center; }
-          .title { font-weight: 700; font-size: ${isThermal ? "13px" : "18px"}; }
-          .muted { color: #475569; }
+          .title { font-weight: 800; font-size: ${isThermal ? "13px" : "18px"}; }
+          .muted { color: #000; }
           .stripe {
             padding: 6px 4px;
             border-top: 1px dashed #000;
@@ -992,7 +1082,7 @@ async function buildDanfceHtml(payload = {}, config = {}) {
           .separator {
             white-space: pre;
             overflow: hidden;
-            color: #475569;
+            color: #000;
           }
           .row,
           .item-detail,
@@ -1001,11 +1091,32 @@ async function buildDanfceHtml(payload = {}, config = {}) {
             justify-content: space-between;
             gap: 8px;
           }
+          .row > span,
+          .payment-row > span {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+          .row > strong,
+          .payment-row > strong {
+            flex: 0 0 auto;
+            white-space: nowrap;
+          }
           .item-line {
             display: grid;
             gap: 2px;
             padding: 3px 0;
-            border-bottom: 1px dotted #9ca3af;
+            border-bottom: 1px solid #000;
+          }
+          .item-detail > span {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+          .item-detail > strong {
+            flex: 0 0 auto;
+            white-space: nowrap;
           }
           .item-head {
             font-weight: 700;
@@ -1020,7 +1131,7 @@ async function buildDanfceHtml(payload = {}, config = {}) {
           }
           .grand-total {
             font-size: ${isThermal ? "14px" : "18px"};
-            font-weight: 700;
+            font-weight: 800;
           }
           .break {
             word-break: break-all;
