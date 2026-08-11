@@ -326,7 +326,7 @@ export function buildConsultaStatusFiscalResult(readiness) {
     ready: readiness.ready,
     diagnostics: readiness.diagnostics || null,
     message: readiness.ready
-      ? "Terminal preparado para NFC-e com ACBrLib."
+      ? "Terminal preparado para comunicação com a SEFAZ."
       : readiness.reason,
   };
 }

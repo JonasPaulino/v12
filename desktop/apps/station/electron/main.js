@@ -969,8 +969,13 @@ async function buildDanfceHtml(payload = {}, config = {}) {
   const numero = fiscal.numero || extractXmlTag(xml, "nNF") || "";
   const serie = fiscal.serie || extractXmlTag(xml, "serie") || "";
   const tpAmb = String(fiscal.tpAmb || extractXmlTag(xml, "tpAmb") || "").trim();
+  const tpEmis = String(fiscal.tpEmis || extractXmlTag(xml, "tpEmis") || "").trim();
   const isHomologacao = tpAmb === "2";
-  const ambiente = String(fiscal.status || "").toLowerCase() === "contingencia" ? "EM CONTINGÊNCIA" : "NORMAL";
+  const isContingencia =
+    String(fiscal.status || "").toLowerCase() === "contingencia" ||
+    String(fiscal.mode || "").toLowerCase().includes("contingencia") ||
+    tpEmis === "9";
+  const ambiente = isContingencia ? "EM CONTINGÊNCIA" : "NORMAL";
   const ambienteDocumento = isHomologacao ? "HOMOLOGACAO" : "PRODUCAO";
   const subtotal = formatCurrency(sale.subtotal || 0);
   const desconto = formatCurrency(sale.desconto || 0);
@@ -1017,7 +1022,7 @@ async function buildDanfceHtml(payload = {}, config = {}) {
     <html lang="pt-BR">
       <head>
         <meta charset="utf-8" />
-        <title>DANFCe V12 ERP</title>
+        <title>DANFE NFC-e V12 ERP</title>
         <style>
           :root {
             color: #000;
@@ -1156,6 +1161,7 @@ async function buildDanfceHtml(payload = {}, config = {}) {
             <div class="center small">NFC-e nº ${escapeHtml(numero)} Série ${escapeHtml(serie)} - ${escapeHtml(ambiente)} - ${escapeHtml(ambienteDocumento)}</div>
             <div class="center small">Data/hora de emissão: ${escapeHtml(dataEmissao)}</div>
             <div class="center small muted">Não permite aproveitamento de crédito de ICMS</div>
+            ${isContingencia ? `<div class="alert-stripe">EMITIDA EM CONTINGÊNCIA</div>` : ""}
             ${isHomologacao ? `<div class="alert-stripe">EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL</div>` : ""}
 
             <div class="separator">${separator}</div>
@@ -1371,7 +1377,7 @@ ipcMain.handle("sale:print-danfce", async (_event, payload = {}, config = {}) =>
 ipcMain.handle("sale:print-pdf-file", async (_event, pdfPath, config = {}) => {
   const rawPdfPath = String(pdfPath || "").trim();
   if (!rawPdfPath) {
-    throw new Error("PDF do DANFCe não informado para impressão.");
+    throw new Error("PDF do DANFE NFC-e não informado para impressão.");
   }
   const resolvedPdfPath = path.resolve(rawPdfPath);
 

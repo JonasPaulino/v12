@@ -378,7 +378,7 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
       try {
         await imprimirDanfce({ fiscal: result.fiscal, venda: result.venda });
       } catch (printError) {
-        avisoImpressao = ` NFC-e autorizada, mas o DANFCe não foi impresso: ${printError.message}`;
+        avisoImpressao = ` NFC-e autorizada, mas o DANFE NFC-e não foi impresso: ${printError.message}`;
       }
     }
 
@@ -423,7 +423,7 @@ export function usePdvVenda({ config, operador, caixa, activeModule, caixaPenden
       try {
         await imprimirDanfce({ fiscal: result.fiscal, venda: result.venda });
       } catch (printError) {
-        avisoImpressao = ` DANFCe de contingência emitido, mas não foi possível imprimir: ${printError.message}`;
+        avisoImpressao = ` DANFE NFC-e de contingência emitido, mas não foi possível imprimir: ${printError.message}`;
       }
 
       showAlert({

@@ -128,11 +128,11 @@ export function usePdvHistorico({ config, operador, caixa, onPrintBudget }) {
 
     if (["autorizada", "contingencia"].includes(historicoVendaDetalhe.nfce_status)) {
       try {
-        showLoading("Reimprimindo DANFCe...");
+        showLoading("Reimprimindo DANFE NFC-e...");
         await imprimirDanfceHistorico(historicoVendaDetalhe);
       } catch (error) {
         showAlert({
-          title: "Falha ao reimprimir DANFCe",
+          title: "Falha ao reimprimir DANFE NFC-e",
           text: error.message,
           icon: "error",
         });
@@ -192,7 +192,7 @@ export function usePdvHistorico({ config, operador, caixa, onPrintBudget }) {
             pdfPath: data?.fiscal?.pdfPath || null,
           });
         } catch (printError) {
-          avisoImpressao = ` A NFC-e foi emitida, mas o DANFCe não foi impresso: ${printError.message}`;
+          avisoImpressao = ` A NFC-e foi emitida, mas o DANFE NFC-e não foi impresso: ${printError.message}`;
         }
       }
 

@@ -27,14 +27,14 @@ function sanitizeAcbrWorkerMessage(message = "", diagnostics = null) {
   }
 
   if (/Pacote @projetoacbr\/acbrlib-nfe-node/i.test(raw) || /Cannot find module '@projetoacbr\/acbrlib-nfe-node'/i.test(raw)) {
-    return "A integração fiscal local não está completa. O pacote Node da ACBrLibNFe não foi encontrado no desktop.";
+    return "A integração fiscal local não está completa. O componente fiscal não foi encontrado no terminal.";
   }
 
   if (/ACBrLibNFe n[aã]o encontrada em/i.test(raw) && diagnostics?.libPath) {
     return `A biblioteca fiscal da NFC-e não foi encontrada no terminal. Verifique o arquivo em ${diagnostics.libPath}.`;
   }
 
-  return raw;
+  return raw.replace(/ACBrLibNFe|ACBrLib|ACBr/gi, "integração fiscal");
 }
 
 export async function runNfceEmissionWorker({
@@ -90,7 +90,7 @@ export async function runNfceEmissionWorker({
 
     const result = await safeReadJsonFile(outputPath);
     if (!result?.ok) {
-      throw new Error(result?.lastReturn || result?.message || "Falha na emissão da NFC-e pela ACBrLib.");
+      throw new Error(result?.lastReturn || result?.message || "Falha na emissão da NFC-e pela integração fiscal.");
     }
 
     return result;
@@ -114,9 +114,9 @@ export async function runNfceEmissionWorker({
           result?.message ||
           stderr ||
           error.message ||
-          "Falha na emissão da NFC-e pela ACBrLib.",
+          "Falha na emissão da NFC-e pela integração fiscal.",
         diagnostics,
-      ) || "Falha na emissão da NFC-e pela ACBrLib.";
+      ) || "Falha na emissão da NFC-e pela integração fiscal.";
 
     const wrapped = new Error(message);
     wrapped.details = {
@@ -138,7 +138,7 @@ export function getAcbrLibReadiness() {
     return {
       ready: false,
       diagnostics,
-      reason: "O PDV está configurado para outro adaptador fiscal. Defina V12_ACBR_MODE=lib.",
+      reason: "O PDV está configurado para um emissor fiscal incompatível. Verifique a configuração da integração fiscal.",
     };
   }
 
@@ -156,7 +156,7 @@ export function getAcbrLibReadiness() {
     return {
       ready: false,
       diagnostics,
-      reason: `ACBrLibNFe não encontrada em ${diagnostics.libPath}.`,
+      reason: "Componente fiscal da NFC-e não encontrado no terminal. Verifique a instalação do PDV.",
     };
   }
 
@@ -174,7 +174,7 @@ export function getAcbrLibReadiness() {
     return {
       ready: false,
       diagnostics,
-      reason: `Arquivo ACBrNFeServicos.ini não encontrado em ${diagnostics.iniServicosPath}.`,
+      reason: "O arquivo de serviços da SEFAZ não foi encontrado no terminal. Verifique a instalação do PDV.",
     };
   }
 

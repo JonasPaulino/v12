@@ -45,7 +45,7 @@ export function ConfiguracaoLocal() {
     const diagnostics = fiscalStatus?.diagnostics || {};
     return [
       {
-        label: "Biblioteca ACBr",
+        label: "Comunicação com a SEFAZ",
         value: diagnostics.libExists ? "OK" : "Não localizada",
       },
       {
@@ -194,7 +194,7 @@ export function ConfiguracaoLocal() {
       <div className="local-settings-head">
         <div>
           <strong>Impressora local</strong>
-          <span>Configure a impressora padrão do terminal para orçamento, DANFCe e futuras reimpressões.</span>
+          <span>Configure a impressora padrão do terminal para orçamento, DANFE NFC-e e futuras reimpressões.</span>
         </div>
       </div>
 

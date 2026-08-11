@@ -25,14 +25,14 @@ export async function sendDanfceToPrint(pdfPath) {
 
   if (pdfPath) {
     if (!window.v12Desktop?.printPdfFile) {
-      throw new Error("A impressão do DANFCe funciona somente no app Electron.");
+      throw new Error("A impressão do DANFE NFC-e funciona somente no app Electron.");
     }
 
     await window.v12Desktop.printPdfFile(pdfPath, printerConfig);
     return;
   }
 
-  throw new Error("A NFC-e foi autorizada, mas o PDF do DANFCe não foi gerado.");
+  throw new Error("A NFC-e foi autorizada, mas o PDF do DANFE NFC-e não foi gerado.");
 }
 
 export async function sendDanfceHtmlToPrint(payload) {
@@ -50,7 +50,7 @@ export async function sendDanfceHtmlToPrint(payload) {
   }
 
   if (!payload?.fiscal) {
-    throw new Error("Dados fiscais do DANFCe não informados para impressão.");
+    throw new Error("Dados fiscais do DANFE NFC-e não informados para impressão.");
   }
 
   if (window.v12Desktop?.printDanfce) {
@@ -58,5 +58,5 @@ export async function sendDanfceHtmlToPrint(payload) {
     return;
   }
 
-  throw new Error("A impressão do DANFCe exige reiniciar o app Electron para carregar o módulo fiscal.");
+  throw new Error("A impressão do DANFE NFC-e exige reiniciar o app Electron para carregar o módulo fiscal.");
 }

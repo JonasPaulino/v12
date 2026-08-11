@@ -28,7 +28,7 @@ function resolveAcbrLibRuntimeEntry() {
         available: false,
         entryPath: null,
         legacyEntryPath: null,
-        message: firstError?.message || "Pacote ACBrLibNFe Node não encontrado.",
+        message: firstError?.message || "Componente fiscal não encontrado.",
       };
     }
   }
@@ -44,7 +44,7 @@ function loadAcbrLibRuntime() {
       return legacyModule?.default || legacyModule?.ACBrLibNFeMT || legacyModule;
     } catch {
       const error = new Error(
-        "A dependência Node da ACBrLibNFe não está instalada no desktop.",
+        "O componente fiscal não está instalado no desktop.",
       );
       error.cause = firstError;
       throw error;
@@ -167,7 +167,7 @@ export async function ensureAcbrLibRuntime() {
   loadAcbrLibRuntime();
 
   if (!existsSync(env.acbrLibPath)) {
-    throw new Error(`ACBrLibNFe não encontrada em ${env.acbrLibPath}.`);
+    throw new Error("Componente fiscal da NFC-e não encontrado no terminal.");
   }
 
   if (!existsSync(env.acbrLibSchemaPath)) {
@@ -175,7 +175,7 @@ export async function ensureAcbrLibRuntime() {
   }
 
   if (!existsSync(env.acbrLibIniServicosPath)) {
-    throw new Error(`Arquivo ACBrNFeServicos.ini não encontrado em ${env.acbrLibIniServicosPath}.`);
+    throw new Error("O arquivo de serviços da SEFAZ não foi encontrado no terminal.");
   }
 
   await ensureDir(env.acbrLibConfigDir);
@@ -193,7 +193,7 @@ function applyConfig(acbr, sessao, chave, valor) {
       return;
     }
     throw new Error(
-      `Falha ao gravar configuração ACBr [${sessao}] ${chave}: ${message}`,
+      `Falha ao gravar configuração fiscal [${sessao}] ${chave}: ${message}`,
     );
   }
 }
